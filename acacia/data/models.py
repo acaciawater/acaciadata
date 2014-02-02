@@ -141,8 +141,8 @@ class DataFile(models.Model):
         gen = self.generator.get_class()
         params = gen().get_parameters(self.file)
         for p in params:
-            theparam = self.parameter_set.get_or_create(**p)
-            theparam.save()
+            #theparam = self.parameter_set.get_or_create(**p)
+            theparam, created = self.parameter_set.get_or_create(name=p['name'], defaults=p)
             
     def parameters(self):
         return self.parameter_set.count()
