@@ -1,0 +1,10 @@
+{% block content %}
+<h2>Datafile details</h2>
+<table>
+<tr><th>key</th><th>value</th></tr>
+<tr><td>file</td><td><a href='/media/{{object.file}}'>{{object.file}}</a></td></tr>
+<tr><td>aangemaakt</td><td>{{object.created}}</td></tr>
+<tr><td>laatse update</td><td>{{object.uploaded}}</td></tr>
+<tr><td>gebruiker</td><td>{{object.user}}</td></tr>
+</table>
+{% endblock %}
