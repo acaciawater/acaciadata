@@ -20,13 +20,25 @@ class Meteo(Generator):
         
     def get_header(self, f):
         header = {}
+        descr = {}
+        header['DESCRIPTION'] = descr
         line = f.readline()
         while line != '':
-            if line.startswith('# STN,YYYYMMDD'):
-                columns = [w.strip() for w in line[2:].split(',')]
-                header['COLUMNS'] = [c for c in columns if len(c)>0]
-                f.readline()
-                break
+            if line.startswith('# YYYYMMDD'):
+                line = f.readline()
+                while line.startswith('#'):
+                    if line.startswith('# STN,YYYYMMDD'):
+                        columns = [w.strip() for w in line[2:].split(',')]
+                        header['COLUMNS'] = [c for c in columns if len(c)>0]
+                        f.readline()
+                        break
+                    else:
+                        eq = line.find('=')
+                        if eq>0:
+                            key = line[1:eq].strip()
+                            val = line[eq+1:].strip()
+                            descr[key]=val
+                        line = f.readline()
             else:
                 line = f.readline()
         return header
@@ -40,7 +52,8 @@ class Meteo(Generator):
     def get_parameters(self, fil):
         header = self.get_header(fil)
         names = header['COLUMNS'][2:] # eerste 2 zijn station en datum
-        params = [{'name': name, 'description' : name, 'unit': 'unknown'} for name in names]  
+        desc = header['DESCRIPTION']
+        params = [{'name': name, 'description' : desc.get(name,name), 'unit': 'unknown'} for name in names]  
         return params
     
 class Neerslag(Meteo):
@@ -49,7 +62,24 @@ class Neerslag(Meteo):
     
     def get_header(self, f):
         header = {}
-        line = f.readline()
+        descr = {}
+        header['DESCRIPTION'] = descr
+        for i in range(0,9):
+            line = f.readline()
+        lastkey = ''
+        while line != '':
+            if line.strip() == '':
+                line = f.readline()
+                break
+            key = line[:9].strip()
+            if len(key) > 0:
+                descr[key] = line[11:].strip()
+                lastkey = key
+            else:
+                key = lastkey
+                descr[key] = descr[key] + line[11:].strip()
+            line = f.readline()
+            
         while line != '':
             if line.startswith('STN,YYYYMMDD'):
                 columns = [w.strip() for w in line.split(',')]

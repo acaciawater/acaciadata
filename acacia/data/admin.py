@@ -1,5 +1,7 @@
 from acacia.data.models import Project, ProjectLocatie, MeetLocatie, Series, DataFile, Generator, Parameter
 from django.contrib import admin
+from django.db import models
+from django import forms
 
 class LocatieInline(admin.TabularInline):
     model = ProjectLocatie
@@ -13,9 +15,10 @@ class MeetlocatieInline(admin.TabularInline):
 class DataFileInline(admin.TabularInline):
     model = DataFile
 
-class ParameterInline(admin.StackedInline):
+class ParameterInline(admin.TabularInline):
     model = Parameter
     extra = 1
+    fields = ('name', 'description', 'unit', 'datafile',)
 
 class ProjectAdmin(admin.ModelAdmin):
     list_display = ('name', 'locaties', )
@@ -35,7 +38,7 @@ def upload_datafile(modeladmin, request, queryset):
         
 upload_datafile.short_description = "Upload de geselecteerde data files naar de server"
 
-def update_parameters(modeladmin, reuest, queryset):
+def update_parameters(modeladmin, request, queryset):
     for df in queryset:
         df.update_parameters()
 
@@ -63,12 +66,21 @@ class DataProviderAdmin(admin.ModelAdmin):
 
 class ParameterAdmin(admin.ModelAdmin):
     list_filter = ('datafile',)
-    list_display = ('name', 'unit', 'description', )
+    list_display = ('name', 'unit', 'description', 'datafile')
+
+def refresh_series(modeladmin, request, queryset):
+    for s in queryset:
+        s.refresh()
+refresh_series.short_description = 'Actualiseer de geselecteerde tijdreeksen'
+    
+class SeriesAdmin(admin.ModelAdmin):
+    actions = [refresh_series,]
+    list_display = ('name', 'parameter', 'datafile', 'unit', ) # add from, to
     
 admin.site.register(Project, ProjectAdmin)
 admin.site.register(ProjectLocatie, ProjectLocatieAdmin)
 admin.site.register(MeetLocatie, MeetLocatieAdmin)
-admin.site.register(Series)
+admin.site.register(Series, SeriesAdmin)
 admin.site.register(Parameter, ParameterAdmin)
 admin.site.register(Generator)
 admin.site.register(DataFile, DataFileAdmin)

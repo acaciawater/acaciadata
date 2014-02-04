@@ -120,7 +120,7 @@ class DataFile(models.Model):
     #filedate.short_description = 'datum'
     
     def __unicode__(self):
-        return self.filename
+        return self.name
 
     def get_absolute_url(self):
         return r'/data/%i/' % self.id 
@@ -142,7 +142,7 @@ class DataFile(models.Model):
         params = gen().get_parameters(self.file)
         for p in params:
             #theparam = self.parameter_set.get_or_create(**p)
-            theparam, created = self.parameter_set.get_or_create(name=p['name'], defaults=p)
+            self.parameter_set.get_or_create(name=p['name'], defaults=p)
             
     def parameters(self):
         return self.parameter_set.count()
@@ -166,17 +166,25 @@ class Parameter(models.Model):
     unit = models.CharField(max_length=10, default='m',verbose_name='eenheid')
 
     def __unicode__(self):
-        return self.name
+        return '%s (%s)' % (self.name, self.datafile)
 
 class Series(models.Model):
     name = models.CharField(max_length=50,verbose_name='naam')
     description = models.TextField(blank=True,verbose_name='omschrijving')
     unit = models.CharField(max_length=10, blank=True, verbose_name='eenheid')
     parameter = models.ForeignKey(Parameter,null=True,blank=True)
-
+    autorefresh = models.BooleanField(default = True)
+    
     def __unicode__(self):
         return self.name
 
+    def get_absolute_url(self):
+        return r'/series/%i/' % self.id 
+
+    def datafile(self):
+        return self.parameter.datafile
+    datafile.short_description = 'Bestandsnaam'
+    
     class Meta:
         verbose_name = 'tijdreeks'
         verbose_name_plural = 'tijdreeksen'
