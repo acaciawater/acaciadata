@@ -1,4 +1,4 @@
-from acacia.data.models import Project, ProjectLocatie, MeetLocatie, Series, DataFile, Generator, Parameter
+from acacia.data.models import Project, ProjectLocatie, MeetLocatie, Series, DataFile, Generator, Parameter, DataPoint
 from django.contrib import admin
 from django.db import models
 from django import forms
@@ -53,7 +53,7 @@ class DataFileAdmin(admin.ModelAdmin):
                  ('Algemeen', {'fields': ('name', 'description', 'file', 'generator',),
                                'classes': ('grp-collapse grp-open',),
                                }),
-                 ('Bronnen', {'fields': ('url','autorefresh',),
+                 ('Bronnen', {'fields': ('url',),
                                'classes': ('grp-collapse grp-closed',),
                               }),
                  ('Admin', {'fields': ('user',),
@@ -61,7 +61,7 @@ class DataFileAdmin(admin.ModelAdmin):
                             })
     )
 
-class DataProviderAdmin(admin.ModelAdmin):
+class GeneratorAdmin(admin.ModelAdmin):
     list_display = ('name', 'classname', 'description')
 
 class ParameterAdmin(admin.ModelAdmin):
@@ -72,15 +72,41 @@ def refresh_series(modeladmin, request, queryset):
     for s in queryset:
         s.refresh()
 refresh_series.short_description = 'Actualiseer de geselecteerde tijdreeksen'
+
+class ReadonlyTabularInline(admin.TabularInline):
+    can_delete = False
+    extra = 0
+    editable_fields = []
     
+    def get_readonly_fields(self, request, obj=None):
+        fields = []
+        for field in self.model._meta.get_all_field_names():
+            if (not field == 'id'):
+                if (field not in self.editable_fields):
+                    fields.append(field)
+        return fields
+    
+    def has_add_permission(self, request):
+        return False
+    
+class DataPointInline(ReadonlyTabularInline):
+    model = DataPoint
+        
 class SeriesAdmin(admin.ModelAdmin):
     actions = [refresh_series,]
-    list_display = ('name', 'parameter', 'datafile', 'unit', ) # add from, to
+    list_display = ('name', 'parameter', 'datafile', 'unit', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
+    inlines = [DataPointInline,]
     
+class DataPointAdmin(admin.ModelAdmin):
+    list_display = ('series', 'date', 'value',)
+    list_filter = ('series', )
+    ordering = ('series', 'date', )
+
 admin.site.register(Project, ProjectAdmin)
 admin.site.register(ProjectLocatie, ProjectLocatieAdmin)
 admin.site.register(MeetLocatie, MeetLocatieAdmin)
 admin.site.register(Series, SeriesAdmin)
 admin.site.register(Parameter, ParameterAdmin)
-admin.site.register(Generator)
+admin.site.register(Generator, GeneratorAdmin)
 admin.site.register(DataFile, DataFileAdmin)
+admin.site.register(DataPoint, DataPointAdmin)

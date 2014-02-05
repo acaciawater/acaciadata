@@ -32,7 +32,7 @@ class NMCPro(Generator):
             if line.startswith('# STN,YYYYMMDD'):
                 names = [w.strip() for w in line[2:].split(',')]
                 data = pd.read_csv(f, header=0, names=names, comment = '#', index_col = [0,1], parse_dates = True)
-                return [header,data]
+                return data
             line = f.readline()
         return None
 

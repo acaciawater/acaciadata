@@ -80,9 +80,3 @@ class Regenradar(Generator):
 
     def get_parameters(self, fil):
         return  [{'name': 'neerslag', 'description' : 'dagelijkse neerslag', 'unit': 'mm/d'}]  
-        
-if __name__ == '__main__':
-    borgsweer = Regenradar(x=263000,y=591000)
-    fil = 'test.csv'
-    borgsweer.upload(fil,start=datetime.date(2014,1,1))
-    

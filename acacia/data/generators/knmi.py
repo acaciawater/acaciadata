@@ -30,7 +30,7 @@ class Meteo(Generator):
                     if line.startswith('# STN,YYYYMMDD'):
                         columns = [w.strip() for w in line[2:].split(',')]
                         header['COLUMNS'] = [c for c in columns if len(c)>0]
-                        f.readline()
+                        #f.readline()
                         break
                     else:
                         eq = line.find('=')
@@ -39,6 +39,7 @@ class Meteo(Generator):
                             val = line[eq+1:].strip()
                             descr[key]=val
                         line = f.readline()
+                break
             else:
                 line = f.readline()
         return header
@@ -46,8 +47,8 @@ class Meteo(Generator):
     def get_data(self, f, **kwargs):
         header = self.get_header(f)
         columns = header['COLUMNS']
-        data = pd.read_csv(f, header=0, names=columns, comment = '#', index_col = [0,1], parse_dates = True)
-        return [header,data]
+        data = pd.read_csv(f, header=0, names=columns, comment = '#', index_col = 1, parse_dates = True)
+        return data
 
     def get_parameters(self, fil):
         header = self.get_header(fil)
@@ -94,4 +95,4 @@ class Neerslag(Meteo):
         names = header['COLUMNS']
         names.append('NAME')
         data = pd.read_csv(f, header=None, names=names, comment = '#', index_col = [0,1], parse_dates = True)
-        return [header,data]
+        return data

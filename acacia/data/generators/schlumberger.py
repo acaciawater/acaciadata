@@ -16,7 +16,7 @@ class MonFileException(Exception):
     def __str__(self):
         return repr(self.value)
 
-class Mon(Generator):
+class Diver(Generator):
 
     def get_header(self,f):
         line = f.readline()
@@ -84,9 +84,3 @@ class Mon(Generator):
             channel = 'Channel %d' % num
         params = [{'name': name, 'description' : name, 'unit': 'unknown'} for name in names]  
         return params
-
-if __name__ == '__main__':
-    mon = Mon()
-    data=mon.parse(file='/home/theo/acacia/mondata/media/monfiles/88134_3b_refperc.MON')
-    print data[0]
-    print data[1]
