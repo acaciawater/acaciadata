@@ -1,4 +1,4 @@
-import os,datetime,urllib2,cgi
+import os,datetime
 from django.db import models
 from django.db.models import Avg, Max, Min
 from django.contrib.auth.models import User
@@ -135,25 +135,17 @@ class DataFile(models.Model):
     def get_generator_instance(self):
         gen = self.generator.get_class()
         return gen()
-        
-    def download(self,save=True):
-        response = urllib2.urlopen(self.url)
-        if response is not None:
-            if self.url.startswith('ftp'):
-                filename = os.path.basename(self.url)
-            else:
-                _,params = cgi.parse_header(response.headers.get('Content-Disposition',''))
-                filename = params.get('filename','file.txt')
-            # oude file weggooien
-            # self.file.delete(False)
-            self.file.save(name=filename, content=ContentFile(response.read()), save=save)
     
+    def download(self,save=True):
+        gen = self.get_generator_instance()
+        filename, response = gen.download(url=self.url)
+        self.file.save(name=filename, content=ContentFile(response), save=save)
+                
     def update_parameters(self):
         gen = self.get_generator_instance()
         params = gen.get_parameters(self.file)
         self.file.close()
         for p in params:
-            #theparam = self.parameter_set.get_or_create(**p)
             self.parameter_set.get_or_create(name=p['name'], defaults=p)
 
     def get_data(self,**kwargs):
@@ -197,8 +189,8 @@ class Series(models.Model):
     description = models.TextField(blank=True,verbose_name='omschrijving')
     unit = models.CharField(max_length=10, blank=True, verbose_name='eenheid')
     parameter = models.ForeignKey(Parameter,null=True,blank=True)
-    #autorefresh = models.BooleanField(default = True)
-    
+    type = models.CharField(max_length=20, default='line')
+        
     def __unicode__(self):
         return self.name
 
@@ -254,13 +246,22 @@ class DataPoint(models.Model):
     series = models.ForeignKey(Series,related_name='datapoints')
     date = models.DateTimeField()
     value = models.FloatField()
-    
+    def jdate(self):
+        return self.date.date
+
 class Chart(models.Model):
     series = models.ManyToManyField(Series)
     name = models.CharField(max_length = 50, verbose_name = 'naam')
- #   slug = AutoSlugField(populate_from='name',null=True, blank=True, default='slug')
+#   slug = AutoSlugField(populate_from='name',null=True, blank=True, default='slug')
     title = models.CharField(max_length = 50, verbose_name = 'titel')
+    type = models.CharField(max_length=20, default='line')
 
+    def tijdreeksen(self):
+        return self.series.count()
+    
+    def __unicode__(self):
+        return self.name
+    
     class Meta:
         verbose_name = 'Grafiek'
         verbose_name_plural = 'Grafieken'

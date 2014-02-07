@@ -1,7 +1,8 @@
 from django.conf.urls import patterns, include, url
 from django.conf.urls.static import static
 from django.conf import settings
-from data.views import DataFileAddView, DataFileDetailView
+from data.views import DataFileAddView, DataFileDetailView, ChartView
+
 
 # Uncomment the next two lines to enable the admin:
 from django.contrib import admin
@@ -13,11 +14,9 @@ urlpatterns = patterns('',
     url(r'^knmi/', include('acacia.data.knmi.urls')),
     url(r'^data/(?P<pk>\d+)/$', DataFileDetailView.as_view(), name='datafile_details'),
     url(r'^data/add/', DataFileAddView.as_view(), name='datafile_add'),
-
-    # Uncomment the admin/doc line below to enable admin documentation:
-    #url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
-
-    # Uncomment the next line to enable the admin:
+    url(r'^chart/', ChartView.as_view(), name='chart'),
+    
+    url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
     url(r'^admin/', include(admin.site.urls)),
 )
 

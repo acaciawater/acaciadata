@@ -1,7 +1,5 @@
-from acacia.data.models import Project, ProjectLocatie, MeetLocatie, Series, DataFile, Generator, Parameter, DataPoint
+from acacia.data.models import Project, ProjectLocatie, MeetLocatie, Series, DataFile, Generator, Parameter, DataPoint, Chart
 from django.contrib import admin
-from django.db import models
-from django import forms
 
 class LocatieInline(admin.TabularInline):
     model = ProjectLocatie
@@ -96,11 +94,18 @@ class SeriesAdmin(admin.ModelAdmin):
     actions = [refresh_series,]
     list_display = ('name', 'parameter', 'datafile', 'unit', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
     inlines = [DataPointInline,]
-    
+
+class SeriesInline(admin.TabularInline):
+    model = Series
+        
 class DataPointAdmin(admin.ModelAdmin):
     list_display = ('series', 'date', 'value',)
     list_filter = ('series', )
     ordering = ('series', 'date', )
+
+class ChartAdmin(admin.ModelAdmin):
+    filter_horizontal = ('series',)
+    list_display = ('name', 'title', 'tijdreeksen', )
 
 admin.site.register(Project, ProjectAdmin)
 admin.site.register(ProjectLocatie, ProjectLocatieAdmin)
@@ -110,3 +115,4 @@ admin.site.register(Parameter, ParameterAdmin)
 admin.site.register(Generator, GeneratorAdmin)
 admin.site.register(DataFile, DataFileAdmin)
 admin.site.register(DataPoint, DataPointAdmin)
+admin.site.register(Chart, ChartAdmin)
