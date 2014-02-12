@@ -1,7 +1,7 @@
 from django.views.generic.edit import CreateView
 from django.views.generic import DetailView
 from django.views.generic.base import TemplateView
-from models import DataFile, Chart, Series
+from models import Project, DataFile, Chart
 import pandas as pd
 import numpy as np
 import json
@@ -17,9 +17,9 @@ class DataFileAddView(CreateView):
 
 class DataFileDetailView(DetailView):
     model = DataFile
-
+        
 def tojs(d):
-    return 'Date.UTC(%d,%d,%d)' % (d.year, d.month, d.day)
+    return 'Date.UTC(%d,%d,%d)' % (d.year, d.month-1, d.day)
 
 def date_handler(obj):
     return tojs(obj) if isinstance(obj, datetime.date) or isinstance(obj, datetime.datetime) else obj
@@ -29,14 +29,16 @@ class ChartView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super(ChartView, self).get_context_data(**kwargs)
-        chart = Chart.objects.get(pk=1)
+        pk = context.get('pk',1)
+        chart = Chart.objects.get(pk=pk)
         options = {
             'chart': {'type': chart.type, 'animation': False},
             'title': {'text': chart.title},
             'xAxis': {'type': 'datetime'},
             'yAxis': [],
-            'legend': {'enabled': False},
-            'plotOptions': {'line': {'marker': {'enabled': False}}}            
+            'legend': {'enabled': chart.series.count() > 1},
+            'plotOptions': {'line': {'marker': {'enabled': False}}},            
+            'credits': {'enabled': True, 'text': 'acaciawater.com', 'href': 'http://www.acaciawater.com'}
             }
 
         allseries = []
@@ -45,7 +47,7 @@ class ChartView(TemplateView):
                                      'title': {'text': ser.name},
                                      'opposite': 0 if i % 2 == 0 else 1
                                      })
-            pts = [[p.date,p.value] for p in ser.datapoints.all()]
+            pts = [[p.date,p.value] for p in ser.datapoints.all().order_by('date')]
             allseries.append({
                               'name': ser.name,
                               'type': ser.type,
@@ -79,4 +81,5 @@ class ChartView(TemplateView):
         context['options'] = jop
         return context
     
-        
+class ProjectView(DetailView):
+    model = Project       

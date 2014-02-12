@@ -1,10 +1,22 @@
+{% extends 'base.html' %}
 {% block content %}
-<h2>Datafile details</h2>
+<h2>Datafile {{object.name}} </h2>
 <table>
-<tr><th>key</th><th>value</th></tr>
-<tr><td>file</td><td><a href='/media/{{object.file}}'>{{object.file}}</a></td></tr>
-<tr><td>aangemaakt</td><td>{{object.created}}</td></tr>
-<tr><td>laatse update</td><td>{{object.uploaded}}</td></tr>
-<tr><td>gebruiker</td><td>{{object.user}}</td></tr>
+<tr><td>bron</td><td>{{object.generator}}</td></tr>
+<tr><td>url</td><td><a href='{{object.url}}'>{{object.url}}</a></td></tr>
+<tr><td>aangemaakt op</td><td>{{object.created}}</td></tr>
+<tr><td>laatste update</td><td>{{object.uploaded}}</td></tr>
+<tr><td>update door</td><td>{{object.user}}</td></tr>
+<tr><td>lokaal bestand</td><td><a href='/media/{{object.file}}'>{{object.file}}</a></td></tr>
+<tr><td>grootte</td><td>{{object.filesize}}&nbsp;bytes</td></tr>
+<tr><td>datum</td><td>{{object.filedate}}</td></tr>
+<tr><td>CRC32</td><td>{{object.compute_crc}}</td></tr>
+<tr><td>parameters</td><td>{{object.parameters}}</td></tr>
+</table>
+<table>
+<tr><th>parameter</th><th>omschrijving</th><th>grafiek</th></tr>
+{% for p in object.parameter_set.all %}
+<tr><td>{{p.name}}</td><td>{{p.description}}</td><td><img src='/media/{{p.make_thumbnail}}'/></td></tr>
+{% endfor %}
 </table>
 {% endblock %}

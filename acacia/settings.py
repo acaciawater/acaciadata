@@ -38,8 +38,8 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'south',
-    'chartit',
+    'mptt',
+    'djcelery',
     'acacia',
     'acacia.data',
     'acacia.data.knmi',
@@ -100,3 +100,40 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 GRAPPELLI_ADMIN_TITLE='Beheer van Acacia Online Datastore'
+
+CELERY_RESULT_BACKEND='djcelery.backends.database:DatabaseBackend'
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'acacia.log'),
+            'formatter': 'default'
+        },
+        'django': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'django.log')
+        },
+    },
+    'formatters': {
+        'default': {
+            'format': '%(levelname)s %(asctime)s %(name)s: %(message)s'
+        }
+    },
+    'loggers': {
+        'django.request': {
+            'handlers': ['django'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'acacia.data': {
+            'handlers': ['file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
+}

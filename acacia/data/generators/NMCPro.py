@@ -18,7 +18,7 @@ class NMCPro(Generator):
         sections = {}
         f.readline()
         colnames = [n.strip() for n in f.readline().split(',')]
-        sections['COLUMNS'] = colnames[2:] # first two are date and time
+        sections['COLUMNS'] = colnames
         return sections
     
     def get_file(self, path):
@@ -27,14 +27,10 @@ class NMCPro(Generator):
         
     def get_data(self, f, **kwargs):
         header = self.get_header(f)
-        line = f.readline()
-        while line != '':
-            if line.startswith('# STN,YYYYMMDD'):
-                names = [w.strip() for w in line[2:].split(',')]
-                data = pd.read_csv(f, header=0, names=names, comment = '#', index_col = [0,1], parse_dates = True)
-                return data
-            line = f.readline()
-        return None
+        names = header['COLUMNS']
+        data = pd.read_csv(f, header=0, names=names, comment = '#', index_col = [0], 
+                           parse_dates = True, dayfirst=True, na_values = ['----', '-------'])
+        return data
 
     def get_parameters(self, fil):
         header = self.get_header(fil)

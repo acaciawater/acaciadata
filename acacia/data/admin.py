@@ -1,5 +1,7 @@
 from acacia.data.models import Project, ProjectLocatie, MeetLocatie, Series, DataFile, Generator, Parameter, DataPoint, Chart
 from django.contrib import admin
+import logging
+logger = logging.getLogger(__name__)
 
 class LocatieInline(admin.TabularInline):
     model = ProjectLocatie
@@ -42,9 +44,18 @@ def update_parameters(modeladmin, request, queryset):
 
 update_parameters.short_description = "Update de parameterlijst van de geselecteerde data files"
 
+def replace_parameters(modeladmin, request, queryset):
+    for df in queryset:
+        count = df.parameters()
+        df.parameter_set.all().delete()
+        logger.info('%d parameters deleted for datafile %s' % (count, df))
+        df.update_parameters()
+    
+replace_parameters.short_description = "Vervang de parameterlijst van de geselecteerde data files"
+
 class DataFileAdmin(admin.ModelAdmin):
     inlines = [ParameterInline,]
-    actions = [upload_datafile, update_parameters]
+    actions = [upload_datafile, replace_parameters]
     exclude = ['meetlocaties',]
     list_display = ('name', 'description', 'filename', 'filesize', 'filedate', 'parameters',)
     fieldsets = (
@@ -62,14 +73,26 @@ class DataFileAdmin(admin.ModelAdmin):
 class GeneratorAdmin(admin.ModelAdmin):
     list_display = ('name', 'classname', 'description')
 
+def update_thumbnails(modeladmin, request, queryset):
+    for p in queryset:
+        p.save() # saving a parameter will update the thumbnail
+    
+update_thumbnails.short_description = "Thumbnails vernieuwen van geselecteerde parameters"
+
 class ParameterAdmin(admin.ModelAdmin):
     list_filter = ('datafile',)
-    list_display = ('name', 'unit', 'description', 'datafile')
+    actions = [update_thumbnails,]
+    list_display = ('name', 'thumbtag', 'datafile', 'unit', 'description')
 
 def refresh_series(modeladmin, request, queryset):
     for s in queryset:
-        s.refresh()
-refresh_series.short_description = 'Actualiseer de geselecteerde tijdreeksen'
+        s.update()
+refresh_series.short_description = 'Geselecteerde tijdreeksen actualiseren'
+
+def replace_series(modeladmin, request, queryset):
+    for s in queryset:
+        s.replace()
+replace_series.short_description = 'Geselecteerde tijdreeksen opnieuw aanmaken'
 
 class ReadonlyTabularInline(admin.TabularInline):
     can_delete = False
@@ -91,9 +114,9 @@ class DataPointInline(ReadonlyTabularInline):
     model = DataPoint
         
 class SeriesAdmin(admin.ModelAdmin):
-    actions = [refresh_series,]
-    list_display = ('name', 'parameter', 'datafile', 'unit', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
-    inlines = [DataPointInline,]
+    actions = [refresh_series, replace_series]
+    list_display = ('name', 'parameter', 'datafile', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
+    #inlines = [DataPointInline,]
 
 class SeriesInline(admin.TabularInline):
     model = Series
