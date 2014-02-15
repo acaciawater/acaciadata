@@ -7,8 +7,8 @@ logger = logging.getLogger(__name__)
 from generator import Generator
 class NMCPro(Generator):
         
-    def __init__(self, *args, **kwargs):
-        super(NMCPro, self).__init__(args,kwargs)
+    def __init__(self, **kwargs):
+        super(NMCPro, self).__init__(kwargs)
         self.args = {'url': 'ftp://theo:Heinis14@grondwatertoolbox.nl/home/arjen/Breezand/Processed'}
 
     def get_default_args(self):
@@ -28,13 +28,13 @@ class NMCPro(Generator):
     def get_data(self, f, **kwargs):
         header = self.get_header(f)
         names = header['COLUMNS']
-        data = pd.read_csv(f, header=0, names=names, comment = '#', index_col = [0], 
-                           parse_dates = True, dayfirst=True, na_values = ['----', '-------'])
+        data = pd.read_csv(f, header=0, names=names, comment = '#', index_col=[0], 
+                           parse_dates = [[0,1]], dayfirst=True, na_values = ['----', '-------'])
         return data
 
     def get_parameters(self, fil):
         header = self.get_header(fil)
-        names = header['COLUMNS']
+        names = header['COLUMNS'][2:]
         params = [{'name': name, 'description' : name, 'unit': 'unknown'} for name in names]  
         return params
         

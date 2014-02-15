@@ -62,7 +62,7 @@ class DataFileAdmin(admin.ModelAdmin):
                  ('Algemeen', {'fields': ('name', 'description', 'file', 'generator',),
                                'classes': ('grp-collapse grp-open',),
                                }),
-                 ('Bronnen', {'fields': ('url',),
+                 ('Bronnen', {'fields': ('url','config',),
                                'classes': ('grp-collapse grp-closed',),
                               }),
                  ('Admin', {'fields': ('user',),
@@ -74,10 +74,22 @@ class GeneratorAdmin(admin.ModelAdmin):
     list_display = ('name', 'classname', 'description')
 
 def update_thumbnails(modeladmin, request, queryset):
+#     for p in queryset:
+#         p.save()
+    # group queryset by datafile
+    group = {}
     for p in queryset:
-        p.save() # saving a parameter will update the thumbnail
+        if not p.datafile in group:
+            group[p.datafile] = []
+        group[p.datafile].append(p)
+         
+    for fil,parms in group.iteritems():
+        data = fil.get_data()
+        for p in parms:
+            p.make_thumbnail(data=data)
+            p.save()
     
-update_thumbnails.short_description = "Thumbnails vernieuwen van geselecteerde parameters"
+update_thumbnails.short_description = "Thumbnails vernieuwen"
 
 class ParameterAdmin(admin.ModelAdmin):
     list_filter = ('datafile',)
@@ -113,10 +125,16 @@ class ReadonlyTabularInline(admin.TabularInline):
 class DataPointInline(ReadonlyTabularInline):
     model = DataPoint
         
+def series_thumbnails(modeladmin, request, queryset):
+    for s in queryset:
+        s.make_thumbnail()
+        s.save() # saving a series will update the thumbnail
+    
+series_thumbnails.short_description = "Thumbnails van tijdreeksen vernieuwen"
+
 class SeriesAdmin(admin.ModelAdmin):
-    actions = [refresh_series, replace_series]
-    list_display = ('name', 'parameter', 'datafile', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
-    #inlines = [DataPointInline,]
+    actions = [refresh_series, replace_series, series_thumbnails]
+    list_display = ('name', 'thumbtag', 'parameter', 'datafile', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
 
 class SeriesInline(admin.TabularInline):
     model = Series

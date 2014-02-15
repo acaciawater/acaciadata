@@ -1,12 +1,13 @@
-import os,datetime
+import os,datetime,ast,math,binascii
 from django.db import models
 from django.db.models import Avg, Max, Min
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.utils import timezone
 from acacia import settings
-import math
-import binascii
+import pandas as pd
+import util
+
 #from autoslug.fields import AutoSlugField
 
 import logging
@@ -97,13 +98,14 @@ class DataFile(models.Model):
 #    slug = AutoSlugField(populate_from='name',null=True, blank=True, default='slug')
     description = models.TextField(blank=True,verbose_name='omschrijving')
     meetlocaties=models.ManyToManyField(MeetLocatie,related_name='datafiles',help_text='meetlocaties die gebruik maken van deze datafile')
-    file=models.FileField(upload_to='datafiles',blank=True)
+    file=models.FileField(upload_to=settings.UPLOAD_DATAFILES,blank=True)
     url=models.CharField(blank=True,max_length=200,help_text='volledige url van de remote file. Leeg laten voor handmatige uploads')
     generator=models.ForeignKey(Generator,blank=True, null=True,help_text='Generator voor het maken van tijdseries uit de datafile')
     created = models.DateTimeField(auto_now_add=True)
     uploaded = models.DateTimeField(auto_now=True)
     user=models.ForeignKey(User,default=User)
     crc=models.IntegerField()
+    config=models.TextField(blank=True,null=True,verbose_name = 'Additionele configuraties')
 
     #@property
     def filename(self):
@@ -117,7 +119,7 @@ class DataFile(models.Model):
     #@property
     def filesize(self):
         try:
-            return os.path.getsize(os.path.join(settings.MEDIA_ROOT,self.file.name))
+            return os.path.getsize(self.filepath())
         except:
             # file may not (yet) exist
             return ''
@@ -126,12 +128,15 @@ class DataFile(models.Model):
     #@property
     def filedate(self):
         try:
-            return datetime.datetime.fromtimestamp(os.path.getmtime(os.path.join(settings.MEDIA_ROOT,self.file.name)))
+            return datetime.datetime.fromtimestamp(os.path.getmtime(self.filepath()))
         except:
             # file may not (yet) exist
             return ''
     filedate.short_description = 'datum'
-    
+
+    def filepath(self):
+        return os.path.join(settings.MEDIA_ROOT,self.file.name) 
+       
     def __unicode__(self):
         return self.name
 
@@ -140,13 +145,25 @@ class DataFile(models.Model):
     
     def get_generator_instance(self):
         gen = self.generator.get_class()
-        return gen()
+        if self.config is None or len(self.config)==0:
+            return gen()
+        else:
+            try:
+                kwargs = ast.literal_eval(self.config)
+                return gen(**kwargs)
+            except Exception as err:
+                logger.error('Configuration error in generator %s: %s' % (gen, err))
+                return None
     
     def download(self,save=True):
+        if self.url is None or len(self.url) == 0:
+            logger.error('Cannot download datafile %s: no url supplied' % (self.name))
+            return;
+
         if self.generator is None:
             logger.error('Cannot download datafile %s: no generator defined' % (self.name))
             return;
-
+            
         logger.info('Downloading datafile %s from %s' % (self.name, self.url))
         gen = self.get_generator_instance()
         if gen is None:
@@ -164,6 +181,7 @@ class DataFile(models.Model):
             if self.crc == new_crc:
                 logger.warning('Downloaded file %s appears to be identical to local file %s' % (filename, self.file))
             else:
+                self.crc = new_crc
                 self.file.save(name=filename, content=ContentFile(response), save=save)
                 logger.info('File saved as %s (size = %d)', self.filename(), self.filesize())
                 
@@ -199,12 +217,12 @@ class DataFile(models.Model):
     def parameters(self):
         return self.parameter_set.count()
     
-from django.db.models.signals import pre_delete, pre_save
+from django.db.models.signals import pre_delete, pre_save, post_save
 from django.dispatch.dispatcher import receiver
 
 @receiver(pre_delete, sender=DataFile)
 def datafile_delete(sender, instance, **kwargs):
-    logger.info('Deleting file %s for datafile %s' % instance.file.name, instance.name)
+    logger.info('Deleting file %s for datafile %s' % (instance.file.name, instance.name))
     instance.file.delete(False)
     logger.info('File %s deleted' % instance.file.name)
 
@@ -213,21 +231,19 @@ def datafile_save(sender, instance, **kwargs):
     if instance.url != '':
         instance.download(False)
 
-def thumb_upload(instance, filename):
-    return '/'.join(['datafiles/thumb', instance.datafile.name, filename])
+@receiver(post_save, sender=DataFile)
+def datafile_postsave(sender, instance, **kwargs):
+    if instance.parameters() == 0:
+        instance.update_parameters()
+
+def param_thumb_upload(instance, filename):
+    return '/'.join([settings.UPLOAD_THUMBNAILS, 'param', instance.datafile.name, filename])
 
 SERIES_CHOICES = (('line', 'lijn'),
                   ('column', 'staaf'),
                   ('scatter', 'punt'),
                   ('area', 'vlak'),
                   )
-
-from matplotlib import rcParams
-rcParams['font.family'] = 'sans-serif'
-rcParams['font.sans-serif'] = ['Tahoma']
-rcParams['font.size'] = '8'
-
-import matplotlib.pyplot as plt
         
 class Parameter(models.Model):
     datafile = models.ForeignKey(DataFile)
@@ -236,7 +252,7 @@ class Parameter(models.Model):
     description = models.TextField(blank=True,verbose_name='omschrijving')
     unit = models.CharField(max_length=10, default='m',verbose_name='eenheid')
     type = models.CharField(max_length=20, default='line', choices = SERIES_CHOICES)
-    thumbnail = models.ImageField(upload_to=thumb_upload, blank=True, null=True)
+    thumbnail = models.ImageField(upload_to=param_thumb_upload, blank=True, null=True)
 
     def __unicode__(self):
         return '%s (%s)' % (self.name, self.datafile)
@@ -244,54 +260,27 @@ class Parameter(models.Model):
     def get_data(self):
         return self.datafile.get_data(param=self.name)
 
-    def thumb(self):
-        update_needed = True
-        try:
-            dafile = os.path.join(settings.MEDIA_ROOT,self.datafile.file.name)
-            imfile = os.path.join(settings.MEDIA_ROOT,self.thumbnail.file.name)
-            update_needed = os.path.getmtime(dafile) > os.path.getmtime(imfile)
-        except:
-            update_needed = True
-        if update_needed:
-            self.make_thumbnail()
-        return self.thumbnail
-
     def thumbtag(self):
-        
-        try:
-            url = "/media/%s" % self.thumbnail.name
-        except:
-            url = '#'
-        tag = '<a href="%s"><img src="%s" height="50px"\></a>' % (url, url)
-        return tag
+        return util.thumbtag(self.thumbnail.name)
+
+    def thumbpath(self):
+        return os.path.join(settings.MEDIA_ROOT,self.thumbnail.name)
     
     thumbtag.allow_tags=True
     thumbtag.short_description='thumbnail'
     
-    def make_thumbnail(self):
-        #matplotlib.rcParams.update({'font.size': 8})
-        data = self.get_data()
+    def make_thumbnail(self,data=None):
+        if data is None:
+            data = self.get_data()
         logger.debug('Generating thumbnail for parameter %s' % self.name)
+        dest =  param_thumb_upload(self, self.name+'.png')
+        imagefile = os.path.join(settings.MEDIA_ROOT, dest)
+        imagedir = os.path.dirname(imagefile)
+        if not os.path.exists(imagedir):
+            os.makedirs(imagedir)
         series = data[self.name]
         try:
-            plt.figure()
-            options = {'figsize': (6,2), 'grid': False, 'xticks': [], 'legend': False}
-            if self.type == 'column':
-                series.plot(kind='bar', **options)
-            elif self.type == 'area':
-                x = series[0]
-                y = series[1]
-                series.plot(**options)
-                plt.fill_between(x,y.min(),y,alpha=0.5)
-            else:
-                series.plot(**options)
-            
-            dest =  thumb_upload(self, self.name+'.png')
-            imagefile = os.path.join(settings.MEDIA_ROOT, dest)
-            imagedir = os.path.dirname(imagefile)
-            if not os.path.exists(imagedir):
-                os.makedirs(imagedir)
-            plt.savefig(imagefile)
+            util.save_thumbnail(series,imagefile,self.type)
             logger.info('Generated thumbnail %s' % dest)
             self.thumbnail.name = dest
         except Exception as e:
@@ -300,16 +289,22 @@ class Parameter(models.Model):
     
 @receiver(pre_save, sender=Parameter)
 def parameter_save(sender, instance, **kwargs):
-    instance.make_thumbnail()
+    #instance.make_thumbnail()
+    pass
+
+def series_thumb_upload(instance, filename):
+    return '/'.join([settings.UPLOAD_THUMBNAILS, 'series', filename])
 
 class Series(models.Model):
     name = models.CharField(max_length=50,verbose_name='naam')
  #   slug = AutoSlugField(populate_from='name',null=True, blank=True, default='slug')
     description = models.TextField(blank=True,verbose_name='omschrijving')
     unit = models.CharField(max_length=10, blank=True, verbose_name='eenheid')
-    parameter = models.ForeignKey(Parameter,null=True,blank=True)
+    parameter = models.ForeignKey(Parameter)
     type = models.CharField(max_length=20, default='line', choices = SERIES_CHOICES)
-# TODO: aggragatie toevoegen , e.g [avg, hour] or totals per day: [sum,day]
+    thumbnail = models.ImageField(upload_to=series_thumb_upload, blank=True, null=True)
+    
+# TODO: aggregatie toevoegen , e.g [avg, hour] or totals per day: [sum,day]
     
     def __unicode__(self):
         return self.name
@@ -318,7 +313,10 @@ class Series(models.Model):
         return r'/series/%i/' % self.id 
 
     def datafile(self):
-        return self.parameter.datafile
+        try:
+            return self.parameter.datafile
+        except:
+            return None
 
     def update(self):
         logger.info('Updating series %s' % self.name)
@@ -338,6 +336,7 @@ class Series(models.Model):
                         num_created = num_created+1
                     else:
                         num_updated = num_updated+1
+                    self.save() # makes thumbnail
             except:
                 num_bad = num_bad+1
                 pass
@@ -372,12 +371,46 @@ class Series(models.Model):
         logger.info('Deleting all %d datapoints from series %s' % (self.datapoints.count(), self.name))
         self.datapoints.all().delete()
         self.update()
+
+    def thumbpath(self):
+        return os.path.join(settings.MEDIA_ROOT,self.thumbnail.name)
         
+    def thumbtag(self):
+        return util.thumbtag(self.thumbnail.name)
+    
+    thumbtag.allow_tags=True
+    thumbtag.short_description='thumbnail'
+
+    def to_pandas(self):
+        dates = [dp.date for dp in self.datapoints.all()]
+        values = [dp.value for dp in self.datapoints.all()]
+        return pd.Series(values,index=dates)
+    
+    def make_thumbnail(self):
+        logger.debug('Generating thumbnail for series %s' % self.name)
+        try:
+            series = self.to_pandas()
+            dest =  series_thumb_upload(self, self.name+'.png')
+            imagefile = os.path.join(settings.MEDIA_ROOT, dest)
+            imagedir = os.path.dirname(imagefile)
+            if not os.path.exists(imagedir):
+                os.makedirs(imagedir)
+            util.save_thumbnail(series, imagefile, self.type)
+            logger.info('Generated thumbnail %s' % dest)
+            self.thumbnail.name = dest
+        except Exception as e:
+            logger.error('Error generating thumbnail: %s: %s' % (e, e.args))
+        return self.thumbnail
+
     class Meta:
         verbose_name = 'tijdreeks'
         verbose_name_plural = 'tijdreeksen'
 
-        
+@receiver(pre_save, sender=Series)
+def series_save(sender, instance, **kwargs):
+    #instance.make_thumbnail()
+    pass
+
 class DataPoint(models.Model):
     series = models.ForeignKey(Series,related_name='datapoints')
     date = models.DateTimeField()

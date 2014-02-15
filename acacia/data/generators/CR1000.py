@@ -12,9 +12,6 @@ logger = logging.getLogger(__name__)
 from generator import Generator
 class CR1000(Generator):
 
-    def __init__(self, *args, **kwargs):
-        super(CR1000,self).__init__(args, kwargs)
-
     def get_header(self, f):
         sections = {}
         header = f.readlines(4)

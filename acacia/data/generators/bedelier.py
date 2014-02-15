@@ -8,8 +8,7 @@ from generator import Generator
 class OWB(Generator):
         
     def __init__(self, *args, **kwargs):
-        super(OWB, self).__init__(args,kwargs)
-        self.args = {'url': 'ftp://bedelier:reiledeb@grondwatertoolbox.nl'}
+        super(OWB, self).__init__(kwargs)
 
     def get_header(self, f):
         # voor Borgsweer (met 3 onttrekkings putten)

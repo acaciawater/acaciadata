@@ -94,5 +94,5 @@ class Neerslag(Meteo):
         header = self.get_header(f)
         names = header['COLUMNS']
         names.append('NAME')
-        data = pd.read_csv(f, header=None, names=names, comment = '#', index_col = [0,1], parse_dates = True)
+        data = pd.read_csv(f, header=None, names=names, comment = '#', index_col = 1, parse_dates = True)
         return data

@@ -20,8 +20,8 @@ UTC2000 = UTC.localize(datetime.datetime(2000, 1, 1))
 
 class Regenradar(Generator):
     ''' dagtotalen ophalen van nationale regenradar'''
-    def __init__(self, *args, **kwargs):
-        super(Regenradar,self).__init__(args,kwargs)
+    def __init__(self, **kwargs):
+        super(Regenradar,self).__init__(**kwargs)
         self.url = 'http://opendap.nationaleregenradar.nl/thredds/dodsC/radar/TF2400_A/2000/01/01/RAD_TF2400_A_20000101000000.h5'
         self.x = 0.0
         self.y = 0.0
@@ -66,17 +66,19 @@ class Regenradar(Generator):
         z = data[row,col,t1:t2].flatten()
         t = t[t1:t2]
         z = ma.masked_where(z == -9999.0, z)
-        return pd.Series(z, index=t)
+        data = pd.Series(z,index=t)
+        data.index.name = 'Datum'
+        data.name = 'Neerslag'
+        io = StringIO.StringIO()
+        data.to_csv(io,header=True)
+        response = io.getvalue()
+        t = t[-1]
+        filename = 'p%d-%d-%04d%02d%02d.csv' % (self.x,self.y,t.year,t.month,t.day)
+        return [filename, response]
 
-    def upload(self, fil, **kwargs):
-        data = self.download(**kwargs)
-        if data is not None:
-            io = StringIO.StringIO()
-            data.to_csv(io)
-            fil.save(content=ContentFile(io.getvalue()))
-
-    def get_data(self,fil):
-        return pd.read_csv(fil)
+    def get_data(self,fil,**kwargs):
+        data = pd.read_csv(fil, index_col = 0, parse_dates = True)
+        return data
 
     def get_parameters(self, fil):
-        return  [{'name': 'neerslag', 'description' : 'dagelijkse neerslag', 'unit': 'mm/d'}]  
+        return  [{'name': 'Neerslag', 'description' : 'dagelijkse neerslag', 'unit': 'mm/d'}]  

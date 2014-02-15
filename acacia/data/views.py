@@ -25,7 +25,7 @@ def date_handler(obj):
     return tojs(obj) if isinstance(obj, datetime.date) or isinstance(obj, datetime.datetime) else obj
 
 class ChartView(TemplateView):
-    template_name = 'data/highchart.html'
+    template_name = 'data/plain_chart.html'
 
     def get_context_data(self, **kwargs):
         context = super(ChartView, self).get_context_data(**kwargs)

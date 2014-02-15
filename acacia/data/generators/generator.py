@@ -2,7 +2,7 @@ import os, urllib2, cgi
 
 class Generator(object):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self,**kwargs):
         pass
 
     def get_header(self,fil):
@@ -11,7 +11,7 @@ class Generator(object):
     def get_data(self,fil,**kwargs):
         return []
         
-    def download(self,**kwargs):
+    def download(self, **kwargs):
         filename = ''
         content = ''
         if 'url' in kwargs:

@@ -12,8 +12,6 @@ https://docs.djangoproject.com/en/1.6/ref/settings/
 import os
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
-
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.6/howto/deployment/checklist/
 
@@ -98,6 +96,8 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+UPLOAD_DATAFILES = 'datafiles' 
+UPLOAD_THUMBNAILS = 'thumbnails' 
 
 GRAPPELLI_ADMIN_TITLE='Beheer van Acacia Online Datastore'
 
@@ -109,14 +109,20 @@ LOGGING = {
     'handlers': {
         'file': {
             'level': 'DEBUG',
-            'class': 'logging.FileHandler',
+            'class': 'logging.handlers.TimedRotatingFileHandler',
             'filename': os.path.join(BASE_DIR, 'acacia.log'),
+            'when': 'D',
+            'interval': 1, # every day a new file
+            'backupCount': 0,
             'formatter': 'default'
         },
         'django': {
             'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'django.log')
+            'class': 'logging.handlers.TimedRotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'django.log'),
+            'when': 'D',
+            'interval': 1, # every day a new file
+            'backupCount': 0,
         },
     },
     'formatters': {
