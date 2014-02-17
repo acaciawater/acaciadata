@@ -8,7 +8,7 @@ from acacia import settings
 import pandas as pd
 import util
 
-#from autoslug.fields import AutoSlugField
+from autoslug.fields import AutoSlugField
 
 import logging
 logger = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ def project_upload(instance, filename):
 
 class Project(models.Model):
     name = models.CharField(max_length=50)
-#    slug = AutoSlugField(populate_from='name',null=True, blank=True, default='slug')
+    slug = AutoSlugField(populate_from='name',default='slug')
     description = models.TextField(blank=True,verbose_name='omschrijving')
     image = models.ImageField(upload_to=project_upload, blank = True, null=True)
     
@@ -37,8 +37,9 @@ def locatie_upload(instance, filename):
 class ProjectLocatie(models.Model):
     project = models.ForeignKey(Project)
     name = models.CharField(max_length=50,verbose_name='naam')
-#    slug = AutoSlugField(populate_from='name',null=True, blank=True, default='slug')
+    slug = AutoSlugField(populate_from='name',default='slug')
     description = models.TextField(blank=True,verbose_name='omschrijving')
+    description.allow_tags=True
     xcoord = models.FloatField()
     ycoord = models.FloatField()
     image = models.ImageField(upload_to=locatie_upload, blank = True, null = True)
@@ -58,7 +59,7 @@ def meetlocatie_upload(instance, filename):
 class MeetLocatie(models.Model):
     projectlocatie = models.ForeignKey(ProjectLocatie)
     name = models.CharField(max_length=50,verbose_name='naam')
-#    slug = AutoSlugField(populate_from='name',null=True, blank=True, default='slug')
+    slug = AutoSlugField(populate_from='name',default='slug')
     description = models.TextField(blank=True,verbose_name='omschrijving')
     xcoord = models.FloatField()
     ycoord = models.FloatField()
@@ -84,7 +85,7 @@ def classForName( kls ):
 class Generator(models.Model):
     name = models.CharField(max_length=50,verbose_name='naam')
     classname = models.CharField(max_length=50,verbose_name='python klasse naam',
-                                 help_text='volledige naam van de generator klasse, bijvoorbeeld acacia.data.generators.knmi')
+                                 help_text='volledige naam van de generator klasse, bijvoorbeeld acacia.data.generators.knmi.Meteo')
     description = models.TextField(blank=True,verbose_name='omschrijving')
     
     def get_class(self):
@@ -100,7 +101,7 @@ class DataFile(models.Model):
     meetlocaties=models.ManyToManyField(MeetLocatie,related_name='datafiles',help_text='meetlocaties die gebruik maken van deze datafile')
     file=models.FileField(upload_to=settings.UPLOAD_DATAFILES,blank=True)
     url=models.CharField(blank=True,max_length=200,help_text='volledige url van de remote file. Leeg laten voor handmatige uploads')
-    generator=models.ForeignKey(Generator,blank=True, null=True,help_text='Generator voor het maken van tijdseries uit de datafile')
+    generator=models.ForeignKey(Generator,help_text='Generator voor het maken van tijdseries uit de datafile')
     created = models.DateTimeField(auto_now_add=True)
     uploaded = models.DateTimeField(auto_now=True)
     user=models.ForeignKey(User,default=User)
@@ -243,6 +244,7 @@ SERIES_CHOICES = (('line', 'lijn'),
                   ('column', 'staaf'),
                   ('scatter', 'punt'),
                   ('area', 'vlak'),
+                  ('spline', 'spline')
                   )
         
 class Parameter(models.Model):
@@ -318,6 +320,30 @@ class Series(models.Model):
         except:
             return None
 
+    def create(self):
+        logger.info('Creating series %s' % self.name)
+        data = self.parameter.get_data()
+        series = data[self.parameter.name]
+        tz = timezone.get_current_timezone()
+        num_bad = 0
+        num_created = 0
+        for date,value in series.iteritems():
+            try:
+                value = float(value)
+                if not (math.isnan(value) or date is None):
+                    adate = timezone.make_aware(date,tz)
+                    self.datapoints.create(date=adate, value=value)
+                    num_created += 1
+            except:
+                num_bad += 1
+                pass
+        logger.info('Series %s updated: %d points created, %d skipped' % (self.name, num_created, num_bad))
+
+    def replace(self):
+        logger.info('Deleting all %d datapoints from series %s' % (self.datapoints.count(), self.name))
+        self.datapoints.all().delete()
+        self.create()
+
     def update(self):
         logger.info('Updating series %s' % self.name)
         data = self.parameter.get_data()
@@ -346,14 +372,16 @@ class Series(models.Model):
         return self.datapoints.count()
     
     def van(self):
+#        return self.datapoints.earliest('date')
         van = datetime.datetime.now()
         agg = self.datapoints.aggregate(van=Min('date'))
         return agg.get('van', van)
 
     def tot(self):
+#        return self.datapoints.latest('date')
         tot = datetime.datetime.now()
         agg = self.datapoints.aggregate(tot=Max('date'))
-        return agg.get('van', tot)
+        return agg.get('tot', tot)
     
     def minimum(self):
         agg = self.datapoints.aggregate(min=Min('value'))
@@ -367,11 +395,6 @@ class Series(models.Model):
         agg = self.datapoints.aggregate(avg=Avg('value'))
         return agg.get('avg', 0)
         
-    def replace(self):
-        logger.info('Deleting all %d datapoints from series %s' % (self.datapoints.count(), self.name))
-        self.datapoints.all().delete()
-        self.update()
-
     def thumbpath(self):
         return os.path.join(settings.MEDIA_ROOT,self.thumbnail.name)
         
@@ -418,12 +441,31 @@ class DataPoint(models.Model):
     def jdate(self):
         return self.date.date
 
+AXIS_CHOICES = (
+                ('l', 'links'),
+                ('r', 'rechts'),
+               )
+
+class ChartOptions(models.Model):
+    axis = models.IntegerField(default=1,verbose_name='Nummer y-as')
+    axislr = models.CharField(max_length=2, choices=AXIS_CHOICES, default='l',verbose_name='Positie y-as')
+    color = models.CharField(null=True,max_length=16, verbose_name = 'Kleur')
+    min = models.FloatField(null=True)
+    max = models.FloatField(null=True)
+    start = models.DateTimeField(null=True)
+    stop = models.DateTimeField(null=True)
+
+    class Meta:
+        verbose_name = 'Grafiekopties'
+        verbose_name_plural = 'Grafiekopties'
+    
 class Chart(models.Model):
     series = models.ManyToManyField(Series)
     name = models.CharField(max_length = 50, verbose_name = 'naam')
 #   slug = AutoSlugField(populate_from='name',null=True, blank=True, default='slug')
     title = models.CharField(max_length = 50, verbose_name = 'titel')
     type = models.CharField(max_length=20, default='line', choices = SERIES_CHOICES)
+    options = models.ForeignKey(ChartOptions, blank=True, null=True, verbose_name = 'Grafiekopties')
 
     def tijdreeksen(self):
         return self.series.count()
@@ -434,3 +476,14 @@ class Chart(models.Model):
     class Meta:
         verbose_name = 'Grafiek'
         verbose_name_plural = 'Grafieken'
+
+class Dashboard(models.Model):
+    name = models.CharField(max_length=50)
+    slug = AutoSlugField(populate_from='name')
+    description = models.TextField(blank=True, verbose_name = 'omschrijving')
+    charts = models.ManyToManyField(Chart, verbose_name = 'grafieken')
+    user=models.ForeignKey(User,default=User)
+
+    def __unicode__(self):
+        return self.name
+    

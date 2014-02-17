@@ -1,4 +1,4 @@
-from acacia.data.models import Project, ProjectLocatie, MeetLocatie, Series, DataFile, Generator, Parameter, DataPoint, Chart
+from acacia.data.models import Project, ProjectLocatie, MeetLocatie, Series, DataFile, Generator, Parameter, DataPoint, Chart, ChartOptions, Dashboard
 from django.contrib import admin
 import logging
 logger = logging.getLogger(__name__)
@@ -157,3 +157,5 @@ admin.site.register(Generator, GeneratorAdmin)
 admin.site.register(DataFile, DataFileAdmin)
 admin.site.register(DataPoint, DataPointAdmin)
 admin.site.register(Chart, ChartAdmin)
+admin.site.register(ChartOptions)
+admin.site.register(Dashboard)

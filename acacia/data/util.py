@@ -3,7 +3,7 @@ Created on Feb 12, 2014
 
 @author: theo
 '''
-
+import os, fnmatch
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 #rcParams['font.family'] = 'sans-serif'
@@ -28,3 +28,8 @@ def save_thumbnail(series,imagefile,kind='line'):
 def thumbtag(imagefile):
     url = "/media/%s" % imagefile
     return '<a href="%s"><img src="%s" height="50px"\></a>' % (url, url)
+
+def find_files(pattern, root=os.curdir):
+    for path, dirs, files in os.walk(os.path.abspath(root)):
+        for filename in fnmatch.filter(files, pattern):
+            yield os.path.join(path, filename)

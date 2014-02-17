@@ -8,7 +8,7 @@ from generator import Generator
 class NMCPro(Generator):
         
     def __init__(self, **kwargs):
-        super(NMCPro, self).__init__(kwargs)
+        super(NMCPro, self).__init__(**kwargs)
         self.args = {'url': 'ftp://theo:Heinis14@grondwatertoolbox.nl/home/arjen/Breezand/Processed'}
 
     def get_default_args(self):
