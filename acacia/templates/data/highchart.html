@@ -1,9 +1,10 @@
-{% extends 'bbase.html' %}
+{% extends 'bootbase.html' %}
 {% block script %}
-<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+{{ block.super }}
+<!-- <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script> -->
 <script src="http://code.highcharts.com/highcharts.js"></script>
-<script src="/static/themes/gray.js"></script>
-<!-- <script src="/static/themes/dark-blue.js"></script> -->
+<!-- <script src="/static/themes/gray.js"></script> -->
+<script src="/static/themes/dark-blue.js"></script>
 <!-- <script src="/static/themes/dark-green.js"></script> -->
 <!-- <script src="/static/themes/skies.js"></script> -->
 <!-- <script src="/static/themes/grid.js"></script> -->
@@ -22,7 +23,10 @@ $(function () {
 </script>
 {% endblock %}
 {% block content %}
-<div id="container" style="width:1000px; height:400px;"></div>
-<br>
-<div id='buttons'><button id='export'>export</button></div>
+<div class="container-fluid">
+<div id="container"></div>
+<br/>
+<div class="text-right">
+<button type="button" class="btn btn-primary" id="download">Download</button></div>
+</div>
 {% endblock %}

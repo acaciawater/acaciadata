@@ -1,0 +1,41 @@
+{% extends 'bootbase.html' %}
+{% block title %}Acacia Projecten{% endblock title %}
+{% block navbar %}{% endblock %}
+{% block brandname %}<a class="navbar-brand" href="{% url 'project-list' %}">Projecten</a>{% endblock brandname %}
+{% block admin_url %}project{% endblock %}
+{% block content %}
+<div class = "container">
+<div class="row">
+<table class="table table-striped">
+<thead>
+<tr>
+<!-- <th>Foto</th> -->
+<th>Project</th>
+<th>Locaties</th>
+<th>Omschrijving</th>
+</tr>
+</thead>
+<tbody>
+{% for project in object_list %}
+<tr>
+<!-- <td><img src="/media/{{project.image}}"/></td> -->
+<td><a href='{% url "project-detail" project.slug %}'>{{project.name}}</a></td>
+<td>
+<ol>
+{% for loc in project.projectlocatie_set.all %} 
+	<li><a href='{% url "projectlocatie-detail" project.slug loc.slug %}'>{{loc.name}}</a></li>
+{% empty %}
+    <div class="text-warning"><em>Geen locaties gevonden</em></div>
+{% endfor %}
+</ol>
+</td>
+<td>{{project.description|safe}}</td>
+</tr>
+{% empty %}
+    <div>Geen projecten gevonden</div>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</div>
+{% endblock content %}

@@ -61,26 +61,24 @@ class Diver(Generator):
                 section[key] = value
         return sections
 
-    def get_data(self,f):
+    def get_data(self,f,**kwargs):
         sections = self.get_header(f)
-        channels = ['DATE']
+        names = ['DATE','TIME']
         num = int(sections['Logger settings'].get('Number of channels'))
         for i in range(1,num+1):
             name = sections['Channel %d' % i].get('Identification')
-            channels.append(name)
-        num = int(f.readline())
-        widths = [22,13,12,12]
-        df = pd.read_fwf(f, header=None, index_col='DATE', widths=widths, names=channels, parse_dates = True )
-        return [sections, df]
+            names.append(name)
+        num=int(f.readline())
+        data = pd.read_csv(f, header=0, index_col=0, names = names, delim_whitespace=True, parse_dates = {'date': [0,1]}, nrows=num-1)
+        return data
 
     def get_parameters(self, fil):
         header = self.get_header(fil)
-        names = []
-        num = 1
-        channel = 'Channel 1'
-        while channel in header:
-            names.append(header[channel]['Identification'])
-            num = num + 1
-            channel = 'Channel %d' % num
-        params = [{'name': name, 'description' : name, 'unit': 'unknown'} for name in names]  
+        params = []
+        num = int(header['Logger settings'].get('Number of channels'))
+        for i in range(1,num+1):
+            channel = 'Channel %d' % i
+            name = header[channel].get('Identification',None)
+            if name is not None:
+                params.append({'name': name, 'description' : channel, 'unit': 'unknown'})  
         return params

@@ -1,0 +1,36 @@
+{% extends 'bootbase.html' %}
+{% block title %}Projectlocatie {{object.name}}{% endblock title %}
+{% block brandname %}<a class="navbar-brand" href="{% url 'project-detail' object.project.slug %}">Locatie {{object.name}}</a>{% endblock brandname %}
+{% block navbar %}{% endblock %}
+{% block admin_url %}projectlocatie/{{object.id}}{% endblock %}
+{% block content %}
+<div class = "container">
+<div class = "row-fluid">
+{{object.description|safe}}
+</div>
+<div class="row-fluid">
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Meetlocatie</th>
+<th>Omschrijving</th>
+<th>Bestanden</th>
+<th>Coordinaten	</th>
+</tr>
+</thead>
+<tbody>
+{% for loc in object.meetlocatie_set.all %}
+<tr>
+<td><a href='{% url "meetlocatie-detail" object.project.slug object.slug loc.slug %}'>{{loc.name}}</a></td>
+<td>{{loc.description}}</td>
+<td>{{loc.datafiles.count}}</td>
+<td>({{loc.xcoord}}, {{loc.ycoord}})</td>
+</tr>
+{% empty %}
+    <div>Geen meetlocaties gevonden</div>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</div>
+{% endblock content %}

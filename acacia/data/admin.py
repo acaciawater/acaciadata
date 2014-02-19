@@ -1,5 +1,7 @@
 from acacia.data.models import Project, ProjectLocatie, MeetLocatie, Series, DataFile, Generator, Parameter, DataPoint, Chart, ChartOptions, Dashboard
 from django.contrib import admin
+from django import forms
+from django.forms import PasswordInput, ModelForm
 import logging
 logger = logging.getLogger(__name__)
 
@@ -21,21 +23,29 @@ class ParameterInline(admin.TabularInline):
     fields = ('name', 'description', 'unit', 'datafile',)
 
 class ProjectAdmin(admin.ModelAdmin):
-    list_display = ('name', 'locaties', )
+    list_display = ('name', 'locatiecount', )
+    prepopulated_fields = {"slug": ("name",)}
     
 class ProjectLocatieAdmin(admin.ModelAdmin):
     list_display = ('name','project','meetlocaties',)
     list_filter = ('project',)
+    prepopulated_fields = {"slug": ("name",)}
 
+class MeetDataInline(admin.TabularInline):
+    model = MeetLocatie.datafiles.through
+    
 class MeetLocatieAdmin(admin.ModelAdmin):
-    list_display = ('name','projectlocatie','project',)
+    list_display = ('name','projectlocatie','project','filecount',)
     list_filter = ('projectlocatie','projectlocatie__project',)
-
+    prepopulated_fields = {"slug": ("name",)}
+    #filter_horizontal = ('datafiles',)
+    exclude = ('datafiles',)
+    inlines = [MeetDataInline,]
+    
 def upload_datafile(modeladmin, request, queryset):
     for df in queryset:
         if df.url != '':
             df.download()
-        
 upload_datafile.short_description = "Upload de geselecteerde data files naar de server"
 
 def update_parameters(modeladmin, request, queryset):
@@ -53,16 +63,21 @@ def replace_parameters(modeladmin, request, queryset):
     
 replace_parameters.short_description = "Vervang de parameterlijst van de geselecteerde data files"
 
+class DataFileForm(ModelForm):
+    model = DataFile
+    password = forms.CharField(label='Wachtwoord', help_text='Wachtwoord voor de webservice', widget=PasswordInput(render_value=True),required=False)
+    #widgets = {'password': PasswordInput(render_value=False)}
+    
 class DataFileAdmin(admin.ModelAdmin):
+    form = DataFileForm
     inlines = [ParameterInline,]
     actions = [upload_datafile, replace_parameters]
-    exclude = ['meetlocaties',]
     list_display = ('name', 'description', 'filename', 'filesize', 'filedate', 'parameters',)
     fieldsets = (
                  ('Algemeen', {'fields': ('name', 'description', 'file', 'generator',),
                                'classes': ('grp-collapse grp-open',),
                                }),
-                 ('Bronnen', {'fields': ('url','config',),
+                 ('Bronnen', {'fields': ('url',('username', 'password'), 'config',),
                                'classes': ('grp-collapse grp-closed',),
                               }),
                  ('Admin', {'fields': ('user',),
@@ -106,6 +121,12 @@ def replace_series(modeladmin, request, queryset):
         s.replace()
 replace_series.short_description = 'Geselecteerde tijdreeksen opnieuw aanmaken'
 
+def series_thumbnails(modeladmin, request, queryset):
+    for s in queryset:
+        s.make_thumbnail()
+        s.save() # saving a series will update the thumbnail
+series_thumbnails.short_description = "Thumbnails van tijdreeksen vernieuwen"
+
 class ReadonlyTabularInline(admin.TabularInline):
     can_delete = False
     extra = 0
@@ -125,13 +146,6 @@ class ReadonlyTabularInline(admin.TabularInline):
 class DataPointInline(ReadonlyTabularInline):
     model = DataPoint
         
-def series_thumbnails(modeladmin, request, queryset):
-    for s in queryset:
-        s.make_thumbnail()
-        s.save() # saving a series will update the thumbnail
-    
-series_thumbnails.short_description = "Thumbnails van tijdreeksen vernieuwen"
-
 class SeriesAdmin(admin.ModelAdmin):
     actions = [refresh_series, replace_series, series_thumbnails]
     list_display = ('name', 'thumbtag', 'parameter', 'datafile', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
@@ -147,7 +161,13 @@ class DataPointAdmin(admin.ModelAdmin):
 class ChartAdmin(admin.ModelAdmin):
     filter_horizontal = ('series',)
     list_display = ('name', 'title', 'tijdreeksen', )
+    prepopulated_fields = {"slug": ("name",)}
 
+class DashAdmin(admin.ModelAdmin):
+    filter_horizontal = ('charts',)
+    list_filter = ('user', )
+    list_display = ('name', 'description', 'grafieken', 'user' )
+    
 admin.site.register(Project, ProjectAdmin)
 admin.site.register(ProjectLocatie, ProjectLocatieAdmin)
 admin.site.register(MeetLocatie, MeetLocatieAdmin)
@@ -158,4 +178,4 @@ admin.site.register(DataFile, DataFileAdmin)
 admin.site.register(DataPoint, DataPointAdmin)
 admin.site.register(Chart, ChartAdmin)
 admin.site.register(ChartOptions)
-admin.site.register(Dashboard)
+admin.site.register(Dashboard, DashAdmin)

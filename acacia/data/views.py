@@ -3,9 +3,7 @@ from django.views.generic.list import ListView
 from django.views.generic import DetailView
 from django.views.generic.base import TemplateView
 from django.shortcuts import get_object_or_404
-from models import Project, ProjectLocatie, DataFile, Chart, Dashboard
-import pandas as pd
-import numpy as np
+from models import Project, ProjectLocatie, DataFile, Series, Chart, Dashboard
 import json
 import datetime
 import re
@@ -26,39 +24,75 @@ class ProjectView(DetailView):
 class ProjectListView(ListView):
     model = Project
 
-class ProjectLocatieListView(ListView):
+class ProjectDetailView(DetailView):
+    model = Project
+
+class ProjectLocatieDetailView(DetailView):
     model = ProjectLocatie
+    
+class SeriesView(DetailView):
+    model = Series
 
     def get_context_data(self, **kwargs):
-        context = super(ProjectLocatieListView, self).get_context_data(**kwargs)
-        context['project'] = self.project
-        return context
+        context = super(SeriesView, self).get_context_data(**kwargs)
+        ser = self.get_object()
+        options = {
+            'chart': {'type': ser.type, 'animation': False, 'zoomType': 'x'},
+            'title': {'text': ser.name},
+            'xAxis': {'type': 'datetime'},
+            'yAxis': [],
+            'tooltip': {'valueSuffix': ' '+ser.unit,
+                        'valueDecimals': 2
+                       }, 
+            'legend': {'enabled': False},
+            'plotOptions': {'line': {'marker': {'enabled': False}}},            
+            'credits': {'enabled': True, 
+                        'text': 'acaciawater.com', 
+                        'href': 'http://www.acaciawater.com',
+                       }
+            }
 
-    def get_queryset(self,**kwargs):
-        self.project = get_object_or_404(Project,name__iexact=self.args[0])
-        return ProjectLocatie.objects.filter(project=self.project)
-        
+        allseries = []
+        title = ser.name if len(ser.unit)==0 else ser.unit
+        options['yAxis'].append({
+                                 'title': {'text': title},
+                                 })
+        pts = [[p.date,p.value] for p in ser.datapoints.all().order_by('date')]
+        allseries.append({
+                          'name': ser.name,
+                          'type': ser.type,
+                          'data': pts})
+        options['series'] = allseries
+        jop = json.dumps(options,default=date_handler)
+        # remove quotes around date stuff
+        jop = re.sub(r'\"(Date\.UTC\([\d,]+\))\"',r'\1', jop)
+        context['options'] = jop
+        return context
+            
 def tojs(d):
     return 'Date.UTC(%d,%d,%d,%d,%d,%d)' % (d.year, d.month-1, d.day, d.hour, d.minute, d.second)
 
 def date_handler(obj):
     return tojs(obj) if isinstance(obj, datetime.date) or isinstance(obj, datetime.datetime) else obj
 
-class ChartView(TemplateView):
+class ChartBareView(TemplateView):
     template_name = 'data/plain_chart.html'
 
-    def get_context_data(self, **kwargs):
-        context = super(ChartView, self).get_context_data(**kwargs)
-        pk = context.get('pk',1)
-        chart = Chart.objects.get(pk=pk)
+    def get_json(self, chart):
         options = {
-            'chart': {'type': chart.type, 'animation': False},
+            'chart': {'type': chart.type, 'animation': False, 'zoomType': 'x'},
             'title': {'text': chart.title},
             'xAxis': {'type': 'datetime'},
             'yAxis': [],
+            'tooltip': {'valueDecimals': 2,
+                        'shared': True,
+                       }, 
             'legend': {'enabled': chart.series.count() > 1},
             'plotOptions': {'line': {'marker': {'enabled': False}}},            
-            'credits': {'enabled': True, 'text': 'acaciawater.com', 'href': 'http://www.acaciawater.com'}
+            'credits': {'enabled': True, 
+                        'text': 'acaciawater.com', 
+                        'href': 'http://www.acaciawater.com',
+                       }
             }
 
         allseries = []
@@ -78,9 +112,29 @@ class ChartView(TemplateView):
         jop = json.dumps(options,default=date_handler)
         # remove quotes around date stuff
         jop = re.sub(r'\"(Date\.UTC\([\d,]+\))\"',r'\1', jop)
+        return jop
+    
+    def get_context_data(self, **kwargs):
+        context = super(ChartBareView, self).get_context_data(**kwargs)
+        pk = context.get('pk',1)
+        chart = Chart.objects.get(pk=pk)
+        jop = self.get_json(chart)
         context['options'] = jop
         return context
+        
+class ChartView(ChartBareView):
+    template_name = 'data/chart_detail.html'
 
+    def get_context_data(self, **kwargs):
+        context = super(ChartBareView, self).get_context_data(**kwargs)
+        slug = context.get('slug',None)
+        if slug is not None:
+            chart = Chart.objects.get(slug=slug)
+            jop = self.get_json(chart)
+            context['options'] = jop
+            context['chart'] = chart
+        return context
+    
 class DashView(TemplateView):
     template_name = 'data/dash.html'
     

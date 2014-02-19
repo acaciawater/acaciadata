@@ -4,11 +4,12 @@ from django.db.models import Avg, Max, Min
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.utils import timezone
+from django.core.urlresolvers import reverse
+
 from acacia import settings
 import pandas as pd
-import util
-
-from autoslug.fields import AutoSlugField
+import json,util
+import StringIO
 
 import logging
 logger = logging.getLogger(__name__)
@@ -16,15 +17,27 @@ logger = logging.getLogger(__name__)
 def project_upload(instance, filename):
     return '/'.join(['images', instance.name, filename])
 
+THEME_CHOICES = (('dark-blue','blauw'),
+                 ('darkgreen','groen'),
+                 ('gray','grijs'),
+                 ('grid','grid'),
+                 ('skies','wolken'),)
+
 class Project(models.Model):
     name = models.CharField(max_length=50)
-    slug = AutoSlugField(populate_from='name',default='slug')
+    slug = models.SlugField()
     description = models.TextField(blank=True,verbose_name='omschrijving')
     image = models.ImageField(upload_to=project_upload, blank = True, null=True)
-    
-    def locaties(self):
+    logo = models.ImageField(upload_to=project_upload, blank=True, null=True,help_text='Mini-logo voor grafieken')
+    theme = models.CharField(max_length=50,verbose_name='thema', default='dark-blue',choices=THEME_CHOICES,help_text='Thema voor grafieken')
+        
+    def locatiecount(self):
         return self.projectlocatie_set.count()
+    locatiecount.short_description='locaties'
     
+    def get_absolute_url(self):
+        return reverse('project-detail', args=(self.slug,))
+         
     def __unicode__(self):
         return self.name
 
@@ -37,12 +50,15 @@ def locatie_upload(instance, filename):
 class ProjectLocatie(models.Model):
     project = models.ForeignKey(Project)
     name = models.CharField(max_length=50,verbose_name='naam')
-    slug = AutoSlugField(populate_from='name',default='slug')
+    slug = models.SlugField()
     description = models.TextField(blank=True,verbose_name='omschrijving')
     description.allow_tags=True
-    xcoord = models.FloatField()
-    ycoord = models.FloatField()
+    xcoord = models.FloatField(default=0)
+    ycoord = models.FloatField(default=0)
     image = models.ImageField(upload_to=locatie_upload, blank = True, null = True)
+
+    def get_absolute_url(self):
+        return reverse('projectlocatie-detail', args=(self.project.slug, self.slug,))
 
     def meetlocaties(self):
         return self.meetlocatie_set.count()
@@ -59,18 +75,33 @@ def meetlocatie_upload(instance, filename):
 class MeetLocatie(models.Model):
     projectlocatie = models.ForeignKey(ProjectLocatie)
     name = models.CharField(max_length=50,verbose_name='naam')
-    slug = AutoSlugField(populate_from='name',default='slug')
+    slug = models.SlugField()
     description = models.TextField(blank=True,verbose_name='omschrijving')
-    xcoord = models.FloatField()
-    ycoord = models.FloatField()
+    xcoord = models.FloatField(blank=True)
+    ycoord = models.FloatField(blank=True)
     image = models.ImageField(upload_to=meetlocatie_upload, blank = True, null = True)
+    datafiles=models.ManyToManyField('DataFile',related_name='meetlocaties',help_text='datafiles die bij deze meetlocatie behoren')
 
     def project(self):
         return self.projectlocatie.project
-        
+
+    def filecount(self):
+        return self.datafiles.count()
+    filecount.short_description = 'Aantal files'
+
+    def get_absolute_url(self):
+        return reverse('meetlocatie-detail',args=[self.project().slug, self.projectlocatie.slug, self.slug])
+    
     def __unicode__(self):
         return self.name
 
+    def save(self,*args, **kwargs):
+        if self.xcoord == 0 or self.xcoord is None:
+            self.xcoord = self.projectlocatie.xcoord
+        if self.ycoord == 0 or self.ycoord is None:
+            self.ycoord = self.projectlocatie.ycoord
+        super(MeetLocatie,self).save(*args,**kwargs)
+        
     class Meta:
         ordering = ['name',]
         
@@ -84,7 +115,7 @@ def classForName( kls ):
 
 class Generator(models.Model):
     name = models.CharField(max_length=50,verbose_name='naam')
-    classname = models.CharField(max_length=50,verbose_name='python klasse naam',
+    classname = models.CharField(max_length=50,verbose_name='python klasse',
                                  help_text='volledige naam van de generator klasse, bijvoorbeeld acacia.data.generators.knmi.Meteo')
     description = models.TextField(blank=True,verbose_name='omschrijving')
     
@@ -96,9 +127,8 @@ class Generator(models.Model):
     
 class DataFile(models.Model):
     name = models.CharField(max_length=50,verbose_name='naam')
-#    slug = AutoSlugField(populate_from='name',null=True, blank=True, default='slug')
+#    slug = AutoSlugField(populate_from='name',null=True, blank=True)
     description = models.TextField(blank=True,verbose_name='omschrijving')
-    meetlocaties=models.ManyToManyField(MeetLocatie,related_name='datafiles',help_text='meetlocaties die gebruik maken van deze datafile')
     file=models.FileField(upload_to=settings.UPLOAD_DATAFILES,blank=True)
     url=models.CharField(blank=True,max_length=200,help_text='volledige url van de remote file. Leeg laten voor handmatige uploads')
     generator=models.ForeignKey(Generator,help_text='Generator voor het maken van tijdseries uit de datafile')
@@ -106,18 +136,14 @@ class DataFile(models.Model):
     uploaded = models.DateTimeField(auto_now=True)
     user=models.ForeignKey(User,default=User)
     crc=models.IntegerField()
-    config=models.TextField(blank=True,null=True,verbose_name = 'Additionele configuraties')
-
-    #@property
+    config=models.TextField(blank=True,null=True,default='{}',verbose_name = 'Additionele configuraties',help_text='Geldige JSON dictionary')
+    username=models.CharField(max_length=20, blank=True, default='anonymous', verbose_name='Gebuikersnaam',help_text='Gebruikersnaam voor webservice')
+    password=models.CharField(max_length=20, blank=True, verbose_name='Wachtwoord',help_text='Wachtwoord voor webservice')
+    
     def filename(self):
         return os.path.basename(self.file.name)
     filename.short_description = 'bestandsnaam'
 
-    def compute_crc(self):
-        crc = abs(binascii.crc32(self.file.read()))
-        return crc
-    
-    #@property
     def filesize(self):
         try:
             return os.path.getsize(self.filepath())
@@ -126,7 +152,6 @@ class DataFile(models.Model):
             return ''
     filesize.short_description = 'grootte'
 
-    #@property
     def filedate(self):
         try:
             return datetime.datetime.fromtimestamp(os.path.getmtime(self.filepath()))
@@ -142,7 +167,7 @@ class DataFile(models.Model):
         return self.name
 
     def get_absolute_url(self):
-        return r'/data/%i/' % self.id 
+        return r'/data/file/%i/' % self.id 
     
     def get_generator_instance(self):
         gen = self.generator.get_class()
@@ -150,7 +175,7 @@ class DataFile(models.Model):
             return gen()
         else:
             try:
-                kwargs = ast.literal_eval(self.config)
+                kwargs = json.loads(self.config)
                 return gen(**kwargs)
             except Exception as err:
                 logger.error('Configuration error in generator %s: %s' % (gen, err))
@@ -170,8 +195,11 @@ class DataFile(models.Model):
         if gen is None:
             logger.error('Cannot download datafile %s: could not create instance of generator %s' % (self.name, self.generator))
             return;
-
-        filename, response = gen.download(url=self.url)
+        options = {'url': self.url}
+        if self.username is not None and self.username != '':
+            options['username'] = self.username
+            options['password'] = self.password
+        filename, response = gen.download(**options)
         if response is None:
             logger.error('No response from server')
         elif len(response) == 0:
@@ -181,6 +209,7 @@ class DataFile(models.Model):
             new_crc = abs(binascii.crc32(response))
             if self.crc == new_crc:
                 logger.warning('Downloaded file %s appears to be identical to local file %s' % (filename, self.file))
+                logger.warning('File not saved')
             else:
                 self.crc = new_crc
                 self.file.save(name=filename, content=ContentFile(response), save=save)
@@ -189,6 +218,8 @@ class DataFile(models.Model):
     def update_parameters(self):
         logger.info('Updating parameters for datafile %s' % self.name)
         gen = self.get_generator_instance()
+        if gen is None:
+            return
         params = gen.get_parameters(self.file)
         self.file.close()
         logger.info('Update completed, got %d parameters', len(params))
@@ -205,6 +236,8 @@ class DataFile(models.Model):
     def get_data(self,**kwargs):
         logger.info('Getting data from datafile %s', self.name)
         gen = self.get_generator_instance()
+        if gen is None:
+            return
         self.file.open('r')
         data = gen.get_data(self.file,**kwargs)
         self.file.close()
@@ -250,7 +283,7 @@ SERIES_CHOICES = (('line', 'lijn'),
 class Parameter(models.Model):
     datafile = models.ForeignKey(DataFile)
     name = models.CharField(max_length=50,verbose_name='naam')
- #   slug = AutoSlugField(populate_from='name',null=True, blank=True, default='slug')
+ #   slug = models.SlugField()
     description = models.TextField(blank=True,verbose_name='omschrijving')
     unit = models.CharField(max_length=10, default='m',verbose_name='eenheid')
     type = models.CharField(max_length=20, default='line', choices = SERIES_CHOICES)
@@ -299,12 +332,13 @@ def series_thumb_upload(instance, filename):
 
 class Series(models.Model):
     name = models.CharField(max_length=50,verbose_name='naam')
- #   slug = AutoSlugField(populate_from='name',null=True, blank=True, default='slug')
+ #   slug = models.SlugField()
     description = models.TextField(blank=True,verbose_name='omschrijving')
     unit = models.CharField(max_length=10, blank=True, verbose_name='eenheid')
     parameter = models.ForeignKey(Parameter)
     type = models.CharField(max_length=20, default='line', choices = SERIES_CHOICES)
     thumbnail = models.ImageField(upload_to=series_thumb_upload, blank=True, null=True)
+    user=models.ForeignKey(User,default=User)
     
 # TODO: aggregatie toevoegen , e.g [avg, hour] or totals per day: [sum,day]
     
@@ -312,7 +346,7 @@ class Series(models.Model):
         return self.name
 
     def get_absolute_url(self):
-        return r'/series/%i/' % self.id 
+        return r'/data/series/%i/' % self.id 
 
     def datafile(self):
         try:
@@ -362,10 +396,10 @@ class Series(models.Model):
                         num_created = num_created+1
                     else:
                         num_updated = num_updated+1
-                    self.save() # makes thumbnail
             except:
                 num_bad = num_bad+1
                 pass
+        self.save() # makes thumbnail
         logger.info('Series %s updated: %d points created, %d updated, %d skipped' % (self.name, num_created, num_updated, num_bad))
 
     def aantal(self):
@@ -409,9 +443,16 @@ class Series(models.Model):
         values = [dp.value for dp in self.datapoints.all()]
         return pd.Series(values,index=dates)
     
+    def to_csv(self):
+        io = StringIO.StringIO()
+        self.to_pandas().to_csv(io)
+        return io.getvalue()
+    
     def make_thumbnail(self):
         logger.debug('Generating thumbnail for series %s' % self.name)
         try:
+            if self.datapoints.count() == 0:
+                self.create()
             series = self.to_pandas()
             dest =  series_thumb_upload(self, self.name+'.png')
             imagefile = os.path.join(settings.MEDIA_ROOT, dest)
@@ -422,7 +463,7 @@ class Series(models.Model):
             logger.info('Generated thumbnail %s' % dest)
             self.thumbnail.name = dest
         except Exception as e:
-            logger.error('Error generating thumbnail: %s: %s' % (e, e.args))
+            logger.error('Error generating thumbnail: %s' % e)
         return self.thumbnail
 
     class Meta:
@@ -431,8 +472,12 @@ class Series(models.Model):
 
 @receiver(pre_save, sender=Series)
 def series_save(sender, instance, **kwargs):
-    #instance.make_thumbnail()
-    pass
+    if instance.datapoints.count() == 0:
+        try:
+            instance.create()
+            instance.make_thumbnail()
+        except Exception as e:
+            logger.error('Error generating series: %s' % e)
 
 class DataPoint(models.Model):
     series = models.ForeignKey(Series,related_name='datapoints')
@@ -462,10 +507,11 @@ class ChartOptions(models.Model):
 class Chart(models.Model):
     series = models.ManyToManyField(Series)
     name = models.CharField(max_length = 50, verbose_name = 'naam')
-#   slug = AutoSlugField(populate_from='name',null=True, blank=True, default='slug')
+    slug = models.SlugField()
     title = models.CharField(max_length = 50, verbose_name = 'titel')
     type = models.CharField(max_length=20, default='line', choices = SERIES_CHOICES)
     options = models.ForeignKey(ChartOptions, blank=True, null=True, verbose_name = 'Grafiekopties')
+    user=models.ForeignKey(User,default=User)
 
     def tijdreeksen(self):
         return self.series.count()
@@ -473,16 +519,25 @@ class Chart(models.Model):
     def __unicode__(self):
         return self.name
     
+    def get_absolute_url(self):
+        return '/data/view/%s' % self.slug
+    
     class Meta:
         verbose_name = 'Grafiek'
         verbose_name_plural = 'Grafieken'
 
 class Dashboard(models.Model):
     name = models.CharField(max_length=50)
-    slug = AutoSlugField(populate_from='name')
+    slug = models.SlugField()
     description = models.TextField(blank=True, verbose_name = 'omschrijving')
     charts = models.ManyToManyField(Chart, verbose_name = 'grafieken')
     user=models.ForeignKey(User,default=User)
+
+    def grafieken(self):
+        return self.charts.count()
+
+    def get_absolute_url(self):
+        return r'/data/dash/%s/' % self.slug 
 
     def __unicode__(self):
         return self.name
