@@ -81,7 +81,7 @@ class MeetLocatie(models.Model):
     ycoord = models.FloatField(blank=True)
     image = models.ImageField(upload_to=meetlocatie_upload, blank = True, null = True)
     datafiles=models.ManyToManyField('DataFile',related_name='meetlocaties',help_text='datafiles die bij deze meetlocatie behoren')
-
+    
     def project(self):
         return self.projectlocatie.project
 
@@ -104,6 +104,23 @@ class MeetLocatie(models.Model):
         
     class Meta:
         ordering = ['name',]
+
+    def series(self):
+        ser = []
+        for f in self.datafiles.all():
+            for p in f.parameter_set.all():
+                for s in p.series_set.all():
+                    ser.append(s)
+        return ser
+
+    def charts(self):
+        charts = []
+        for f in self.datafiles.all():
+            for p in f.parameter_set.all():
+                for s in p.series_set.all():
+                    for c in s.chart_set.all():
+                        charts.append(c)
+        return charts
         
 def classForName( kls ):
     parts = kls.split('.')

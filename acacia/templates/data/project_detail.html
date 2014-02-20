@@ -11,15 +11,15 @@
 <!-- <th>Foto</th> -->
 <th>Locatie</th>
 <th>Omschrijving</th>
-<th>Kaart</th>
+<th>Meetlocaties</th>
 </tr>
 </thead>
 <tbody>
 {% for loc in object.projectlocatie_set.all %}
 <tr>
 <td><a href='{% url "projectlocatie-detail" object.slug loc.slug %}'>{{loc.name}}</a></td>
-<td>{{loc.description}}</td>
-<td>({{loc.xcoord}}, {{loc.ycoord}})</td>
+<td>{{loc.description|safe}}</td>
+<td>{{loc.meetlocaties}}</td>
 </tr>
 {% empty %}
     <div>Geen locaties gevonden</div>

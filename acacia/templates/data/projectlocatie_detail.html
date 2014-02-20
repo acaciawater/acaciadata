@@ -15,16 +15,18 @@
 <th>Meetlocatie</th>
 <th>Omschrijving</th>
 <th>Bestanden</th>
-<th>Coordinaten	</th>
+<th>Tijdreeksen</th>
+<th>Grafieken</th>
 </tr>
 </thead>
 <tbody>
 {% for loc in object.meetlocatie_set.all %}
 <tr>
 <td><a href='{% url "meetlocatie-detail" object.project.slug object.slug loc.slug %}'>{{loc.name}}</a></td>
-<td>{{loc.description}}</td>
+<td>{{loc.description|safe}}</td>
 <td>{{loc.datafiles.count}}</td>
-<td>({{loc.xcoord}}, {{loc.ycoord}})</td>
+<td>{{loc.series|length}}</td>
+<td>{{loc.charts|length}}</td>
 </tr>
 {% empty %}
     <div>Geen meetlocaties gevonden</div>
