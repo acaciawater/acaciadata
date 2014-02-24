@@ -2,6 +2,7 @@ from django.views.generic.edit import CreateView
 from django.views.generic.list import ListView
 from django.views.generic import DetailView
 from django.views.generic.base import TemplateView
+from django.template.loader import render_to_string
 from django.shortcuts import get_object_or_404
 from models import Project, ProjectLocatie, DataFile, Series, Chart, Dashboard
 import json
@@ -27,9 +28,30 @@ class ProjectListView(ListView):
 class ProjectDetailView(DetailView):
     model = Project
 
+    def get_context_data(self, **kwargs):
+        context = super(ProjectDetailView, self).get_context_data(**kwargs)
+        project = self.get_object()
+        content = []
+        for loc in project.projectlocatie_set.all():
+            pos = loc.location()
+            content.append({
+                            'name': loc.name,
+                            'lat': pos.y,
+                            'lon': pos.x,
+                            'info': render_to_string('data/projectlocatie_info.html', {'object': loc})
+                            })
+        context['content'] = json.dumps(content)
+        return context
+
 class ProjectLocatieDetailView(DetailView):
     model = ProjectLocatie
     
+    def get_context_data(self, **kwargs):
+        context = super(ProjectLocatieDetailView, self).get_context_data(**kwargs)
+        content = render_to_string('data/projectlocatie_info.html', {'object': self.get_object()})
+        context['content'] = json.dumps(content)
+        return context
+        
 class SeriesView(DetailView):
     model = Series
 

@@ -1,4 +1,13 @@
 import os, urllib2, cgi
+import re
+
+def spliturl(url):
+    pattern = r'^(?P<scheme>ftp|https?)://(?:(?P<user>\w+)?(?::(?P<passwd>\S+))?@)?(?P<url>\S+)'
+    try:
+        m = re.match(pattern, url)
+        return m.groups()
+    except:
+        return ()
 
 class Generator(object):
 
@@ -14,35 +23,47 @@ class Generator(object):
     def download(self, **kwargs):
         filename = ''
         content = ''
+        result = {}
         if 'url' in kwargs:
             url = kwargs['url']
-            ftp = url.startswith('ftp://')
-            if 'username' in kwargs:
-                username = kwargs['username']
-                password = kwargs.get('password','')
-                if ftp:
-                    # fill in username and password ftp://username:password@domain/path
-                    if password == '':
-                        url = 'ftp://%s@%s' % (username, url[6:])
+            scheme, username, passwd, path = spliturl(url)
+            username = kwargs.get('username',None) or username
+            passwd = kwargs.get('password',None) or passwd
+            ftp = scheme == 'ftp'
+            if ftp:
+                if username != '':
+                    if passwd != '':
+                        url = 'ftp://%s:%s@%s' % (username, passwd, path)
                     else:
-                        url = 'ftp://%s:%s@%s' % (username, password, url[6:])
-                    
-                else:
-                    passman = urllib2.HTTPPasswordMgrWithDefaultRealm()
-                    passman.add_password(None, url, username, password)
-                    authhandler = urllib2.HTTPBasicAuthHandler(passman)
-                    opener = urllib2.build_opener(authhandler)
-                    urllib2.install_opener(opener)
+                        url = 'ftp://%s@%s' % (username, path)
+            else:
+                passman = urllib2.HTTPPasswordMgrWithDefaultRealm()
+                passman.add_password(None, url, username, passwd)
+                authhandler = urllib2.HTTPBasicAuthHandler(passman)
+                opener = urllib2.build_opener(authhandler)
+                urllib2.install_opener(opener)
 
             response = urllib2.urlopen(url)
-            if response is not None:
-                if ftp:
-                    filename = os.path.basename(url)
+            if response is None:
+                return None
+            if ftp:
+                pattern = kwargs.get('pattern',None)
+                if pattern:
+                    # download all matching files
+                    dirlist = response.read()
+                    filenames = re.findall(pattern, dirlist)
+                    for filename in filenames:
+                        urlfile = url + '/' + filename
+                        response = urllib2.urlopen(urlfile)
+                        result[filename] = response
                 else:
-                    _,params = cgi.parse_header(response.headers.get('Content-Disposition',''))
-                    filename = params.get('filename','file.txt')
-                content = response.read()
-        return [filename, content]
+                    filename = os.path.basename(url)
+                    result[filename] = response
+            else:
+                _,params = cgi.parse_header(response.headers.get('Content-Disposition',''))
+                filename = params.get('filename','file.txt')
+                result[filename] = response
+        return result
 
     def get_parameters(self,fil):
         ''' return list of all parameters in the datafile '''

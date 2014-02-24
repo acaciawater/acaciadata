@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.utils import timezone
 from django.core.urlresolvers import reverse
+from django.contrib.gis.geos import Point
 
 from acacia import settings
 import pandas as pd
@@ -66,6 +67,9 @@ class ProjectLocatie(models.Model):
     def __unicode__(self):
         return self.name
 
+    def location(self, srid=None):
+        return util.toWGS84(Point(x=self.xcoord,y=self.ycoord, srid=srid or util.RDNEW))
+
     class Meta:
         ordering = ['name',]
 
@@ -84,6 +88,9 @@ class MeetLocatie(models.Model):
     
     def project(self):
         return self.projectlocatie.project
+
+    def location(self, srid=None):
+        return util.toWGS84(Point(x=self.xcoord,y=self.ycoord, srid=srid or util.RDNEW))
 
     def filecount(self):
         return self.datafiles.count()
@@ -195,7 +202,7 @@ class DataFile(models.Model):
                 kwargs = json.loads(self.config)
                 return gen(**kwargs)
             except Exception as err:
-                logger.error('Configuration error in generator %s: %s' % (gen, err))
+                logger.error('Configuration error in generator %s: %s' % (self.generator, err))
                 return None
     
     def download(self,save=True):
@@ -216,21 +223,31 @@ class DataFile(models.Model):
         if self.username is not None and self.username != '':
             options['username'] = self.username
             options['password'] = self.password
-        filename, response = gen.download(**options)
-        if response is None:
+        try:
+            # merge options with config
+            config = json.loads(self.config)
+            options = dict(options.items() + config.items())
+        except Exception as e:
+            logger.error('Cannot download datafile %s: error in config options. %s' % (self.name, e))
+            return
+        
+        results = gen.download(**options)
+        if results is None:
             logger.error('No response from server')
-        elif len(response) == 0:
+        elif results == {}:
             logger.warning('Empty response received from server, download aborted')
         else:
-            logger.info('Download completed, got file %s', filename)
-            new_crc = abs(binascii.crc32(response))
-            if self.crc == new_crc:
-                logger.warning('Downloaded file %s appears to be identical to local file %s' % (filename, self.file))
-                logger.warning('File not saved')
-            else:
-                self.crc = new_crc
-                self.file.save(name=filename, content=ContentFile(response), save=save)
-                logger.info('File saved as %s (size = %d)', self.filename(), self.filesize())
+            logger.info('Download completed, got %s files', len(results))
+            for filename, response in results.iteritems():
+                content = response.read()
+                new_crc = abs(binascii.crc32(content))
+                if self.crc == new_crc:
+                    logger.warning('Downloaded file %s appears to be identical to local file %s' % (filename, self.file))
+                    logger.warning('File not saved')
+                else:
+                    self.crc = new_crc
+                    self.file.save(name=filename, content=ContentFile(content), save=save)
+                    logger.info('File %s saved as %s (size = %d)', (filename, self.file, self.filesize()))
                 
     def update_parameters(self):
         logger.info('Updating parameters for datafile %s' % self.name)
@@ -330,8 +347,8 @@ class Parameter(models.Model):
         imagedir = os.path.dirname(imagefile)
         if not os.path.exists(imagedir):
             os.makedirs(imagedir)
-        series = data[self.name]
         try:
+            series = data[self.name]
             util.save_thumbnail(series,imagefile,self.type)
             logger.info('Generated thumbnail %s' % dest)
             self.thumbnail.name = dest
@@ -385,7 +402,8 @@ class Series(models.Model):
                     adate = timezone.make_aware(date,tz)
                     self.datapoints.create(date=adate, value=value)
                     num_created += 1
-            except:
+            except Exception as e:
+                logger.debug('Datapoint %s,%g: %s' % (str(date), value, e))
                 num_bad += 1
                 pass
         logger.info('Series %s updated: %d points created, %d skipped' % (self.name, num_created, num_bad))
@@ -487,7 +505,7 @@ class Series(models.Model):
         verbose_name = 'tijdreeks'
         verbose_name_plural = 'tijdreeksen'
 
-@receiver(pre_save, sender=Series)
+@receiver(post_save, sender=Series)
 def series_save(sender, instance, **kwargs):
     if instance.datapoints.count() == 0:
         try:
