@@ -5,11 +5,12 @@ from django.views.generic.base import TemplateView
 from django.template.loader import render_to_string
 from django.shortcuts import get_object_or_404
 from models import Project, ProjectLocatie, MeetLocatie, DataFile, Series, Chart, Dashboard
+
 import json
 import datetime
 import re
-
 import logging
+
 logger = logging.getLogger(__name__)
 
 class DataFileAddView(CreateView):
@@ -33,7 +34,7 @@ class ProjectDetailView(DetailView):
         project = self.get_object()
         content = []
         for loc in project.projectlocatie_set.all():
-            pos = loc.location()
+            pos = loc.latlon()
             content.append({
                             'name': loc.name,
                             'lat': pos.y,

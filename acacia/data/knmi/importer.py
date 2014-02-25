@@ -7,17 +7,13 @@ def importneerslag(fil):
         line = f.readline()
         while line != '':
             words = line.split(',')
-            if len(words)>9:
-                lon = float(words[8])
-                lat = float(words[9])
+            if len(words)>7:
+                x = float(words[6])
+                y = float(words[7])
                 NeerslagStation.objects.get_or_create(
                     naam = words[0],
                     nummer = int(words[1]),
-                    xcoord=float(words[6]),
-                    ycoord=float(words[7]),
-                    lon = lon,
-                    lat = lat,
-                    location = Point(lon,lat)
+                    location = Point(x,y)
                 )
             line = f.readline()
 
@@ -28,16 +24,12 @@ def importstations(fil):
         while line != '':
             words = line.split(',')
             if len(words)>8:
-                lon = float(words[5])
-                lat = float(words[6])
+                x = float(words[7])
+                y = float(words[8])
                 Station.objects.get_or_create(
                     nummer = int(words[0]),
                     naam = words[1],
-                    xcoord = float(words[7]),
-                    ycoord = float(words[8]),
-                    lon = lon,
-                    lat = lat,
-                    location = Point(lon,lat)
+                    location = Point(x,y)
                 )
             line = f.readline()
 

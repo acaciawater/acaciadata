@@ -2,6 +2,10 @@ from acacia.data.models import Project, ProjectLocatie, MeetLocatie, Series, Dat
 from django.contrib import admin
 from django import forms
 from django.forms import PasswordInput, ModelForm
+from django.contrib.gis.db import models
+from django.forms.widgets import Textarea
+import django.contrib.gis.forms as geoforms
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -23,21 +27,34 @@ class ParameterInline(admin.TabularInline):
     fields = ('name', 'description', 'unit', 'datafile',)
 
 class ProjectAdmin(admin.ModelAdmin):
-    list_display = ('name', 'locatiecount', )
-    
-class ProjectLocatieAdmin(admin.ModelAdmin):
-    list_display = ('name','project','meetlocaties',)
-    list_filter = ('project',)
+    list_display = ('name', 'location_count', )
 
-class MeetDataInline(admin.TabularInline):
-    model = MeetLocatie.datafiles.through
+class ProjectLocatieForm(ModelForm):
+    model = ProjectLocatie
+    point = geoforms.PointField(widget=
+        geoforms.OSMWidget(attrs={'map_width': 800, 'map_height': 500}))
+        
+class ProjectLocatieAdmin(admin.ModelAdmin):
+    #form = ProjectLocatieForm
+    list_display = ('name','project','location_count',)
+    list_filter = ('project',)
+    formfield_overrides = {models.PointField:{'widget': Textarea}}
+
+class MeetLocatieForm(ModelForm):
     
+    def clean_location(self):
+        loc = self.cleaned_data['location']
+        if loc is None:
+            projectloc = self.cleaned_data['projectlocatie']
+            loc = projectloc.location
+        return loc
+       
 class MeetLocatieAdmin(admin.ModelAdmin):
+    form = MeetLocatieForm
     list_display = ('name','projectlocatie','project','filecount',)
     list_filter = ('projectlocatie','projectlocatie__project',)
-    #filter_horizontal = ('datafiles',)
-    exclude = ('datafiles',)
-    inlines = [MeetDataInline,]
+    formfield_overrides = {models.PointField:{'widget': Textarea, 'required': False}}
+    #inlines = [DataFileInline,]
     
 def upload_datafile(modeladmin, request, queryset):
     for df in queryset:
@@ -48,7 +65,6 @@ upload_datafile.short_description = "Upload de geselecteerde data files naar de 
 def update_parameters(modeladmin, request, queryset):
     for df in queryset:
         df.update_parameters()
-
 update_parameters.short_description = "Update de parameterlijst van de geselecteerde data files"
 
 def replace_parameters(modeladmin, request, queryset):
@@ -56,14 +72,12 @@ def replace_parameters(modeladmin, request, queryset):
         count = df.parameters()
         df.parameter_set.all().delete()
         logger.info('%d parameters deleted for datafile %s' % (count, df))
-        df.update_parameters()
-    
+        df.update_parameters()    
 replace_parameters.short_description = "Vervang de parameterlijst van de geselecteerde data files"
 
 class DataFileForm(ModelForm):
     model = DataFile
     password = forms.CharField(label='Wachtwoord', help_text='Wachtwoord voor de webservice', widget=PasswordInput(render_value=True),required=False)
-    #widgets = {'password': PasswordInput(render_value=False)}
     
 class DataFileAdmin(admin.ModelAdmin):
     form = DataFileForm
@@ -71,10 +85,10 @@ class DataFileAdmin(admin.ModelAdmin):
     actions = [upload_datafile, replace_parameters]
     list_display = ('name', 'description', 'filename', 'filesize', 'filedate', 'parameters',)
     fieldsets = (
-                 ('Algemeen', {'fields': ('name', 'description', 'file', 'generator',),
+                 ('Algemeen', {'fields': ('name', 'description', 'meetlocatie',),
                                'classes': ('grp-collapse grp-open',),
                                }),
-                 ('Bronnen', {'fields': ('url',('username', 'password'), 'config',),
+                 ('Bronnen', {'fields': ('file', 'generator', 'url',('username', 'password'), 'config',),
                                'classes': ('grp-collapse grp-closed',),
                               }),
                  ('Admin', {'fields': ('user',),
@@ -86,8 +100,6 @@ class GeneratorAdmin(admin.ModelAdmin):
     list_display = ('name', 'classname', 'description')
 
 def update_thumbnails(modeladmin, request, queryset):
-#     for p in queryset:
-#         p.save()
     # group queryset by datafile
     group = {}
     for p in queryset:

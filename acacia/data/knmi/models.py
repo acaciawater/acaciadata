@@ -1,13 +1,10 @@
 from django.contrib.gis.db import models
+from acacia.data import util
 
 class Station(models.Model):
     nummer = models.IntegerField()
     naam = models.CharField(max_length=50)
-    xcoord = models.FloatField()
-    ycoord = models.FloatField()
-    lon = models.FloatField()        
-    lat = models.FloatField()        
-    location = models.PointField()
+    location = models.PointField(srid=util.RDNEW)
     objects = models.GeoManager()
         
     def __unicode__(self):
@@ -16,13 +13,8 @@ class Station(models.Model):
 class NeerslagStation(models.Model):
     nummer = models.IntegerField()
     naam = models.CharField(max_length=50)
-    xcoord = models.FloatField()
-    ycoord = models.FloatField()
-    lon = models.FloatField()        
-    lat = models.FloatField()
-    location = models.PointField()
+    location = models.PointField(srid=util.RDNEW)
     objects = models.GeoManager()
             
     def __unicode__(self):
         return self.naam
-

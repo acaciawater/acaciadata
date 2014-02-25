@@ -37,6 +37,7 @@ INSTALLED_APPS = (
     'django.contrib.gis',
     'bootstrap3',
     'registration',
+    'south',
     'acacia',
     'acacia.data',
     'acacia.data.knmi',
@@ -71,7 +72,7 @@ WSGI_APPLICATION = 'acacia.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.spatialite',
-        'NAME': os.path.join(BASE_DIR, 'acacia.data.sqlite'),                      # Or path to database file if using sqlite3.
+        'NAME': os.path.join(BASE_DIR, 'acaciadata.db'),                      # Or path to database file if using sqlite3.
     }
 }
 

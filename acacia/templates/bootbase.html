@@ -16,6 +16,7 @@
 		.nav > .breadcrumb {float: left; margin-top: 8px; padding-bottom: 0px;}
     </style>
 	{% endblock %}
+	{% block extrastyle %}{% endblock extrastyle %}
 	{% block meta %}{% endblock %}
 	{% block script %}
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
@@ -50,7 +51,7 @@
 	      {% endblock navbar %}
 	      {% block navbar-auth %}
 	      <ul class="nav navbar-nav navbar-right">
-	        
+	        {% block navbar-right %}{% endblock navbar-right %}
 	        <li><a href="/admin/data/{% block admin_url %}{% endblock admin_url %}">Beheer</a></li>
 	        {% if user.is_authenticated %}
 	        <li class="dropdown">

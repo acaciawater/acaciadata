@@ -1,12 +1,11 @@
-import os,datetime,ast,math,binascii
+import os,datetime,math,binascii
 from django.db import models
 from django.db.models import Avg, Max, Min
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.utils import timezone
 from django.core.urlresolvers import reverse
-from django.contrib.gis.geos import Point
-
+from django.contrib.gis.db import models as geo
 from acacia import settings
 import pandas as pd
 import json,util
@@ -31,9 +30,9 @@ class Project(models.Model):
     logo = models.ImageField(upload_to=project_upload, blank=True, null=True,help_text='Mini-logo voor grafieken')
     theme = models.CharField(max_length=50,verbose_name='thema', default='dark-blue',choices=THEME_CHOICES,help_text='Thema voor grafieken')
         
-    def locatiecount(self):
+    def location_count(self):
         return self.projectlocatie_set.count()
-    locatiecount.short_description='locaties'
+    location_count.short_description='Aantal locaties'
     
     def get_absolute_url(self):
         return reverse('project-detail', args=[self.id])
@@ -47,26 +46,27 @@ class Project(models.Model):
 def locatie_upload(instance, filename):
     return '/'.join(['images', instance.project.name, instance.name, filename])
 
-class ProjectLocatie(models.Model):
+class ProjectLocatie(geo.Model):
     project = models.ForeignKey(Project)
     name = models.CharField(max_length=50,verbose_name='naam')
     description = models.TextField(blank=True,verbose_name='omschrijving')
     description.allow_tags=True
-    xcoord = models.FloatField(default=0)
-    ycoord = models.FloatField(default=0)
     image = models.ImageField(upload_to=locatie_upload, blank = True, null = True)
+    location = geo.PointField(srid=util.RDNEW,verbose_name='locatie', help_text='Projectlocatie in Rijksdriehoekstelsel coordinaten')
+    objects = geo.GeoManager()
 
     def get_absolute_url(self):
         return reverse('projectlocatie-detail', args=[self.id])
 
-    def meetlocaties(self):
+    def location_count(self):
         return self.meetlocatie_set.count()
+    location_count.short_description='Aantal meetlocaties'
 
     def __unicode__(self):
         return self.name
 
-    def location(self, srid=None):
-        return util.toWGS84(Point(x=self.xcoord,y=self.ycoord, srid=srid or util.RDNEW))
+    def latlon(self):
+        return util.toWGS84(self.location)
 
     class Meta:
         ordering = ['name',]
@@ -74,20 +74,19 @@ class ProjectLocatie(models.Model):
 def meetlocatie_upload(instance, filename):
     return '/'.join(['images', instance.project.name, instance.projectlocatie.name, instance.name, filename])
 
-class MeetLocatie(models.Model):
+class MeetLocatie(geo.Model):
     projectlocatie = models.ForeignKey(ProjectLocatie)
     name = models.CharField(max_length=50,verbose_name='naam')
     description = models.TextField(blank=True,verbose_name='omschrijving')
-    xcoord = models.FloatField(blank=True)
-    ycoord = models.FloatField(blank=True)
     image = models.ImageField(upload_to=meetlocatie_upload, blank = True, null = True)
-    datafiles=models.ManyToManyField('DataFile',related_name='meetlocaties',help_text='datafiles die bij deze meetlocatie behoren')
-    
+    location = geo.PointField(srid=util.RDNEW,verbose_name='locatie', help_text='Meetlocatie in Rijksdriehoekstelsel coordinaten')
+    objects = geo.GeoManager()
+
     def project(self):
         return self.projectlocatie.project
 
-    def location(self, srid=None):
-        return util.toWGS84(Point(x=self.xcoord,y=self.ycoord, srid=srid or util.RDNEW))
+    def latlon(self):
+        return util.toWGS84(self.location)
 
     def filecount(self):
         return self.datafiles.count()
@@ -99,13 +98,6 @@ class MeetLocatie(models.Model):
     def __unicode__(self):
         return self.name
 
-    def save(self,*args, **kwargs):
-        if self.xcoord == 0 or self.xcoord is None:
-            self.xcoord = self.projectlocatie.xcoord
-        if self.ycoord == 0 or self.ycoord is None:
-            self.ycoord = self.projectlocatie.ycoord
-        super(MeetLocatie,self).save(*args,**kwargs)
-        
     class Meta:
         ordering = ['name',]
         unique_together = ('projectlocatie', 'name')
@@ -150,6 +142,7 @@ class Generator(models.Model):
 class DataFile(models.Model):
     name = models.CharField(max_length=50,verbose_name='naam')
     description = models.TextField(blank=True,verbose_name='omschrijving')
+    meetlocatie=models.ForeignKey(MeetLocatie,related_name='datafiles',help_text='Meetlocatie van deze datafile')
     file=models.FileField(upload_to=settings.UPLOAD_DATAFILES,blank=True)
     url=models.CharField(blank=True,max_length=200,help_text='volledige url van de remote file. Leeg laten voor handmatige uploads')
     generator=models.ForeignKey(Generator,help_text='Generator voor het maken van tijdseries uit de datafile')
@@ -171,7 +164,7 @@ class DataFile(models.Model):
         except:
             # file may not (yet) exist
             return ''
-    filesize.short_description = 'grootte'
+    filesize.short_description = 'bestandsgrootte'
 
     def filedate(self):
         try:
@@ -179,10 +172,11 @@ class DataFile(models.Model):
         except:
             # file may not (yet) exist
             return ''
-    filedate.short_description = 'datum'
+    filedate.short_description = 'bestandsdatum'
 
     def filepath(self):
         return os.path.join(settings.MEDIA_ROOT,self.file.name) 
+    filedate.short_description = 'bestandslocatie'
        
     def __unicode__(self):
         return self.name

@@ -18,7 +18,7 @@
 <script>
 var map;
 function initialize() {
-    var pos = new google.maps.LatLng({{object.location.y}},{{object.location.x}});
+    var pos = new google.maps.LatLng({{object.latlon.y}},{{object.latlon.x}});
     map = new google.maps.Map(document.getElementById('map'), {
         zoom: {{zoom}},
         center: pos,

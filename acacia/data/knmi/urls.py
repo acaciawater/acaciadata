@@ -3,12 +3,8 @@ from django.contrib.gis import admin
 
 from importer import importall
 
-urlpatterns = patterns('',
+urlpatterns = patterns('acacia.data.knmi.views',
 #    url(r'^admin/', include(admin.site.urls)),
+    url(r'^find/', 'find_stations', name='find_stations'),
 #    url(r'^import/', importall(), name='import'),
 )
-
-#from importer import importall
-#urlpatterns = patterns('',
-#    url(r'^import/', importall(), name='import'),
-#)

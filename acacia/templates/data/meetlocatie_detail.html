@@ -2,6 +2,19 @@
 {% load l10n %}
 {% block title %}Acacia Meetlocatie {{object.name}}{% endblock title %}
 {% block brandname %}{% endblock brandname %}
+{% block navbar-right %}
+{% localize off %}
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown">Toevoegen <b class="caret"></b></a>
+  <ul class="dropdown-menu">
+    <li><a href="#" data-toggle="tooltip" title="Datafile toevoegen">Datafile</a></li>
+    <li><a href="{% url 'find_stations'%}?type=meteo&amp;x={{object.location.x}}&amp;y={{object.location.y}}" data-toggle="tooltip" title="Dichtstbijzijnde KNMI Meteostation toevoegen">Meteostation</a></li>
+    <li><a href="{% url 'find_stations'%}?type=neerslag&amp;x={{object.location.x}}&amp;y={{object.location.y}}" data-toggle="tooltip" title="Dichtstbijzijnde KNMI Neerslagstation toevoegen">Neerslagstation</a></li>
+    <li><a href="#" data-toggle="tooltip" title="Dahelijkse neerslag van de nationale regenradar toevoegen">Regenradar</a></li>
+  </ul>
+</li>
+{% endlocalize %}
+{% endblock navbar-right %}
 {% block breadcrumbs %}
 <ol class="breadcrumb">
 	<li><a href="{% url 'home' %}">Home</a></li>
@@ -19,7 +32,7 @@
 <script>
 var map;
 function initialize() {
-    var pos = new google.maps.LatLng({{object.location.y}},{{object.location.x}});
+    var pos = new google.maps.LatLng({{object.latlon.y}},{{object.latlon.x}});
     map = new google.maps.Map(document.getElementById('map'), {
         zoom: {{zoom}},
         center: pos,
