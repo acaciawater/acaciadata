@@ -1,8 +1,13 @@
 {% extends 'bootbase.html' %}
 {% load l10n %}
 {% block title %}Project {{object.name}}{% endblock title %}
-{% block navbar %}{% endblock %}
-{% block brandname %}<a class="navbar-brand" href="{% url 'project-list' %}">Project {{object.name}}</a>{% endblock brandname %}
+{% block breadcrumbs %}
+<ol class="breadcrumb">
+	<li><a href="{% url 'home' %}">Home</a></li>
+	<li><a href="{% url 'project-list' %}">Projecten</a></li>
+	<li class="active"><a href="{% url 'project-detail' object.id %}">{{object.name}}</a></li>
+</ol>
+{% endblock breadcrumbs %}
 {% block admin_url %}project/{{object.id}}{% endblock %}
 {% block script %}
 {{ block.super }}
@@ -13,7 +18,7 @@ var map;
 function initialize() {
     map = new google.maps.Map(document.getElementById('map'), {
         zoom: 14,
-        mapTypeId: google.maps.MapTypeId.SATELLITE
+        mapTypeId: google.maps.MapTypeId.{{maptype}}
     });
 	var json = {{content|safe}};
 	var bounds = new google.maps.LatLngBounds();
@@ -55,7 +60,7 @@ $(function(){initialize();});
 <tbody>
 {% for loc in object.projectlocatie_set.all %}
 <tr>
-<td><a href='{% url "projectlocatie-detail" object.slug loc.slug %}'>{{loc.name}}</a></td>
+<td><a href="{% url 'projectlocatie-detail' loc.id %}">{{loc.name}}</a></td>
 <td>{{loc.description|safe}}</td>
 <td>{{loc.meetlocaties}}</td>
 </tr>

@@ -24,12 +24,10 @@ class ParameterInline(admin.TabularInline):
 
 class ProjectAdmin(admin.ModelAdmin):
     list_display = ('name', 'locatiecount', )
-    prepopulated_fields = {"slug": ("name",)}
     
 class ProjectLocatieAdmin(admin.ModelAdmin):
     list_display = ('name','project','meetlocaties',)
     list_filter = ('project',)
-    prepopulated_fields = {"slug": ("name",)}
 
 class MeetDataInline(admin.TabularInline):
     model = MeetLocatie.datafiles.through
@@ -37,7 +35,6 @@ class MeetDataInline(admin.TabularInline):
 class MeetLocatieAdmin(admin.ModelAdmin):
     list_display = ('name','projectlocatie','project','filecount',)
     list_filter = ('projectlocatie','projectlocatie__project',)
-    prepopulated_fields = {"slug": ("name",)}
     #filter_horizontal = ('datafiles',)
     exclude = ('datafiles',)
     inlines = [MeetDataInline,]
@@ -161,7 +158,6 @@ class DataPointAdmin(admin.ModelAdmin):
 class ChartAdmin(admin.ModelAdmin):
     filter_horizontal = ('series',)
     list_display = ('name', 'title', 'tijdreeksen', )
-    prepopulated_fields = {"slug": ("name",)}
 
 class DashAdmin(admin.ModelAdmin):
     filter_horizontal = ('charts',)

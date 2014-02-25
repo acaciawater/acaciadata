@@ -74,7 +74,7 @@ class Regenradar(Generator):
         response = io.getvalue()
         t = t[-1]
         filename = 'p%d-%d-%04d%02d%02d.csv' % (self.x,self.y,t.year,t.month,t.day)
-        return [filename, response]
+        return {filename: response}
 
     def get_data(self,fil,**kwargs):
         data = pd.read_csv(fil, index_col = 0, parse_dates = True)

@@ -4,7 +4,7 @@ from django.views.generic import DetailView
 from django.views.generic.base import TemplateView
 from django.template.loader import render_to_string
 from django.shortcuts import get_object_or_404
-from models import Project, ProjectLocatie, DataFile, Series, Chart, Dashboard
+from models import Project, ProjectLocatie, MeetLocatie, DataFile, Series, Chart, Dashboard
 import json
 import datetime
 import re
@@ -41,6 +41,7 @@ class ProjectDetailView(DetailView):
                             'info': render_to_string('data/projectlocatie_info.html', {'object': loc})
                             })
         context['content'] = json.dumps(content)
+        context['maptype'] = 'TERRAIN'
         return context
 
 class ProjectLocatieDetailView(DetailView):
@@ -50,6 +51,19 @@ class ProjectLocatieDetailView(DetailView):
         context = super(ProjectLocatieDetailView, self).get_context_data(**kwargs)
         content = render_to_string('data/projectlocatie_info.html', {'object': self.get_object()})
         context['content'] = json.dumps(content)
+        context['maptype'] = 'SATELLITE'
+        context['zoom'] = 14
+        return context
+
+class MeetLocatieDetailView(DetailView):
+    model = MeetLocatie
+    
+    def get_context_data(self, **kwargs):
+        context = super(MeetLocatieDetailView, self).get_context_data(**kwargs)
+        content = render_to_string('data/meetlocatie_info.html', {'object': self.get_object()})
+        context['content'] = json.dumps(content)
+        context['maptype'] = 'SATELLITE'
+        context['zoom'] = 16
         return context
         
 class SeriesView(DetailView):
@@ -119,7 +133,7 @@ class ChartBareView(TemplateView):
 
         allseries = []
         for i,ser in enumerate(chart.series.all()):
-            title = ser.name if len(ser.unit)==0 else '%s [%s]' % (ser.name, ser.unit)
+            title = ser.name if len(ser.unit)==0 else '%s [%s]' % (ser.name, ser.unit) if chart.series.count()>1 else ser.unit
             options['yAxis'].append({
                                      'title': {'text': title},
                                      'opposite': 0 if i % 2 == 0 else 1
@@ -149,9 +163,9 @@ class ChartView(ChartBareView):
 
     def get_context_data(self, **kwargs):
         context = super(ChartBareView, self).get_context_data(**kwargs)
-        slug = context.get('slug',None)
-        if slug is not None:
-            chart = Chart.objects.get(slug=slug)
+        pk = context.get('pk',1)
+        if pk is not None:
+            chart = Chart.objects.get(pk=pk)
             jop = self.get_json(chart)
             context['options'] = jop
             context['chart'] = chart
@@ -162,7 +176,7 @@ class DashView(TemplateView):
     
     def get_context_data(self, **kwargs):
         context = super(DashView,self).get_context_data(**kwargs)
-        slug = context.get('slug', 'None')
-        dash = get_object_or_404(Dashboard, slug=slug)
+        pk = context.get('pk', None)
+        dash = get_object_or_404(Dashboard, pk=pk)
         context['dashboard'] = dash
         return context

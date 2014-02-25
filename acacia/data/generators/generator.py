@@ -55,14 +55,14 @@ class Generator(object):
                     for filename in filenames:
                         urlfile = url + '/' + filename
                         response = urllib2.urlopen(urlfile)
-                        result[filename] = response
+                        result[filename] = response.read()
                 else:
                     filename = os.path.basename(url)
-                    result[filename] = response
+                    result[filename] = response.read()
             else:
                 _,params = cgi.parse_header(response.headers.get('Content-Disposition',''))
                 filename = params.get('filename','file.txt')
-                result[filename] = response
+                result[filename] = response.read()
         return result
 
     def get_parameters(self,fil):

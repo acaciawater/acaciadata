@@ -26,7 +26,6 @@ THEME_CHOICES = (('dark-blue','blauw'),
 
 class Project(models.Model):
     name = models.CharField(max_length=50)
-    slug = models.SlugField()
     description = models.TextField(blank=True,verbose_name='omschrijving')
     image = models.ImageField(upload_to=project_upload, blank = True, null=True)
     logo = models.ImageField(upload_to=project_upload, blank=True, null=True,help_text='Mini-logo voor grafieken')
@@ -37,7 +36,7 @@ class Project(models.Model):
     locatiecount.short_description='locaties'
     
     def get_absolute_url(self):
-        return reverse('project-detail', args=(self.slug,))
+        return reverse('project-detail', args=[self.id])
          
     def __unicode__(self):
         return self.name
@@ -51,7 +50,6 @@ def locatie_upload(instance, filename):
 class ProjectLocatie(models.Model):
     project = models.ForeignKey(Project)
     name = models.CharField(max_length=50,verbose_name='naam')
-    slug = models.SlugField()
     description = models.TextField(blank=True,verbose_name='omschrijving')
     description.allow_tags=True
     xcoord = models.FloatField(default=0)
@@ -59,7 +57,7 @@ class ProjectLocatie(models.Model):
     image = models.ImageField(upload_to=locatie_upload, blank = True, null = True)
 
     def get_absolute_url(self):
-        return reverse('projectlocatie-detail', args=(self.project.slug, self.slug,))
+        return reverse('projectlocatie-detail', args=[self.id])
 
     def meetlocaties(self):
         return self.meetlocatie_set.count()
@@ -79,7 +77,6 @@ def meetlocatie_upload(instance, filename):
 class MeetLocatie(models.Model):
     projectlocatie = models.ForeignKey(ProjectLocatie)
     name = models.CharField(max_length=50,verbose_name='naam')
-    slug = models.SlugField()
     description = models.TextField(blank=True,verbose_name='omschrijving')
     xcoord = models.FloatField(blank=True)
     ycoord = models.FloatField(blank=True)
@@ -97,7 +94,7 @@ class MeetLocatie(models.Model):
     filecount.short_description = 'Aantal files'
 
     def get_absolute_url(self):
-        return reverse('meetlocatie-detail',args=[self.project().slug, self.projectlocatie.slug, self.slug])
+        return reverse('meetlocatie-detail',args=[self.id])
     
     def __unicode__(self):
         return self.name
@@ -111,6 +108,7 @@ class MeetLocatie(models.Model):
         
     class Meta:
         ordering = ['name',]
+        unique_together = ('projectlocatie', 'name')
 
     def series(self):
         ser = []
@@ -151,7 +149,6 @@ class Generator(models.Model):
     
 class DataFile(models.Model):
     name = models.CharField(max_length=50,verbose_name='naam')
-#    slug = AutoSlugField(populate_from='name',null=True, blank=True)
     description = models.TextField(blank=True,verbose_name='omschrijving')
     file=models.FileField(upload_to=settings.UPLOAD_DATAFILES,blank=True)
     url=models.CharField(blank=True,max_length=200,help_text='volledige url van de remote file. Leeg laten voor handmatige uploads')
@@ -191,7 +188,7 @@ class DataFile(models.Model):
         return self.name
 
     def get_absolute_url(self):
-        return r'/data/file/%i/' % self.id 
+        return reverse('datafile-detail', args=[self.id]) 
     
     def get_generator_instance(self):
         gen = self.generator.get_class()
@@ -238,8 +235,7 @@ class DataFile(models.Model):
             logger.warning('Empty response received from server, download aborted')
         else:
             logger.info('Download completed, got %s files', len(results))
-            for filename, response in results.iteritems():
-                content = response.read()
+            for filename, content in results.iteritems():
                 new_crc = abs(binascii.crc32(content))
                 if self.crc == new_crc:
                     logger.warning('Downloaded file %s appears to be identical to local file %s' % (filename, self.file))
@@ -317,7 +313,6 @@ SERIES_CHOICES = (('line', 'lijn'),
 class Parameter(models.Model):
     datafile = models.ForeignKey(DataFile)
     name = models.CharField(max_length=50,verbose_name='naam')
- #   slug = models.SlugField()
     description = models.TextField(blank=True,verbose_name='omschrijving')
     unit = models.CharField(max_length=10, default='m',verbose_name='eenheid')
     type = models.CharField(max_length=20, default='line', choices = SERIES_CHOICES)
@@ -366,7 +361,6 @@ def series_thumb_upload(instance, filename):
 
 class Series(models.Model):
     name = models.CharField(max_length=50,verbose_name='naam')
- #   slug = models.SlugField()
     description = models.TextField(blank=True,verbose_name='omschrijving')
     unit = models.CharField(max_length=10, blank=True, verbose_name='eenheid')
     parameter = models.ForeignKey(Parameter)
@@ -380,7 +374,7 @@ class Series(models.Model):
         return self.name
 
     def get_absolute_url(self):
-        return r'/data/series/%i/' % self.id 
+        return reverse('series-detail', args=[self.id]) 
 
     def datafile(self):
         try:
@@ -542,7 +536,6 @@ class ChartOptions(models.Model):
 class Chart(models.Model):
     series = models.ManyToManyField(Series)
     name = models.CharField(max_length = 50, verbose_name = 'naam')
-    slug = models.SlugField()
     title = models.CharField(max_length = 50, verbose_name = 'titel')
     type = models.CharField(max_length=20, default='line', choices = SERIES_CHOICES)
     options = models.ForeignKey(ChartOptions, blank=True, null=True, verbose_name = 'Grafiekopties')
@@ -555,7 +548,7 @@ class Chart(models.Model):
         return self.name
     
     def get_absolute_url(self):
-        return '/data/view/%s' % self.slug
+        return reverse('chart-detail', args=[self.id])
     
     class Meta:
         verbose_name = 'Grafiek'
@@ -563,7 +556,6 @@ class Chart(models.Model):
 
 class Dashboard(models.Model):
     name = models.CharField(max_length=50)
-    slug = models.SlugField()
     description = models.TextField(blank=True, verbose_name = 'omschrijving')
     charts = models.ManyToManyField(Chart, verbose_name = 'grafieken')
     user=models.ForeignKey(User,default=User)
@@ -572,7 +564,7 @@ class Dashboard(models.Model):
         return self.charts.count()
 
     def get_absolute_url(self):
-        return r'/data/dash/%s/' % self.slug 
+        return reverse('dash-view', args=[self.id]) 
 
     def __unicode__(self):
         return self.name

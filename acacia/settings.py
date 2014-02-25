@@ -25,13 +25,9 @@ TEMPLATE_DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
 # Application definition
-
 INSTALLED_APPS = (
     'grappelli',
-#    'django_admin_bootstrapped.bootstrap3',
-#    'django_admin_bootstrapped',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -41,13 +37,10 @@ INSTALLED_APPS = (
     'django.contrib.gis',
     'bootstrap3',
     'registration',
-    'djcelery',
     'acacia',
     'acacia.data',
     'acacia.data.knmi',
 )
-ACCOUNT_ACTIVATION_DAYS = 7
-LOGIN_REDIRECT_URL = '/data/'
 
 MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -78,7 +71,6 @@ WSGI_APPLICATION = 'acacia.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.spatialite',
-#        'ENGINE': 'django.db.backends.sqlite3', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
         'NAME': os.path.join(BASE_DIR, 'acacia.data.sqlite'),                      # Or path to database file if using sqlite3.
     }
 }
@@ -98,7 +90,6 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.6/howto/static-files/
-
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
@@ -107,10 +98,19 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 UPLOAD_DATAFILES = 'datafiles' 
 UPLOAD_THUMBNAILS = 'thumbnails' 
 
+# Grapelli admin
 GRAPPELLI_ADMIN_TITLE='Beheer van Acacia Online Datastore'
 
-CELERY_RESULT_BACKEND='djcelery.backends.database:DatabaseBackend'
+# registration stuff
+ACCOUNT_ACTIVATION_DAYS = 7
+LOGIN_REDIRECT_URL = '/data/'
 
+# Celery stuff
+BROKER_URL = 'django://'
+CELERY_RESULT_BACKEND='djcelery.backends.database:DatabaseBackend'
+INSTALLED_APPS += ('kombu.transport.django','djcelery',)                  
+
+# Logging
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,

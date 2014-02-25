@@ -1,20 +1,15 @@
 {% extends 'bootbase.html' %}
 {% block title %}Acacia Dashboard {{dashboard.name}}{% endblock title %}
-{% block brandname %}Dashboard {{dashboard.name}}{% endblock brandname %}
+{% block brandname %}<a class="navbar-brand">Dashboard {{dashboard.name}}</a>{% endblock brandname %}
+{% block admin_url %}dashboard/{{dashboard.id}}{% endblock %}
 {% block navbar %}{% endblock navbar %}
-{% block navbar-auth %} 
-{{ block.super }}
-<ul class="nav navbar-nav navbar-right">
-  <li><a href="/admin/data/dashboard/{{dashboard.id}}">Beheer</a></li>
-</ul>
-{% endblock navbar-auth %}
 {% block content %}
 <div class = "container">
 <table class="table table-striped">
 <tbody>
 <tr>
 {% for chart in dashboard.charts.all %}
-<td><iframe src="/data/chart/{{chart.id}}" height="300" width="600" marginwidth="0" seamless="seamless" frameborder="0"></iframe></td>
+<td><iframe src="{% url 'chart-detail' chart.id %}" height="300" width="600" marginwidth="0" seamless="seamless" frameborder="0"></iframe></td>
 {% if forloop.counter|divisibleby:2 %}
 </tr><tr>
 {% endif %}

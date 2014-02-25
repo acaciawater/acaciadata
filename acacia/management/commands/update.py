@@ -25,8 +25,11 @@ class Command(BaseCommand):
                 p.make_thumbnail(data=data)
                 p.save()
                 for s in Series.objects.filter(parameter=p):
-                    self.stdout.write('    Updating timeseries %s\n' % s.name)
-                    s.update()
-                    s.make_thumbnail()
-                    s.save()
+                    try:
+                        self.stdout.write('    Updating timeseries %s\n' % s.name)
+                        s.update()
+                        s.make_thumbnail()
+                        s.save()
+                    except Exception as e:
+                        self.stdout.write('***ERROR***Updating timeseries %s: %s\n' % (s.name, e))
         self.stdout.write('%d datafiles updated' % count)

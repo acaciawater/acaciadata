@@ -1,8 +1,15 @@
 {% extends 'bootbase.html' %}
 {% load l10n %}
 {% block title %}Projectlocatie {{object.name}}{% endblock title %}
-{% block brandname %}<a class="navbar-brand" href="{% url 'project-detail' object.project.slug %}">Locatie {{object.name}}</a>{% endblock brandname %}
-{% block navbar %}{% endblock %}
+{% block brandname %}{% endblock brandname %}
+{% block breadcrumbs %}
+<ol class="breadcrumb">
+	<li><a href="{% url 'home' %}">Home</a></li>
+	<li><a href="{% url 'project-list' %}">Projecten</a></li>
+	<li><a href="{% url 'project-detail' object.project.id %}">{{object.project.name}}</a></li>
+	<li class="active"><a href="{% url 'projectlocatie-detail' object.id %}">{{object.name}}</a></li>
+</ol>
+{% endblock breadcrumbs %}
 {% block admin_url %}projectlocatie/{{object.id}}{% endblock %}
 {% block script %}
 {{ block.super }}
@@ -13,9 +20,9 @@ var map;
 function initialize() {
     var pos = new google.maps.LatLng({{object.location.y}},{{object.location.x}});
     map = new google.maps.Map(document.getElementById('map'), {
-        zoom: 14,
+        zoom: {{zoom}},
         center: pos,
-        mapTypeId: google.maps.MapTypeId.SATELLITE
+        mapTypeId: google.maps.MapTypeId.{{maptype}}
     });
     var marker = new google.maps.Marker({map: map, position: pos, title: "Locatie {{object.name}}" });
     var contentString = {{content|safe}};
@@ -31,6 +38,7 @@ $(function(){initialize();});
 {% block content %}
 <div class = "container">
 <div class = "row-fluid">
+<h3>{{object.name}}</h3>
 {{object.description|safe}}
 </div>
 <div id = map style="width:100%;height:400px;"></div>
@@ -48,7 +56,7 @@ $(function(){initialize();});
 <tbody>
 {% for loc in object.meetlocatie_set.all %}
 <tr>
-<td><a href='{% url "meetlocatie-detail" object.project.slug object.slug loc.slug %}'>{{loc.name}}</a></td>
+<td><a href="{% url 'meetlocatie-detail' loc.id %}">{{loc.name}}</a></td>
 <td>{{loc.description|safe}}</td>
 <td>{{loc.datafiles.count}}</td>
 <td>{{loc.series|length}}</td>
