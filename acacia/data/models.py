@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.core.urlresolvers import reverse
 from django.contrib.gis.db import models as geo
 from acacia import settings
+import upload as up
 import pandas as pd
 import json,util
 import StringIO
@@ -14,8 +15,6 @@ import StringIO
 import logging
 logger = logging.getLogger(__name__)
 
-def project_upload(instance, filename):
-    return '/'.join(['images', instance.name, filename])
 
 THEME_CHOICES = (('dark-blue','blauw'),
                  ('darkgreen','groen'),
@@ -26,8 +25,8 @@ THEME_CHOICES = (('dark-blue','blauw'),
 class Project(models.Model):
     name = models.CharField(max_length=50)
     description = models.TextField(blank=True,verbose_name='omschrijving')
-    image = models.ImageField(upload_to=project_upload, blank = True, null=True)
-    logo = models.ImageField(upload_to=project_upload, blank=True, null=True,help_text='Mini-logo voor grafieken')
+    image = models.ImageField(upload_to=up.project_upload, blank = True, null=True)
+    logo = models.ImageField(upload_to=up.project_upload, blank=True, null=True,help_text='Mini-logo voor grafieken')
     theme = models.CharField(max_length=50,verbose_name='thema', default='dark-blue',choices=THEME_CHOICES,help_text='Thema voor grafieken')
         
     def location_count(self):
@@ -43,15 +42,12 @@ class Project(models.Model):
     class Meta:
         verbose_name_plural = 'projecten'
 
-def locatie_upload(instance, filename):
-    return '/'.join(['images', instance.project.name, instance.name, filename])
-
 class ProjectLocatie(geo.Model):
     project = models.ForeignKey(Project)
     name = models.CharField(max_length=50,verbose_name='naam')
     description = models.TextField(blank=True,verbose_name='omschrijving')
     description.allow_tags=True
-    image = models.ImageField(upload_to=locatie_upload, blank = True, null = True)
+    image = models.ImageField(upload_to=up.locatie_upload, blank = True, null = True)
     location = geo.PointField(srid=util.RDNEW,verbose_name='locatie', help_text='Projectlocatie in Rijksdriehoekstelsel coordinaten')
     objects = geo.GeoManager()
 
@@ -70,15 +66,13 @@ class ProjectLocatie(geo.Model):
 
     class Meta:
         ordering = ['name',]
-
-def meetlocatie_upload(instance, filename):
-    return '/'.join(['images', instance.project.name, instance.projectlocatie.name, instance.name, filename])
+        unique_together = ('project', 'name', )
 
 class MeetLocatie(geo.Model):
     projectlocatie = models.ForeignKey(ProjectLocatie)
     name = models.CharField(max_length=50,verbose_name='naam')
     description = models.TextField(blank=True,verbose_name='omschrijving')
-    image = models.ImageField(upload_to=meetlocatie_upload, blank = True, null = True)
+    image = models.ImageField(upload_to=up.meetlocatie_upload, blank = True, null = True)
     location = geo.PointField(srid=util.RDNEW,verbose_name='locatie', help_text='Meetlocatie in Rijksdriehoekstelsel coordinaten')
     objects = geo.GeoManager()
 
@@ -96,7 +90,7 @@ class MeetLocatie(geo.Model):
         return reverse('meetlocatie-detail',args=[self.id])
     
     def __unicode__(self):
-        return self.name
+        return '%s %s' % (self.projectlocatie, self.name)
 
     class Meta:
         ordering = ['name',]
@@ -139,21 +133,34 @@ class Generator(models.Model):
     def __unicode__(self):
         return self.name
     
+class SourceFile(models.Model):
+    group = models.ForeignKey('DataFile')
+    file=models.FileField(upload_to=settings.UPLOAD_DATAFILES,blank=True)
+    start=models.DateTimeField()
+    stop=models.DateTimeField()
+    
 class DataFile(models.Model):
     name = models.CharField(max_length=50,verbose_name='naam')
     description = models.TextField(blank=True,verbose_name='omschrijving')
     meetlocatie=models.ForeignKey(MeetLocatie,related_name='datafiles',help_text='Meetlocatie van deze datafile')
-    file=models.FileField(upload_to=settings.UPLOAD_DATAFILES,blank=True)
+    file=models.FileField(upload_to=up.datafile_upload,blank=True)
     url=models.CharField(blank=True,max_length=200,help_text='volledige url van de remote file. Leeg laten voor handmatige uploads')
     generator=models.ForeignKey(Generator,help_text='Generator voor het maken van tijdseries uit de datafile')
     created = models.DateTimeField(auto_now_add=True)
     uploaded = models.DateTimeField(auto_now=True)
     user=models.ForeignKey(User,default=User)
-    crc=models.IntegerField()
+    crc=models.IntegerField(default=0)
     config=models.TextField(blank=True,null=True,default='{}',verbose_name = 'Additionele configuraties',help_text='Geldige JSON dictionary')
     username=models.CharField(max_length=20, blank=True, default='anonymous', verbose_name='Gebuikersnaam',help_text='Gebruikersnaam voor webservice')
     password=models.CharField(max_length=20, blank=True, verbose_name='Wachtwoord',help_text='Wachtwoord voor webservice')
-    
+    rows=models.IntegerField(default=0)
+    cols=models.IntegerField(default=0)
+    start=models.DateTimeField(null=True,blank=True)
+    stop=models.DateTimeField(null=True,blank=True)
+
+    class Meta:
+        unique_together = ('name', 'meetlocatie',)
+        
     def filename(self):
         return os.path.basename(self.file.name)
     filename.short_description = 'bestandsnaam'
@@ -163,7 +170,7 @@ class DataFile(models.Model):
             return os.path.getsize(self.filepath())
         except:
             # file may not (yet) exist
-            return ''
+            return 0
     filesize.short_description = 'bestandsgrootte'
 
     def filedate(self):
@@ -222,7 +229,12 @@ class DataFile(models.Model):
             logger.error('Cannot download datafile %s: error in config options. %s' % (self.name, e))
             return
         
-        results = gen.download(**options)
+        try:
+            results = gen.download(**options)
+        except Exception as e:
+            logger.error('Error downloading datafile %s: %s' % (self.name, e))
+            return
+            
         if results is None:
             logger.error('No response from server')
         elif results == {}:
@@ -239,24 +251,38 @@ class DataFile(models.Model):
                     self.file.save(name=filename, content=ContentFile(content), save=save)
                     logger.info('File %s saved as %s (size = %d)', (filename, self.file, self.filesize()))
                 
-    def update_parameters(self):
+    def update_parameters(self,data=None):
         logger.info('Updating parameters for datafile %s' % self.name)
         gen = self.get_generator_instance()
         if gen is None:
             return
+        self.file.open('r')
         params = gen.get_parameters(self.file)
         self.file.close()
         logger.info('Update completed, got %d parameters', len(params))
         num_created = 0
         num_updated = 0
+        if data is None:
+            data = self.get_data()
         for p in params:
             param, created = self.parameter_set.get_or_create(name=p['name'], defaults=p)
             if created:
                 num_created = num_created+1
             else:
                 num_updated = num_updated+1
+            param.make_thumbnail(data)
+            param.save()
         logger.info('%d parameters created, %d updated' % (num_created, num_updated))
-        
+
+    def replace_parameters(self,data=None):
+        self.parameter_set.all().delete()
+        self.update_parameters(data)
+
+    def make_thumbnails(self):
+        data = self.get_data()
+        for p in self.parameter_set.all():
+            p.make_thumbnail(data)
+            
     def get_data(self,**kwargs):
         logger.info('Getting data from datafile %s', self.name)
         gen = self.get_generator_instance()
@@ -271,7 +297,15 @@ class DataFile(models.Model):
             shape = data.shape
             logger.info('Got %d rows, %d columns', shape[0], shape[1])
         return data
-    
+
+    def get_dimensions(self, data=None):
+        if data is None:
+            data = self.get_data()
+        self.rows = data.shape[0]
+        self.cols = data.shape[1]
+        self.start = data.index[0]
+        self.stop = data.index[self.rows-1]
+        
     def parameters(self):
         return self.parameter_set.count()
     
@@ -288,14 +322,13 @@ def datafile_delete(sender, instance, **kwargs):
 def datafile_save(sender, instance, **kwargs):
     if instance.url != '':
         instance.download(False)
-
+    instance.get_dimensions()
+    
 @receiver(post_save, sender=DataFile)
 def datafile_postsave(sender, instance, **kwargs):
-    if instance.parameters() == 0:
-        instance.update_parameters()
-
-def param_thumb_upload(instance, filename):
-    return '/'.join([settings.UPLOAD_THUMBNAILS, 'param', instance.datafile.name, filename])
+    if instance.file is None or instance.file.name is None or instance.file.name == '':
+        return
+    instance.replace_parameters()
 
 SERIES_CHOICES = (('line', 'lijn'),
                   ('column', 'staaf'),
@@ -310,10 +343,10 @@ class Parameter(models.Model):
     description = models.TextField(blank=True,verbose_name='omschrijving')
     unit = models.CharField(max_length=10, default='m',verbose_name='eenheid')
     type = models.CharField(max_length=20, default='line', choices = SERIES_CHOICES)
-    thumbnail = models.ImageField(upload_to=param_thumb_upload, blank=True, null=True)
+    thumbnail = models.ImageField(upload_to=up.param_thumb_upload, blank=True, null=True)
 
     def __unicode__(self):
-        return '%s (%s)' % (self.name, self.datafile)
+        return '%s - %s' % (self.datafile.name, self.name)
 
     def get_data(self):
         return self.datafile.get_data(param=self.name)
@@ -331,7 +364,7 @@ class Parameter(models.Model):
         if data is None:
             data = self.get_data()
         logger.debug('Generating thumbnail for parameter %s' % self.name)
-        dest =  param_thumb_upload(self, self.name+'.png')
+        dest =  up.param_thumb_upload(self, self.name+'.png')
         imagefile = os.path.join(settings.MEDIA_ROOT, dest)
         imagedir = os.path.dirname(imagefile)
         if not os.path.exists(imagedir):
@@ -345,13 +378,10 @@ class Parameter(models.Model):
             logger.error('Error generating thumbnail: %s: %s' % (e, e.args))
         return self.thumbnail
     
-@receiver(pre_save, sender=Parameter)
-def parameter_save(sender, instance, **kwargs):
-    #instance.make_thumbnail()
-    pass
-
-def series_thumb_upload(instance, filename):
-    return '/'.join([settings.UPLOAD_THUMBNAILS, 'series', filename])
+@receiver(pre_delete, sender=Parameter)
+def parameter_delete(sender, instance, **kwargs):
+    logger.info('Deleting thumbnail %s for parameter %s' % (instance.thumbnail.name, instance.name))
+    instance.thumbnail.delete(False)
 
 class Series(models.Model):
     name = models.CharField(max_length=50,verbose_name='naam')
@@ -359,7 +389,7 @@ class Series(models.Model):
     unit = models.CharField(max_length=10, blank=True, verbose_name='eenheid')
     parameter = models.ForeignKey(Parameter)
     type = models.CharField(max_length=20, default='line', choices = SERIES_CHOICES)
-    thumbnail = models.ImageField(upload_to=series_thumb_upload, blank=True, null=True)
+    thumbnail = models.ImageField(upload_to=up.series_thumb_upload, blank=True, null=True)
     user=models.ForeignKey(User,default=User)
     
 # TODO: aggregatie toevoegen , e.g [avg, hour] or totals per day: [sum,day]
@@ -477,7 +507,7 @@ class Series(models.Model):
             if self.datapoints.count() == 0:
                 self.create()
             series = self.to_pandas()
-            dest =  series_thumb_upload(self, self.name+'.png')
+            dest =  up.series_thumb_upload(self, self.name+'.png')
             imagefile = os.path.join(settings.MEDIA_ROOT, dest)
             imagedir = os.path.dirname(imagefile)
             if not os.path.exists(imagedir):

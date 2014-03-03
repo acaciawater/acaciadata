@@ -98,6 +98,7 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 UPLOAD_DATAFILES = 'datafiles' 
 UPLOAD_THUMBNAILS = 'thumbnails' 
+UPLOAD_IMAGES = 'images' 
 
 # Grapelli admin
 GRAPPELLI_ADMIN_TITLE='Beheer van Acacia Online Datastore'

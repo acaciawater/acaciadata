@@ -4,9 +4,7 @@ Created on Jan 24, 2014
 @author: theo
 '''
 import pandas as pd
-import logging
-import json
-import urllib2
+import logging, re
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +14,7 @@ class Meteo(Generator):
     ''' Dag waarden van meteostation(s) ophalen '''
     
     #url = 'http://www.knmi.nl/klimatologie/daggegevens/getdata_uur.cgi'
-    #url = 'http://www.knmi.nl/klimatologie/daggegevens/getdata_dag.cgi'
+    url = 'http://www.knmi.nl/klimatologie/daggegevens/getdata_dag.cgi'
         
     def get_header(self, f):
         header = {}
@@ -50,16 +48,34 @@ class Meteo(Generator):
         data = pd.read_csv(f, header=0, names=columns, comment = '#', index_col = 1, parse_dates = True)
         return data
 
+    def get_unit(self,descr):
+        pat = re.compile(r'\(in\s([^)]+)\)')
+        m = re.search(pat,descr)
+        if m is not None:
+            return m.group(1)
+        else:
+            return None
+        
     def get_parameters(self, fil):
         header = self.get_header(fil)
         names = header['COLUMNS'][2:] # eerste 2 zijn station en datum
         desc = header['DESCRIPTION']
-        params = [{'name': name, 'description' : desc.get(name,name), 'unit': 'unknown'} for name in names]  
+        params = []
+        for name in names:
+            descr = desc.get(name,name)
+            unit = self.get_unit(descr)
+            if unit is None:
+                unit = 'unknown'
+            else:
+                rep = '(in %s);' % unit
+                descr = descr.replace(rep,'')
+            params.append({'name': name, 'description' : descr, 'unit': unit})
         return params
     
 class Neerslag(Meteo):
     '''Dagwaarden van neerslagstations ophalen'''
-    #url = 'http://www.knmi.nl/klimatologie/monv/reeksen/getdata_rr.cgi'
+    
+    url = 'http://www.knmi.nl/klimatologie/monv/reeksen/getdata_rr.cgi'
     
     def get_header(self, f):
         header = {}

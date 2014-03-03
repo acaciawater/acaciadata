@@ -7,7 +7,6 @@ import os, fnmatch
 import matplotlib.pyplot as plt
 from django.contrib.gis.gdal.srs import SpatialReference, CoordTransform
 from django.contrib.gis.geos import Point
-
 from matplotlib import rcParams
 rcParams['font.size'] = '8'
 
@@ -43,7 +42,7 @@ def trans(p, srid):
 
 def save_thumbnail(series,imagefile,kind='line'):
     plt.figure()
-    options = {'figsize': (6,2), 'grid': False, 'xticks': [], 'legend': False}
+    options = {'figsize': (9,3), 'grid': False, 'xticks': [], 'legend': False}
     if kind == 'column':
         series.plot(kind='bar', **options)
     elif kind == 'area':
@@ -58,7 +57,7 @@ def save_thumbnail(series,imagefile,kind='line'):
     
 def thumbtag(imagefile):
     url = "/media/%s" % imagefile
-    return '<a href="%s"><img src="%s" height="50px"\></a>' % (url, url)
+    return '<a href="%s"><img src="%s" height="60px"\></a>' % (url, url)
 
 def find_files(pattern, root=os.curdir):
     for path, dirs, files in os.walk(os.path.abspath(root)):

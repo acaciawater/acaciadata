@@ -10,6 +10,7 @@ import pandas as  pd
 import StringIO
 from pydap.client import open_url
 from django.core.files.base import ContentFile
+from ..models import MeetLocatie, DataFile
 
 import logging
 logger = logging.getLogger(__name__)
