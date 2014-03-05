@@ -117,10 +117,10 @@ class Dino(Generator):
 
     def get_parameters(self,fil):
         header = self.get_header(fil)
-        params = []
+        params = {}
         for p in header[3:]: 
             if len(p)>0:
-                params.append({'name': p, 'description': p, 'unit': '-'})
+                params[p] = {'description': p, 'unit': '-'}
         return params
     
 if (__name__ == '__main__'):

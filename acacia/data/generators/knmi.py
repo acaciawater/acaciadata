@@ -60,7 +60,7 @@ class Meteo(Generator):
         header = self.get_header(fil)
         names = header['COLUMNS'][2:] # eerste 2 zijn station en datum
         desc = header['DESCRIPTION']
-        params = []
+        params = {}
         for name in names:
             descr = desc.get(name,name)
             unit = self.get_unit(descr)
@@ -69,7 +69,7 @@ class Meteo(Generator):
             else:
                 rep = '(in %s);' % unit
                 descr = descr.replace(rep,'')
-            params.append({'name': name, 'description' : descr, 'unit': unit})
+            params[name] = {'description' : descr, 'unit': unit}
         return params
     
 class Neerslag(Meteo):

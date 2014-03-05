@@ -39,7 +39,9 @@ class CR1000(Generator):
         header = self.get_header(fil)
         names = header['COLUMNS']
         units = header['UNITS']
-        params = [{'name': name, 'description' : name, 'unit': unit} for name,unit in zip(names,units)]  
+        params = {}
+        for name,unit in zip(names,units):
+            params[name] = {'description' : name, 'unit': unit} 
         return params
         
 if __name__ == '__main__':

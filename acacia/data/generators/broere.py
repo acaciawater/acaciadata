@@ -35,7 +35,9 @@ class NMCPro(Generator):
     def get_parameters(self, fil):
         header = self.get_header(fil)
         names = header['COLUMNS'][2:]
-        params = [{'name': name, 'description' : name, 'unit': 'unknown'} for name in names]  
+        params = {}
+        for name in names:
+            params[name] = {'description' : name, 'unit': '-'} 
         return params
         
 if __name__ == '__main__':

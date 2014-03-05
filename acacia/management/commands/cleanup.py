@@ -5,7 +5,7 @@ Created on Feb 13, 2014
 '''
 import os
 from django.core.management.base import BaseCommand, CommandError
-from acacia.data.models import DataFile, Parameter, Series
+from acacia.data.models import Datasource, Parameter, Series
 from acacia import settings
 
 class Command(BaseCommand):
@@ -14,11 +14,11 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # get all files in use
-        inuse = [d.filepath() for d in DataFile.objects.all()]
+        inuse = [f.filepath() for ds in Datasource.objects.all() for f in ds.sourcefiles]
         inuse.extend([p.thumbpath() for p in Parameter.objects.all()])
         inuse.extend([s.thumbpath() for s in Series.objects.all()])
 
-        self.stdout.write('Checking datafiles\n')        
+        self.stdout.write('Checking sourcefiles\n')        
         count = 0
         for path, folders, files in os.walk(os.path.join(settings.MEDIA_ROOT,settings.UPLOAD_DATAFILES)):
             for f in files:

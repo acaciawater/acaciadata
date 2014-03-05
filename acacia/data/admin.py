@@ -1,4 +1,4 @@
-from acacia.data.models import Project, ProjectLocatie, MeetLocatie, Series, DataFile, Generator, Parameter, DataPoint, Chart, ChartOptions, Dashboard
+from acacia.data.models import Project, ProjectLocatie, MeetLocatie, Series, Datasource, SourceFile, Generator, Parameter, DataPoint, Chart, Dashboard
 from acacia.data.shortcuts import meteo2locatie
 from django.contrib import admin
 from django import forms
@@ -20,13 +20,13 @@ class LocatieInline(admin.TabularInline):
 class MeetlocatieInline(admin.TabularInline):
     model = MeetLocatie
 
-class DataFileInline(admin.TabularInline):
-    model = DataFile
+class SourceFileInline(admin.TabularInline):
+    model = SourceFile
 
 class ParameterInline(admin.TabularInline):
     model = Parameter
     extra = 1
-    fields = ('name', 'description', 'unit', 'datafile',)
+    fields = ('name', 'description', 'unit', 'datasource',)
 
 class ProjectAdmin(admin.ModelAdmin):
     list_display = ('name', 'location_count', )
@@ -63,33 +63,32 @@ meteo_toevoegen.short_description = "Meteostation, neerslagstation en regenradar
     
 class MeetLocatieAdmin(admin.ModelAdmin):
     form = MeetLocatieForm
-    list_display = ('name','projectlocatie','project','filecount',)
+    list_display = ('name','projectlocatie','project','datasourcecount',)
     list_filter = ('projectlocatie','projectlocatie__project',)
     formfield_overrides = {models.PointField:{'widget': Textarea, 'required': False}}
     actions = [meteo_toevoegen]
-    #inlines = [DataFileInline,]
     
-def upload_datafile(modeladmin, request, queryset):
+def upload_datasource(modeladmin, request, queryset):
     for df in queryset:
         if df.url != '':
             df.download()
-upload_datafile.short_description = "Upload de geselecteerde data files naar de server"
+upload_datasource.short_description = "Upload de geselecteerde datasources naar de server"
 
 def update_parameters(modeladmin, request, queryset):
     for df in queryset:
         df.update_parameters()
-update_parameters.short_description = "Update de parameterlijst van de geselecteerde data files"
+update_parameters.short_description = "Update de parameterlijst van de geselecteerde datasources"
 
 def replace_parameters(modeladmin, request, queryset):
     for df in queryset:
-        count = df.parameters()
+        count = df.parametercount()
         df.parameter_set.all().delete()
-        logger.info('%d parameters deleted for datafile %s' % (count, df))
+        logger.info('%d parameters deleted for datasource %s' % (count or 0, df))
         df.update_parameters()    
-replace_parameters.short_description = "Vervang de parameterlijst van de geselecteerde data files"
+replace_parameters.short_description = "Vervang de parameterlijst van de geselecteerde datasources"
 
-class DataFileForm(ModelForm):
-    model = DataFile
+class DatasourceForm(ModelForm):
+    model = Datasource
     password = forms.CharField(label='Wachtwoord', help_text='Wachtwoord voor de webservice', widget=PasswordInput(render_value=True),required=False)
 
     def clean_config(self):
@@ -101,38 +100,34 @@ class DataFileForm(ModelForm):
             raise forms.ValidationError('Onjuiste JSON dictionary: %s'% ex)
         return config
     
-class DataFileAdmin(admin.ModelAdmin):
-    form = DataFileForm
+class DatasourceAdmin(admin.ModelAdmin):
+    form = DatasourceForm
     inlines = [ParameterInline,]
-    actions = [upload_datafile, replace_parameters]
+    actions = [upload_datasource, replace_parameters]
     list_filter = ('meetlocatie','meetlocatie__projectlocatie','meetlocatie__projectlocatie__project',)
-    list_display = ('name', 'description', 'filename', 'filesize', 'filedate', 'start', 'stop', 'rows', 'cols', 'parameters',)
+    list_display = ('name', 'description', 'meetlocatie', 'filecount', 'parametercount', 'start', 'stop', 'rows',)
     fieldsets = (
                  ('Algemeen', {'fields': ('name', 'description', 'meetlocatie',),
                                'classes': ('grp-collapse grp-open',),
                                }),
-                 ('Bronnen', {'fields': ('file', 'generator', 'url',('username', 'password'), 'config',),
+                 ('Bronnen', {'fields': ('generator', 'url',('username', 'password'), 'config',),
                                'classes': ('grp-collapse grp-closed',),
                               }),
-#                  ('Admin', {'fields': ('user',),
-#                                'classes': ('grp-collapse grp-closed',),
-#                             })
     )
     def save_model(self, request, obj, form, change):
         obj.user = request.user
         obj.save()
-            
 
 class GeneratorAdmin(admin.ModelAdmin):
     list_display = ('name', 'classname', 'description')
 
 def update_thumbnails(modeladmin, request, queryset):
-    # group queryset by datafile
+    # group queryset by datasource
     group = {}
     for p in queryset:
-        if not p.datafile in group:
-            group[p.datafile] = []
-        group[p.datafile].append(p)
+        if not p.datasource in group:
+            group[p.datasource] = []
+        group[p.datasource].append(p)
          
     for fil,parms in group.iteritems():
         data = fil.get_data()
@@ -140,19 +135,46 @@ def update_thumbnails(modeladmin, request, queryset):
             p.make_thumbnail(data=data)
             p.save()
     
-update_thumbnails.short_description = "Thumbnails vernieuwen"
+update_thumbnails.short_description = "Thumbnails vernieuwen van geselecteerde parameters"
 
+def generate_series(modeladmin, request, queryset):
+    for p in queryset:
+        try:
+            s, created = p.series_set.get_or_create(name = p.name, description = p.description, unit = p.unit, type = p.type, user = request.user)
+            s.replace()
+            s.make_thumbnail() 
+            s.save()
+        except Exception as e:
+            logger.error('ERROR creating series %s: %s' % (p.name, e))
+generate_series.short_description = 'Standaard tijdreeksen aanmaken voor geselecteerde parameters'
+
+class SourceFileAdmin(admin.ModelAdmin):
+    fields = ('name', 'datasource', 'file',)
+    list_display = ('name','datasource', 'meetlocatie', 'filetag', 'rows', 'cols', 'start', 'stop', 'uploaded',)
+    list_filter = ('datasource', 'datasource__meetlocatie', 'uploaded',)
+
+    def save_model(self, request, obj, form, change):
+        obj.user = request.user
+        obj.save()
+    
 class ParameterAdmin(admin.ModelAdmin):
-    list_filter = ('datafile',)
-    actions = [update_thumbnails,]
-    list_display = ('name', 'thumbtag', 'datafile', 'unit', 'description')
+    list_filter = ('datasource','datasource__meetlocatie',)
+    actions = [update_thumbnails,generate_series,]
+    list_display = ('name', 'thumbtag', 'meetlocatie', 'datasource', 'unit', 'description', 'seriescount')
 
+def download_series(queryset):
+    ds = set([series.datasource() for series in queryset])
+    for d in ds:
+        d.download()
+    
 def refresh_series(modeladmin, request, queryset):
+    download_series(queryset)
     for s in queryset:
         s.update()
 refresh_series.short_description = 'Geselecteerde tijdreeksen actualiseren'
 
 def replace_series(modeladmin, request, queryset):
+    download_series(queryset)
     for s in queryset:
         s.replace()
 replace_series.short_description = 'Geselecteerde tijdreeksen opnieuw aanmaken'
@@ -160,7 +182,7 @@ replace_series.short_description = 'Geselecteerde tijdreeksen opnieuw aanmaken'
 def series_thumbnails(modeladmin, request, queryset):
     for s in queryset:
         s.make_thumbnail()
-        s.save() # saving a series will update the thumbnail
+        s.save()
 series_thumbnails.short_description = "Thumbnails van tijdreeksen vernieuwen"
 
 class ReadonlyTabularInline(admin.TabularInline):
@@ -184,8 +206,18 @@ class DataPointInline(ReadonlyTabularInline):
         
 class SeriesAdmin(admin.ModelAdmin):
     actions = [refresh_series, replace_series, series_thumbnails]
-    list_display = ('name', 'thumbtag', 'parameter', 'datafile', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
+    list_display = ('name', 'thumbtag', 'parameter', 'datasource', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
     exclude = ('user',)
+
+    fieldsets = (
+                 ('Algemeen', {'fields': ('parameter', 'name', 'unit', 'description',),
+                               'classes': ('grp-collapse grp-open',),
+                               }),
+                 ('Grafiek opties', {'fields': ('axis', 'axislr', 'label', 'color','type', 'y0', 'y1', 't0', 't1',),
+                               'classes': ('grp-collapse grp-closed',),
+                              }),
+    )
+
     def save_model(self, request, obj, form, change):
         obj.user = request.user
         obj.save()
@@ -198,8 +230,23 @@ class DataPointAdmin(admin.ModelAdmin):
     list_filter = ('series', )
     ordering = ('series', 'date', )
 
+def copy_charts(modeladmin, request, queryset):
+    user = request.user
+    for c in queryset:
+        name = 'kopie van %s' % (c.name)
+        copy = 1 
+        while Chart.objects.filter(name = name).exists():
+            copy += 1
+            name = 'kopie %d van %s' % (copy, c.name)
+        c.pk = None
+        c.name = name
+        c.user = request.user
+        c.save()
+copy_charts.short_description = "Geselecteerde grafieken dupliceren"
+
 class ChartAdmin(admin.ModelAdmin):
     filter_horizontal = ('series',)
+    actions = [copy_charts,]
     list_display = ('name', 'title', 'tijdreeksen', )
 
 class DashAdmin(admin.ModelAdmin):
@@ -217,8 +264,8 @@ admin.site.register(MeetLocatie, MeetLocatieAdmin)
 admin.site.register(Series, SeriesAdmin)
 admin.site.register(Parameter, ParameterAdmin)
 admin.site.register(Generator, GeneratorAdmin)
-admin.site.register(DataFile, DataFileAdmin)
+admin.site.register(Datasource, DatasourceAdmin)
+admin.site.register(SourceFile, SourceFileAdmin)
 admin.site.register(DataPoint, DataPointAdmin)
 admin.site.register(Chart, ChartAdmin)
-admin.site.register(ChartOptions)
 admin.site.register(Dashboard, DashAdmin)

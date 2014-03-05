@@ -16,6 +16,14 @@ class OWB(Generator):
         sections['COLUMNS'] = cols
         return sections
     
+    def isfolderlist(self, f):
+        '''returns true if f is the ftp response of a folder'''
+        pass
+    
+    def get_files(self, f):
+        '''get filenames in an ftp folder list'''
+        pass
+        
     def get_data(self, f, **kwargs):
         header = self.get_header(f)
         data = pd.read_csv(f, header=None, sep = ';', index_col = 0, parse_dates = {'datum': [0,1]}, dayfirst = True)
@@ -28,9 +36,11 @@ class OWB(Generator):
     def get_parameters(self, fil):
         header = self.get_header(fil)
         names = header['COLUMNS'][2:]
-        params = [{'name': name, 'description' : name, 'unit': '-'} for name in names]  
+        params = {}
+        for name in names:
+            params[name] = {'description' : name, 'unit': '-'} 
         return params
-        
+    
 if __name__ == '__main__':
     with open('/home/theo/acacia/data/Breezand/LogFile140221.csv') as f:
         o = OWB()

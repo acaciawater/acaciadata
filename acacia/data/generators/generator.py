@@ -1,8 +1,9 @@
 import os, urllib2, cgi
 import re
+import acacia.data.util as util
 
 def spliturl(url):
-    pattern = r'^(?P<scheme>ftp|https?)://(?:(?P<user>\w+)?(?::(?P<passwd>\S+))?@)?(?P<url>\S+)'
+    pattern = r'^(?P<scheme>ftp|https?)://(?:(?P<user>\w+)?(?::(?P<passwd>\S+))?@)?(?P<url>.+)'
     try:
         m = re.match(pattern, url)
         return m.groups()
@@ -47,18 +48,19 @@ class Generator(object):
             if response is None:
                 return None
             if ftp:
-                pattern = kwargs.get('pattern',None)
-                if pattern:
-                    # download all matching files
-                    dirlist = response.read()
-                    filenames = re.findall(pattern, dirlist)
+                # check for directory listing
+                content = response.read()
+                if util.is_dirlist(content):
+                    # download all files in directory listing
+                    dirlist = util.get_dirlist(content)
+                    filenames = [f['file'] for f in dirlist]
                     for filename in filenames:
                         urlfile = url + '/' + filename
                         response = urllib2.urlopen(urlfile)
                         result[filename] = response.read()
                 else:
                     filename = os.path.basename(url)
-                    result[filename] = response.read()
+                    result[filename] = content
             else:
                 _,params = cgi.parse_header(response.headers.get('Content-Disposition',''))
                 filename = params.get('filename','file.txt')
@@ -66,5 +68,5 @@ class Generator(object):
         return result
 
     def get_parameters(self,fil):
-        ''' return list of all parameters in the datafile '''
-        return []
+        ''' return dict of all parameters in the datafile '''
+        return {}

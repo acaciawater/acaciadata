@@ -1,6 +1,6 @@
 import os,datetime,math,binascii
 from django.db import models
-from django.db.models import Avg, Max, Min
+from django.db.models import Avg, Max, Min, Sum
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.utils import timezone
@@ -82,9 +82,9 @@ class MeetLocatie(geo.Model):
     def latlon(self):
         return util.toWGS84(self.location)
 
-    def filecount(self):
-        return self.datafiles.count()
-    filecount.short_description = 'Aantal files'
+    def datasourcecount(self):
+        return self.datasources.count()
+    datasourcecount.short_description = 'Aantal datasources'
 
     def get_absolute_url(self):
         return reverse('meetlocatie-detail',args=[self.id])
@@ -98,7 +98,7 @@ class MeetLocatie(geo.Model):
 
     def series(self):
         ser = []
-        for f in self.datafiles.all():
+        for f in self.datasources.all():
             for p in f.parameter_set.all():
                 for s in p.series_set.all():
                     ser.append(s)
@@ -106,7 +106,7 @@ class MeetLocatie(geo.Model):
 
     def charts(self):
         charts = []
-        for f in self.datafiles.all():
+        for f in self.datasources.all():
             for p in f.parameter_set.all():
                 for s in p.series_set.all():
                     for c in s.chart_set.all():
@@ -132,35 +132,209 @@ class Generator(models.Model):
     
     def __unicode__(self):
         return self.name
-    
-class SourceFile(models.Model):
-    group = models.ForeignKey('DataFile')
-    file=models.FileField(upload_to=settings.UPLOAD_DATAFILES,blank=True)
-    start=models.DateTimeField()
-    stop=models.DateTimeField()
-    
-class DataFile(models.Model):
+        
+class Datasource(models.Model):
     name = models.CharField(max_length=50,verbose_name='naam')
     description = models.TextField(blank=True,verbose_name='omschrijving')
-    meetlocatie=models.ForeignKey(MeetLocatie,related_name='datafiles',help_text='Meetlocatie van deze datafile')
-    file=models.FileField(upload_to=up.datafile_upload,blank=True)
-    url=models.CharField(blank=True,max_length=200,help_text='volledige url van de remote file. Leeg laten voor handmatige uploads')
-    generator=models.ForeignKey(Generator,help_text='Generator voor het maken van tijdseries uit de datafile')
+    meetlocatie=models.ForeignKey(MeetLocatie,related_name='datasources',help_text='Meetlocatie van deze gegevensbron')
+    url=models.CharField(blank=True,max_length=200,help_text='volledige url van de gegevensbron. Leeg laten voor handmatige uploads')
+    generator=models.ForeignKey(Generator,help_text='Generator voor het maken van tijdseries')
     created = models.DateTimeField(auto_now_add=True)
-    uploaded = models.DateTimeField(auto_now=True)
     user=models.ForeignKey(User,default=User)
-    crc=models.IntegerField(default=0)
     config=models.TextField(blank=True,null=True,default='{}',verbose_name = 'Additionele configuraties',help_text='Geldige JSON dictionary')
-    username=models.CharField(max_length=20, blank=True, default='anonymous', verbose_name='Gebuikersnaam',help_text='Gebruikersnaam voor webservice')
-    password=models.CharField(max_length=20, blank=True, verbose_name='Wachtwoord',help_text='Wachtwoord voor webservice')
+    username=models.CharField(max_length=20, blank=True, default='anonymous', verbose_name='Gebuikersnaam',help_text='Gebruikersnaam voor downloads')
+    password=models.CharField(max_length=20, blank=True, verbose_name='Wachtwoord',help_text='Wachtwoord voor downloads')
+
+    class Meta:
+        unique_together = ('name', 'meetlocatie',)
+        verbose_name = 'gegevensbron'
+        verbose_name_plural = 'gegevensbronnen'
+        
+    def __unicode__(self):
+        return self.name
+
+    def get_absolute_url(self):
+        return reverse('datasource-detail', args=[self.id]) 
+    
+    def get_generator_instance(self):
+        if self.generator is None:
+            raise Exception('Generator not defined for datasource %s' % self.name)
+        gen = self.generator.get_class()
+        if self.config is None or len(self.config)==0:
+            return gen()
+        else:
+            try:
+                kwargs = json.loads(self.config)
+                return gen(**kwargs)
+            except Exception as err:
+                logger.error('Configuration error in generator %s: %s' % (self.generator, err))
+                return None
+    
+    def download(self,save=True):
+        if self.url is None or len(self.url) == 0:
+            logger.error('Cannot download datasource %s: no url supplied' % (self.name))
+            return;
+
+        if self.generator is None:
+            logger.error('Cannot download datasource %s: no generator defined' % (self.name))
+            return;
+            
+        logger.info('Downloading datasource %s from %s' % (self.name, self.url))
+        gen = self.get_generator_instance()
+        if gen is None:
+            logger.error('Cannot download datasource %s: could not create instance of generator %s' % (self.name, self.generator))
+            return;
+        
+        options = {'url': self.url}
+        if self.username is not None and self.username != '':
+            options['username'] = self.username
+            options['password'] = self.password
+        try:
+            # merge options with config
+            config = json.loads(self.config)
+            options = dict(options.items() + config.items())
+        except Exception as e:
+            logger.error('Cannot download datasource %s: error in config options. %s' % (self.name, e))
+            return
+        
+        try:
+            results = gen.download(**options)
+        except Exception as e:
+            logger.error('Error downloading datasource %s: %s' % (self.name, e))
+            return
+            
+        if results is None:
+            logger.error('No response from server')
+        elif results == {}:
+            logger.warning('Empty response received from server, download aborted')
+        else:
+            logger.info('Download completed, got %s file(s)', len(results))
+            for filename, content in results.iteritems():
+                try:
+                    sourcefile = self.sourcefiles.get(name=filename)
+                    created = False
+                except:
+                    sourcefile = SourceFile(name=filename,datasource=self,user=self.user)
+                    created = True
+                crc = abs(binascii.crc32(content))
+                if not created:
+                    if sourcefile.crc == crc:
+                        logger.warning('Downloaded file %s appears to be identical to local file %s' % (filename, sourcefile.file))
+                        logger.warning('File not saved')
+                        continue
+                sourcefile.crc = crc
+                try:
+                    sourcefile.file.save(name=filename, content=ContentFile(content), save=save or created)
+                    logger.info('File %s saved to %s' % (filename, sourcefile.filepath()))
+                except Exception as e:
+                    logger.error('Error saving sourcefile %s: %s' % (filename, e))
+                
+    def update_parameters(self,data=None):
+        logger.info('Updating parameters for datasource %s' % self.name)
+        gen = self.get_generator_instance()
+        if gen is None:
+            return
+        params = {}
+        for sourcefile in self.sourcefiles.all():
+            sourcefile.file.open('r')
+            params.update(gen.get_parameters(sourcefile.file))
+            sourcefile.file.close()
+        logger.info('Update completed, got %d parameters from %d files', len(params),self.sourcefiles.count())
+        num_created = 0
+        num_updated = 0
+        if data is None:
+            data = self.get_data()
+        for name,defaults in params.iteritems():
+            name = name.strip()
+            if name == '':
+                continue
+            try:
+                param = self.parameter_set.objects.get(name=name)
+                num_updated = num_updated+1
+            except:
+                param = Parameter(name=name,**defaults)
+                param.datasource = self
+                num_created = num_created+1
+            param.make_thumbnail(data)
+            param.save()
+        logger.info('%d parameters created, %d updated' % (num_created, num_updated))
+
+    def replace_parameters(self,data=None):
+        self.parameter_set.all().delete()
+        self.update_parameters(data)
+
+    def make_thumbnails(self):
+        data = self.get_data()
+        for p in self.parameter_set.all():
+            p.make_thumbnail(data)
+            
+    def get_data(self,**kwargs):
+        logger.info('Getting data for datasource %s', self.name)
+        gen = self.get_generator_instance()
+        if gen is None:
+            return
+        data = None
+        for sourcefile in self.sourcefiles.all():
+            d = sourcefile.get_data(**kwargs)
+            if data is None:
+                data = d
+            else:
+                data = data.append(d) # CHECK: overlapping index??
+        return data
+
+        
+    def parametercount(self):
+        count = self.parameter_set.count()
+        return count if count>0 else None
+    parametercount.short_description = 'parameters'
+
+    def filecount(self):
+        count = self.sourcefiles.count()
+        return count if count>0 else None
+    filecount.short_description = 'files'
+
+    def start(self):
+        agg = self.sourcefiles.aggregate(start=Min('start'))
+        return agg.get('start', None)
+
+    def stop(self):
+        agg = self.sourcefiles.aggregate(stop=Max('stop'))
+        return agg.get('stop', None)
+
+    def rows(self):
+        agg = self.sourcefiles.aggregate(rows=Sum('rows'))
+        return agg.get('rows', None)
+        
+class SourceFile(models.Model):
+    name=models.CharField(max_length=50)
+    datasource = models.ForeignKey('Datasource',related_name='sourcefiles', verbose_name = 'gegevensbron')
+    file=models.FileField(upload_to=up.sourcefile_upload,blank=True)
     rows=models.IntegerField(default=0)
     cols=models.IntegerField(default=0)
     start=models.DateTimeField(null=True,blank=True)
     stop=models.DateTimeField(null=True,blank=True)
+    crc=models.IntegerField(default=0)
+    user=models.ForeignKey(User,default=User)
+    created = models.DateTimeField(auto_now_add=True)
+    uploaded = models.DateTimeField(auto_now=True)
 
+    def __unicode__(self):
+        return self.name
+     
     class Meta:
-        unique_together = ('name', 'meetlocatie',)
-        
+        unique_together = ('name', 'datasource',)
+        verbose_name = 'bronbestand'
+        verbose_name_plural = 'bronbestanden'
+     
+    def meetlocatie(self):
+        return self.datasource.meetlocatie
+
+    def projectlocatie(self):
+        return self.datasource.meetlocatie.projectlocatie
+
+    def project(self):
+        return self.datasource.meetlocatie.projectlocatie.project
+       
     def filename(self):
         return os.path.basename(self.file.name)
     filename.short_description = 'bestandsnaam'
@@ -184,152 +358,50 @@ class DataFile(models.Model):
     def filepath(self):
         return os.path.join(settings.MEDIA_ROOT,self.file.name) 
     filedate.short_description = 'bestandslocatie'
-       
-    def __unicode__(self):
-        return self.name
 
-    def get_absolute_url(self):
-        return reverse('datafile-detail', args=[self.id]) 
-    
-    def get_generator_instance(self):
-        gen = self.generator.get_class()
-        if self.config is None or len(self.config)==0:
-            return gen()
-        else:
-            try:
-                kwargs = json.loads(self.config)
-                return gen(**kwargs)
-            except Exception as err:
-                logger.error('Configuration error in generator %s: %s' % (self.generator, err))
-                return None
-    
-    def download(self,save=True):
-        if self.url is None or len(self.url) == 0:
-            logger.error('Cannot download datafile %s: no url supplied' % (self.name))
-            return;
-
-        if self.generator is None:
-            logger.error('Cannot download datafile %s: no generator defined' % (self.name))
-            return;
-            
-        logger.info('Downloading datafile %s from %s' % (self.name, self.url))
-        gen = self.get_generator_instance()
+    def filetag(self):
+        return '<a href="%s">%s</a>' % (os.path.join(settings.MEDIA_URL,self.file.name),self.filename())
+    filetag.allow_tags=True
+    filetag.short_description='bestand'
+           
+    def get_data(self,gen=None,**kwargs):
         if gen is None:
-            logger.error('Cannot download datafile %s: could not create instance of generator %s' % (self.name, self.generator))
-            return;
-        options = {'url': self.url}
-        if self.username is not None and self.username != '':
-            options['username'] = self.username
-            options['password'] = self.password
-        try:
-            # merge options with config
-            config = json.loads(self.config)
-            options = dict(options.items() + config.items())
-        except Exception as e:
-            logger.error('Cannot download datafile %s: error in config options. %s' % (self.name, e))
-            return
-        
-        try:
-            results = gen.download(**options)
-        except Exception as e:
-            logger.error('Error downloading datafile %s: %s' % (self.name, e))
-            return
-            
-        if results is None:
-            logger.error('No response from server')
-        elif results == {}:
-            logger.warning('Empty response received from server, download aborted')
-        else:
-            logger.info('Download completed, got %s files', len(results))
-            for filename, content in results.iteritems():
-                new_crc = abs(binascii.crc32(content))
-                if self.crc == new_crc:
-                    logger.warning('Downloaded file %s appears to be identical to local file %s' % (filename, self.file))
-                    logger.warning('File not saved')
-                else:
-                    self.crc = new_crc
-                    self.file.save(name=filename, content=ContentFile(content), save=save)
-                    logger.info('File %s saved as %s (size = %d)', (filename, self.file, self.filesize()))
-                
-    def update_parameters(self,data=None):
-        logger.info('Updating parameters for datafile %s' % self.name)
-        gen = self.get_generator_instance()
-        if gen is None:
-            return
-        self.file.open('r')
-        params = gen.get_parameters(self.file)
-        self.file.close()
-        logger.info('Update completed, got %d parameters', len(params))
-        num_created = 0
-        num_updated = 0
-        if data is None:
-            data = self.get_data()
-        for p in params:
-            param, created = self.parameter_set.get_or_create(name=p['name'], defaults=p)
-            if created:
-                num_created = num_created+1
-            else:
-                num_updated = num_updated+1
-            param.make_thumbnail(data)
-            param.save()
-        logger.info('%d parameters created, %d updated' % (num_created, num_updated))
-
-    def replace_parameters(self,data=None):
-        self.parameter_set.all().delete()
-        self.update_parameters(data)
-
-    def make_thumbnails(self):
-        data = self.get_data()
-        for p in self.parameter_set.all():
-            p.make_thumbnail(data)
-            
-    def get_data(self,**kwargs):
-        logger.info('Getting data from datafile %s', self.name)
-        gen = self.get_generator_instance()
-        if gen is None:
-            return
+            gen = self.datasource.get_generator_instance()
+        logger.info('Getting data for sourcefile %s', self.name)
         self.file.open('r')
         data = gen.get_data(self.file,**kwargs)
         self.file.close()
         if data is None:
-            logger.warning('No data retrieved from %s' % self.name)
+            logger.warning('No data retrieved from %s' % self.file.name)
         else:
             shape = data.shape
             logger.info('Got %d rows, %d columns', shape[0], shape[1])
         return data
 
-    def get_dimensions(self, data=None):
+    def get_dimensions(self, gen=None, data=None):
+        if gen is None:
+            gen = self.datasource.get_generator_instance()
         if data is None:
             data = self.get_data()
         self.rows = data.shape[0]
         self.cols = data.shape[1]
-        self.start = data.index[0]
-        self.stop = data.index[self.rows-1]
-        
-    def parameters(self):
-        return self.parameter_set.count()
-    
+        self.start = data.index.min()
+        self.stop = data.index.max()
+
 from django.db.models.signals import pre_delete, pre_save, post_save
 from django.dispatch.dispatcher import receiver
 
-@receiver(pre_delete, sender=DataFile)
-def datafile_delete(sender, instance, **kwargs):
-    logger.info('Deleting file %s for datafile %s' % (instance.file.name, instance.name))
+@receiver(pre_delete, sender=SourceFile)
+def sourcefile_delete(sender, instance, **kwargs):
+    filename = instance.file.name
+    logger.info('Deleting file %s for datafile %s' % (filename, instance.name))
     instance.file.delete(False)
-    logger.info('File %s deleted' % instance.file.name)
+    logger.info('File %s deleted' % filename)
 
-@receiver(pre_save, sender=DataFile)
-def datafile_save(sender, instance, **kwargs):
-    if instance.url != '':
-        instance.download(False)
+@receiver(pre_save, sender=SourceFile)
+def sourcefile_save(sender, instance, **kwargs):
     instance.get_dimensions()
     
-@receiver(post_save, sender=DataFile)
-def datafile_postsave(sender, instance, **kwargs):
-    if instance.file is None or instance.file.name is None or instance.file.name == '':
-        return
-    instance.replace_parameters()
-
 SERIES_CHOICES = (('line', 'lijn'),
                   ('column', 'staaf'),
                   ('scatter', 'punt'),
@@ -338,7 +410,7 @@ SERIES_CHOICES = (('line', 'lijn'),
                   )
         
 class Parameter(models.Model):
-    datafile = models.ForeignKey(DataFile)
+    datasource = models.ForeignKey(Datasource)
     name = models.CharField(max_length=50,verbose_name='naam')
     description = models.TextField(blank=True,verbose_name='omschrijving')
     unit = models.CharField(max_length=10, default='m',verbose_name='eenheid')
@@ -346,11 +418,24 @@ class Parameter(models.Model):
     thumbnail = models.ImageField(upload_to=up.param_thumb_upload, blank=True, null=True)
 
     def __unicode__(self):
-        return '%s - %s' % (self.datafile.name, self.name)
+        return '%s - %s' % (self.datasource.name, self.name)
 
+    def meetlocatie(self):
+        return self.datasource.meetlocatie
+
+    def projectlocatie(self):
+        return self.datasource.meetlocatie.projectlocatie
+
+    def project(self):
+        return self.datasource.meetlocatie.projectlocatie.project
+    
     def get_data(self):
-        return self.datafile.get_data(param=self.name)
+        return self.datasource.get_data(param=self.name)
 
+    def seriescount(self):
+        return self.series_set.count()
+    seriescount.short_description='Aantal tijdreeksen'
+    
     def thumbtag(self):
         return util.thumbtag(self.thumbnail.name)
 
@@ -383,28 +468,49 @@ def parameter_delete(sender, instance, **kwargs):
     logger.info('Deleting thumbnail %s for parameter %s' % (instance.thumbnail.name, instance.name))
     instance.thumbnail.delete(False)
 
+AXIS_CHOICES = (
+                ('l', 'links'),
+                ('r', 'rechts'),
+               )
+
 class Series(models.Model):
     name = models.CharField(max_length=50,verbose_name='naam')
     description = models.TextField(blank=True,verbose_name='omschrijving')
     unit = models.CharField(max_length=10, blank=True, verbose_name='eenheid')
     parameter = models.ForeignKey(Parameter)
-    type = models.CharField(max_length=20, default='line', choices = SERIES_CHOICES)
     thumbnail = models.ImageField(upload_to=up.series_thumb_upload, blank=True, null=True)
     user=models.ForeignKey(User,default=User)
+
+    # chart options
+    axis = models.IntegerField(default=1,verbose_name='Nummer y-as')
+    axislr = models.CharField(max_length=2, choices=AXIS_CHOICES, default='l',verbose_name='Positie y-as')
+    color = models.CharField(null=True,blank=True,max_length=16, verbose_name = 'Kleur')
+    type = models.CharField(max_length=10, default='line', choices = SERIES_CHOICES)
+    label = models.CharField(max_length=20, blank=True,default='')
+    y0 = models.FloatField(null=True,blank=True,verbose_name='ymin')
+    y1 = models.FloatField(null=True,blank=True,verbose_name='ymax')
+    t0 = models.DateTimeField(null=True,blank=True,verbose_name='start')
+    t1 = models.DateTimeField(null=True,blank=True,verbose_name='stop')
     
 # TODO: aggregatie toevoegen , e.g [avg, hour] or totals per day: [sum,day]
     
-    def __unicode__(self):
-        return self.name
-
     def get_absolute_url(self):
         return reverse('series-detail', args=[self.id]) 
 
-    def datafile(self):
-        try:
-            return self.parameter.datafile
-        except:
-            return None
+    def datasource(self):
+        return self.parameter.datasource
+
+    def meetlocatie(self):
+        return self.parameter.datasource.meetlocatie
+
+    def projectlocatie(self):
+        return self.parameter.datasource.meetlocatie.projectlocatie
+
+    def project(self):
+        return self.parameter.datasource.meetlocatie.projectlocatie.project
+
+    def __unicode__(self):
+        return '%s - %s' % (self.meetlocatie(), self.name)
 
     def create(self):
         logger.info('Creating series %s' % self.name)
@@ -444,7 +550,7 @@ class Series(models.Model):
                 value = float(value)
                 if not (math.isnan(value) or date is None):
                     adate = timezone.make_aware(date,tz)
-                    point, created = self.datapoints.get_or_create(date=adate, defaults={'value': value})
+                    point, created = self.datapoints.update_or_create(date=adate, defaults={'value': value})
                     if created:
                         num_created = num_created+1
                     else:
@@ -512,7 +618,7 @@ class Series(models.Model):
             imagedir = os.path.dirname(imagefile)
             if not os.path.exists(imagedir):
                 os.makedirs(imagedir)
-            util.save_thumbnail(series, imagefile, self.type)
+            util.save_thumbnail(series, imagefile,self.type)
             logger.info('Generated thumbnail %s' % dest)
             self.thumbnail.name = dest
         except Exception as e:
@@ -522,47 +628,32 @@ class Series(models.Model):
     class Meta:
         verbose_name = 'tijdreeks'
         verbose_name_plural = 'tijdreeksen'
+        unique_together = ('parameter', 'name',)
 
-@receiver(post_save, sender=Series)
-def series_save(sender, instance, **kwargs):
-    if instance.datapoints.count() == 0:
-        try:
-            instance.create()
-            instance.make_thumbnail()
-        except Exception as e:
-            logger.error('Error generating series: %s' % e)
+# @receiver(post_save, sender=Series)
+# def series_save(sender, instance, **kwargs):
+#     if instance.datapoints.count() == 0:
+#         try:
+#             instance.create()
+#             instance.make_thumbnail()
+#         except Exception as e:
+#             logger.error('Error generating series: %s' % e)
 
 class DataPoint(models.Model):
     series = models.ForeignKey(Series,related_name='datapoints')
     date = models.DateTimeField()
     value = models.FloatField()
+    
+    class Meta:
+        unique_together=('series','date')
+
     def jdate(self):
         return self.date.date
 
-AXIS_CHOICES = (
-                ('l', 'links'),
-                ('r', 'rechts'),
-               )
-
-class ChartOptions(models.Model):
-    axis = models.IntegerField(default=1,verbose_name='Nummer y-as')
-    axislr = models.CharField(max_length=2, choices=AXIS_CHOICES, default='l',verbose_name='Positie y-as')
-    color = models.CharField(null=True,max_length=16, verbose_name = 'Kleur')
-    min = models.FloatField(null=True)
-    max = models.FloatField(null=True)
-    start = models.DateTimeField(null=True)
-    stop = models.DateTimeField(null=True)
-
-    class Meta:
-        verbose_name = 'Grafiekopties'
-        verbose_name_plural = 'Grafiekopties'
-    
 class Chart(models.Model):
     series = models.ManyToManyField(Series)
     name = models.CharField(max_length = 50, verbose_name = 'naam')
     title = models.CharField(max_length = 50, verbose_name = 'titel')
-    type = models.CharField(max_length=20, default='line', choices = SERIES_CHOICES)
-    options = models.ForeignKey(ChartOptions, blank=True, null=True, verbose_name = 'Grafiekopties')
     user=models.ForeignKey(User,default=User)
 
     def tijdreeksen(self):

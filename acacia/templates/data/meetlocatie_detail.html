@@ -69,9 +69,9 @@ $(function(){initialize();});
 </tr>
 </thead>
 <tbody>
-{% for f in object.datafiles.all %}
+{% for f in object.datasources.all %}
 <tr>
-<td><a href='{% url "datafile-detail" f.id %}'>{{f.name}}</a></td>
+<td><a href='{% url "datasource-detail" f.id %}'>{{f.name}}</a></td>
 <td>{{f.description}}</td>
 <td><a href="{{MEDIA_URL}}{{f.file.name}}">{{f.filename}}</a></td>
 <td>{{f.filesize}}</td>

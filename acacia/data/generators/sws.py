@@ -80,5 +80,5 @@ class Diver(Generator):
             channel = 'Channel %d' % i
             name = header[channel].get('Identification',None)
             if name is not None:
-                params.append({'name': name, 'description' : channel, 'unit': 'unknown'})  
+                params[name] = {'description': channel, 'unit': 'unknown'}  
         return params

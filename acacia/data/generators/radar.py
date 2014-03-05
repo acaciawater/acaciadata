@@ -9,8 +9,6 @@ import numpy.ma as ma
 import pandas as  pd
 import StringIO
 from pydap.client import open_url
-from django.core.files.base import ContentFile
-from ..models import MeetLocatie, DataFile
 
 import logging
 logger = logging.getLogger(__name__)
@@ -82,4 +80,4 @@ class Regenradar(Generator):
         return data
 
     def get_parameters(self, fil):
-        return  [{'name': 'Neerslag', 'description' : 'dagelijkse neerslag', 'unit': 'mm/d'}]  
+        return  dict({'Neerslag': {'description' : 'dagelijkse neerslag', 'unit': 'mm/d'}})  

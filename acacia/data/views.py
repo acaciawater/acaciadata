@@ -4,7 +4,7 @@ from django.views.generic import DetailView
 from django.views.generic.base import TemplateView
 from django.template.loader import render_to_string
 from django.shortcuts import get_object_or_404
-from models import Project, ProjectLocatie, MeetLocatie, DataFile, Series, Chart, Dashboard
+from models import Project, ProjectLocatie, MeetLocatie, Datasource, Series, Chart, Dashboard
 
 import json
 import datetime
@@ -13,12 +13,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-class DataFileAddView(CreateView):
-    model = DataFile
-    fields = ['file', ]
-
-class DataFileDetailView(DetailView):
-    model = DataFile
+class DatasourceDetailView(DetailView):
+    model = Datasource
 
 class ProjectView(DetailView):
     model = Project       
@@ -117,7 +113,7 @@ class ChartBareView(TemplateView):
 
     def get_json(self, chart):
         options = {
-            'chart': {'type': chart.type, 'animation': False, 'zoomType': 'x'},
+            'chart': {'animation': False, 'zoomType': 'x'},
             'title': {'text': chart.title},
             'xAxis': {'type': 'datetime'},
             'yAxis': [],

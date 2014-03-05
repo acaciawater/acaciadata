@@ -3,7 +3,7 @@ Created on Feb 12, 2014
 
 @author: theo
 '''
-import os, fnmatch
+import os, fnmatch, re
 import matplotlib.pyplot as plt
 from django.contrib.gis.gdal.srs import SpatialReference, CoordTransform
 from django.contrib.gis.geos import Point
@@ -63,3 +63,17 @@ def find_files(pattern, root=os.curdir):
     for path, dirs, files in os.walk(os.path.abspath(root)):
         for filename in fnmatch.filter(files, pattern):
             yield os.path.join(path, filename)
+
+# pattern that matches ftp directory listing 
+#-rw-rw-r-- 1 theo theo    200796 Mar  4 15:08 acacia.log\r\n\
+#-rw-rw-r-- 1 theo theo     94222 Mar  4 14:45 django.log\r\n\
+
+FTPDIRPATTERN = r'(?P<flags>[drwxst-]{10})\s+(?P<count>\d+)\s+(?P<user>\w+)\s+(?P<group>\w+)\s+(?P<size>\d+)\s+(?P<date>\w{3}\s+\d{1,2}\s+\d{2}:\d{2})\s+(?P<file>[^\r]+)'
+
+def is_dirlist(content):
+    return re.search(FTPDIRPATTERN, content) is not None
+
+def get_dirlist(content):
+    '''returns ftp directory listing as group dict'''
+    return [m.groupdict() for m in re.finditer(FTPDIRPATTERN, content, re.MULTILINE)]
+        
