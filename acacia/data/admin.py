@@ -105,7 +105,7 @@ class DatasourceAdmin(admin.ModelAdmin):
     inlines = [ParameterInline,]
     actions = [upload_datasource, replace_parameters]
     list_filter = ('meetlocatie','meetlocatie__projectlocatie','meetlocatie__projectlocatie__project',)
-    list_display = ('name', 'description', 'meetlocatie', 'filecount', 'parametercount', 'start', 'stop', 'rows',)
+    list_display = ('name', 'description', 'meetlocatie', 'filecount', 'parametercount', 'seriescount', 'start', 'stop', 'rows',)
     fieldsets = (
                  ('Algemeen', {'fields': ('name', 'description', 'meetlocatie',),
                                'classes': ('grp-collapse grp-open',),
@@ -208,6 +208,7 @@ class SeriesAdmin(admin.ModelAdmin):
     actions = [refresh_series, replace_series, series_thumbnails]
     list_display = ('name', 'thumbtag', 'parameter', 'datasource', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
     exclude = ('user',)
+    list_filter = ('parameter__datasource__meetlocatie',)
 
     fieldsets = (
                  ('Algemeen', {'fields': ('parameter', 'name', 'unit', 'description',),

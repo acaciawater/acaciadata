@@ -10,6 +10,7 @@ from django.contrib.gis.geos import Point
 from matplotlib import rcParams
 rcParams['font.size'] = '8'
 
+
 # EPSG codes
 RDNEW=28992
 RDOLD=28991
@@ -65,8 +66,8 @@ def find_files(pattern, root=os.curdir):
             yield os.path.join(path, filename)
 
 # pattern that matches ftp directory listing 
-#-rw-rw-r-- 1 theo theo    200796 Mar  4 15:08 acacia.log\r\n\
-#-rw-rw-r-- 1 theo theo     94222 Mar  4 14:45 django.log\r\n\
+#-rw-rw-r-- 1 theo theo    200796 Mar  4 15:08 acacia.log\r\n
+#-rw-rw-r-- 1 theo theo     94222 Mar  4 14:45 django.log\r\n
 
 FTPDIRPATTERN = r'(?P<flags>[drwxst-]{10})\s+(?P<count>\d+)\s+(?P<user>\w+)\s+(?P<group>\w+)\s+(?P<size>\d+)\s+(?P<date>\w{3}\s+\d{1,2}\s+\d{2}:\d{2})\s+(?P<file>[^\r]+)'
 
@@ -76,4 +77,28 @@ def is_dirlist(content):
 def get_dirlist(content):
     '''returns ftp directory listing as group dict'''
     return [m.groupdict() for m in re.finditer(FTPDIRPATTERN, content, re.MULTILINE)]
-        
+
+from zipfile import ZipFile
+import StringIO
+from django.http import HttpResponse
+from django.utils.text import slugify
+
+def datasources_as_zip(datasources, zipname):
+    io = StringIO.StringIO()
+    zf = ZipFile(io,'w')
+    for d in datasources:
+        folder = slugify(d.name)
+        for f in d.sourcefiles.all():
+            filepath = f.filepath()
+            zippath = os.path.join(folder, f.filename())
+            zf.write(filepath,zippath)
+    zf.close()
+    resp = HttpResponse(io.getvalue(), mimetype = "application/x-zip-compressed")
+    resp['Content-Disposition'] = 'attachment; filename=%s' % zipname
+    return resp
+
+def datasource_as_zip(ds):
+    return datasources_as_zip([ds],'%s.zip'% slugify(ds.name))
+    
+def meetlocatie_as_zip(loc):
+    return datasources_as_zip(loc.datasources.all(),'%s.zip'% slugify(loc.name))

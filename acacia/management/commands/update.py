@@ -4,16 +4,17 @@ Created on Feb 13, 2014
 @author: theo
 '''
 from django.core.management.base import BaseCommand
+from optparse import make_option
 from acacia.data.models import Datasource, Series
 
 class Command(BaseCommand):
     args = ''
     help = 'Downloads data from remote sites and updates time series'
-
     def handle(self, *args, **options):
         self.stdout.write('Downloading data and updating time series\n')
-        count = 0        
-        for d in Datasource.objects.exclude(url=None):
+        count = 0
+        datasources = Datasource.objects.exclude(url=None)         
+        for d in datasources:
             self.stdout.write('Downloading datasource %s\n' % d.name)
             d.download()
             count = count + 1

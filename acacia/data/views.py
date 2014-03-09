@@ -3,15 +3,44 @@ from django.views.generic.list import ListView
 from django.views.generic import DetailView
 from django.views.generic.base import TemplateView
 from django.template.loader import render_to_string
-from django.shortcuts import get_object_or_404
-from models import Project, ProjectLocatie, MeetLocatie, Datasource, Series, Chart, Dashboard
-
+from django.shortcuts import get_object_or_404, redirect
+from .models import Project, ProjectLocatie, MeetLocatie, Datasource, Series, Chart, Dashboard
+from .util import datasource_as_zip, meetlocatie_as_zip
 import json
 import datetime
 import re
 import logging
 
 logger = logging.getLogger(__name__)
+
+def DatasourceAsZip(request,pk):
+    ds = get_object_or_404(Datasource,pk=pk)
+    return datasource_as_zip(ds)
+
+def MeetlocatieAsZip(request,pk):
+    loc = get_object_or_404(MeetLocatie,pk=pk)
+    return meetlocatie_as_zip(loc)
+
+def UpdateMeetlocatieDirect(request,pk):
+    loc = get_object_or_404(MeetLocatie,pk=pk)
+    for d in loc.datasources.all():
+        num = d.download()
+        if num > 0:
+            d.update_parameters()
+            data = d.get_data()
+            for p in d.parameter_set.all():
+                for s in p.series_set.all():
+                    s.update(data)
+    referer = request.META.get('HTTP_REFERER',None)
+    return redirect(referer)
+
+from .tasks import update_meetlocatie
+
+def UpdateMeetlocatie(request,pk):
+    # TODO: prevent double task
+    update_meetlocatie.delay(pk)
+    referer = request.META.get('HTTP_REFERER',None)
+    return redirect(referer)
 
 class DatasourceDetailView(DetailView):
     model = Datasource

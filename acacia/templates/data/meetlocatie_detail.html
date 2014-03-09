@@ -60,23 +60,27 @@ $(function(){initialize();});
 <table class="table table-striped">
 <thead>
 <tr>
-<th>Gegevens</th>
-<th>Omschrijving</th>
-<th>Bestand</th>
-<th>Grootte</th>
-<th>Datum</th>
+<th>Gegevensbron</th>
+<th>Bestanden</th>
 <th>Parameters</th>
+<th>Tijdreeksen</th>
+<th>Grafieken</th>
+<th>Begin</th>
+<th>Einde</th>
+<th>Laatste update</th>
 </tr>
 </thead>
 <tbody>
-{% for f in object.datasources.all %}
+{% for d in object.datasources.all %}
 <tr>
-<td><a href='{% url "datasource-detail" f.id %}'>{{f.name}}</a></td>
-<td>{{f.description}}</td>
-<td><a href="{{MEDIA_URL}}{{f.file.name}}">{{f.filename}}</a></td>
-<td>{{f.filesize}}</td>
-<td>{{f.filedate}}</td>
-<td>{{f.parameters}}</td>
+<td><a href='{% url "datasource-detail" d.id %}'>{{d.name}}</a></td>
+<td>{{d.filecount}}</td>
+<td>{{d.parametercount}}</a></td>
+<td>{{d.seriescount}}</td>
+<td>{{d.chartscount}}</td>
+<td>{{d.start|default:"onbekend"}}</td>
+<td>{{d.stop|default:"onbekend"}}</td>
+<td>{{d.last_download|default:"onbekend"}}</td>
 </tr>
 {% empty %}
     <div>Geen bestanden gevonden</div>
@@ -90,7 +94,8 @@ $(function(){initialize();});
 <!-- href="{% url 'select_station' %}?type=meteo&amp;x={{object.location.x}}&amp;y={{object.location.y}}" > -->
 <!-- Selecteer station</a> -->
 <!-- {% endlocalize %} -->
-<button type="button" class="btn btn-primary" data-toggle="tooltip" title="Alle bestanden downloaden" id="download">Download</button>
+<a href="{% url 'meetlocatie-update' object.id %}" class="btn btn-primary" data-toggle="tooltip" title="Alle gegevens van deze meetlocatie actualiseren" id="refresh">Actualiseren</a>
+<a href="{% url 'meetlocatie-zip' object.id %}" class="btn btn-default active" data-toggle="tooltip" title="Alle bestanden van deze meetlocatie downloaden" id="download">Downloaden</a>
 </div>
 </div>
 </div>

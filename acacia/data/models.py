@@ -140,6 +140,7 @@ class Datasource(models.Model):
     url=models.CharField(blank=True,max_length=200,help_text='volledige url van de gegevensbron. Leeg laten voor handmatige uploads')
     generator=models.ForeignKey(Generator,help_text='Generator voor het maken van tijdseries')
     created = models.DateTimeField(auto_now_add=True)
+    last_download = models.DateTimeField(null=True, blank=True, verbose_name='laatste download')
     user=models.ForeignKey(User,default=User)
     config=models.TextField(blank=True,null=True,default='{}',verbose_name = 'Additionele configuraties',help_text='Geldige JSON dictionary')
     username=models.CharField(max_length=20, blank=True, default='anonymous', verbose_name='Gebuikersnaam',help_text='Gebruikersnaam voor downloads')
@@ -173,17 +174,17 @@ class Datasource(models.Model):
     def download(self,save=True):
         if self.url is None or len(self.url) == 0:
             logger.error('Cannot download datasource %s: no url supplied' % (self.name))
-            return;
+            return 0
 
         if self.generator is None:
             logger.error('Cannot download datasource %s: no generator defined' % (self.name))
-            return;
+            return 0
             
         logger.info('Downloading datasource %s from %s' % (self.name, self.url))
         gen = self.get_generator_instance()
         if gen is None:
             logger.error('Cannot download datasource %s: could not create instance of generator %s' % (self.name, self.generator))
-            return;
+            return 0
         
         options = {'url': self.url}
         if self.username is not None and self.username != '':
@@ -195,19 +196,22 @@ class Datasource(models.Model):
             options = dict(options.items() + config.items())
         except Exception as e:
             logger.error('Cannot download datasource %s: error in config options. %s' % (self.name, e))
-            return
+            return 0
         
         try:
             results = gen.download(**options)
         except Exception as e:
             logger.error('Error downloading datasource %s: %s' % (self.name, e))
-            return
+            return 0
             
         if results is None:
             logger.error('No response from server')
+            return 0
         elif results == {}:
             logger.warning('Empty response received from server, download aborted')
+            return 0
         else:
+            downloaded = 0
             logger.info('Download completed, got %s file(s)', len(results))
             for filename, content in results.iteritems():
                 try:
@@ -219,16 +223,19 @@ class Datasource(models.Model):
                 crc = abs(binascii.crc32(content))
                 if not created:
                     if sourcefile.crc == crc:
-                        logger.warning('Downloaded file %s appears to be identical to local file %s' % (filename, sourcefile.file))
-                        logger.warning('File not saved')
+                        logger.warning('Downloaded file %s ignored: identical to local file %s' % (filename, sourcefile.file))
                         continue
                 sourcefile.crc = crc
                 try:
                     sourcefile.file.save(name=filename, content=ContentFile(content), save=save or created)
                     logger.info('File %s saved to %s' % (filename, sourcefile.filepath()))
+                    downloaded += 1
                 except Exception as e:
                     logger.error('Error saving sourcefile %s: %s' % (filename, e))
-                
+            self.last_download = timezone.now()
+            self.save(update_fields=['last_download'])
+            return downloaded
+        
     def update_parameters(self,data=None):
         logger.info('Updating parameters for datasource %s' % self.name)
         gen = self.get_generator_instance()
@@ -282,7 +289,6 @@ class Datasource(models.Model):
                 data = data.append(d) # CHECK: overlapping index??
         return data
 
-        
     def parametercount(self):
         count = self.parameter_set.count()
         return count if count>0 else None
@@ -292,6 +298,16 @@ class Datasource(models.Model):
         count = self.sourcefiles.count()
         return count if count>0 else None
     filecount.short_description = 'files'
+
+    def seriescount(self):
+        count = sum([p.seriescount() for p in self.parameter_set.all()])
+        return count if count>0 else None
+    seriescount.short_description = 'tijdreeksen'
+
+    def chartscount(self):
+        count = sum([p.chartscount() for p in self.parameter_set.all()])
+        return count if count>0 else None
+    chartscount.short_description = 'grafieken'
 
     def start(self):
         agg = self.sourcefiles.aggregate(start=Min('start'))
@@ -388,7 +404,7 @@ class SourceFile(models.Model):
         self.start = data.index.min()
         self.stop = data.index.max()
 
-from django.db.models.signals import pre_delete, pre_save, post_save
+from django.db.models.signals import pre_delete, pre_save
 from django.dispatch.dispatcher import receiver
 
 @receiver(pre_delete, sender=SourceFile)
@@ -435,6 +451,10 @@ class Parameter(models.Model):
     def seriescount(self):
         return self.series_set.count()
     seriescount.short_description='Aantal tijdreeksen'
+
+    def chartscount(self):
+        return sum([s.chart_set.count() for s in self.series_set.all()])
+    chartscount.short_description='Aantal grafieken'
     
     def thumbtag(self):
         return util.thumbtag(self.thumbnail.name)
@@ -461,6 +481,7 @@ class Parameter(models.Model):
             self.thumbnail.name = dest
         except Exception as e:
             logger.error('Error generating thumbnail: %s: %s' % (e, e.args))
+            return None
         return self.thumbnail
     
 @receiver(pre_delete, sender=Parameter)
@@ -510,11 +531,12 @@ class Series(models.Model):
         return self.parameter.datasource.meetlocatie.projectlocatie.project
 
     def __unicode__(self):
-        return '%s - %s' % (self.meetlocatie(), self.name)
+        return '%s - %s' % (self.datasource(), self.name)
 
-    def create(self):
+    def create(self, data=None):
         logger.info('Creating series %s' % self.name)
-        data = self.parameter.get_data()
+        if data is None:
+            data = self.parameter.get_data()
         series = data[self.parameter.name]
         tz = timezone.get_current_timezone()
         num_bad = 0
@@ -537,9 +559,10 @@ class Series(models.Model):
         self.datapoints.all().delete()
         self.create()
 
-    def update(self):
+    def update(self, data=None):
         logger.info('Updating series %s' % self.name)
-        data = self.parameter.get_data()
+        if data is None:
+            data = self.parameter.get_data()
         series = data[self.parameter.name]
         tz = timezone.get_current_timezone()
         num_bad = 0
@@ -550,12 +573,15 @@ class Series(models.Model):
                 value = float(value)
                 if not (math.isnan(value) or date is None):
                     adate = timezone.make_aware(date,tz)
-                    point, created = self.datapoints.update_or_create(date=adate, defaults={'value': value})
+                    point, created = self.datapoints.get_or_create(date=adate, defaults={'value': value})
                     if created:
                         num_created = num_created+1
-                    else:
+                    elif point.value != value:
+                        point.value=value
+                        point.save(update_fields=['value'])
                         num_updated = num_updated+1
-            except:
+            except Exception as e:
+                logger.debug('Problem with datapoint: %s' % e)
                 num_bad = num_bad+1
                 pass
         self.save() # makes thumbnail
@@ -629,15 +655,6 @@ class Series(models.Model):
         verbose_name = 'tijdreeks'
         verbose_name_plural = 'tijdreeksen'
         unique_together = ('parameter', 'name',)
-
-# @receiver(post_save, sender=Series)
-# def series_save(sender, instance, **kwargs):
-#     if instance.datapoints.count() == 0:
-#         try:
-#             instance.create()
-#             instance.make_thumbnail()
-#         except Exception as e:
-#             logger.error('Error generating series: %s' % e)
 
 class DataPoint(models.Model):
     series = models.ForeignKey(Series,related_name='datapoints')

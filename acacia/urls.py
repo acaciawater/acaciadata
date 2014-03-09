@@ -7,6 +7,7 @@ admin.autodiscover()
 
 urlpatterns = patterns('',
     url(r'^$', 'acacia.views.home', name='home'),
+    url(r'^cam/$', 'acacia.views.cam', name='cam'),
     url(r'^grappelli/', include('grappelli.urls')),
     url(r'^knmi/', include('acacia.data.knmi.urls')),
     url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
