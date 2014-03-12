@@ -5,7 +5,6 @@ from django import forms
 from django.forms import PasswordInput, ModelForm
 from django.contrib.gis.db import models
 from django.forms.widgets import Textarea
-from django.core import validators
 import django.contrib.gis.forms as geoforms
 import json
 import logging
@@ -22,7 +21,10 @@ class MeetlocatieInline(admin.TabularInline):
 
 class SourceFileInline(admin.TabularInline):
     model = SourceFile
-
+    exclude = ('cols', 'crc', 'user', )
+    extra = 0
+    ordering = ('-start', '-stop', 'name',)
+    
 class ParameterInline(admin.TabularInline):
     model = Parameter
     extra = 1
@@ -102,7 +104,8 @@ class DatasourceForm(ModelForm):
     
 class DatasourceAdmin(admin.ModelAdmin):
     form = DatasourceForm
-    inlines = [ParameterInline,]
+#    inlines = [ParameterInline,]
+    inlines = [SourceFileInline,]
     actions = [upload_datasource, replace_parameters]
     list_filter = ('meetlocatie','meetlocatie__projectlocatie','meetlocatie__projectlocatie__project',)
     list_display = ('name', 'description', 'meetlocatie', 'filecount', 'parametercount', 'seriescount', 'start', 'stop', 'rows',)
@@ -161,7 +164,8 @@ class ParameterAdmin(admin.ModelAdmin):
     list_filter = ('datasource','datasource__meetlocatie',)
     actions = [update_thumbnails,generate_series,]
     list_display = ('name', 'thumbtag', 'meetlocatie', 'datasource', 'unit', 'description', 'seriescount')
-
+    ordering = ('name','datasource',)
+    
 def download_series(queryset):
     ds = set([series.datasource() for series in queryset])
     for d in ds:

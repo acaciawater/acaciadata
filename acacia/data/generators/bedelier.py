@@ -7,23 +7,12 @@ from generator import Generator
 
 class OWB(Generator):
         
-    def __init__(self, **kwargs):
-        super(OWB, self).__init__(**kwargs)
-
     def get_header(self, f):
         cols = f.readline().split(';')
         sections = {}
         sections['COLUMNS'] = cols
         return sections
-    
-    def isfolderlist(self, f):
-        '''returns true if f is the ftp response of a folder'''
-        pass
-    
-    def get_files(self, f):
-        '''get filenames in an ftp folder list'''
-        pass
-        
+            
     def get_data(self, f, **kwargs):
         header = self.get_header(f)
         data = pd.read_csv(f, header=None, sep = ';', index_col = 0, parse_dates = {'datum': [0,1]}, dayfirst = True)

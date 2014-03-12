@@ -72,7 +72,8 @@ class Regenradar(Generator):
         data.to_csv(io,header=True)
         response = io.getvalue()
         t = t[-1]
-        filename = 'p%d-%d-%04d%02d%02d.csv' % (self.x,self.y,t.year,t.month,t.day)
+        filename = 'rad_tf2400.csv'
+        #filename = 'p%d-%d-%04d%02d%02d.csv' % (self.x,self.y,t.year,t.month,t.day)
         return {filename: response}
 
     def get_data(self,fil,**kwargs):

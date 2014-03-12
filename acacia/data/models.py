@@ -1,5 +1,5 @@
 import os,datetime,math,binascii
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Avg, Max, Min, Sum
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
@@ -286,7 +286,10 @@ class Datasource(models.Model):
             if data is None:
                 data = d
             else:
-                data = data.append(d) # CHECK: overlapping index??
+                data = data.append(d)
+        # drop duplicate dates (take last)
+        if data is not None:
+            data = data.groupby(level=0).last()
         return data
 
     def parametercount(self):
@@ -384,7 +387,7 @@ class SourceFile(models.Model):
         if gen is None:
             gen = self.datasource.get_generator_instance()
         logger.info('Getting data for sourcefile %s', self.name)
-        self.file.open('r')
+        self.file.open('rb')
         data = gen.get_data(self.file,**kwargs)
         self.file.close()
         if data is None:
@@ -539,20 +542,19 @@ class Series(models.Model):
             data = self.parameter.get_data()
         series = data[self.parameter.name]
         tz = timezone.get_current_timezone()
-        num_bad = 0
         num_created = 0
+        num_skipped = 0
         for date,value in series.iteritems():
             try:
                 value = float(value)
                 if not (math.isnan(value) or date is None):
                     adate = timezone.make_aware(date,tz)
                     self.datapoints.create(date=adate, value=value)
-                    num_created += 1
+                num_created += 1
             except Exception as e:
                 logger.debug('Datapoint %s,%g: %s' % (str(date), value, e))
-                num_bad += 1
-                pass
-        logger.info('Series %s updated: %d points created, %d skipped' % (self.name, num_created, num_bad))
+                num_skipped += 1
+        logger.info('Series %s updated: %d points created, %d points skipped' % (self.name, num_created, num_skipped))
 
     def replace(self):
         logger.info('Deleting all %d datapoints from series %s' % (self.datapoints.count(), self.name))
@@ -626,11 +628,12 @@ class Series(models.Model):
     def to_pandas(self):
         dates = [dp.date for dp in self.datapoints.all()]
         values = [dp.value for dp in self.datapoints.all()]
-        return pd.Series(values,index=dates)
+        return pd.Series(values,index=dates,name=self.name)
     
     def to_csv(self):
         io = StringIO.StringIO()
-        self.to_pandas().to_csv(io)
+        ser = self.to_pandas()
+        ser.to_csv(io, header=[self.name], index_label='Datum/tijd')
         return io.getvalue()
     
     def make_thumbnail(self):

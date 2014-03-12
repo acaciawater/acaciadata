@@ -7,6 +7,7 @@ import os, fnmatch, re
 import matplotlib.pyplot as plt
 from django.contrib.gis.gdal.srs import SpatialReference, CoordTransform
 from django.contrib.gis.geos import Point
+from acacia import settings
 from matplotlib import rcParams
 rcParams['font.size'] = '8'
 
@@ -30,7 +31,7 @@ def toRD(p):
 
 def trans(p, srid):
     '''transform Point p to requested srid'''
-    if  not isinstance(p,Point):
+    if not isinstance(p,Point):
         raise TypeError('django.contrib.gis.geos.Point expected')
     psrid = p.srid
     if not psrid:
@@ -38,7 +39,6 @@ def trans(p, srid):
     if (psrid != srid): 
         tr = CoordTransform(SpatialReference(p.srid), SpatialReference(srid))
         p.transform(tr)
-    
     return p
 
 def save_thumbnail(series,imagefile,kind='line'):
@@ -57,7 +57,7 @@ def save_thumbnail(series,imagefile,kind='line'):
     plt.close()
     
 def thumbtag(imagefile):
-    url = "/media/%s" % imagefile
+    url = os.path.join(settings.MEDIA_URL, imagefile)
     return '<a href="%s"><img src="%s" height="60px"\></a>' % (url, url)
 
 def find_files(pattern, root=os.curdir):
@@ -102,3 +102,10 @@ def datasource_as_zip(ds):
     
 def meetlocatie_as_zip(loc):
     return datasources_as_zip(loc.datasources.all(),'%s.zip'% slugify(loc.name))
+
+def series_as_csv(series):
+    filename = slugify(series.name) + '.csv'
+    resp = HttpResponse(series.to_csv(), mimetype = "text/csv")
+    resp['Content-Type'] = 'text/csv; filename=%s' % filename
+    resp['Content-Disposition'] = 'attachment; filename=%s' % filename
+    return resp

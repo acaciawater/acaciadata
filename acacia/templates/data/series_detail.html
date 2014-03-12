@@ -1,18 +1,4 @@
 {% extends 'data/highchart.html' %}
 {% block title %}{{series.name}}{% endblock title %}
 {% block navbar %}{% endblock %}
-{% block brandname %}{{series.name}}{% endblock brandname %}
-{% block navbar-auth %}
-<ul class="nav navbar-nav navbar-right">
-  <li class="dropdown">
-    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Thema<b class="caret"></b></a>
-    <ul class="dropdown-menu">
-      <li><a href="#">Grijs</a></li>
-      <li><a href="#">Donkerblauw</a></li>
-      <li><a href="#">Donkergroen</a></li>
-      <li><a href="#">Raster</a></li>
-      <li><a href="#">Lucht</a></li>
-    </ul>
-  </li>
-</ul>
-{% endblock navbar-auth %}
+{% block admin_url %}series/{{object.id}}{% endblock %}

@@ -5,6 +5,7 @@ Created on Jan 24, 2014
 '''
 import pandas as pd
 import logging, re
+import urlparse
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,18 @@ class Meteo(Generator):
     
     #url = 'http://www.knmi.nl/klimatologie/daggegevens/getdata_uur.cgi'
     url = 'http://www.knmi.nl/klimatologie/daggegevens/getdata_dag.cgi'
+        
+    def download(self, **kwargs):
+        url = kwargs.get('url','')
+        filename = 'knmi_meteo'
+        if url != '':
+            parts = urlparse.urlparse(url)
+            query = urlparse.parse_qs(parts[4])
+            stns=query.get('stns',[])
+            if stns != []:
+                filename = '%s_%s'% (filename,stns[0])
+        kwargs['filename'] = filename + '.txt'
+        return super(Meteo, self).download(**kwargs)
         
     def get_header(self, f):
         header = {}
@@ -76,6 +89,10 @@ class Neerslag(Meteo):
     '''Dagwaarden van neerslagstations ophalen'''
     
     url = 'http://www.knmi.nl/klimatologie/monv/reeksen/getdata_rr.cgi'
+
+    def download(self, **kwargs):
+        kwargs['filename'] = 'knmi_neerslag.txt'
+        return super(Meteo, self).download(**kwargs)
     
     def get_header(self, f):
         header = {}

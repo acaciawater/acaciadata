@@ -22,7 +22,7 @@ class Generator(object):
         return []
     
     def download(self, **kwargs):
-        filename = ''
+        filename = kwargs.get('filename', None)
         content = ''
         result = {}
         if 'url' in kwargs:
@@ -59,11 +59,11 @@ class Generator(object):
                         response = urllib2.urlopen(urlfile)
                         result[filename] = response.read()
                 else:
-                    filename = os.path.basename(url)
+                    filename = filename or os.path.basename(url)
                     result[filename] = content
             else:
                 _,params = cgi.parse_header(response.headers.get('Content-Disposition',''))
-                filename = params.get('filename','file.txt')
+                filename = filename or params.get('filename','file.txt')
                 result[filename] = response.read()
         return result
 

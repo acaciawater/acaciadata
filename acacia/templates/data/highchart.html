@@ -27,6 +27,6 @@ $(function () {
 <div id="container"></div>
 <br/>
 <div class="text-right">
-<button type="button" class="btn btn-primary" id="download">Download</button></div>
+<a href = "{% url 'series-csv' object.id %}" class="btn btn-primary" id="download">Download</a></div>
 </div>
 {% endblock %}

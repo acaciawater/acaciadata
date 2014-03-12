@@ -5,7 +5,7 @@ from django.views.generic.base import TemplateView
 from django.template.loader import render_to_string
 from django.shortcuts import get_object_or_404, redirect
 from .models import Project, ProjectLocatie, MeetLocatie, Datasource, Series, Chart, Dashboard
-from .util import datasource_as_zip, meetlocatie_as_zip
+from .util import datasource_as_zip, meetlocatie_as_zip, series_as_csv
 import json
 import datetime
 import re
@@ -20,6 +20,10 @@ def DatasourceAsZip(request,pk):
 def MeetlocatieAsZip(request,pk):
     loc = get_object_or_404(MeetLocatie,pk=pk)
     return meetlocatie_as_zip(loc)
+
+def SeriesAsCsv(request,pk):
+    loc = get_object_or_404(Series,pk=pk)
+    return series_as_csv(loc)
 
 def UpdateMeetlocatieDirect(request,pk):
     loc = get_object_or_404(MeetLocatie,pk=pk)
