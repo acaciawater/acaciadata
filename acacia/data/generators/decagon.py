@@ -5,6 +5,9 @@ import xlrd
 import datetime, time
 import logging
 import StringIO
+import pytz
+
+from acacia import settings
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +20,7 @@ class DecagonException(Exception):
         self.value = value
     
     def __str__(self):
-        return repr(self.value)
+        return 'Decagon Dataservice: %s' % (self.value)
 
 class DataTrac(Generator):
     ''' Generate series from excel table exported by DataTrac '''
@@ -66,7 +69,7 @@ def conv252(x):
     raw = np.int32(x)
 
     if raw < 290 or raw > 1425:
-        return None
+        return [np.nan]
     return [8.50e-4 * raw - 0.481]
 
 def conv121(x):
@@ -167,11 +170,12 @@ SENSORDATA = {
 
 # seconds between 1/1/2000 and 1/1/1970
 DECATIME_OFFSET = 946684800.0
+tz = pytz.timezone(settings.TIME_ZONE)
 
 def decatime(dt):
     try:
         timestamp = float(dt)+DECATIME_OFFSET
-        return datetime.datetime.fromtimestamp(timestamp)
+        return datetime.datetime.fromtimestamp(timestamp,tz)
     except:
         return None
 
@@ -179,21 +183,21 @@ def date_parser(dt):
     ''' date parser for pandas read_csv '''
     return np.array([decatime(t) for t in dt])
 
-class DataserviceAPI(Generator):
+class Dataservice(Generator):
     ''' Decagon Datasevice API '''
         
     def download(self, **kwargs):
         ''' Download dxd file from Decagon dataserver '''
         if not 'deviceid' in kwargs:
-            raise DecagonException('Decagon Dataservice: device id ontbreekt')
+            raise DecagonException('Device id ontbreekt')
         if not 'devicepass' in kwargs:
-            raise DecagonException('Decagon Dataservice: device password ontbreekt')
+            raise DecagonException('Device password ontbreekt')
         if not 'url' in kwargs:
-            raise DecagonException('Decagon Dataservice: url ontbreekt')
+            raise DecagonException('Url ontbreekt')
         if not 'username' in kwargs:
-            raise DecagonException('Decagon Dataservice: username ontbreekt')
+            raise DecagonException('Username ontbreekt')
         if not 'password' in kwargs:
-            raise DecagonException('Decagon Dataservice: password ontbreekt')
+            raise DecagonException('Password ontbreekt')
         if 'mrid' in kwargs:
             startkey = 'mrid'
             startvalue = int(kwargs['mrid'])
@@ -227,26 +231,26 @@ class DataserviceAPI(Generator):
 
     def port2params(self,port):
         ''' determine parameter names from port description
-            parameter name is something like Temp1 (GS3)
+            parameter name is something like Temp P1 (GS3)
             meaning: Temperature from port 1, logger GS3 
         '''
         value = int(port['value'])
         if value == 255:
             return [] # not connected
         if not value in SENSORDATA:
-            raise DecagonException('Decagon Datservice: sensor not supported: %s', port['sensor'])
+            raise DecagonException('Sensor wordt niet ondersteund: %s', port['sensor'])
         data = SENSORDATA[value]
         sensor = port['sensor'].split()[0] # short sensor name
         portno = port['number'] # port number
         postfix = ' P%s (%s)' % (portno, sensor)
-        params = []
+        params = [] # use array instead of dict to keep params in correct order
         for p in data['parameters']:
             name = p['name'] + postfix
             params.append({'name': name, 'description': p['description'], 'unit': p['unit']})
         return params
     
     def _get_parameters(self, tree):
-        params = []
+        params = [] # use array instead of dict to keep params in correct order
         device = tree.find('Device')
         for port in device.findall('Configuration/Measurement/Ports/Port'):
             p = self.port2params(port.attrib)
@@ -259,6 +263,7 @@ class DataserviceAPI(Generator):
         tree.parse(f)
         params = self._get_parameters(tree)
         result = {}
+        # convert array of params to dict with key param.name
         for p in params:
             result[p['name']] = {'description': p['description'], 'unit': p['unit']}
         return result
@@ -268,15 +273,17 @@ class DataserviceAPI(Generator):
         tree.parse(f)
         device = tree.find('Device')
         data = device.find('Data')
-        print data.tag, data.attrib
-        io = StringIO.StringIO(data.text)        
+        io = StringIO.StringIO(data.text)
+
+        # read raw port values into dataframe, converting decatime to python datetime 
+        # TODO: skip records with date/time = None 
         df = pd.read_csv(io, header=None, index_col=[0], skiprows = 1, skipinitialspace=True, parse_dates = True, date_parser = date_parser)
 
         ports = device.findall('Configuration/Measurement/Ports/Port')
         nports = len(ports)
         ncols = len(df.columns)
         if nports != ncols:
-            raise DecagonException('Decagon Dataservice API: aantal datakolommen (%d) is niet gelijk aan aantal poorten (%d)' % (ncols, nports))
+            raise DecagonException('Aantal datakolommen (%d) is niet gelijk aan aantal poorten (%d)' % (ncols, nports))
         df.index.name = 'Datum/Tijd'
         df.columns = ['%s%d' % ('port', i+1) for i in range(nports)]
         for elem in ports:
@@ -293,6 +300,7 @@ class DataserviceAPI(Generator):
             for i,p in enumerate(params):
                 data = [x[i] for x in values]
                 df[p['name']] = pd.Series(data, index = df.index)
+                df.dropna(how='all',inplace=True)
         return df
     
 try:
@@ -332,7 +340,7 @@ def download_test():
     return response.read()
     
 if __name__ == '__main__':
-    api = DataserviceAPI()
+    api = Dataservice()
 
     params = {
               'url':        'http://api.ech2odata.com/spaarwater/dxd.cgi',

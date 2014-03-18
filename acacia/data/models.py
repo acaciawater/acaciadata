@@ -23,7 +23,7 @@ THEME_CHOICES = (('dark-blue','blauw'),
                  ('skies','wolken'),)
 
 class Project(models.Model):
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=50, unique=True)
     description = models.TextField(blank=True,verbose_name='omschrijving')
     image = models.ImageField(upload_to=up.project_upload, blank = True, null=True)
     logo = models.ImageField(upload_to=up.project_upload, blank=True, null=True,help_text='Mini-logo voor grafieken')
@@ -122,7 +122,7 @@ def classForName( kls ):
     return m
 
 class Generator(models.Model):
-    name = models.CharField(max_length=50,verbose_name='naam')
+    name = models.CharField(max_length=50,verbose_name='naam', unique=True)
     classname = models.CharField(max_length=50,verbose_name='python klasse',
                                  help_text='volledige naam van de generator klasse, bijvoorbeeld acacia.data.generators.knmi.Meteo')
     description = models.TextField(blank=True,verbose_name='omschrijving')
@@ -140,11 +140,11 @@ class Datasource(models.Model):
     url=models.CharField(blank=True,max_length=200,help_text='volledige url van de gegevensbron. Leeg laten voor handmatige uploads')
     generator=models.ForeignKey(Generator,help_text='Generator voor het maken van tijdseries')
     created = models.DateTimeField(auto_now_add=True)
-    last_download = models.DateTimeField(null=True, blank=True, verbose_name='laatste download')
+    last_download = models.DateTimeField(null=True, blank=True, verbose_name='geactualiseerd')
     user=models.ForeignKey(User,default=User)
     config=models.TextField(blank=True,null=True,default='{}',verbose_name = 'Additionele configuraties',help_text='Geldige JSON dictionary')
-    username=models.CharField(max_length=20, blank=True, default='anonymous', verbose_name='Gebuikersnaam',help_text='Gebruikersnaam voor downloads')
-    password=models.CharField(max_length=20, blank=True, verbose_name='Wachtwoord',help_text='Wachtwoord voor downloads')
+    username=models.CharField(max_length=50, blank=True, default='anonymous', verbose_name='Gebuikersnaam',help_text='Gebruikersnaam voor downloads')
+    password=models.CharField(max_length=50, blank=True, verbose_name='Wachtwoord',help_text='Wachtwoord voor downloads')
 
     class Meta:
         unique_together = ('name', 'meetlocatie',)
@@ -212,29 +212,34 @@ class Datasource(models.Model):
             return 0
         else:
             downloaded = 0
+            errors = 0
             logger.info('Download completed, got %s file(s)', len(results))
-            for filename, content in results.iteritems():
+            for filename, contents in results.iteritems():
                 try:
                     sourcefile = self.sourcefiles.get(name=filename)
                     created = False
                 except:
                     sourcefile = SourceFile(name=filename,datasource=self,user=self.user)
                     created = True
-                crc = abs(binascii.crc32(content))
+                crc = abs(binascii.crc32(contents))
                 if not created:
                     if sourcefile.crc == crc:
                         logger.warning('Downloaded file %s ignored: identical to local file %s' % (filename, sourcefile.file))
                         continue
                 sourcefile.crc = crc
                 try:
-                    sourcefile.file.save(name=filename, content=ContentFile(content), save=save or created)
+                    contentfile = ContentFile(contents)
+                    sourcefile.file.save(name=filename, content=contentfile, save=save or created)
                     logger.info('File %s saved to %s' % (filename, sourcefile.filepath()))
                     downloaded += 1
                 except Exception as e:
                     logger.error('Error saving sourcefile %s: %s' % (filename, e))
-            self.last_download = timezone.now()
-            self.save(update_fields=['last_download'])
-            return downloaded
+                    errors += 1
+            if errors == 0 and downloaded > 0:
+                self.last_download = timezone.now()
+                self.save(update_fields=['last_download'])
+                return downloaded
+            return 0
         
     def update_parameters(self,data=None):
         logger.info('Updating parameters for datasource %s' % self.name)
@@ -256,9 +261,10 @@ class Datasource(models.Model):
             if name == '':
                 continue
             try:
-                param = self.parameter_set.objects.get(name=name)
+                param = self.parameter_set.get(name=name)
                 num_updated = num_updated+1
-            except:
+            except Parameter.DoesNotExist:
+                logger.warning('parameter %s created' % name)
                 param = Parameter(name=name,**defaults)
                 param.datasource = self
                 num_created = num_created+1
@@ -289,7 +295,11 @@ class Datasource(models.Model):
                 data = data.append(d)
         # drop duplicate dates (take last)
         if data is not None:
-            data = data.groupby(level=0).last()
+            try:
+                nodups = data.groupby(level=0).last()
+                data = nodups
+            except:
+                pass
         return data
 
     def parametercount(self):
@@ -439,6 +449,9 @@ class Parameter(models.Model):
     def __unicode__(self):
         return '%s - %s' % (self.datasource.name, self.name)
 
+    class Meta:
+        unique_together = ('name', 'datasource',)
+
     def meetlocatie(self):
         return self.datasource.meetlocatie
 
@@ -516,8 +529,11 @@ class Series(models.Model):
     t0 = models.DateTimeField(null=True,blank=True,verbose_name='start')
     t1 = models.DateTimeField(null=True,blank=True,verbose_name='stop')
     
-# TODO: aggregatie toevoegen , e.g [avg, hour] or totals per day: [sum,day]
-    
+    class Meta:
+        verbose_name = 'tijdreeks'
+        verbose_name_plural = 'tijdreeksen'
+        unique_together = ('parameter', 'name',)
+
     def get_absolute_url(self):
         return reverse('series-detail', args=[self.id]) 
 
@@ -547,9 +563,10 @@ class Series(models.Model):
         for date,value in series.iteritems():
             try:
                 value = float(value)
-                if not (math.isnan(value) or date is None):
-                    adate = timezone.make_aware(date,tz)
-                    self.datapoints.create(date=adate, value=value)
+                if math.isnan(value) or date is None:
+                    continue
+                adate = timezone.make_aware(date,tz)
+                self.datapoints.create(date=adate, value=value)
                 num_created += 1
             except Exception as e:
                 logger.debug('Datapoint %s,%g: %s' % (str(date), value, e))
@@ -573,20 +590,20 @@ class Series(models.Model):
         for date,value in series.iteritems():
             try:
                 value = float(value)
-                if not (math.isnan(value) or date is None):
-                    adate = timezone.make_aware(date,tz)
-                    point, created = self.datapoints.get_or_create(date=adate, defaults={'value': value})
-                    if created:
-                        num_created = num_created+1
-                    elif point.value != value:
-                        point.value=value
-                        point.save(update_fields=['value'])
-                        num_updated = num_updated+1
+                if math.isnan(value) or date is None:
+                    continue
+                adate = timezone.make_aware(date,tz)
+                point, created = self.datapoints.get_or_create(date=adate, defaults={'value': value})
+                if created:
+                    num_created = num_created+1
+                elif point.value != value:
+                    point.value=value
+                    point.save(update_fields=['value'])
+                    num_updated = num_updated+1
             except Exception as e:
                 logger.debug('Problem with datapoint: %s' % e)
                 num_bad = num_bad+1
-                pass
-        self.save() # makes thumbnail
+        self.save()
         logger.info('Series %s updated: %d points created, %d updated, %d skipped' % (self.name, num_created, num_updated, num_bad))
 
     def aantal(self):
@@ -654,10 +671,14 @@ class Series(models.Model):
             logger.error('Error generating thumbnail: %s' % e)
         return self.thumbnail
 
-    class Meta:
-        verbose_name = 'tijdreeks'
-        verbose_name_plural = 'tijdreeksen'
-        unique_together = ('parameter', 'name',)
+class Variable(models.Model):
+    ''' Variable representing time series '''
+    name = models.CharField(max_length=10)
+    series = models.ForeignKey(Series)
+    
+class Formula(models.Model):
+    variables = models.ManyToManyField(Variable)
+    formula = models.TextField() 
 
 class DataPoint(models.Model):
     series = models.ForeignKey(Series,related_name='datapoints')
