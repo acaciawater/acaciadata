@@ -1,0 +1,41 @@
+{% extends 'bootbase.html' %}
+{% block title %}KNMI Stations{% endblock title %}
+<style>
+	.table tbody tr:hover td, .table tbody tr:hover th {
+    background-color: blue;
+}
+</style>
+{% block content %}
+<div class = "container">
+<div class = "row-fluid">
+<h3>KNMI {%if station_type == 'meteo' %} Meteo {% else %} Neerslag {% endif %} stations</h3>
+Gerangschikt op afstand tot ({{target.x|floatformat:0}}, {{target.y|floatformat:0}})
+</div>
+<div class="row-fluid">
+<table class="table table-striped table-hover">
+<thead>
+<tr>
+<th>Station</th>
+<th>Nummer</th>
+<th>X</th>
+<th>Y</th>
+<th>Afstand (km)</th>
+</tr>
+</thead>
+<tbody>
+{% for r in stations %}
+<tr>
+<td>{{r.naam}}</td>
+<td>{{r.nummer}}</td>
+<td>{{r.location.x|floatformat:0}}</td>
+<td>{{r.location.y|floatformat:0}}</td>
+<td>{{r.distance.km|floatformat:2}}</td>
+</tr>
+{% empty %}
+    <div>Geen stations gevonden</div>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</div>
+{% endblock content %}
