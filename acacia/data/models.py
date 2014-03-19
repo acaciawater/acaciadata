@@ -517,21 +517,8 @@ class Series(models.Model):
     parameter = models.ForeignKey(Parameter)
     thumbnail = models.ImageField(upload_to=up.series_thumb_upload, blank=True, null=True)
     user=models.ForeignKey(User,default=User)
-
-    # chart options
-    axis = models.IntegerField(default=1,verbose_name='Nummer y-as')
-    axislr = models.CharField(max_length=2, choices=AXIS_CHOICES, default='l',verbose_name='Positie y-as')
-    color = models.CharField(null=True,blank=True,max_length=16, verbose_name = 'Kleur')
-    type = models.CharField(max_length=10, default='line', choices = SERIES_CHOICES)
-    label = models.CharField(max_length=20, blank=True,default='')
-    y0 = models.FloatField(null=True,blank=True,verbose_name='ymin')
-    y1 = models.FloatField(null=True,blank=True,verbose_name='ymax')
-    t0 = models.DateTimeField(null=True,blank=True,verbose_name='start')
-    t1 = models.DateTimeField(null=True,blank=True,verbose_name='stop')
     
     class Meta:
-        verbose_name = 'tijdreeks'
-        verbose_name_plural = 'tijdreeksen'
         unique_together = ('parameter', 'name',)
 
     def get_absolute_url(self):
@@ -670,7 +657,7 @@ class Series(models.Model):
         except Exception as e:
             logger.error('Error generating thumbnail: %s' % e)
         return self.thumbnail
-
+    
 class Variable(models.Model):
     ''' Variable representing time series '''
     name = models.CharField(max_length=10)
@@ -692,7 +679,6 @@ class DataPoint(models.Model):
         return self.date.date
 
 class Chart(models.Model):
-    series = models.ManyToManyField(Series)
     name = models.CharField(max_length = 50, verbose_name = 'naam')
     title = models.CharField(max_length = 50, verbose_name = 'titel')
     user=models.ForeignKey(User,default=User)
@@ -709,6 +695,26 @@ class Chart(models.Model):
     class Meta:
         verbose_name = 'Grafiek'
         verbose_name_plural = 'Grafieken'
+
+class ChartSeries(models.Model):
+    chart = models.ForeignKey(Chart,related_name='series')
+    series = models.ForeignKey(Series)
+    axis = models.IntegerField(default=1,verbose_name='Nummer y-as')
+    axislr = models.CharField(max_length=2, choices=AXIS_CHOICES, default='l',verbose_name='Positie y-as')
+    color = models.CharField(null=True,blank=True,max_length=16, verbose_name = 'Kleur')
+    type = models.CharField(max_length=10, default='line', choices = SERIES_CHOICES)
+    label = models.CharField(max_length=20, blank=True,default='')
+    y0 = models.FloatField(null=True,blank=True,verbose_name='ymin')
+    y1 = models.FloatField(null=True,blank=True,verbose_name='ymax')
+    t0 = models.DateTimeField(null=True,blank=True,verbose_name='start')
+    t1 = models.DateTimeField(null=True,blank=True,verbose_name='stop')
+    
+    def __unicode__(self):
+        return self.series
+    
+    class Meta:
+        verbose_name = 'tijdreeks'
+        verbose_name_plural = 'tijdreeksen'
 
 class Dashboard(models.Model):
     name = models.CharField(max_length=50)

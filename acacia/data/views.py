@@ -141,7 +141,7 @@ def tojs(d):
 def date_handler(obj):
     return tojs(obj) if isinstance(obj, datetime.date) or isinstance(obj, datetime.datetime) else obj
 
-class ChartBareView(TemplateView):
+class ChartBaseView(TemplateView):
     template_name = 'data/plain_chart.html'
 
     def get_json(self, chart):
@@ -162,17 +162,20 @@ class ChartBareView(TemplateView):
             }
 
         allseries = []
-        for i,ser in enumerate(chart.series.all()):
-            title = ser.name if len(ser.unit)==0 else '%s [%s]' % (ser.name, ser.unit) if chart.series.count()>1 else ser.unit
+        for i,s in enumerate(chart.series.all()):
+            ser = s.series
+            title = s.label #ser.name if len(ser.unit)==0 else '%s [%s]' % (ser.name, ser.unit) if chart.series.count()>1 else ser.unit
             options['yAxis'].append({
                                      'title': {'text': title},
-                                     'opposite': 0 if i % 2 == 0 else 1
+                                     'opposite': 0 if s.axislr == 'l' else 1,
+                                     'min': s.y0,
+                                     'max': s.y1
                                      })
             pts = [[p.date,p.value] for p in ser.datapoints.all().order_by('date')]
             allseries.append({
                               'name': ser.name,
-                              'type': ser.type,
-                              'yAxis': i,
+                              'type': s.type,
+                              'yAxis': s.axis-1,
                               'data': pts})
         options['series'] = allseries
         jop = json.dumps(options,default=date_handler)
@@ -181,18 +184,18 @@ class ChartBareView(TemplateView):
         return jop
     
     def get_context_data(self, **kwargs):
-        context = super(ChartBareView, self).get_context_data(**kwargs)
+        context = super(ChartBaseView, self).get_context_data(**kwargs)
         pk = context.get('pk',1)
         chart = Chart.objects.get(pk=pk)
         jop = self.get_json(chart)
         context['options'] = jop
         return context
         
-class ChartView(ChartBareView):
+class ChartView(ChartBaseView):
     template_name = 'data/chart_detail.html'
 
     def get_context_data(self, **kwargs):
-        context = super(ChartBareView, self).get_context_data(**kwargs)
+        context = super(ChartView, self).get_context_data(**kwargs)
         pk = context.get('pk',1)
         if pk is not None:
             chart = Chart.objects.get(pk=pk)
