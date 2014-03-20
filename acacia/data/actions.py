@@ -46,7 +46,7 @@ update_thumbnails.short_description = "Thumbnails vernieuwen van geselecteerde p
 def generate_series(modeladmin, request, queryset):
     for p in queryset:
         try:
-            s, created = p.series_set.get_or_create(name = p.name, description = p.description, unit = p.unit, type = p.type, user = request.user)
+            s, created = p.series_set.get_or_create(name = p.name, description = p.description, unit = p.unit, user = request.user)
             s.replace()
             s.make_thumbnail() 
             s.save()
@@ -54,19 +54,20 @@ def generate_series(modeladmin, request, queryset):
             logger.error('ERROR creating series %s: %s' % (p.name, e))
 generate_series.short_description = 'Standaard tijdreeksen aanmaken voor geselecteerde parameters'
 
-def download_series(queryset):
+def download_series(modeladmin, request, queryset):
     ds = set([series.datasource() for series in queryset])
     for d in ds:
         d.download()
+download_series.short_description = 'Bronbestanden van geselecteerde tijdreeksen downloaden'
     
 def refresh_series(modeladmin, request, queryset):
-    download_series(queryset)
+    #download_series(modeladmin, request, queryset)
     for s in queryset:
         s.update()
 refresh_series.short_description = 'Geselecteerde tijdreeksen actualiseren'
 
 def replace_series(modeladmin, request, queryset):
-    download_series(queryset)
+    #download_series(modeladmin, request, queryset)
     for s in queryset:
         s.replace()
 replace_series.short_description = 'Geselecteerde tijdreeksen opnieuw aanmaken'
@@ -78,7 +79,6 @@ def series_thumbnails(modeladmin, request, queryset):
 series_thumbnails.short_description = "Thumbnails van tijdreeksen vernieuwen"
 
 def copy_charts(modeladmin, request, queryset):
-    user = request.user
     for c in queryset:
         name = 'kopie van %s' % (c.name)
         copy = 1 

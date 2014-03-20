@@ -140,6 +140,17 @@ def conv187(x):
     p = pulses * 0.2 # every pulse = 0.2 mm
     return [p]
 
+def post187(a):
+    ''' postprocessor for ECRN-100: calculate precipitation per interval from cumulative values ''' 
+    b = []
+    b.append([None,])
+    for i,x in enumerate(a):
+        if(i>0):
+            b.append([x[0] - a[i-1][0],])
+    return b
+
+    #return [[x[i][0] - x[i-1][0]] for i,x in enumerate(a) if i > 0]
+        
 SENSORDATA = {
     252: {'converter': conv252,
           'parameters':[{'name': 'VWC', 'description': 'Volumetric water content', 'unit': 'm3/m3'},
@@ -163,6 +174,7 @@ SENSORDATA = {
                         ]
           },
     187: { 'converter': conv187,
+          'postprocessor': post187,
           'parameters': [{'name': 'Precipitation', 'description': 'Precipitation', 'unit': 'mm'},
                          ]
           }
@@ -297,6 +309,9 @@ class Dataservice(Generator):
             label = 'port%s' % port['number']
             raw = df[label]
             values = [convert(x) for x in raw]
+            process = data.get('postprocessor',None)
+            if process is not None:
+                values = process(values)
             for i,p in enumerate(params):
                 data = [x[i] for x in values]
                 df[p['name']] = pd.Series(data, index = df.index)

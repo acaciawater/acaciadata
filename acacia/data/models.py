@@ -467,10 +467,6 @@ class Parameter(models.Model):
     def seriescount(self):
         return self.series_set.count()
     seriescount.short_description='Aantal tijdreeksen'
-
-    def chartscount(self):
-        return sum([s.chart_set.count() for s in self.series_set.all()])
-    chartscount.short_description='Aantal grafieken'
     
     def thumbtag(self):
         return util.thumbtag(self.thumbnail.name)
@@ -505,10 +501,19 @@ def parameter_delete(sender, instance, **kwargs):
     logger.info('Deleting thumbnail %s for parameter %s' % (instance.thumbnail.name, instance.name))
     instance.thumbnail.delete(False)
 
-AXIS_CHOICES = (
-                ('l', 'links'),
-                ('r', 'rechts'),
-               )
+RESAMPLE_FREQUENCY = (
+              ('H', 'uur'),
+              ('D', 'dag'),
+              ('W', 'week'),
+              ('M', 'maand'),
+              ('A', 'jaar'),
+              )
+RESAMPLE_AGGREGATE = (
+              ('mean', 'gemiddelde'),
+              ('max', 'maximum'),
+              ('min', 'minimum'),
+              ('sum', 'som'),
+              )
 
 class Series(models.Model):
     name = models.CharField(max_length=50,verbose_name='naam')
@@ -517,10 +522,16 @@ class Series(models.Model):
     parameter = models.ForeignKey(Parameter)
     thumbnail = models.ImageField(upload_to=up.series_thumb_upload, blank=True, null=True)
     user=models.ForeignKey(User,default=User)
-    
+    resample = models.CharField(max_length=10,choices=RESAMPLE_FREQUENCY,default='',blank=True, 
+                                verbose_name='frequentie',help_text='Frequentie voor resampling van tijdreeks')
+    aggregate = models.CharField(max_length=10,choices=RESAMPLE_AGGREGATE,default='', blank=True, 
+                                 verbose_name='aggregatie', help_text = 'Aggregatiemethode bij resampling van tijdreeks')
+
     class Meta:
         unique_together = ('parameter', 'name',)
-
+        verbose_name = 'Reeks'
+        verbose_name_plural = 'Reeksen'
+        
     def get_absolute_url(self):
         return reverse('series-detail', args=[self.id]) 
 
@@ -538,26 +549,36 @@ class Series(models.Model):
 
     def __unicode__(self):
         return '%s - %s' % (self.datasource(), self.name)
-
+    
     def create(self, data=None):
         logger.info('Creating series %s' % self.name)
         if data is None:
             data = self.parameter.get_data()
         series = data[self.parameter.name]
+        if self.aggregate != '':
+            try:
+                series = series.resample(how=self.aggregate, rule=self.resample)
+            except Exception as e:
+                logger.error('Resampling of series %s failed: %s' % (self.name, e))
+                return
+            
         tz = timezone.get_current_timezone()
         num_created = 0
         num_skipped = 0
+        datapoints = []
         for date,value in series.iteritems():
             try:
                 value = float(value)
                 if math.isnan(value) or date is None:
                     continue
                 adate = timezone.make_aware(date,tz)
-                self.datapoints.create(date=adate, value=value)
+                #self.datapoints.create(date=adate, value=value)
+                datapoints.append(DataPoint(series=self, date=adate, value=value))
                 num_created += 1
             except Exception as e:
                 logger.debug('Datapoint %s,%g: %s' % (str(date), value, e))
                 num_skipped += 1
+        self.datapoints.bulk_create(datapoints)
         logger.info('Series %s updated: %d points created, %d points skipped' % (self.name, num_created, num_skipped))
 
     def replace(self):
@@ -570,6 +591,12 @@ class Series(models.Model):
         if data is None:
             data = self.parameter.get_data()
         series = data[self.parameter.name]
+        if self.aggregate != '':
+            try:
+                series = series.resample(how=self.aggregate, rule=self.resample)
+            except Exception as e:
+                logger.error('Resampling of series %s failed: %s' % (self.name, e))
+                return
         tz = timezone.get_current_timezone()
         num_bad = 0
         num_created = 0
@@ -651,7 +678,7 @@ class Series(models.Model):
             imagedir = os.path.dirname(imagefile)
             if not os.path.exists(imagedir):
                 os.makedirs(imagedir)
-            util.save_thumbnail(series, imagefile,self.type)
+            util.save_thumbnail(series, imagefile,self.parameter.type)
             logger.info('Generated thumbnail %s' % dest)
             self.thumbnail.name = dest
         except Exception as e:
@@ -690,11 +717,16 @@ class Chart(models.Model):
         return self.name
     
     def get_absolute_url(self):
-        return reverse('chart-detail', args=[self.id])
+        return reverse('chart-view', args=[self.id])
     
     class Meta:
         verbose_name = 'Grafiek'
         verbose_name_plural = 'Grafieken'
+
+AXIS_CHOICES = (
+                ('l', 'links'),
+                ('r', 'rechts'),
+               )
 
 class ChartSeries(models.Model):
     chart = models.ForeignKey(Chart,related_name='series')

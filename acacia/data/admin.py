@@ -134,19 +134,19 @@ class DataPointInline(ReadonlyTabularInline):
     model = DataPoint
         
 class SeriesAdmin(admin.ModelAdmin):
-    actions = [actions.refresh_series, actions.replace_series, actions.series_thumbnails]
+    actions = [actions.download_series, actions.refresh_series, actions.replace_series, actions.series_thumbnails]
     list_display = ('name', 'thumbtag', 'parameter', 'datasource', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
     exclude = ('user',)
     list_filter = ('parameter__datasource__meetlocatie',)
 
-#     fieldsets = (
-#                  ('Algemeen', {'fields': ('parameter', 'name', 'unit', 'description',),
-#                                'classes': ('grp-collapse grp-open',),
-#                                }),
-#                  ('Grafiek opties', {'fields': ('axis', 'axislr', 'label', 'color','type', 'y0', 'y1', 't0', 't1',),
-#                                'classes': ('grp-collapse grp-closed',),
-#                               }),
-#     )
+    fieldsets = (
+                 ('Algemeen', {'fields': ('parameter', 'name', 'unit', 'description',),
+                               'classes': ('grp-collapse grp-open',),
+                               }),
+                 ('Bewerkingen', {'fields': (('resample', 'aggregate',),),
+                               'classes': ('grp-collapse grp-closed',),
+                              }),
+    )
 
     def save_model(self, request, obj, form, change):
         obj.user = request.user
