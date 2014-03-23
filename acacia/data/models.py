@@ -96,6 +96,12 @@ class MeetLocatie(geo.Model):
         ordering = ['name',]
         unique_together = ('projectlocatie', 'name')
 
+    def filecount(self):
+        return sum([d.filecount() for d in self.datasources.all()])
+
+    def paramcount(self):
+        return sum([d.parametercount() for d in self.datasources.all()])
+    
     def series(self):
         ser = []
         for f in self.datasources.all():
@@ -109,8 +115,9 @@ class MeetLocatie(geo.Model):
         for f in self.datasources.all():
             for p in f.parameter_set.all():
                 for s in p.series_set.all():
-                    for c in s.chart_set.all():
-                        charts.append(c)
+                    for c in s.chartseries_set.all():
+                        if not c in charts:
+                            charts.append(c)
         return charts
         
 def classForName( kls ):
@@ -197,7 +204,10 @@ class Datasource(models.Model):
         except Exception as e:
             logger.error('Cannot download datasource %s: error in config options. %s' % (self.name, e))
             return 0
-        
+
+        if not 'start' in options:
+            # incremental download
+            options['start'] = self.stop()
         try:
             results = gen.download(**options)
         except Exception as e:
@@ -549,19 +559,22 @@ class Series(models.Model):
 
     def __unicode__(self):
         return '%s - %s' % (self.datasource(), self.name)
-    
-    def create(self, data=None):
-        logger.info('Creating series %s' % self.name)
+   
+    def get_series_data(self, data):
         if data is None:
             data = self.parameter.get_data()
         series = data[self.parameter.name]
-        if self.aggregate != '':
+        if self.resample is not None and self.resample != '':
             try:
                 series = series.resample(how=self.aggregate, rule=self.resample)
             except Exception as e:
                 logger.error('Resampling of series %s failed: %s' % (self.name, e))
-                return
-            
+                return None
+        return series
+    
+    def create(self, data=None):
+        logger.info('Creating series %s' % self.name)
+        series = self.get_series_data(data)
         tz = timezone.get_current_timezone()
         num_created = 0
         num_skipped = 0
@@ -588,15 +601,7 @@ class Series(models.Model):
 
     def update(self, data=None):
         logger.info('Updating series %s' % self.name)
-        if data is None:
-            data = self.parameter.get_data()
-        series = data[self.parameter.name]
-        if self.aggregate != '':
-            try:
-                series = series.resample(how=self.aggregate, rule=self.resample)
-            except Exception as e:
-                logger.error('Resampling of series %s failed: %s' % (self.name, e))
-                return
+        series = self.get_series_data(data)
         tz = timezone.get_current_timezone()
         num_bad = 0
         num_created = 0
@@ -709,7 +714,8 @@ class Chart(models.Model):
     name = models.CharField(max_length = 50, verbose_name = 'naam')
     title = models.CharField(max_length = 50, verbose_name = 'titel')
     user=models.ForeignKey(User,default=User)
-
+    start = models.DateTimeField(blank=True,null=True)
+    stop = models.DateTimeField(blank=True,null=True)
     def tijdreeksen(self):
         return self.series.count()
     

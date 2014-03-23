@@ -3,17 +3,17 @@
 {% block title %}Acacia Meetlocatie {{object.name}}{% endblock title %}
 {% block brandname %}{% endblock brandname %}
 {% block navbar-right %}
-{% localize off %}
-<li class="dropdown">
-  <a href="#" class="dropdown-toggle" data-toggle="dropdown">Toevoegen <b class="caret"></b></a>
-  <ul class="dropdown-menu">
-    <li><a href="#" data-toggle="tooltip" title="Datafile toevoegen">Datafile</a></li>
-    <li><a href="{% url 'find_stations'%}?type=meteo&amp;x={{object.location.x}}&amp;y={{object.location.y}}" data-toggle="tooltip" title="Dichtstbijzijnde KNMI Meteostation toevoegen">Meteostation</a></li>
-    <li><a href="{% url 'find_stations'%}?type=neerslag&amp;x={{object.location.x}}&amp;y={{object.location.y}}" data-toggle="tooltip" title="Dichtstbijzijnde KNMI Neerslagstation toevoegen">Neerslagstation</a></li>
-    <li><a href="#" data-toggle="tooltip" title="Dahelijkse neerslag van de nationale regenradar toevoegen">Regenradar</a></li>
-  </ul>
-</li>
-{% endlocalize %}
+<!-- {% localize off %} -->
+<!-- <li class="dropdown"> -->
+<!--   <a href="#" class="dropdown-toggle" data-toggle="dropdown">Toevoegen <b class="caret"></b></a> -->
+<!--   <ul class="dropdown-menu"> -->
+<!--     <li><a href="#" data-toggle="tooltip" title="Datafile toevoegen">Datafile</a></li> -->
+<!--     <li><a href="{% url 'find_stations'%}?type=meteo&amp;x={{object.location.x}}&amp;y={{object.location.y}}" data-toggle="tooltip" title="Dichtstbijzijnde KNMI Meteostation toevoegen">Meteostation</a></li> -->
+<!--     <li><a href="{% url 'find_stations'%}?type=neerslag&amp;x={{object.location.x}}&amp;y={{object.location.y}}" data-toggle="tooltip" title="Dichtstbijzijnde KNMI Neerslagstation toevoegen">Neerslagstation</a></li> -->
+<!--     <li><a href="#" data-toggle="tooltip" title="Dahelijkse neerslag van de nationale regenradar toevoegen">Regenradar</a></li> -->
+<!--   </ul> -->
+<!-- </li> -->
+<!-- {% endlocalize %} -->
 {% endblock navbar-right %}
 {% block breadcrumbs %}
 <ol class="breadcrumb">

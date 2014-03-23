@@ -35,9 +35,13 @@ class Regenradar(Generator):
             self.y = float(kwargs['y'])
         if 'start' in kwargs:
             d = kwargs['start']
+            if hasattr(d,'date'):
+                d = d.date()
             self.start = d
         if 'stop' in kwargs:
             d = kwargs['stop']
+            if hasattr(d,'date'):
+                d = d.date()
             self.stop = d
         
     def download(self, **kwargs):

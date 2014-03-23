@@ -149,7 +149,22 @@ def post187(a):
             b.append([x[0] - a[i-1][0],])
     return b
 
-    #return [[x[i][0] - x[i-1][0]] for i,x in enumerate(a) if i > 0]
+def conv189(x):
+    ''' conversion for ECRN-50 Precipitation '''
+    if np.isnan(x):
+        return [np.nan]
+    pulses = np.int32(x)
+    p = pulses * 1.0 # every pulse = 1 mm
+    return [p]
+
+def post189(a):
+    ''' postprocessor for ECRN-50: calculate precipitation per interval from cumulative values ''' 
+    b = []
+    b.append([None,])
+    for i,x in enumerate(a):
+        if(i>0):
+            b.append([x[0] - a[i-1][0],])
+    return b
         
 SENSORDATA = {
     252: {'converter': conv252,
@@ -175,6 +190,11 @@ SENSORDATA = {
           },
     187: { 'converter': conv187,
           'postprocessor': post187,
+          'parameters': [{'name': 'Precipitation', 'description': 'Precipitation', 'unit': 'mm'},
+                         ]
+          },
+    189: { 'converter': conv189,
+          'postprocessor': post189,
           'parameters': [{'name': 'Precipitation', 'description': 'Precipitation', 'unit': 'mm'},
                          ]
           }
@@ -250,7 +270,7 @@ class Dataservice(Generator):
         if value == 255:
             return [] # not connected
         if not value in SENSORDATA:
-            raise DecagonException('Sensor wordt niet ondersteund: %s', port['sensor'])
+            raise DecagonException('Sensor wordt niet ondersteund: %s' % port['sensor'])
         data = SENSORDATA[value]
         sensor = port['sensor'].split()[0] # short sensor name
         portno = port['number'] # port number

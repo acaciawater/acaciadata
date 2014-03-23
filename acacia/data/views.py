@@ -160,7 +160,10 @@ class ChartBaseView(TemplateView):
                         'href': 'http://www.acaciawater.com',
                        }
             }
-
+        if not chart.start is None:
+            options['xAxis']['min'] = tojs(chart.start)
+        if not chart.stop is None:
+            options['xAxis']['max'] = tojs(chart.stop)
         allseries = []
         for i,s in enumerate(chart.series.all()):
             ser = s.series

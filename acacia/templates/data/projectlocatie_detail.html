@@ -47,8 +47,9 @@ $(function(){initialize();});
 <thead>
 <tr>
 <th>Meetlocatie</th>
-<th>Omschrijving</th>
+<th>Gegevensbronnen</th>
 <th>Bestanden</th>
+<th>Parameters</th>
 <th>Tijdreeksen</th>
 <th>Grafieken</th>
 </tr>
@@ -57,8 +58,9 @@ $(function(){initialize();});
 {% for loc in object.meetlocatie_set.all %}
 <tr>
 <td><a href="{% url 'meetlocatie-detail' loc.id %}">{{loc.name}}</a></td>
-<td>{{loc.description|safe}}</td>
-<td>{{loc.datafiles.count}}</td>
+<td>{{loc.datasources.count}}</td>
+<td>{{loc.filecount}}</td>
+<td>{{loc.paramcount}}</td>
 <td>{{loc.series|length}}</td>
 <td>{{loc.charts|length}}</td>
 </tr>

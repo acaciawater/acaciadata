@@ -1,6 +1,9 @@
 import os, urllib2, cgi
 import re
+import dateutil
 import acacia.data.util as util
+from acacia import settings
+from django.utils import timezone
 
 def spliturl(url):
     pattern = r'^(?P<scheme>ftp|https?)://(?:(?P<user>\w+)?(?::(?P<passwd>\S+))?@)?(?P<url>.+)'
@@ -24,6 +27,7 @@ class Generator(object):
     def download(self, **kwargs):
         filename = kwargs.get('filename', None)
         content = ''
+        start = kwargs.get('start', None)
         result = {}
         if 'url' in kwargs:
             url = kwargs['url']
@@ -53,8 +57,14 @@ class Generator(object):
                 if util.is_dirlist(content):
                     # download all files in directory listing
                     dirlist = util.get_dirlist(content)
-                    filenames = [f['file'] for f in dirlist]
-                    for filename in filenames:
+                    tz = timezone.get_current_timezone()
+                    for f in dirlist:
+                        if start is not None:
+                            date = dateutil.parser.parse(f['date'])
+                            date = timezone.make_aware(date,tz)
+                            if date < start:
+                                continue
+                        filename = f['file']
                         urlfile = url + '/' + filename
                         response = urllib2.urlopen(urlfile)
                         result[filename] = response.read()
