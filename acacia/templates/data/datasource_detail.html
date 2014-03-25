@@ -5,7 +5,7 @@
 {% block content %}
 <div class = "container">
 <div class = "row-fluid">
-<h4>Bestand {{object.name}} </h4>
+<h4>Gegevensbron {{object.name}} </h4>
 </div>
 <div class="row-fluid">
 <table class="table table-striped">
@@ -15,11 +15,18 @@
 <tr><td>update door</td><td>{{object.user}}</td></tr>
 <tr><td>parameters</td><td>{{object.parametercount}}</td></tr>
 </table>
+<a href="{% url 'datasource-zip' object.id %}" class="btn btn-primary active" data-toggle="tooltip" title="Alle bestanden downloaden" id="download">Downloaden</a>
+<a href="{% url 'datasource-csv' object.id %}" class="btn btn-primary active" data-toggle="tooltip" title="Gegevens downloaden als csv" id="downloadcsv">CSV Download</a>
 <table class="table">
+<tbody>
+<tr>
 {% for p in object.parameter_set.all %}
-<tr><td>{{p.name}}&nbsp;{{p.description}}</br><img width="600" height="200" src='{{MEDIA_URL}}{{p.thumbnail}}'/></td>
-</tr>
+<td>{{p.name}}&nbsp;{{p.description}}</br><img width="600" height="200" src='{{MEDIA_URL}}{{p.thumbnail}}'/></td>
+{% if forloop.counter|divisibleby:2 %}
+</tr><tr>
+{% endif %}
 {% endfor %}
+</tbody>
 </table>
 </div>
 {% endblock %}

@@ -8,7 +8,7 @@ from generator import Generator
 class OWB(Generator):
         
     def get_header(self, f):
-        cols = f.readline().split(';')
+        cols = [col.strip() for col in f.readline().split(';')]
         sections = {}
         sections['COLUMNS'] = cols
         return sections

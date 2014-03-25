@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 from generator import Generator
 UTC = pytz.utc
 UTC2000 = UTC.localize(datetime.datetime(2000, 1, 1))
+INCREMENTAL_DOWNLOAD = False
 
 class Regenradar(Generator):
     ''' dagtotalen ophalen van nationale regenradar'''
@@ -33,16 +34,18 @@ class Regenradar(Generator):
             self.x = float(kwargs['x'])
         if 'y' in kwargs:
             self.y = float(kwargs['y'])
-        if 'start' in kwargs:
-            d = kwargs['start']
-            if hasattr(d,'date'):
-                d = d.date()
-            self.start = d
-        if 'stop' in kwargs:
-            d = kwargs['stop']
-            if hasattr(d,'date'):
-                d = d.date()
-            self.stop = d
+        if INCREMENTAL_DOWNLOAD:
+            # use start/top values
+            if 'start' in kwargs:
+                d = kwargs['start']
+                if hasattr(d,'date'):
+                    d = d.date()
+                self.start = d
+            if 'stop' in kwargs:
+                d = kwargs['stop']
+                if hasattr(d,'date'):
+                    d = d.date()
+                self.stop = d
         
     def download(self, **kwargs):
         self.init(**kwargs)
@@ -76,8 +79,11 @@ class Regenradar(Generator):
         data.to_csv(io,header=True)
         response = io.getvalue()
         t = t[-1]
-        filename = 'rad_tf2400.csv'
-        #filename = 'p%d-%d-%04d%02d%02d.csv' % (self.x,self.y,t.year,t.month,t.day)
+        if INCREMENTAL_DOWNLOAD:
+            # need unique filename if we want to keep all the parts
+            filename = 'p%d-%d-%s.csv' % (self.x,self.y,t.strftime('%y%m%d%H%M'))
+        else:
+            filename = 'rad_tf2400.csv'
         return {filename: response}
 
     def get_data(self,fil,**kwargs):

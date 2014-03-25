@@ -243,6 +243,11 @@ class Dataservice(Generator):
             # convert start to unix utc timestamp
             startvalue = int(time.mktime(startvalue.timetuple()))
         url = kwargs['url'] 
+
+        # TODO: VERWIJDEREN
+        #startkey = 'mrid'
+        #startvalue = 0
+        
         http_header = {'User-Agent': kwargs.get('useragent', 'AcaciaData/1.0')}
         params = {'email': kwargs['username'],
                   'userpass': kwargs['password'],
@@ -258,7 +263,10 @@ class Dataservice(Generator):
         if response is None:
             return None
         _,params = cgi.parse_header(response.headers.get('Content-Disposition',''))
-        filename = kwargs.get('filename', params.get('filename', kwargs['deviceid']+'.dxd'))
+        # need unique filename for incremental downloads if we want to keep all downloaded parts
+        filename = '%s_%s.dxd' % (kwargs['deviceid'], datetime.datetime.utcnow().strftime('%y%m%d%H%M'))
+        #filename = '%s.dxd' % (kwargs['deviceid'])
+        filename = kwargs.get('filename', params.get('filename', filename))
         return {filename: response.read()}
 
     def port2params(self,port):

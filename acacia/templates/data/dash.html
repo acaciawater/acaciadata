@@ -4,12 +4,17 @@
 {% block admin_url %}dashboard/{{dashboard.id}}{% endblock %}
 {% block navbar %}{% endblock navbar %}
 {% block content %}
-<div class = "container">
+<div class="container-fluid">
+<div class="row">
+<div class="col-md-2">
+{{dashboard.summary|safe}}
+</div>
+<div class = "col-md-10">
 <table class="table table-striped">
 <tbody>
 <tr>
 {% for chart in dashboard.charts.all %}
-<td><iframe src="{% url 'chart-detail' chart.id %}" height="300" width="600" marginwidth="0" seamless="seamless" frameborder="0"></iframe></td>
+<td><a href = "{% url 'chart-detail' chart.id %}"><iframe src="{% url 'chart-detail' chart.id %}" height="300" width="600" marginwidth="0" seamless="seamless" frameborder="0"></iframe></a></td>
 {% if forloop.counter|divisibleby:2 %}
 </tr><tr>
 {% endif %}
@@ -17,5 +22,7 @@
 </tbody>
 </table>
 <div id='buttons'><button type="button" class="btn btn-primary" id='export'>Export</button></div>
+</div>
+</div>
 </div>
 {% endblock %}

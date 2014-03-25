@@ -97,6 +97,13 @@ def datasources_as_zip(datasources, zipname):
     resp['Content-Disposition'] = 'attachment; filename=%s' % zipname
     return resp
 
+def datasource_as_csv(d):
+    filename = slugify(d.name) + '.csv'
+    resp = HttpResponse(d.to_csv(), mimetype = "text/csv")
+    resp['Content-Type'] = 'text/csv; filename=%s' % filename
+    resp['Content-Disposition'] = 'attachment; filename=%s' % filename
+    return resp
+
 def datasource_as_zip(ds):
     return datasources_as_zip([ds],'%s.zip'% slugify(ds.name))
     

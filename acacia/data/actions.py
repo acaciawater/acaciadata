@@ -1,5 +1,5 @@
 from .shortcuts import meteo2locatie
-from .models import Chart
+from .models import Chart, Series
 import logging
 logger = logging.getLogger(__name__)
 
@@ -77,6 +77,19 @@ def series_thumbnails(modeladmin, request, queryset):
         s.make_thumbnail()
         s.save()
 series_thumbnails.short_description = "Thumbnails van tijdreeksen vernieuwen"
+
+def copy_series(modeladmin, request, queryset):
+    for s in queryset:
+        name = 'kopie van %s' % (s.name)
+        copy = 1 
+        while Series.objects.filter(name = name).exists():
+            copy += 1
+            name = 'kopie %d van %s' % (copy, s.name)
+        s.pk = None
+        s.name = name
+        s.user = request.user
+        s.save()
+copy_series.short_description = "Geselecteerde tijdreeksen dupliceren"
 
 def copy_charts(modeladmin, request, queryset):
     for c in queryset:

@@ -11,6 +11,9 @@ logger = logging.getLogger(__name__)
 
 from generator import Generator
 
+#for incremental downloads downlaoded files are saved with unique name and all files are added to the datasource  
+INCREMENTAL_DOWNLOAD = False
+
 class Meteo(Generator):
     ''' Dag waarden van meteostation(s) ophalen '''
     
@@ -18,15 +21,17 @@ class Meteo(Generator):
     url = 'http://www.knmi.nl/klimatologie/daggegevens/getdata_dag.cgi'
         
     def download(self, **kwargs):
-        url = kwargs.get('url','')
-        filename = 'knmi_meteo'
-        if url != '':
-            parts = urlparse.urlparse(url)
-            query = urlparse.parse_qs(parts[4])
-            stns=query.get('stns',[])
-            if stns != []:
-                filename = '%s_%s'% (filename,stns[0])
-        kwargs['filename'] = filename + '.txt'
+        if not 'filename' in kwargs:
+            # need unique filename for incremental downloads
+            url = kwargs.get('url','')
+            filename = 'knmi_meteo'
+            if url != '':
+                parts = urlparse.urlparse(url)
+                query = urlparse.parse_qs(parts[4])
+                stns=query.get('stns',[])
+                if stns != []:
+                    filename = '%s%s'% (filename,stns[0])
+            kwargs['filename'] = filename + '.txt'
         return super(Meteo, self).download(**kwargs)
         
     def get_header(self, f):
@@ -91,8 +96,17 @@ class Neerslag(Meteo):
     url = 'http://www.knmi.nl/klimatologie/monv/reeksen/getdata_rr.cgi'
 
     def download(self, **kwargs):
-        kwargs['filename'] = 'knmi_neerslag.txt'
-        return super(Meteo, self).download(**kwargs)
+        if not 'filename' in kwargs:
+            url = kwargs.get('url','')
+            filename = 'knmi_neerslag'
+            if url != '':
+                parts = urlparse.urlparse(url)
+                query = urlparse.parse_qs(parts[4])
+                stns=query.get('stns',[])
+                if stns != []:
+                    filename = '%s%s'% (filename,stns[0])
+            kwargs['filename'] = filename + '.txt'
+        return super(Neerslag, self).download(**kwargs)
     
     def get_header(self, f):
         header = {}

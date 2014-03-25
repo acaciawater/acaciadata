@@ -41,6 +41,7 @@ INSTALLED_APPS = (
     'acacia',
     'acacia.data',
     'acacia.data.knmi',
+    'spaarwater'
 )
 
 MIDDLEWARE_CLASSES = (

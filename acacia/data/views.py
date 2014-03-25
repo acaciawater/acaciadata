@@ -5,7 +5,7 @@ from django.views.generic.base import TemplateView
 from django.template.loader import render_to_string
 from django.shortcuts import get_object_or_404, redirect
 from .models import Project, ProjectLocatie, MeetLocatie, Datasource, Series, Chart, Dashboard
-from .util import datasource_as_zip, meetlocatie_as_zip, series_as_csv
+from .util import datasource_as_zip, datasource_as_csv, meetlocatie_as_zip, series_as_csv
 import json
 import datetime
 import re
@@ -16,6 +16,10 @@ logger = logging.getLogger(__name__)
 def DatasourceAsZip(request,pk):
     ds = get_object_or_404(Datasource,pk=pk)
     return datasource_as_zip(ds)
+
+def DatasourceAsCsv(request,pk):
+    ds = get_object_or_404(Datasource,pk=pk)
+    return datasource_as_csv(ds)
 
 def MeetlocatieAsZip(request,pk):
     loc = get_object_or_404(MeetLocatie,pk=pk)
@@ -160,10 +164,10 @@ class ChartBaseView(TemplateView):
                         'href': 'http://www.acaciawater.com',
                        }
             }
-        if not chart.start is None:
-            options['xAxis']['min'] = tojs(chart.start)
-        if not chart.stop is None:
-            options['xAxis']['max'] = tojs(chart.stop)
+        start = chart.auto_start()
+        options['xAxis']['min'] = tojs(start)
+#         if not chart.stop is None:
+#             options['xAxis']['max'] = tojs(chart.stop)
         allseries = []
         for i,s in enumerate(chart.series.all()):
             ser = s.series
@@ -174,7 +178,7 @@ class ChartBaseView(TemplateView):
                                      'min': s.y0,
                                      'max': s.y1
                                      })
-            pts = [[p.date,p.value] for p in ser.datapoints.all().order_by('date')]
+            pts = [[p.date,p.value] for p in ser.datapoints.filter(date__gte=start).order_by('date')]
             allseries.append({
                               'name': ser.name,
                               'type': s.type,

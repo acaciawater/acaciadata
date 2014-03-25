@@ -20,9 +20,13 @@ class MeetlocatieInline(admin.TabularInline):
 
 class SourceFileInline(admin.TabularInline):
     model = SourceFile
-    exclude = ('cols', 'crc', )
+    exclude = ('cols', 'crc', 'user')
     extra = 0
     ordering = ('-start', '-stop', 'name',)
+
+    def save_model(self, request, obj, form, change):
+        obj.user = request.user
+        obj.save()
     
 class ParameterInline(admin.TabularInline):
     model = Parameter
@@ -134,16 +138,16 @@ class DataPointInline(ReadonlyTabularInline):
     model = DataPoint
         
 class SeriesAdmin(admin.ModelAdmin):
-    actions = [actions.download_series, actions.refresh_series, actions.replace_series, actions.series_thumbnails]
+    actions = [actions.copy_series, actions.download_series, actions.refresh_series, actions.replace_series, actions.series_thumbnails]
     list_display = ('name', 'thumbtag', 'parameter', 'datasource', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
     exclude = ('user',)
-    list_filter = ('parameter__datasource__meetlocatie',)
+    list_filter = ('parameter__datasource__meetlocatie', 'parameter__datasource')
 
     fieldsets = (
                  ('Algemeen', {'fields': ('parameter', 'name', 'unit', 'description',),
                                'classes': ('grp-collapse grp-open',),
                                }),
-                 ('Bewerkingen', {'fields': (('resample', 'aggregate',),),
+                 ('Bewerkingen', {'fields': (('resample', 'aggregate',),('scale', 'offset',)),
                                'classes': ('grp-collapse grp-closed',),
                               }),
     )
@@ -165,6 +169,12 @@ class ChartAdmin(admin.ModelAdmin):
     actions = [actions.copy_charts,]
     list_display = ('name', 'title', 'tijdreeksen', )
     inlines = [ChartSeriesInline,]
+    exclude = ('user',)
+    fields = ('name', 'title', ('percount', 'perunit',), ('start', 'stop',),)
+
+    def save_model(self, request, obj, form, change):
+        obj.user = request.user
+        obj.save()
     
 class DashAdmin(admin.ModelAdmin):
     filter_horizontal = ('charts',)
@@ -183,6 +193,6 @@ admin.site.register(Parameter, ParameterAdmin)
 admin.site.register(Generator, GeneratorAdmin)
 admin.site.register(Datasource, DatasourceAdmin)
 admin.site.register(SourceFile, SourceFileAdmin)
-admin.site.register(DataPoint, DataPointAdmin)
+#admin.site.register(DataPoint, DataPointAdmin)
 admin.site.register(Chart, ChartAdmin)
 admin.site.register(Dashboard, DashAdmin)

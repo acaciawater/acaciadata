@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os,datetime,math,binascii
 from django.db import models, transaction
 from django.db.models import Avg, Max, Min, Sum
@@ -64,6 +65,12 @@ class ProjectLocatie(geo.Model):
     def latlon(self):
         return util.toWGS84(self.location)
 
+    def series(self):
+        s = []
+        for m in self.meetlocatie_set.all():
+            s.extend(m.series())
+        return s
+    
     class Meta:
         ordering = ['name',]
         unique_together = ('project', 'name', )
@@ -224,24 +231,25 @@ class Datasource(models.Model):
             downloaded = 0
             errors = 0
             logger.info('Download completed, got %s file(s)', len(results))
+            crcs = {f.crc:f.file for f in self.sourcefiles.all()}
             for filename, contents in results.iteritems():
+                crc = abs(binascii.crc32(contents))
+                if crc in crcs:
+                    logger.warning('Downloaded file %s ignored: identical to local file %s' % (filename, crcs[crc].file.name))
+                    continue
                 try:
                     sourcefile = self.sourcefiles.get(name=filename)
                     created = False
                 except:
                     sourcefile = SourceFile(name=filename,datasource=self,user=self.user)
                     created = True
-                crc = abs(binascii.crc32(contents))
-                if not created:
-                    if sourcefile.crc == crc:
-                        logger.warning('Downloaded file %s ignored: identical to local file %s' % (filename, sourcefile.file))
-                        continue
                 sourcefile.crc = crc
                 try:
                     contentfile = ContentFile(contents)
                     sourcefile.file.save(name=filename, content=contentfile, save=save or created)
                     logger.info('File %s saved to %s' % (filename, sourcefile.filepath()))
                     downloaded += 1
+                    crcs[crc] = sourcefile.file
                 except Exception as e:
                     logger.error('Error saving sourcefile %s: %s' % (filename, e))
                     errors += 1
@@ -311,6 +319,12 @@ class Datasource(models.Model):
             except:
                 pass
         return data
+
+    def to_csv(self):
+        io = StringIO.StringIO()
+        df = self.get_data()
+        df.to_csv(io, index_label='Datum/tijd')
+        return io.getvalue()
 
     def parametercount(self):
         count = self.parameter_set.count()
@@ -502,7 +516,7 @@ class Parameter(models.Model):
             logger.info('Generated thumbnail %s' % dest)
             self.thumbnail.name = dest
         except Exception as e:
-            logger.error('Error generating thumbnail: %s: %s' % (e, e.args))
+            logger.error('Error generating thumbnail for parameter %s: %s' % (self.name, e))
             return None
         return self.thumbnail
     
@@ -532,10 +546,14 @@ class Series(models.Model):
     parameter = models.ForeignKey(Parameter)
     thumbnail = models.ImageField(upload_to=up.series_thumb_upload, blank=True, null=True)
     user=models.ForeignKey(User,default=User)
+
+    # Nabewerkingen
     resample = models.CharField(max_length=10,choices=RESAMPLE_FREQUENCY,default='',blank=True, 
                                 verbose_name='frequentie',help_text='Frequentie voor resampling van tijdreeks')
     aggregate = models.CharField(max_length=10,choices=RESAMPLE_AGGREGATE,default='', blank=True, 
                                  verbose_name='aggregatie', help_text = 'Aggregatiemethode bij resampling van tijdreeks')
+    scale = models.FloatField(default = 1.0,verbose_name = 'verschaling', help_text = 'constante factor voor verschaling van de meetwaarden (vóór compensatie)')
+    offset = models.FloatField(default = 0.0, verbose_name = 'compensatie', help_text = 'constante compensatie van meetwaarden (ná verschaling)')
 
     class Meta:
         unique_together = ('parameter', 'name',)
@@ -570,6 +588,10 @@ class Series(models.Model):
             except Exception as e:
                 logger.error('Resampling of series %s failed: %s' % (self.name, e))
                 return None
+        if self.scale != 1.0:
+            series = series * self.scale
+        if self.offset != 0.0:
+            series = series + self.offset
         return series
     
     def create(self, data=None):
@@ -593,6 +615,7 @@ class Series(models.Model):
                 num_skipped += 1
         self.datapoints.bulk_create(datapoints)
         logger.info('Series %s updated: %d points created, %d points skipped' % (self.name, num_created, num_skipped))
+        self.make_thumbnail()
 
     def replace(self):
         logger.info('Deleting all %d datapoints from series %s' % (self.datapoints.count(), self.name))
@@ -624,6 +647,7 @@ class Series(models.Model):
                 num_bad = num_bad+1
         self.save()
         logger.info('Series %s updated: %d points created, %d updated, %d skipped' % (self.name, num_created, num_updated, num_bad))
+        self.make_thumbnail()
 
     def aantal(self):
         return self.datapoints.count()
@@ -651,6 +675,12 @@ class Series(models.Model):
     def gemiddelde(self):
         agg = self.datapoints.aggregate(avg=Avg('value'))
         return agg.get('avg', 0)
+
+    def laatste(self):
+        return self.datapoints.order_by('-date')[0]
+
+    def eerste(self):
+        return self.datapoints.order_by('date')[0]
         
     def thumbpath(self):
         return os.path.join(settings.MEDIA_ROOT,self.thumbnail.name)
@@ -706,16 +736,30 @@ class DataPoint(models.Model):
     
     class Meta:
         unique_together=('series','date')
-
+        #ordering = ['date']
+        
     def jdate(self):
         return self.date.date
 
+PERIOD_CHOICES = (
+              ('hours', 'uur'),
+              ('days', 'dag'),
+              ('weeks', 'week'),
+              ('months', 'maand'),
+              ('years', 'jaar'),
+              )
+
+import dateutil
+    
 class Chart(models.Model):
     name = models.CharField(max_length = 50, verbose_name = 'naam')
     title = models.CharField(max_length = 50, verbose_name = 'titel')
     user=models.ForeignKey(User,default=User)
     start = models.DateTimeField(blank=True,null=True)
     stop = models.DateTimeField(blank=True,null=True)
+    percount = models.IntegerField(default=2,verbose_name='aantal perioden',help_text='maximaal aantal periodes die getoond worden (0 = alle perioden)')
+    perunit = models.CharField(max_length=10,choices = PERIOD_CHOICES, default = 'M', verbose_name='periodelengte')
+
     def tijdreeksen(self):
         return self.series.count()
     
@@ -724,11 +768,32 @@ class Chart(models.Model):
     
     def get_absolute_url(self):
         return reverse('chart-view', args=[self.id])
+
+    def auto_start(self):
+        if self.start is None:
+            tz = timezone.get_current_timezone()
+            start = timezone.make_aware(datetime.datetime.now(),tz)
+            for cs in self.series.all():
+                t0 = cs.t0
+                if t0 is None:
+                    t0 = cs.series.van()
+                if t0 is not None:
+                    start = min(t0,start)
+            if self.percount > 0:
+                kwargs = {self.perunit: -self.percount}
+                delta = dateutil.relativedelta.relativedelta(**kwargs)
+                pstart = timezone.make_aware(datetime.datetime.now() + delta, tz)
+                if start is None:
+                    return pstart
+                start = max(start,pstart) 
+            return start
+        return self.start
     
     class Meta:
         verbose_name = 'Grafiek'
         verbose_name_plural = 'Grafieken'
 
+        
 AXIS_CHOICES = (
                 ('l', 'links'),
                 ('r', 'rechts'),
@@ -754,6 +819,8 @@ class ChartSeries(models.Model):
         verbose_name = 'tijdreeks'
         verbose_name_plural = 'tijdreeksen'
 
+from django.template.loader import render_to_string
+
 class Dashboard(models.Model):
     name = models.CharField(max_length=50)
     description = models.TextField(blank=True, verbose_name = 'omschrijving')
@@ -769,3 +836,7 @@ class Dashboard(models.Model):
     def __unicode__(self):
         return self.name
     
+    def summary(self):
+        '''summary as html for inserting in dashboard'''
+        summary = {'Geinfiltreerd': {'Debiet': "23 m3", 'EC': "788 uS/cm"}, 'Onttrokken': {'Debiet': "14 m3", 'EC': "800 uS/cm"} }
+        return render_to_string('data/dash-summary.html', {'summary': summary})
