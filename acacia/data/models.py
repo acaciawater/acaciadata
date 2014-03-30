@@ -830,6 +830,9 @@ class Dashboard(models.Model):
     def grafieken(self):
         return self.charts.count()
 
+    def sorted_charts(self):
+        return self.charts.order_by('name')
+    
     def get_absolute_url(self):
         return reverse('dash-view', args=[self.id]) 
 
@@ -840,3 +843,6 @@ class Dashboard(models.Model):
         '''summary as html for inserting in dashboard'''
         summary = {'Geinfiltreerd': {'Debiet': "23 m3", 'EC': "788 uS/cm"}, 'Onttrokken': {'Debiet': "14 m3", 'EC': "800 uS/cm"} }
         return render_to_string('data/dash-summary.html', {'summary': summary})
+
+    class Meta:
+        ordering = ['name',]

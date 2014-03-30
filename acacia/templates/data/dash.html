@@ -5,24 +5,13 @@
 {% block navbar %}{% endblock navbar %}
 {% block content %}
 <div class="container-fluid">
-<div class="row">
-<div class="col-md-2">
-{{dashboard.summary|safe}}
-</div>
-<div class = "col-md-10">
-<table class="table table-striped">
-<tbody>
-<tr>
-{% for chart in dashboard.charts.all %}
-<td><a href = "{% url 'chart-detail' chart.id %}"><iframe src="{% url 'chart-detail' chart.id %}" height="300" width="600" marginwidth="0" seamless="seamless" frameborder="0"></iframe></a></td>
+<div class="row row-fluid">
+{% for chart in dashboard.sorted_charts.all %}
+<div class=col-md-6><a href = "{% url 'chart-detail' chart.id %}"><iframe src="{% url 'chart-detail' chart.id %}" height="300px" width="600px" marginwidth="0" seamless="seamless" frameborder="0"></iframe></a></div>
 {% if forloop.counter|divisibleby:2 %}
-</tr><tr>
+</div><div class="row row-fluid">
 {% endif %}
 {% endfor %}
-</tbody>
-</table>
-<div id='buttons'><button type="button" class="btn btn-primary" id='export'>Export</button></div>
-</div>
 </div>
 </div>
 {% endblock %}

@@ -8,7 +8,7 @@ import zipfile,os,fnmatch
 import pandas as pd
 import logging
 
-from .generator import Generator
+from acacia.data.generators.generator import Generator
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +122,46 @@ class Dino(Generator):
             if len(p)>0:
                 params[p] = {'description': p, 'unit': '-'}
         return params
+
+    def get_files(self, filename):
+        with zipfile.ZipFile(filename,'r') as z:
+            for info in z.infolist():
+                if info.filename.endswith('_1.csv'):
+                    try:
+                        f=z.open(info.filename,'r')
+                        data = self.get_data(f)
+                        yield (info.filename, data)
+                    except Exception as e:
+                        print 'ERROR in ', info.filename, e
+                        
+def hyear(date):
+    if date.month < 4:
+        return date.year-1
+    else:
+        return date.year
     
 if (__name__ == '__main__'):
     dino=Dino()
-    dino.load_zip('/media/sf_C_DRIVE/projdirs/spaarwater/borgsweer/4c33a801-7366-4c2d-b61b-39f34e5f8507.zip')
+    file = '/home/theo/Desktop/Windows/src/gwdata/dinoloket/Grondwaterstanden/B31B0046/B31B0046001_1.csv'
+    with open(file) as f:
+        data = dino.get_data(f)
+        stand = data['Stand (cm t.o.v. MV)']
+        stand.plot()
+        print stand
+        # aggregate by hydrological year
+        # resample 14 and 28 th of every month
+        
+    #dino.load_zip('/media/sf_C_DRIVE/projdirs/spaarwater/borgsweer/4c33a801-7366-4c2d-b61b-39f34e5f8507.zip')
+
+#     longest = 0
+#     for name, data in dino.get_files('/home/theo/Desktop/Windows/src/gwdata/dinoloket/grondwaterstanden.zip'):
+#         if data.shape[0] > 0:
+#             year1 = data.index[0].year
+#             year2 = data.index[-1].year
+#             if year2 - year1 > 30 and data.shape[0] > 24*30: 
+#                 print os.path.dirname(name), year1, year2, data.shape[0]
+#                 if data.shape[0] > longest:
+#                     target = (name, data)
+#                     longest = data.shape[0]
+#     (name, data) = target
+#     print 'Langste reeks = ', os.path.dirname(name), data.index[0].year, data.index[-1].year, data.shape[0]
