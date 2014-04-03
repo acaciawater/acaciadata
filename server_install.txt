@@ -1,0 +1,70 @@
+leaseweb general login: NL1403492544
+Acaciawater123!
+
+virtual server LVXD001 at 37.48.84.66
+plesk control panel en 10 domains
+
+domain registration:
+domain = acaciadata.com
+contact id = P-TJK1381
+
+users:
+acacia:Acacia@12345
+root:yX7yskaim
+
+location website
+/var/www/acaciadata.com
+
+login to the server: 
+ssh acacia@acaciadata.com
+
+install on server as root:
+apt-get install python-setuptools python-pip libpng-dev g++ libfreetype6-dev python-dev libapache2-mod-wsgi libsqlite3-dev libproj-dev libgdal-dev
+
+install virtualenv: pip install virtualenv
+
+startup virtualenv django in ~/httpdocs
+
+manually install possibly problematic packages: 
+
+get pil: pip install --no-index -f http://dist.plone.org/thirdparty/ -U PIL
+
+install pysqlite with extension loading enabled:
+wget https://pypi.python.org/packages/source/p/pysqlite/pysqlite-2.6.3.tar.gz
+tar xzf pysqlite-2.6.3.tar.gz
+cd pysqlite-2.6.3
+
+Edit the setup.cfg file to look like this:
+
+[build_ext]
+#define=
+include_dirs=/usr/local/include
+library_dirs=/usr/local/lib
+libraries=sqlite3
+#define=SQLITE_OMIT_LOAD_EXTENSION
+
+install pysqlite: python setup.py install 
+
+pip install numpy matplotlib django-celery pydap
+
+install other requirements: pip install -r requirements.txt 
+
+change group of log files and database to www-data
+chgrp www-data *.log
+chgrp www-data *.db
+
+setup cronjob for auto update:
+make acacia user member of www-data (for manage.py update):
+usermod -a -G www-data acacia
+
+make all www-data files (logfiles, database and media folder) writeable to group: 
+chmod g+w *.log
+chmod g+w *.db
+
+reconfigure domain:
+copy vhost.conf to ~/conf
+copy wgsi.py to ~/httpdocs/django/acacia/acacia
+/usr/local/psa/admin/bin/httpdmng --reconfigure-domain acaciadata
+
+ready to go!
+

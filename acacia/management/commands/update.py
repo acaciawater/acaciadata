@@ -16,22 +16,17 @@ class Command(BaseCommand):
         datasources = Datasource.objects.exclude(url=None)         
         for d in datasources:
             self.stdout.write('Downloading datasource %s\n' % d.name)
-            d.download()
+            newfilecount = d.download()
+            self.stdout.write('Got %d new files\n' % newfilecount)
+            if newfilecount == 0:
+                continue
             count = count + 1
             self.stdout.write('Reading datasource %s\n' % d.name)
             data = d.get_data()
-            self.stdout.write('Updating parameterlist\n')
-            d.replace_parameters(data)
+            self.stdout.write('  Updating parameters\n')
+            d.update_parameters(data)
             for p in d.parameter_set.all():
-                self.stdout.write('  Updating parameter %s\n' % p.name)
-                p.make_thumbnail(data=data)
-                p.save()
-                for s in Series.objects.filter(parameter=p):
-                    try:
-                        self.stdout.write('    Updating timeseries %s\n' % s.name)
-                        s.update()
-                        s.make_thumbnail()
-                        s.save()
-                    except Exception as e:
-                        self.stdout.write('***ERROR***Updating timeseries %s: %s\n' % (s.name, e))
+                for s in p.series_set.all():
+                    self.stdout.write('  Updating timeseries %s\n' % s.name)
+                    s.update(data)
         self.stdout.write('%d datasources updated' % count)

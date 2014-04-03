@@ -421,9 +421,13 @@ class SourceFile(models.Model):
         if gen is None:
             gen = self.datasource.get_generator_instance()
         logger.info('Getting data for sourcefile %s', self.name)
-        self.file.open('rb')
-        data = gen.get_data(self.file,**kwargs)
-        self.file.close()
+        try:
+            self.file.open('rb')
+            data = gen.get_data(self.file,**kwargs)
+            self.file.close()
+        except Exception as e:
+            logger.error('Error retrieving data from %s: %s' % (self.file.name, e))
+            return None
         if data is None:
             logger.warning('No data retrieved from %s' % self.file.name)
         else:

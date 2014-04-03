@@ -11,8 +11,8 @@ def update_meetlocatie(pk):
     for d in loc.datasources.all():
         num = d.download()
         if num > 0:
-            d.update_parameters()
             data = d.get_data()
+            d.update_parameters(data)
             for p in d.parameter_set.all():
                 for s in p.series_set.all():
                     s.update(data)

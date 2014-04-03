@@ -16,10 +16,10 @@ class NMCPro(Generator):
     
     def get_header(self, f):
         sections = {}
-        line = 'xx'
-        while not line.startswith('Date,Time'):
+        line = f.readline()
+        while not (line.startswith('Date') or line.startswith('Datum')):
             line = f.readline()
-            if line is None:
+            if not line:
                 return {}
         colnames = [n.strip() for n in line.split(',')]
         sections['COLUMNS'] = colnames
