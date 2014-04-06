@@ -83,11 +83,12 @@ class SpaarwaterDetailView(ProjectDetailView):
 
 from django.views.generic.base import TemplateView
 
-class BreezandView(TemplateView):
+class DashView(TemplateView):
     template_name = 'data/dash.html'
     
     def get_context_data(self, **kwargs):
-        context = super(BreezandView,self).get_context_data(**kwargs)
-        dash = get_object_or_404(Dashboard, name='Breezand')
+        context = super(DashView,self).get_context_data(**kwargs)
+        name = context.get('name')
+        dash = get_object_or_404(Dashboard, name__iexact=name)
         context['dashboard'] = dash
         return context    

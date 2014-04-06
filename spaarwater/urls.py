@@ -1,7 +1,7 @@
 from django.conf.urls import patterns, url
-from .views import SpaarwaterDetailView, BreezandView
+from .views import SpaarwaterDetailView, DashView
 
 urlpatterns = patterns('spaarwater.views',
     url(r'^$', SpaarwaterDetailView.as_view(), name='spaarwater-home'),
-    url(r'^[Bb]reezand$', BreezandView.as_view(), name='breezand'),
+    url(r'^(?P<name>\w+)$', DashView.as_view()),
 )

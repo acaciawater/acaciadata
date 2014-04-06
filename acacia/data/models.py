@@ -647,7 +647,7 @@ class Series(models.Model):
                     point.save(update_fields=['value'])
                     num_updated = num_updated+1
             except Exception as e:
-                logger.debug('Problem with datapoint: %s' % e)
+                logger.error('Problem saving datapoint for series %s: %s' % (self.name, e))
                 num_bad = num_bad+1
         self.save()
         logger.info('Series %s updated: %d points created, %d updated, %d skipped' % (self.name, num_created, num_updated, num_bad))
