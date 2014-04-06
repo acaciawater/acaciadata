@@ -585,7 +585,7 @@ class Series(models.Model):
     def get_series_data(self, data):
         if data is None:
             data = self.parameter.get_data()
-        series = data[self.parameter.name]
+        series = data[self.parameter.name].dropna()
         if self.resample is not None and self.resample != '':
             try:
                 series = series.resample(how=self.aggregate, rule=self.resample)

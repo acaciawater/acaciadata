@@ -7,6 +7,7 @@ admin.autodiscover()
 
 urlpatterns = patterns('',
     url(r'^$', 'acacia.views.home', name='home'),
+    #url(r'^(?P<logfile>[^.]+)$', 'acacia.views.logview', name='logview'),
     url(r'^cam/$', 'acacia.views.cam', name='cam'),
     url(r'^grappelli/', include('grappelli.urls')),
     url(r'^knmi/', include('acacia.data.knmi.urls')),
@@ -41,3 +42,4 @@ urlpatterns += patterns('',
  
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+urlpatterns += static('/', document_root=settings.BASE_DIR+'/')

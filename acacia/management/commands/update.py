@@ -28,5 +28,8 @@ class Command(BaseCommand):
             for p in d.parameter_set.all():
                 for s in p.series_set.all():
                     self.stdout.write('  Updating timeseries %s\n' % s.name)
-                    s.update(data)
+                    try:
+                        s.update(data)
+                    except Exception as e:
+                        self.stderr.write('ERROR updating timeseries %s: %s' % (s.name, e))
         self.stdout.write('%d datasources updated' % count)
