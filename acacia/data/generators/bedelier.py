@@ -5,10 +5,18 @@ logger = logging.getLogger(__name__)
 
 from generator import Generator
 
+COL_LOOKUP = {'L': 'Watermeter Bron1 Uit 1 [0.1 m3]', 'M': 'Watermeter Bron1 Uit 2 [0.1 m3]', 'N': 'Watermeter Bron1 Uit 3 [0.1 m3]', 'O': 'Watermeter Bron1 Uit 4 [0.1 m3]',
+               'P': 'Watermeter Bron2 Uit 1 [0.1 m3]', 'Q': 'Watermeter Bron2 Uit 2 [0.1 m3]', 'R': 'Watermeter Bron2 Uit 3 [0.1 m3]', 'S': 'Watermeter Bron2 Uit 4 [0.1 m3]'}
+
 class OWB(Generator):
         
     def get_header(self, f):
         cols = [col.strip() for col in f.readline().split(';')]
+        for i,col in enumerate(cols):
+            if col == '':
+                col = str(unichr(ord('A')+i))
+                if col in COL_LOOKUP:
+                    cols[i] = COL_LOOKUP[col]
         sections = {}
         sections['COLUMNS'] = cols
         return sections

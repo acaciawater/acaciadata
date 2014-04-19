@@ -120,9 +120,9 @@ ACCOUNT_ACTIVATION_DAYS = 7
 LOGIN_REDIRECT_URL = '/data/'
 
 # Celery stuff
-BROKER_URL = 'django://'
-CELERY_RESULT_BACKEND='djcelery.backends.database:DatabaseBackend'
-INSTALLED_APPS += ('kombu.transport.django','djcelery',)                  
+BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND='redis://localhost:6379/0'
+INSTALLED_APPS += ('kombu.transport.redis','djcelery',)                  
 
 # Logging
 LOGGING = {

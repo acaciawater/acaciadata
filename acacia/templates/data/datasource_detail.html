@@ -14,21 +14,19 @@
 <tr><td>laatste update</td><td>{{object.last_download}}</td></tr>
 <tr><td>update door</td><td>{{object.user}}</td></tr>
 <tr><td>parameters</td><td>{{object.parametercount}}</td></tr>
-<tr><td colspan="2"><a href="{% url 'datasource-zip' object.id %}" class="btn btn-primary active" data-toggle="tooltip" title="Alle bestanden downloaden" id="download">Downloaden</a>
-<a href="{% url 'datasource-csv' object.id %}" class="btn btn-primary active" data-toggle="tooltip" title="Gegevens downloaden als csv" id="downloadcsv">CSV Download</a>
-</td>
 </table>
-<div class="container-fluid">
+<a href="{% url 'datasource-zip' object.id %}" class="btn btn-primary active" data-toggle="tooltip" title="Alle bestanden downloaden" id="download">Downloaden</a>
+<a href="{% url 'datasource-csv' object.id %}" class="btn btn-primary active" data-toggle="tooltip" title="Gegevens downloaden als csv" id="downloadcsv">CSV Download</a>
+<table class="table">
+<tbody>
+<tr>
 {% for p in object.parameter_set.all %}
-<div class="row-fluid"><div class="col-xs-12 col-md-12">
-<div class="thumbnail">
-<a href="{{MEDIA_URL}}{{p.thumbnail}}"><img src='{{MEDIA_URL}}{{p.thumbnail}}'/></a>
-<div class="caption">{{p.name}}<p><small>{{p.description|safe}}</small></p></div>
-</div>
-</div>
-</div>
+<td>{{p.name}}&nbsp;{{p.description}}</br><img width="600" height="200" src='{{MEDIA_URL}}{{p.thumbnail}}'/></td>
+{% if forloop.counter|divisibleby:2 %}
+</tr><tr>
+{% endif %}
 {% endfor %}
-</div>
-</div>
+</tbody>
+</table>
 </div>
 {% endblock %}

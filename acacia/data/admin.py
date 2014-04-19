@@ -170,7 +170,7 @@ class ChartAdmin(admin.ModelAdmin):
     list_display = ('name', 'title', 'tijdreeksen', )
     inlines = [ChartSeriesInline,]
     exclude = ('user',)
-    fields = ('name', 'title', ('percount', 'perunit',), ('start', 'stop',),)
+    fields = ('name', 'description', 'title', ('percount', 'perunit',), ('start', 'stop',),)
 
     def save_model(self, request, obj, form, change):
         obj.user = request.user

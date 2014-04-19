@@ -266,9 +266,15 @@ class Datasource(models.Model):
             return
         params = {}
         for sourcefile in self.sourcefiles.all():
-            sourcefile.file.open('r')
-            params.update(gen.get_parameters(sourcefile.file))
-            sourcefile.file.close()
+            try:
+                sourcefile.file.open('r')
+                try:
+                    params.update(gen.get_parameters(sourcefile.file))
+                except Exception as e:
+                    logger.error('Can update parameters for sourcefile %s' % (sourcefile, e))
+                sourcefile.file.close()
+            except Exception as e:
+                logger.error('Can open sourcefile %s: %s' % (sourcefile, e))
         logger.info('Update completed, got %d parameters from %d files', len(params),self.sourcefiles.count())
         num_created = 0
         num_updated = 0
@@ -422,7 +428,7 @@ class SourceFile(models.Model):
             gen = self.datasource.get_generator_instance()
         logger.info('Getting data for sourcefile %s', self.name)
         try:
-            self.file.open('rb')
+            self.file.open('r')
             data = gen.get_data(self.file,**kwargs)
             self.file.close()
         except Exception as e:
@@ -440,10 +446,16 @@ class SourceFile(models.Model):
             gen = self.datasource.get_generator_instance()
         if data is None:
             data = self.get_data()
-        self.rows = data.shape[0]
-        self.cols = data.shape[1]
-        self.start = data.index.min()
-        self.stop = data.index.max()
+        if data is None:
+            self.rows = 0
+            self.cols = 0
+            self.start = None
+            self.stop = None
+        else:
+            self.rows = data.shape[0]
+            self.cols = data.shape[1]
+            self.start = data.index.min()
+            self.stop = data.index.max()
 
 from django.db.models.signals import pre_delete, pre_save
 from django.dispatch.dispatcher import receiver
@@ -585,7 +597,7 @@ class Series(models.Model):
     def get_series_data(self, data):
         if data is None:
             data = self.parameter.get_data()
-        series = data[self.parameter.name].dropna()
+        series = data[self.parameter.name]
         if self.resample is not None and self.resample != '':
             try:
                 series = series.resample(how=self.aggregate, rule=self.resample)
@@ -647,7 +659,7 @@ class Series(models.Model):
                     point.save(update_fields=['value'])
                     num_updated = num_updated+1
             except Exception as e:
-                logger.error('Problem saving datapoint for series %s: %s' % (self.name, e))
+                logger.debug('Problem with datapoint: %s' % e)
                 num_bad = num_bad+1
         self.save()
         logger.info('Series %s updated: %d points created, %d updated, %d skipped' % (self.name, num_created, num_updated, num_bad))
@@ -725,9 +737,8 @@ class Series(models.Model):
         return self.thumbnail
     
 class Variable(models.Model):
-    ''' Variable representing time series '''
     name = models.CharField(max_length=10)
-    series = models.ForeignKey(Series)
+    parameter = models.ForeignKey(Parameter)
     
 class Formula(models.Model):
     variables = models.ManyToManyField(Variable)
@@ -757,12 +768,13 @@ import dateutil
     
 class Chart(models.Model):
     name = models.CharField(max_length = 50, verbose_name = 'naam')
+    description = models.TextField(blank=True,verbose_name='omschrijving')
     title = models.CharField(max_length = 50, verbose_name = 'titel')
     user=models.ForeignKey(User,default=User)
     start = models.DateTimeField(blank=True,null=True)
     stop = models.DateTimeField(blank=True,null=True)
     percount = models.IntegerField(default=2,verbose_name='aantal perioden',help_text='maximaal aantal periodes die getoond worden (0 = alle perioden)')
-    perunit = models.CharField(max_length=10,choices = PERIOD_CHOICES, default = 'M', verbose_name='periodelengte')
+    perunit = models.CharField(max_length=10,choices = PERIOD_CHOICES, default = 'months', verbose_name='periodelengte')
 
     def tijdreeksen(self):
         return self.series.count()

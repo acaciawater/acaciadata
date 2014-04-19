@@ -11,14 +11,14 @@ import os
 import sys
 import site
 
-ALLDIRS = ['/home/theo/acacia-data/lib/python2.7/site-packages']
+ALLDIRS = ['/home/theo/acaciadata.com/django/lib/python2.7/site-packages']
 
 # Remember original sys.path.
 prev_sys_path = list(sys.path) 
 
 # Add each new site-packages directory.
 for directory in ALLDIRS:
-    site.addsitedir(directory)
+  site.addsitedir(directory)
 
 # Reorder sys.path so new directories at the front.
 new_sys_path = [] 
@@ -29,10 +29,11 @@ for item in list(sys.path):
 sys.path[:0] = new_sys_path
 
 # Add the app's directory to the PYTHONPATH
-sys.path.append('/home/theo/git/acacia-data/acacia')
-sys.path.append('/home/theo/git/acacia-data/acacia/acacia')
+sys.path.append('/home/theo/acaciadata.com/acacia')
+sys.path.append('/home/theo/acaciadata.com/acacia/acacia')
 
 os.environ['DJANGO_SETTINGS_MODULE'] = 'acacia.settings'
 
 from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
+

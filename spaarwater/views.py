@@ -2,29 +2,41 @@ from django.shortcuts import get_object_or_404
 from acacia.data.views import ProjectDetailView
 from acacia.data.models import Project, ProjectLocatie, Dashboard
 
+COL_LOOKUP = {'L': 'Watermeter Bron1 Uit 1 [0.1 m3]', 'M': 'Watermeter Bron1 Uit 2 [0.1 m3]', 'N': 'Watermeter Bron1 Uit 3 [0.1 m3]', 'O': 'Watermeter Bron1 Uit 4 [0.1 m3]',
+               'P': 'Watermeter Bron2 Uit 1 [0.1 m3]', 'Q': 'Watermeter Bron2 Uit 2 [0.1 m3]', 'R': 'Watermeter Bron2 Uit 3 [0.1 m3]', 'S': 'Watermeter Bron2 Uit 4 [0.1 m3]'}
+
 summary = {'Borgsweer': {
                          'debiet' : {'in': ['Systeem Bron in 1 0.1m3', 'Systeem Bron in 2 0.1m3'],
-                                     'out': ['Systeem Openzandfilter  0.1m3',]
+                                     'out': ['Watermeter Bron1 Uit 1 [0.1 m3]', 'Watermeter Bron1 Uit 2 [0.1 m3]', 'Watermeter Bron1 Uit 3 [0.1 m3]', 'Watermeter Bron1 Uit 4 [0.1 m3]',
+                                             'Watermeter Bron2 Uit 1 [0.1 m3]', 'Watermeter Bron2 Uit 2 [0.1 m3]', 'Watermeter Bron2 Uit 3 [0.1 m3]', 'Watermeter Bron2 Uit 4 [0.1 m3]']
                          },
                          'ec': {'out': ['Systeem EC Bronuit1','Systeem EC Bronuit2'],
-                                'in': ['Systeem EC Bron in',]
+                                'in': ['Systeem EC Bron in',],
+                                'maskout': ['Systeem onttrekken'],
+                                'maskin' : ['Systeem Infiltreren']
                          }
                          },
            'Breezand': {
-                         'debiet' : {'in': ['Systeem Bron in 1 0.1m3', 'Systeem Bron in 2 0.1m3', 'Systeem Bron in 3 0.1m3', 'Systeem Bron in 4 0.1m3'],
-                                     'out': ['Systeem Bron Uit 1 0.1m3','Systeem Bron Uit 2 0.1m3', 'Systeem Bron Uit 3 0.1m3', 'Systeem Bron Uit 3 0.1m3']
+                         'debiet' : {'in': ['Systeem Bron in 1 0.1m3', 'Systeem Bron in 2 0.1m3', 'Systeem Bron in 3 0.1m3', 'Systeem Bron in 4 0.1 m3'],
+                                     'out': ['Systeem Bron Uit 1 0.1m3','Systeem Bron Uit 2 0.1m3', 'Systeem Bron Uit 3 0.1m3', 'Systeem Bron Uit 4 0.1m3']
                          },
                          'ec': {'out': ['Systeem 1 EC Bronuit',],
-                                'in': ['Systeem EC Bron in',]
+                                'in': ['Systeem EC Bron in',],
+                                'maskout': ['Systeem 1 onttrekken'],
+                                'maskin' : ['Systeem 1 Infiltreren']
                          }
                         }
            }
 
 
-def get_series(series, name):
+def get_series(series, name, mask=None):
     for s in series:
-        if s.name == name: 
-            return s
+        if s.name == name:
+            if mask is None: 
+                return s.to_pandas()
+            mask = get_series(series,mask)
+            return s.to_pandas().where(mask>0)
+    raise Exception(name)
     return None
 
 class SpaarwaterDetailView(ProjectDetailView):
@@ -41,28 +53,30 @@ class SpaarwaterDetailView(ProjectDetailView):
             names = values['debiet']['in']
             for name in names:
                 series = get_series(locseries,name)
-                sumin += series.laatste().value# - series.eerste().value
+                sumin += series[-1]
             data[key]['debiet']['in'] = sumin/10
 
             sumout = 0
             names = values['debiet']['out']
             for name in names:
                 series = get_series(locseries,name)
-                sumout += series.laatste().value# - series.eerste().value
+                sumout += series[-1]
             data[key]['debiet']['out'] = sumout/10
 
             ecin = 0
             names = values['ec']['in']
-            for name in names:
-                series = get_series(locseries,name)
-                ecin += series.gemiddelde()
+            masks = values['ec']['maskin']
+            for mask,name in zip(masks,names):
+                series = get_series(locseries,name,mask)
+                ecin += series.mean()
             data[key]['ec']['in'] = ecin / len(names)
 
             ecout = 0
             names = values['ec']['out']
-            for name in names:
-                series = get_series(locseries,name)
-                ecout += series.gemiddelde()
+            masks = values['ec']['maskout']
+            for mask,name in zip(masks,names):
+                series = get_series(locseries,name,mask)
+                ecout += series.mean()
             data[key]['ec']['out'] = ecout / len(names)
             
         return data

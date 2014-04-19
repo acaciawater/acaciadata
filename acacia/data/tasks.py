@@ -16,3 +16,8 @@ def update_meetlocatie(pk):
             for p in d.parameter_set.all():
                 for s in p.series_set.all():
                     s.update(data)
+
+@shared_task
+def test():
+    print 'test task started'
+    return 'test task finished'

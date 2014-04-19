@@ -11,6 +11,8 @@ from acacia import settings
 from matplotlib import rcParams
 rcParams['font.size'] = '8'
 
+import logging
+logger = logging.getLogger(__name__)
 
 # EPSG codes
 RDNEW=28992
@@ -98,10 +100,12 @@ def datasources_as_zip(datasources, zipname):
     return resp
 
 def datasource_as_csv(d):
+    logger.debug('creating csv file for datasource %s' % d.name)
     filename = slugify(d.name) + '.csv'
-    resp = HttpResponse(d.to_csv(), mimetype = "text/csv")
-    resp['Content-Type'] = 'text/csv; filename="%s"' % filename
-    resp['Content-Disposition'] = 'attachment; filename="%s"' % filename
+    csv = d.to_csv()
+    logger.debug('csv file created, size = %d bytes' % len(csv))
+    resp = HttpResponse(csv, mimetype='text/csv')
+    resp['Content-Disposition'] = 'attachment; filename=%s' % filename
     return resp
 
 def datasource_as_zip(ds):
@@ -111,8 +115,10 @@ def meetlocatie_as_zip(loc):
     return datasources_as_zip(loc.datasources.all(),'%s.zip'% slugify(loc.name))
 
 def series_as_csv(series):
+    logger.debug('creating csv file for series %s' % series.name)
     filename = slugify(series.name) + '.csv'
-    resp = HttpResponse(series.to_csv(), mimetype = "text/csv")
-    resp['Content-Type'] = 'text/csv; filename=%s' % filename
+    csv = series.to_csv()
+    logger.debug('csv file created, size = %d bytes' % len(csv))
+    resp = HttpResponse(csv, mimetype='text/csv')
     resp['Content-Disposition'] = 'attachment; filename=%s' % filename
     return resp

@@ -55,9 +55,11 @@ def conv125(x):
      '''
     if np.isnan(x):
         return [np.nan, np.nan]
-    raw = np.int32(x)
+    raw = np.uint32(x)
     R0 = raw & m12
     vwc = 1.09e-3 * R0 - 0.629
+    if vwc < 0:
+        vwc = np.nan
     RT = (raw >> 22) & m10
     temp = (RT - 400) / 10.0
     return [vwc, temp]
@@ -66,7 +68,7 @@ def conv252(x):
     ''' Conversion for EC-5 Soil Moisture '''
     if np.isnan(x):
         return [np.nan]
-    raw = np.int32(x)
+    raw = np.uint32(x)
 
     if raw < 290 or raw > 1425:
         return [np.nan]
@@ -79,7 +81,7 @@ def conv121(x):
      '''
     if np.isnan(x):
         return [np.nan, np.nan]
-    raw = np.int32(x)
+    raw = np.uint32(x)
     Rw = raw & m16
     psi = 10**(0.0001*Rw)/-10.20408
     RT = (raw >> 16) & m10
@@ -97,11 +99,12 @@ def conv119(x):
     '''
     if np.isnan(x):
         return [np.nan,np.nan,np.nan]
-    raw = np.int32(x)
+    raw = np.uint32(x)
     Re = raw & m12
     Ea = Re / 50.0
     vwc = 5.89e-6 * Ea**3 - 7.62e-4 * Ea**2 + 3.67e-2 * Ea -7.53e-2
-    
+    if vwc < 0:
+        vwc = np.nan
     RT = (raw >> 22) & m10
     if RT <= 900:
         temp = (RT-400) / 10.0
@@ -121,7 +124,7 @@ def conv116(x):
     '''
     if np.isnan(x):
         return [np.nan,np.nan,np.nan]
-    raw = np.int32(x)
+    raw = np.uint32(x)
     level = raw & m12
     RT = (raw >> 22) & m10
     if RT <= 900:
@@ -136,7 +139,7 @@ def conv187(x):
     ''' conversion for ECRN-100 Precipitation '''
     if np.isnan(x):
         return [np.nan]
-    pulses = np.int32(x)
+    pulses = np.uint32(x)
     p = pulses * 0.2 # every pulse = 0.2 mm
     return [p]
 
@@ -153,7 +156,7 @@ def conv189(x):
     ''' conversion for ECRN-50 Precipitation '''
     if np.isnan(x):
         return [np.nan]
-    pulses = np.int32(x)
+    pulses = np.uint32(x)
     p = pulses * 1.0 # every pulse = 1 mm
     return [p]
 
@@ -230,24 +233,21 @@ class Dataservice(Generator):
             raise DecagonException('Username ontbreekt')
         if not 'password' in kwargs:
             raise DecagonException('Password ontbreekt')
-        if 'mrid' in kwargs:
-            startkey = 'mrid'
+        
+        startkey = 'mrid'
+        startvalue = 0
+        
+        if 'start' in kwargs:
+            start = kwargs['start']
+            if start is not None:
+                startkey = 'time'
+                # convert start to unix utc timestamp
+                startvalue = int(time.mktime(start.timetuple()))
+        elif 'mrid' in kwargs:
             startvalue = int(kwargs['mrid'])
-        else:
-            startkey = 'time'
-            if 'start' in kwargs:
-                startvalue = kwargs['start']
-            else:
-                # 24 hours ago
-                startvalue = datetime.datetime.utcnow()-datetime.timedelta(hours=24)
-            # convert start to unix utc timestamp
-            startvalue = int(time.mktime(startvalue.timetuple()))
+
         url = kwargs['url'] 
 
-        # TODO: VERWIJDEREN
-        #startkey = 'mrid'
-        #startvalue = 0
-        
         http_header = {'User-Agent': kwargs.get('useragent', 'AcaciaData/1.0')}
         params = {'email': kwargs['username'],
                   'userpass': kwargs['password'],
@@ -383,23 +383,27 @@ def download_test():
     return response.read()
     
 if __name__ == '__main__':
+        
     api = Dataservice()
 
-    params = {
-              'url':        'http://api.ech2odata.com/spaarwater/dxd.cgi',
-              'username':   'no-email@acaciawater.com',
-              'password':   'zuEti*rCd0',
-              'deviceid':   '5G0E2933',
-              'devicepass': 'ejcee-lilf',
-              #'deviceid':   '5G0E2930',
-              #'devicepass': 'juat-apty',
-              }
+    print conv119(2149036430)
+
+#     params = {
+#               'url':        'http://api.ech2odata.com/spaarwater/dxd.cgi',
+#               'username':   'no-email@acaciawater.com',
+#               'password':   'zuEti*rCd0',
+#               'deviceid':   '5G0E2933',
+#               'devicepass': 'ejcee-lilf',
+#               #'deviceid':   '5G0E2930',
+#               #'devicepass': 'juat-apty',
+#               }
 #     result = api.download(**params)
 #     for filename, content in result.iteritems():
 #         with open(filename, 'w') as f:
 #             f.write(content)
     
-    filename = '/home/theo/git/acacia-data/acacia/acacia/data/generators/5G0E2933.dxd'
+    filename = '/home/theo/acaciadata.com/acacia/media/spaarwater/breezand/perceel-1/datafiles/535-nori/5G0E2931_1404080404.dxd'
+    #filename = '/home/theo/git/acacia-data/acacia/acacia/data/generators/5G0E2933.dxd'
     
     with open(filename) as f:
         params = api.get_parameters(f)
@@ -425,3 +429,4 @@ if __name__ == '__main__':
 #         data = dt.get_data(f)
 #         print data
 #     
+
