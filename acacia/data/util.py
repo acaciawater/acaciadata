@@ -115,10 +115,15 @@ def meetlocatie_as_zip(loc):
     return datasources_as_zip(loc.datasources.all(),'%s.zip'% slugify(loc.name))
 
 def series_as_csv(series):
-    logger.debug('creating csv file for series %s' % series.name)
     filename = slugify(series.name) + '.csv'
     csv = series.to_csv()
-    logger.debug('csv file created, size = %d bytes' % len(csv))
+    resp = HttpResponse(csv, mimetype='text/csv')
+    resp['Content-Disposition'] = 'attachment; filename=%s' % filename
+    return resp
+
+def chart_as_csv(chart):
+    filename = slugify(chart.name) + '.csv'
+    csv = chart.to_csv()
     resp = HttpResponse(csv, mimetype='text/csv')
     resp['Content-Disposition'] = 'attachment; filename=%s' % filename
     return resp

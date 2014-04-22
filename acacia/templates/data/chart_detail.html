@@ -1,4 +1,5 @@
-{% extends 'data/series_detail.html' %}
+{% extends 'data/highchart.html' %}
 {% block title %}{{chart.name}}{% endblock title %}
-{% block brandname %}{{chart.name}}{% endblock brandname %}
+{% block navbar %}{% endblock %}
+{% block brandname %}<a class="navbar-brand">{{chart.name}}</a>{% endblock brandname %}
 {% block admin_url %}chart/{{chart.id}}{% endblock %}

@@ -309,15 +309,22 @@ class Dataservice(Generator):
         return result
     
     def get_data(self, f, **kwargs):
+        logger.debug('Getting data')
         tree = ET.ElementTree()
+        logger.debug('Got element tree')
         tree.parse(f)
+        logger.debug('tree parsed')
         device = tree.find('Device')
+        logger.debug('device found')
         data = device.find('Data')
+        logger.debug('data found')
         io = StringIO.StringIO(data.text)
+        logger.debug('data read, starting pandas read_csv')
 
         # read raw port values into dataframe, converting decatime to python datetime 
         # TODO: skip records with date/time = None 
         df = pd.read_csv(io, header=None, index_col=[0], skiprows = 1, skipinitialspace=True, parse_dates = True, date_parser = date_parser)
+        logger.debug('pandas.read_csv completed')
 
         ports = device.findall('Configuration/Measurement/Ports/Port')
         nports = len(ports)

@@ -2,3 +2,10 @@
 {% block title %}{{series.name}}{% endblock title %}
 {% block navbar %}{% endblock %}
 {% block admin_url %}series/{{object.id}}{% endblock %}
+{% block content %}
+{{ block.super }}
+<br/>
+<div class="text-center">
+<a href="{% url 'series-csv' object.id %}" class="btn btn-primary active" data-toggle="tooltip" title="Tijdreeks downloaden als csv bestand" id="download">Downloaden</a>
+</div>
+{% endblock %}

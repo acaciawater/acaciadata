@@ -6,11 +6,11 @@ Replace this with more appropriate tests for your application.
 """
 
 from django.test import TestCase
-from acacia.data.models import DataFile
+from acacia.data.models import Datasource
 
 class TestProvider(TestCase):
     def test_knmi(self):
-        df = DataFile.objects.get(pk=1)
+        df = Datasource.objects.get(pk=1)
         df.update()
         assert(True)
         

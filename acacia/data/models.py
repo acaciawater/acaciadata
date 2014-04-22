@@ -804,7 +804,17 @@ class Chart(models.Model):
                 start = max(start,pstart) 
             return start
         return self.start
+
+    def to_pandas(self):
+        s = { cd.series.name: cd.series.to_pandas() for cd in self.series.all() }
+        return pd.DataFrame(s)
     
+    def to_csv(self):
+        io = StringIO.StringIO()
+        df = self.to_pandas()
+        df.to_csv(io,index_label='Datum/tijd')
+        return io.getvalue()
+        
     class Meta:
         verbose_name = 'Grafiek'
         verbose_name_plural = 'Grafieken'

@@ -3,7 +3,7 @@ from django.views.generic import DetailView
 from django.views.generic.list import ListView
 from .models import Project, ProjectLocatie, MeetLocatie
 from .views import DatasourceDetailView, DatasourceAsZip, DatasourceAsCsv, ProjectDetailView, ProjectLocatieDetailView, \
-    MeetLocatieDetailView, MeetlocatieAsZip, SeriesAsCsv, UpdateMeetlocatie, ChartView, ChartBaseView, DashView, SeriesView
+    MeetLocatieDetailView, MeetlocatieAsZip, SeriesAsCsv, ChartAsCsv, UpdateMeetlocatie, ChartView, ChartBaseView, DashView, SeriesView
 
 
 urlpatterns = patterns('acacia.data.views',
@@ -13,6 +13,7 @@ urlpatterns = patterns('acacia.data.views',
     url(r'^download/tabel/(?P<pk>\d+)', DatasourceAsCsv,name='datasource-csv'),
     url(r'^download/meetlocatie/(?P<pk>\d+)', MeetlocatieAsZip,name='meetlocatie-zip'),
     url(r'^download/reeks/(?P<pk>\d+)', SeriesAsCsv,name='series-csv'),
+    url(r'^download/grafiek/(?P<pk>\d+)', ChartAsCsv,name='chart-csv'),
     url(r'^update/meetlocatie/(?P<pk>\d+)', UpdateMeetlocatie,name='meetlocatie-update'),
     url(r'^reeks/(?P<pk>\d+)/$', SeriesView.as_view(), name='series-detail'),
     url(r'^chart/(?P<pk>\d+)/$', ChartBaseView.as_view(), name='chart-detail'),
