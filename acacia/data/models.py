@@ -267,14 +267,12 @@ class Datasource(models.Model):
         params = {}
         for sourcefile in self.sourcefiles.all():
             try:
-                sourcefile.file.open('r')
                 try:
                     params.update(gen.get_parameters(sourcefile.file))
                 except Exception as e:
-                    logger.error('Can update parameters for sourcefile %s' % (sourcefile, e))
-                sourcefile.file.close()
+                    logger.error('Cannot update parameters for sourcefile %s' % (sourcefile, e))
             except Exception as e:
-                logger.error('Can open sourcefile %s: %s' % (sourcefile, e))
+                logger.error('Cannot open sourcefile %s: %s' % (sourcefile, e))
         logger.info('Update completed, got %d parameters from %d files', len(params),self.sourcefiles.count())
         num_created = 0
         num_updated = 0
@@ -311,17 +309,37 @@ class Datasource(models.Model):
         if gen is None:
             return
         data = None
+        start = kwargs.get('start', None)
+        stop = kwargs.get('stop', None)
         for sourcefile in self.sourcefiles.all():
+            if start is not None:
+                if sourcefile.stop < start:
+                    continue
+            if stop is not None:
+                if sourcefile.start > stop:
+                    continue
             d = sourcefile.get_data(**kwargs)
-            if data is None:
-                data = d
-            else:
-                data = data.append(d)
-        # drop duplicate dates (take last)
+            if d is not None:
+                if data is None:
+                    data = d
+                else:
+                    data = data.append(d)
         if data is not None:
             try:
-                nodups = data.groupby(level=0).last()
-                data = nodups
+                # slice data
+                date = data.index.date
+                slicer = None
+                if start is not None:
+                    if stop is not None:
+                        slicer = (date >= start) & (date <= stop) 
+                    else:
+                        slicer = (date >= start)
+                elif stop is not None:
+                    slicer = (date <= stop)
+                if slicer is not None:
+                    data = data[slicer]
+                # remove duplicates
+                data = data.groupby(level=0).last()
             except:
                 pass
         return data
@@ -428,9 +446,7 @@ class SourceFile(models.Model):
             gen = self.datasource.get_generator_instance()
         logger.info('Getting data for sourcefile %s', self.name)
         try:
-            self.file.open('r')
             data = gen.get_data(self.file,**kwargs)
-            self.file.close()
         except Exception as e:
             logger.error('Error retrieving data from %s: %s' % (self.file.name, e))
             return None
@@ -501,8 +517,8 @@ class Parameter(models.Model):
     def project(self):
         return self.datasource.meetlocatie.projectlocatie.project
     
-    def get_data(self):
-        return self.datasource.get_data(param=self.name)
+    def get_data(self,**kwargs):
+        return self.datasource.get_data(param=self.name,**kwargs)
 
     def seriescount(self):
         return self.series_set.count()
@@ -570,7 +586,9 @@ class Series(models.Model):
                                  verbose_name='aggregatie', help_text = 'Aggregatiemethode bij resampling van tijdreeks')
     scale = models.FloatField(default = 1.0,verbose_name = 'verschaling', help_text = 'constante factor voor verschaling van de meetwaarden (vóór compensatie)')
     offset = models.FloatField(default = 0.0, verbose_name = 'compensatie', help_text = 'constante compensatie van meetwaarden (ná verschaling)')
-
+    cumsum = models.BooleanField(default = False, verbose_name='accumuleren', help_text = 'reeks transformeren naar accumulatie')
+    cumstart = models.DateTimeField(blank = True, null = True, verbose_name='start accumulatie')
+    
     class Meta:
         unique_together = ('parameter', 'name',)
         verbose_name = 'Reeks'
@@ -597,6 +615,8 @@ class Series(models.Model):
     def get_series_data(self, data):
         if data is None:
             data = self.parameter.get_data()
+            if data is None:
+                return None
         series = data[self.parameter.name]
         if self.resample is not None and self.resample != '':
             try:
@@ -608,6 +628,11 @@ class Series(models.Model):
             series = series * self.scale
         if self.offset != 0.0:
             series = series + self.offset
+        if self.cumsum:
+            if self.cumstart is not None:
+                start = series.index.searchsorted(self.cumstart)
+                series = series[start:]
+            series = series.cumsum()
         return series
     
     def create(self, data=None):
@@ -828,6 +853,7 @@ AXIS_CHOICES = (
 class ChartSeries(models.Model):
     chart = models.ForeignKey(Chart,related_name='series')
     series = models.ForeignKey(Series)
+    name = models.CharField(max_length=50,blank=True,null=True,verbose_name='legendanaam')
     axis = models.IntegerField(default=1,verbose_name='Nummer y-as')
     axislr = models.CharField(max_length=2, choices=AXIS_CHOICES, default='l',verbose_name='Positie y-as')
     color = models.CharField(null=True,blank=True,max_length=16, verbose_name = 'Kleur')

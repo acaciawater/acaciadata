@@ -1,26 +1,29 @@
 {% extends 'bootbase.html' %}
+{% block script %}
+{{ block.super }}
 <script language="JavaScript" type="text/javascript">
-  function reload(id,url,time) {setTimeout('reloadImg(id)',time)};
-  function reloadImg(id)
+  function reload(id,url,time) {setTimeout('reloadImg(id,url)',time)};
+  function reloadImg(id,url)
   {
    var obj = document.getElementById(id);
    var rand = Math.random();
-   obj.src = url+"t="+rand
-  }
+   obj.src = url+"&t="+rand
+  };
 </script>
+{% endblock %}
 {% block content %}
 <div class="container container-fluid">
 <div class="row row-fluid">
 <div class="col-md-5">
 <h3>Breezand</h3>
-<img src="http://92.66.225.37/snapshot.cgi?user=admin" name="refresh1" id="refresh1" onload='reload("refresh1","http://92.66.225.37/snapshot.cgi?user=admin&pwd=&",2000);'>
+<img src="http://92.66.225.37/snapshot.cgi?user=admin" name="refresh1" id="refresh1" onload='reload("refresh1","http://92.66.225.37/snapshot.cgi?user=admin&pwd=&",500);'>
 </div>
 
 <div class="col-md-2">&nbsp;&nbsp;</div>
 
 <div class="col-md-5">
 <h3>Borgsweer</h3>
-<img src="http://82.72.24.231:8080/snapshot.cgi?user=admin&pwd=acacia" name="refresh2" id="refresh2" onload='reload("refresh2","http://82.72.24.231:8080/snapshot.cgi?user=admin&pwd=acacia&",2000);'>
+<img src="http://82.72.24.231:8080/snapshot.cgi?user=admin&pwd=acacia" name="refresh2" id="refresh2" onload='reload("refresh2","http://82.72.24.231:8080/snapshot.cgi?user=admin&pwd=acacia",500);'>
 </div>
 </div>
 </div>

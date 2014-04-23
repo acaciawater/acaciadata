@@ -3,3 +3,11 @@
 {% block navbar %}{% endblock %}
 {% block brandname %}<a class="navbar-brand">{{chart.name}}</a>{% endblock brandname %}
 {% block admin_url %}chart/{{chart.id}}{% endblock %}
+{% block content %}
+{{ block.super }}
+<br/>
+<div class="text-center">
+<a href="{% url 'chart-csv' chart.id %}" class="btn btn-primary active" data-toggle="tooltip" title="Tijdreeksen van deze grafiek downloaden als csv bestand" id="download">Downloaden</a>
+</div>
+
+{% endblock %}

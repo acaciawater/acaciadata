@@ -4,6 +4,10 @@ import dateutil
 import acacia.data.util as util
 from acacia import settings
 from django.utils import timezone
+from django.core.files.base import File
+from pandas import compat
+import pandas.core.common as com
+
 
 def spliturl(url):
     pattern = r'^(?P<scheme>ftp|https?)://(?:(?P<user>\w+)?(?::(?P<passwd>\S+))?@)?(?P<url>.+)'
@@ -23,6 +27,15 @@ class Generator(object):
 
     def get_data(self,fil,**kwargs):
         return []
+
+    def get_handle(self,fil,mode='r'):
+        if isinstance(fil, File):
+            if fil.closed:
+                fil.open(mode)
+            return fil
+        if hasattr(fil,'readline'):
+            return fil
+        return open(fil, mode)
     
     def download(self, **kwargs):
         filename = kwargs.get('filename', None)

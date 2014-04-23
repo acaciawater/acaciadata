@@ -1,0 +1,10 @@
+{% for k1,v1 in summary.items %}
+<h4>{{k1}}</h4>
+<table class="table table-fluid">
+{% for k2,v2 in v1.items %}
+<tr><td class="col-md-7">{{k2}}</td><td class="col-md-5">{{v2}}</td></tr>
+{% endfor %}
+</table>
+<div class="row">
+</div>
+{% endfor %}

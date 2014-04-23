@@ -13,6 +13,32 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# pandas read_csv does not work on server. Test here
+import numpy as np
+import pandas as pd
+from StringIO import StringIO
+def pandas(request):
+    #fname = '/home/theo/acaciadata.com/acacia/media/spaarwater/borgsweer/perceel-1/datafiles/bedelier-borgsweer/LogFile.csv'
+    fname = '/var/www/vhosts/acaciadata.com/httpdocs/django/acacia/media/spaarwater/borgsweer/perceel-1/datafiles/bedelier-borgsweer/LogFile.csv'
+    logger.debug('pandas read_csv from file')
+    df3 = pd.read_csv(fname, delimiter=';')
+    logger.debug('pandas read_csv from file finished')
+      
+    logger.debug('opening file')
+    with open(fname, 'rt') as f:
+        logger.debug('reading file')
+        io = StringIO(f.read())
+        logger.debug('pandas read_csv in 1 go starting')
+        df3 = pd.read_csv(io, delimiter=';', encoding='utf-8')
+        logger.debug('pandas read_csv in 1 go finished')
+     
+    logger.debug('numpy read_csv starting')
+    df2 = np.genfromtxt(fname, delimiter=';')
+    logger.debug('numpy read_csv finished')
+   
+    referer = request.META.get('HTTP_REFERER', 'home')
+    return redirect(referer)
+    
 def DatasourceAsZip(request,pk):
     ds = get_object_or_404(Datasource,pk=pk)
     return datasource_as_zip(ds)
@@ -183,8 +209,11 @@ class ChartBaseView(TemplateView):
                                      'max': s.y1
                                      })
             pts = [[p.date,p.value] for p in ser.datapoints.filter(date__gte=start).order_by('date')]
+            name = s.name
+            if name is None or name == '':
+                name = ser.name
             allseries.append({
-                              'name': ser.name,
+                              'name': name,
                               'type': s.type,
                               'yAxis': s.axis-1,
                               'data': pts})
@@ -224,3 +253,4 @@ class DashView(TemplateView):
         dash = get_object_or_404(Dashboard, pk=pk)
         context['dashboard'] = dash
         return context
+    

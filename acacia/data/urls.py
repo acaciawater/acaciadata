@@ -8,6 +8,7 @@ from .views import DatasourceDetailView, DatasourceAsZip, DatasourceAsCsv, Proje
 
 urlpatterns = patterns('acacia.data.views',
     url(r'^$', ListView.as_view(model=Project), name='project-list'),
+    url(r'^pandas/', 'pandas', name = 'pandas'),
     url(r'^bron/(?P<pk>\d+)/$', DatasourceDetailView.as_view(), name='datasource-detail'),
     url(r'^download/datasource/(?P<pk>\d+)', DatasourceAsZip,name='datasource-zip'),
     url(r'^download/tabel/(?P<pk>\d+)', DatasourceAsCsv,name='datasource-csv'),
@@ -22,4 +23,5 @@ urlpatterns = patterns('acacia.data.views',
     url(r'^project/(?P<pk>\d+)/$', ProjectDetailView.as_view(), name='project-detail'),
     url(r'^locatie/(?P<pk>\d+)$', ProjectLocatieDetailView.as_view(), name='projectlocatie-detail'),
     url(r'^meetlocatie/(?P<pk>\d+)$', MeetLocatieDetailView.as_view(), name='meetlocatie-detail'),
+    
 )

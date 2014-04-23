@@ -23,7 +23,7 @@ DEBUG = True
 
 TEMPLATE_DEBUG = True
 
-ALLOWED_HOSTS = ['.acaciadata.com', 'localhost']
+ALLOWED_HOSTS = []
 
 # Application definition
 INSTALLED_APPS = (
@@ -120,11 +120,9 @@ ACCOUNT_ACTIVATION_DAYS = 7
 LOGIN_REDIRECT_URL = '/data/'
 
 # Celery stuff
-BROKER_URL = 'redis://localhost:6379/0'
-CELERY_RESULT_BACKEND='redis://localhost:6379/0'
+BROKER_URL = 'django://'
+CELERY_RESULT_BACKEND='djcelery.backends.database:DatabaseBackend'
 INSTALLED_APPS += ('kombu.transport.django','djcelery',)                  
-
-LOGGING_ROOT = os.path.join(BASE_DIR, 'logs')
 
 # Logging
 LOGGING = {
@@ -134,7 +132,7 @@ LOGGING = {
         'file': {
             'level': 'DEBUG',
             'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': os.path.join(LOGGING_ROOT, 'acacia.log'),
+            'filename': os.path.join(BASE_DIR, 'acacia.log'),
             'when': 'D',
             'interval': 1, # every day a new file
             'backupCount': 0,
@@ -143,7 +141,7 @@ LOGGING = {
         'django': {
             'level': 'DEBUG',
             'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': os.path.join(LOGGING_ROOT, 'django.log'),
+            'filename': os.path.join(BASE_DIR, 'django.log'),
             'when': 'D',
             'interval': 1, # every day a new file
             'backupCount': 0,

@@ -19,6 +19,7 @@ class OWB(Generator):
                     cols[i] = COL_LOOKUP[col]
         sections = {}
         sections['COLUMNS'] = cols
+        self.skiprows = 1
         return sections
             
     def get_data(self, f, **kwargs):

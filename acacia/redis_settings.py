@@ -19,7 +19,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 SECRET_KEY = 'lyh)8hhwcz*a7i-o9ndk(7j0(%e25o3ji^7e+anqq4e)f^7#y('
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 TEMPLATE_DEBUG = True
 
@@ -124,8 +124,6 @@ BROKER_URL = 'redis://localhost:6379/0'
 CELERY_RESULT_BACKEND='redis://localhost:6379/0'
 INSTALLED_APPS += ('kombu.transport.django','djcelery',)                  
 
-LOGGING_ROOT = os.path.join(BASE_DIR, 'logs')
-
 # Logging
 LOGGING = {
     'version': 1,
@@ -134,7 +132,7 @@ LOGGING = {
         'file': {
             'level': 'DEBUG',
             'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': os.path.join(LOGGING_ROOT, 'acacia.log'),
+            'filename': os.path.join(BASE_DIR, 'acacia.log'),
             'when': 'D',
             'interval': 1, # every day a new file
             'backupCount': 0,
@@ -143,7 +141,7 @@ LOGGING = {
         'django': {
             'level': 'DEBUG',
             'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': os.path.join(LOGGING_ROOT, 'django.log'),
+            'filename': os.path.join(BASE_DIR, 'django.log'),
             'when': 'D',
             'interval': 1, # every day a new file
             'backupCount': 0,

@@ -61,10 +61,11 @@ class Meteo(Generator):
         return header
     
     def get_data(self, f, **kwargs):
-        header = self.get_header(f)
-        columns = header['COLUMNS']
-        data = pd.read_csv(f, header=0, names=columns, skipinitialspace=True, comment = '#', index_col = 1, parse_dates = True)
-        return data
+        with self.get_handle(f) as f:
+            header = self.get_header(f)
+            columns = header['COLUMNS']
+            data = pd.read_csv(f, header=0, names=columns, skipinitialspace=True, comment = '#', index_col = 1, parse_dates = True)
+            return data
 
     def get_unit(self,descr):
         pat = re.compile(r'\(in\s([^)]+)\)')

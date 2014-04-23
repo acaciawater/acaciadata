@@ -147,7 +147,7 @@ class SeriesAdmin(admin.ModelAdmin):
                  ('Algemeen', {'fields': ('parameter', 'name', 'unit', 'description',),
                                'classes': ('grp-collapse grp-open',),
                                }),
-                 ('Bewerkingen', {'fields': (('resample', 'aggregate',),('scale', 'offset',)),
+                 ('Bewerkingen', {'fields': (('resample', 'aggregate',),('scale', 'offset',), ('cumsum', 'cumstart' ),),
                                'classes': ('grp-collapse grp-closed',),
                               }),
     )
