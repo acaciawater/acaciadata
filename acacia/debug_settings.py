@@ -74,8 +74,8 @@ WSGI_APPLICATION = 'acacia.wsgi.application'
 #     'default': {
 #         'ENGINE': 'django.contrib.gis.db.backends.mysql',
 #         'NAME': 'acaciadata',                      # Or path to database file if using sqlite3.
-#         'USER': 'admin',                      # Not used with sqlite3.
-#         'PASSWORD': 'admin',                  # Not used with sqlite3.
+#         'USER': 'acacia',                      # Not used with sqlite3.
+#         'PASSWORD': 'Beaumont1',                  # Not used with sqlite3.
 #         'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
 #         'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
 #     }

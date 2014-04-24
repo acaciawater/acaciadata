@@ -5,6 +5,10 @@ users
 acacia:Acacia@12345
 root:yX7yskaim
 
+mysql database acaciadata
+user acacia
+password Beaumont1
+
 location
 /var/www/acaciadata.com
 
@@ -42,5 +46,6 @@ chmod g+w acacia/*.db
 
 reconfigure domain:
 /usr/local/psa/admin/bin/httpdmng --reconfigure-domain acaciadata
+
 
 

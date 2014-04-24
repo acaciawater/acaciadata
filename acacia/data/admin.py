@@ -1,5 +1,7 @@
 from acacia.data.models import Project, ProjectLocatie, MeetLocatie, Datasource, SourceFile, Generator
 from acacia.data.models import Parameter, Series, DataPoint, Chart, ChartSeries, Dashboard
+from acacia.data.models import Variable, Formula
+
 from django.contrib import admin
 from django import forms
 from django.forms import PasswordInput, ModelForm
@@ -117,6 +119,17 @@ class ParameterAdmin(admin.ModelAdmin):
     actions = [actions.update_thumbnails, actions.generate_series,]
     list_display = ('name', 'thumbtag', 'meetlocatie', 'datasource', 'unit', 'description', 'seriescount')
     ordering = ('name','datasource',)
+
+class FormulaAdmin(ParameterAdmin):
+    fieldsets = (
+                 ('Parameter', {'fields': ('datasource', 'name', 'description', 'unit', 'type'),
+                               'classes': ('grp-collapse grp-open',),
+                               }),
+                 ('Berekening', {'fields': ('formula_variables', 'formula_text'),
+                               'classes': ('grp-collapse grp-closed',),
+                              }),
+    )
+    filter_horizontal = ('formula_variables',)
     
 class ReadonlyTabularInline(admin.TabularInline):
     can_delete = False
@@ -196,3 +209,5 @@ admin.site.register(SourceFile, SourceFileAdmin)
 #admin.site.register(DataPoint, DataPointAdmin)
 admin.site.register(Chart, ChartAdmin)
 admin.site.register(Dashboard, DashAdmin)
+admin.site.register(Formula, FormulaAdmin)
+admin.site.register(Variable)

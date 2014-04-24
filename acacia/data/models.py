@@ -534,7 +534,7 @@ class Parameter(models.Model):
     thumbtag.short_description='thumbnail'
     
     def make_thumbnail(self,data=None):
-        if data is None:
+        if data is None or self.formula is not None:
             data = self.get_data()
         logger.debug('Generating thumbnail for parameter %s' % self.name)
         dest =  up.param_thumb_upload(self, self.name+'.png')
@@ -557,6 +557,34 @@ def parameter_delete(sender, instance, **kwargs):
     logger.info('Deleting thumbnail %s for parameter %s' % (instance.thumbnail.name, instance.name))
     instance.thumbnail.delete(False)
 
+class Variable(models.Model):
+    name = models.CharField(max_length=10, verbose_name = 'variabele')
+    parameter = models.ForeignKey(Parameter)
+    
+    def __unicode__(self):
+        return '%s = %s' % (self.name, self.parameter)
+    
+class Formula(Parameter):
+    formula_text = models.TextField(blank=True,verbose_name='berekening')
+    formula_variables = models.ManyToManyField(Variable,verbose_name = 'variabelen')
+    
+    def __unicode__(self):
+        return self.name
+
+    def get_data(self,**kwargs):
+        # todo: add all paraneters to one dataframe with common datetime index (align)
+        variables = {var.name: var.parameter.get_data(**kwargs) for var in self.formula_variables.all()}
+        result = eval(self.formula_text, globals(), variables)
+        if isinstance(result, pd.DataFrame):
+            result.rename(columns={result.columns[0]: self.name}, inplace=True)
+        elif isinstance(result, pd.Series):
+            result.name = self.name
+        return result
+    
+    class Meta:
+        verbose_name = 'Berekende Parameter'
+        verbose_name_plural = 'Berekende Parameters'
+        
 RESAMPLE_FREQUENCY = (
               ('H', 'uur'),
               ('D', 'dag'),
@@ -761,13 +789,6 @@ class Series(models.Model):
             logger.error('Error generating thumbnail: %s' % e)
         return self.thumbnail
     
-class Variable(models.Model):
-    name = models.CharField(max_length=10)
-    parameter = models.ForeignKey(Parameter)
-    
-class Formula(models.Model):
-    variables = models.ManyToManyField(Variable)
-    formula = models.TextField() 
 
 class DataPoint(models.Model):
     series = models.ForeignKey(Series,related_name='datapoints')

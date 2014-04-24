@@ -127,3 +127,5 @@ def chart_as_csv(chart):
     resp = HttpResponse(csv, mimetype='text/csv')
     resp['Content-Disposition'] = 'attachment; filename=%s' % filename
     return resp
+
+

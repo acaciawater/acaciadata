@@ -87,8 +87,9 @@ class Regenradar(Generator):
         return {filename: response}
 
     def get_data(self,fil,**kwargs):
-        data = pd.read_csv(fil, index_col = 0, parse_dates = True)
-        return data
+        with self.get_handle(fil) as f:
+            data = pd.read_csv(f, index_col = 0, parse_dates = True)
+            return data
 
     def get_parameters(self, fil):
         return  dict({'Neerslag': {'description' : 'dagelijkse neerslag', 'unit': 'mm/d'}})  
