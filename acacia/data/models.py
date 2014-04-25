@@ -557,60 +557,39 @@ def parameter_delete(sender, instance, **kwargs):
     logger.info('Deleting thumbnail %s for parameter %s' % (instance.thumbnail.name, instance.name))
     instance.thumbnail.delete(False)
 
-class Variable(models.Model):
-    name = models.CharField(max_length=10, verbose_name = 'variabele')
-    parameter = models.ForeignKey(Parameter)
-    
-    def __unicode__(self):
-        return '%s = %s' % (self.name, self.parameter)
-    
-class Formula(Parameter):
-    formula_text = models.TextField(blank=True,verbose_name='berekening')
-    formula_variables = models.ManyToManyField(Variable,verbose_name = 'variabelen')
-    
-    def __unicode__(self):
-        return self.name
-
-    def get_data(self,**kwargs):
-        # todo: add all paraneters to one dataframe with common datetime index (align)
-        variables = {var.name: var.parameter.get_data(**kwargs) for var in self.formula_variables.all()}
-        result = eval(self.formula_text, globals(), variables)
-        if isinstance(result, pd.DataFrame):
-            result.rename(columns={result.columns[0]: self.name}, inplace=True)
-        elif isinstance(result, pd.Series):
-            result.name = self.name
-        return result
-    
-    class Meta:
-        verbose_name = 'Berekende Parameter'
-        verbose_name_plural = 'Berekende Parameters'
         
-RESAMPLE_FREQUENCY = (
+RESAMPLE_METHOD = (
+              ('T', 'minuut'),
+              ('15T', 'kwartier'),
               ('H', 'uur'),
               ('D', 'dag'),
               ('W', 'week'),
               ('M', 'maand'),
               ('A', 'jaar'),
               )
-RESAMPLE_AGGREGATE = (
+AGGREGATION_METHOD = (
               ('mean', 'gemiddelde'),
               ('max', 'maximum'),
               ('min', 'minimum'),
               ('sum', 'som'),
+              ('first', 'eerste'),
+              ('last', 'laatste'),
               )
 
 class Series(models.Model):
     name = models.CharField(max_length=50,verbose_name='naam')
     description = models.TextField(blank=True,verbose_name='omschrijving')
     unit = models.CharField(max_length=10, blank=True, verbose_name='eenheid')
-    parameter = models.ForeignKey(Parameter)
+    parameter = models.ForeignKey(Parameter, null=True, blank=True)
     thumbnail = models.ImageField(upload_to=up.series_thumb_upload, blank=True, null=True)
     user=models.ForeignKey(User,default=User)
 
+    # TODO: chart type and unit (if parameter is None)
+     
     # Nabewerkingen
-    resample = models.CharField(max_length=10,choices=RESAMPLE_FREQUENCY,default='',blank=True, 
+    resample = models.CharField(max_length=10,choices=RESAMPLE_METHOD,default='',blank=True, 
                                 verbose_name='frequentie',help_text='Frequentie voor resampling van tijdreeks')
-    aggregate = models.CharField(max_length=10,choices=RESAMPLE_AGGREGATE,default='', blank=True, 
+    aggregate = models.CharField(max_length=10,choices=AGGREGATION_METHOD,default='', blank=True, 
                                  verbose_name='aggregatie', help_text = 'Aggregatiemethode bij resampling van tijdreeks')
     scale = models.FloatField(default = 1.0,verbose_name = 'verschaling', help_text = 'constante factor voor verschaling van de meetwaarden (vóór compensatie)')
     offset = models.FloatField(default = 0.0, verbose_name = 'compensatie', help_text = 'constante compensatie van meetwaarden (ná verschaling)')
@@ -626,26 +605,27 @@ class Series(models.Model):
         return reverse('series-detail', args=[self.id]) 
 
     def datasource(self):
-        return self.parameter.datasource
+        p = self.parameter
+        return None if p is None else p.datasource
 
     def meetlocatie(self):
-        return self.parameter.datasource.meetlocatie
+        d = self.datasource()
+        return None if d is None else d.meetlocatie
 
     def projectlocatie(self):
-        return self.parameter.datasource.meetlocatie.projectlocatie
+        l = self.meetlocatie()
+        return None if l is None else l.projectlocatie
 
     def project(self):
-        return self.parameter.datasource.meetlocatie.projectlocatie.project
+        p = self.projectlocatie()
+        return None if p is None else p.project
 
     def __unicode__(self):
-        return '%s - %s' % (self.datasource(), self.name)
-   
-    def get_series_data(self, data):
-        if data is None:
-            data = self.parameter.get_data()
-            if data is None:
-                return None
-        series = data[self.parameter.name]
+        return '%s - %s' % (self.datasource() or '(berekend)', self.name)
+    
+    def do_postprocess(self, series):
+        ''' perform postprocessing of series data like resampling, scaling etc'''
+        
         if self.resample is not None and self.resample != '':
             try:
                 series = series.resample(how=self.aggregate, rule=self.resample)
@@ -662,8 +642,16 @@ class Series(models.Model):
                 series = series[start:]
             series = series.cumsum()
         return series
+         
+    def get_series_data(self, dataframe):
+        if dataframe is None:
+            dataframe = self.parameter.get_data()
+            if dataframe is None:
+                return None
+        series = dataframe[self.parameter.name]
+        return self.do_postprocess(series)
     
-    def create(self, data=None):
+    def create(self, data=None, thumbnail=True):
         logger.info('Creating series %s' % self.name)
         series = self.get_series_data(data)
         tz = timezone.get_current_timezone()
@@ -675,16 +663,18 @@ class Series(models.Model):
                 value = float(value)
                 if math.isnan(value) or date is None:
                     continue
-                adate = timezone.make_aware(date,tz)
+                if not timezone.is_aware(date):
+                    date = timezone.make_aware(date,tz)
                 #self.datapoints.create(date=adate, value=value)
-                datapoints.append(DataPoint(series=self, date=adate, value=value))
+                datapoints.append(DataPoint(series=self, date=date, value=value))
                 num_created += 1
             except Exception as e:
                 logger.debug('Datapoint %s,%g: %s' % (str(date), value, e))
                 num_skipped += 1
         self.datapoints.bulk_create(datapoints)
         logger.info('Series %s updated: %d points created, %d points skipped' % (self.name, num_created, num_skipped))
-        self.make_thumbnail()
+        if thumbnail:
+            self.make_thumbnail()
 
     def replace(self):
         logger.info('Deleting all %d datapoints from series %s' % (self.datapoints.count(), self.name))
@@ -712,7 +702,7 @@ class Series(models.Model):
                     point.save(update_fields=['value'])
                     num_updated = num_updated+1
             except Exception as e:
-                logger.debug('Problem with datapoint: %s' % e)
+                logger.debug('Datapoint %s,%g: %s' % (str(date), value, e))
                 num_bad = num_bad+1
         self.save()
         logger.info('Series %s updated: %d points created, %d updated, %d skipped' % (self.name, num_created, num_updated, num_bad))
@@ -760,14 +750,26 @@ class Series(models.Model):
     thumbtag.allow_tags=True
     thumbtag.short_description='thumbnail'
 
-    def to_pandas(self):
-        dates = [dp.date for dp in self.datapoints.all()]
-        values = [dp.value for dp in self.datapoints.all()]
+    def filter_points(self, **kwargs):
+        start = kwargs.get('start', None)
+        stop = kwargs.get('stop', None)
+        if start is None and stop is None:
+            return self.datapoints.all()
+        if start is None:
+            start = self.van()
+        if stop is None:
+            stop = self.tot()
+        return self.datapoints.filter(date__range=[start,stop])
+    
+    def to_pandas(self, **kwargs):
+        points = self.filter_points(**kwargs)
+        dates = [dp.date for dp in points]
+        values = [dp.value for dp in points]
         return pd.Series(values,index=dates,name=self.name)
     
-    def to_csv(self):
+    def to_csv(self, **kwargs):
+        ser = self.to_pandas(**kwargs)
         io = StringIO.StringIO()
-        ser = self.to_pandas()
         ser.to_csv(io, header=[self.name], index_label='Datum/tijd')
         return io.getvalue()
     
@@ -775,7 +777,7 @@ class Series(models.Model):
         logger.debug('Generating thumbnail for series %s' % self.name)
         try:
             if self.datapoints.count() == 0:
-                self.create()
+                self.create(thumbnail=False)
             series = self.to_pandas()
             dest =  up.series_thumb_upload(self, self.name+'.png')
             imagefile = os.path.join(settings.MEDIA_ROOT, dest)
@@ -789,6 +791,48 @@ class Series(models.Model):
             logger.error('Error generating thumbnail: %s' % e)
         return self.thumbnail
     
+class Variable(models.Model):
+    name = models.CharField(max_length=10, verbose_name = 'variabele')
+    series = models.ForeignKey(Series)
+    
+    def __unicode__(self):
+        return '%s = %s' % (self.name, self.series)
+    
+class Formula(Series):
+    locatie = models.ForeignKey(MeetLocatie)
+    formula_text = models.TextField(blank=True,verbose_name='berekening')
+    formula_variables = models.ManyToManyField(Variable,verbose_name = 'variabelen')
+    
+    def meetlocatie(self):
+        return self.locatie
+     
+    def __unicode__(self):
+        return self.name
+
+    def get_variables(self):
+        variables = {var.name: var.series.to_pandas() for var in self.formula_variables.all()}
+        if self.resample is not None and len(self.resample)>0:
+            for name,series in variables.iteritems():
+                variables[name] = series.resample(rule=self.resample, how=self.aggregate)
+        # add all series into a single dataframe
+        df = pd.DataFrame(variables)
+        # interpolate missing values
+        df = df.interpolate(method='time')
+        variables = df.to_dict('series')
+        return variables
+    
+    def get_series_data(self,data):
+        variables = self.get_variables()
+        result = eval(self.formula_text, globals(), variables)
+        if isinstance(result, pd.DataFrame):
+            result = result[0]
+        if isinstance(result, pd.Series):
+            result.name = self.name
+        return self.do_postprocess(result)
+    
+    class Meta:
+        verbose_name = 'Berekende reeks'
+        verbose_name_plural = 'Berekende reeksen'
 
 class DataPoint(models.Model):
     series = models.ForeignKey(Series,related_name='datapoints')

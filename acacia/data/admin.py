@@ -120,17 +120,6 @@ class ParameterAdmin(admin.ModelAdmin):
     list_display = ('name', 'thumbtag', 'meetlocatie', 'datasource', 'unit', 'description', 'seriescount')
     ordering = ('name','datasource',)
 
-class FormulaAdmin(ParameterAdmin):
-    fieldsets = (
-                 ('Parameter', {'fields': ('datasource', 'name', 'description', 'unit', 'type'),
-                               'classes': ('grp-collapse grp-open',),
-                               }),
-                 ('Berekening', {'fields': ('formula_variables', 'formula_text'),
-                               'classes': ('grp-collapse grp-closed',),
-                              }),
-    )
-    filter_horizontal = ('formula_variables',)
-    
 class ReadonlyTabularInline(admin.TabularInline):
     can_delete = False
     extra = 0
@@ -168,7 +157,30 @@ class SeriesAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         obj.user = request.user
         obj.save()
- 
+
+
+class FormulaAdmin(SeriesAdmin):
+    list_display = ('name', 'thumbtag', 'locatie', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
+    
+    fieldsets = (
+                 ('Algemeen', {'fields': ('locatie', 'name', 'unit', 'description',),
+                               'classes': ('grp-collapse grp-open',),
+                               }),
+                 ('Bewerkingen', {'fields': (('resample', 'aggregate',),('scale', 'offset',), ('cumsum', 'cumstart' ),),
+                               'classes': ('grp-collapse grp-closed',),
+                              }),
+                 ('Berekening', {'fields': ('formula_variables', 'formula_text'),
+                               'classes': ('grp-collapse grp-closed',),
+                              }),
+    )
+    filter_horizontal = ('formula_variables',)
+    exclude = ('parameter',)
+    
+#     def save_model(self, request, obj, form, change):
+#         # TODO: allow null value for parameter
+#         obj.parameter = Parameter.objects.first()
+#         return super(FormulaAdmin, self).save_model(request, obj, form, change)
+    
 class ChartSeriesInline(admin.StackedInline):
     model = ChartSeries
     extra = 0
