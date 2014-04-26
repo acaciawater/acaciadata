@@ -136,12 +136,13 @@ class SeriesView(DetailView):
     def get_context_data(self, **kwargs):
         context = super(SeriesView, self).get_context_data(**kwargs)
         ser = self.get_object()
+        unit = ser.unit
         options = {
-            'chart': {'type': ser.parameter.type, 'animation': False, 'zoomType': 'x'},
+            'chart': {'type': ser.type, 'animation': False, 'zoomType': 'x'},
             'title': {'text': ser.name},
             'xAxis': {'type': 'datetime'},
             'yAxis': [],
-            'tooltip': {'valueSuffix': ' '+ser.parameter.unit,
+            'tooltip': {'valueSuffix': ' '+unit,
                         'valueDecimals': 2
                        }, 
             'legend': {'enabled': False},
@@ -153,14 +154,14 @@ class SeriesView(DetailView):
             }
 
         allseries = []
-        title = ser.name if len(ser.parameter.unit)==0 else ser.parameter.unit
+        title = ser.name if (unit is None or len(unit)==0) else unit
         options['yAxis'].append({
                                  'title': {'text': title},
                                  })
         pts = [[p.date,p.value] for p in ser.datapoints.all().order_by('date')]
         allseries.append({
                           'name': ser.name,
-                          'type': ser.parameter.type,
+                          'type': ser.type,
                           'data': pts})
         options['series'] = allseries
         jop = json.dumps(options,default=date_handler)

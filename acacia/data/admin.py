@@ -146,7 +146,7 @@ class SeriesAdmin(admin.ModelAdmin):
     list_filter = ('parameter__datasource__meetlocatie', 'parameter__datasource')
 
     fieldsets = (
-                 ('Algemeen', {'fields': ('parameter', 'name', 'unit', 'description',),
+                 ('Algemeen', {'fields': ('parameter', 'name', ('unit', 'type'), 'description',),
                                'classes': ('grp-collapse grp-open',),
                                }),
                  ('Bewerkingen', {'fields': (('resample', 'aggregate',),('scale', 'offset',), ('cumsum', 'cumstart' ),),
@@ -163,7 +163,7 @@ class FormulaAdmin(SeriesAdmin):
     list_display = ('name', 'thumbtag', 'locatie', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
     
     fieldsets = (
-                 ('Algemeen', {'fields': ('locatie', 'name', 'unit', 'description',),
+                 ('Algemeen', {'fields': ('locatie', 'name', ('unit', 'type'), 'description',),
                                'classes': ('grp-collapse grp-open',),
                                }),
                  ('Bewerkingen', {'fields': (('resample', 'aggregate',),('scale', 'offset',), ('cumsum', 'cumstart' ),),

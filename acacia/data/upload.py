@@ -53,15 +53,14 @@ def param_thumb_upload(instance, filename):
                      filename])
 
 def series_thumb_upload(instance, filename):
-    parameter = instance.parameter
-    datasource = parameter.datasource
-    meetlocatie = datasource.meetlocatie
-    projectlocatie = meetlocatie.projectlocatie
+    datasource = instance.datasource()
+    meetlocatie = instance.meetlocatie()
+    projectlocatie = instance.projectlocatie()
     project = projectlocatie.project
     return '/'.join([slugify(project.name),
                      slugify(projectlocatie.name),
                      slugify(meetlocatie.name),
                      settings.UPLOAD_THUMBNAILS, 
-                     slugify(datasource.name),
+                     'berekend' if datasource is None else slugify(datasource.name),
                      'series', 
                      filename])

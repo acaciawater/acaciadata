@@ -575,16 +575,17 @@ AGGREGATION_METHOD = (
               ('first', 'eerste'),
               ('last', 'laatste'),
               )
+# set  default series type in sqlite database: 
+# update data_series set type = (select p.type from data_parameter p where id = data_series.parameter_id) 
 
 class Series(models.Model):
     name = models.CharField(max_length=50,verbose_name='naam')
     description = models.TextField(blank=True,verbose_name='omschrijving')
     unit = models.CharField(max_length=10, blank=True, verbose_name='eenheid')
+    type = models.CharField(max_length=20, blank = True, default='line', choices = SERIES_CHOICES)
     parameter = models.ForeignKey(Parameter, null=True, blank=True)
     thumbnail = models.ImageField(upload_to=up.series_thumb_upload, blank=True, null=True)
     user=models.ForeignKey(User,default=User)
-
-    # TODO: chart type and unit (if parameter is None)
      
     # Nabewerkingen
     resample = models.CharField(max_length=10,choices=RESAMPLE_METHOD,default='',blank=True, 
@@ -619,6 +620,10 @@ class Series(models.Model):
     def project(self):
         p = self.projectlocatie()
         return None if p is None else p.project
+
+    def default_type(self):
+        p = self.parameter
+        return 'line' if p is None else p.type
 
     def __unicode__(self):
         return '%s - %s' % (self.datasource() or '(berekend)', self.name)
@@ -784,7 +789,7 @@ class Series(models.Model):
             imagedir = os.path.dirname(imagefile)
             if not os.path.exists(imagedir):
                 os.makedirs(imagedir)
-            util.save_thumbnail(series, imagefile,self.parameter.type)
+            util.save_thumbnail(series, imagefile,self.type)
             logger.info('Generated thumbnail %s' % dest)
             self.thumbnail.name = dest
         except Exception as e:
@@ -805,7 +810,7 @@ class Formula(Series):
     
     def meetlocatie(self):
         return self.locatie
-     
+        
     def __unicode__(self):
         return self.name
 
