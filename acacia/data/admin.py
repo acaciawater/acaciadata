@@ -1,5 +1,5 @@
 from acacia.data.models import Project, ProjectLocatie, MeetLocatie, Datasource, SourceFile, Generator
-from acacia.data.models import Parameter, Series, DataPoint, Chart, ChartSeries, Dashboard
+from acacia.data.models import Parameter, Series, DataPoint, Chart, ChartSeries, Dashboard, TabGroup, TabPage
 from acacia.data.models import Variable, Formula
 
 from django.contrib import admin
@@ -209,6 +209,24 @@ class DashAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         obj.user = request.user
         obj.save()
+
+class VariableAdmin(admin.ModelAdmin):
+    list_display = ('name', 'locatie', 'series', )
+    list_filter = ('locatie',)
+
+class TabPageAdmin(admin.ModelAdmin):
+    list_display = ('name', 'tabgroup', 'order', 'dashboard',)
+    list_filter = ('tabgroup',)
+
+class TabPageInline(admin.TabularInline):
+    model = TabPage
+    fields = ('name', 'tabgroup', 'order', 'dashboard',)
+    extra = 0
+    
+class TabGroupAdmin(admin.ModelAdmin):
+    list_display = ('name', 'location', 'pagecount')
+    list_filter = ('location',)
+    inlines = [TabPageInline,]
     
 admin.site.register(Project, ProjectAdmin)
 admin.site.register(ProjectLocatie, ProjectLocatieAdmin)
@@ -221,5 +239,7 @@ admin.site.register(SourceFile, SourceFileAdmin)
 #admin.site.register(DataPoint, DataPointAdmin)
 admin.site.register(Chart, ChartAdmin)
 admin.site.register(Dashboard, DashAdmin)
+admin.site.register(TabGroup, TabGroupAdmin)
+admin.site.register(TabPage, TabPageAdmin)
 admin.site.register(Formula, FormulaAdmin)
-admin.site.register(Variable)
+admin.site.register(Variable, VariableAdmin)

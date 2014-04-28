@@ -1,6 +1,6 @@
 from django.shortcuts import get_object_or_404
 from acacia.data.views import ProjectDetailView
-from acacia.data.models import Project, ProjectLocatie, Dashboard
+from acacia.data.models import Project, ProjectLocatie, Dashboard, TabGroup
 
 COL_LOOKUP = {'L': 'Watermeter Bron1 Uit 1 [0.1 m3]', 'M': 'Watermeter Bron1 Uit 2 [0.1 m3]', 'N': 'Watermeter Bron1 Uit 3 [0.1 m3]', 'O': 'Watermeter Bron1 Uit 4 [0.1 m3]',
                'P': 'Watermeter Bron2 Uit 1 [0.1 m3]', 'Q': 'Watermeter Bron2 Uit 2 [0.1 m3]', 'R': 'Watermeter Bron2 Uit 3 [0.1 m3]', 'S': 'Watermeter Bron2 Uit 4 [0.1 m3]'}
@@ -105,4 +105,20 @@ class DashView(TemplateView):
         name = context.get('name')
         dash = get_object_or_404(Dashboard, name__iexact=name)
         context['dashboard'] = dash
+        return context    
+    
+class DashGroupView(TemplateView):
+    template_name = 'dashgroup.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super(DashGroupView,self).get_context_data(**kwargs)
+        name = context.get('name')
+        page = int(self.request.GET.get('page', 1))
+        group = get_object_or_404(TabGroup, name__iexact=name)
+        dashboards =[p.dashboard for p in group.tabpage_set.order_by('order')]
+        context['group'] = group
+        page = min(page, len(dashboards))
+        if page > 0:
+            context['page'] = int(page)
+            context['dashboard'] = dashboards[page-1]
         return context    

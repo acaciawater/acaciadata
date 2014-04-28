@@ -206,6 +206,7 @@ SENSORDATA = {
 # seconds between 1/1/2000 and 1/1/1970
 DECATIME_OFFSET = 946684800.0
 tz = pytz.timezone(settings.TIME_ZONE)
+#tz = pytz.timezone('UTC')
 
 def decatime(dt):
     try:

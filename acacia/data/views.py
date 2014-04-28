@@ -152,17 +152,21 @@ class SeriesView(DetailView):
                         'href': 'http://www.acaciawater.com',
                        }
             }
-
+           
         allseries = []
         title = ser.name if (unit is None or len(unit)==0) else unit
         options['yAxis'].append({
                                  'title': {'text': title},
                                  })
         pts = [[p.date,p.value] for p in ser.datapoints.all().order_by('date')]
-        allseries.append({
-                          'name': ser.name,
-                          'type': ser.type,
-                          'data': pts})
+        sop = {'name': ser.name,
+               'type': ser.type,
+               'data': pts}
+        if ser.type == 'scatter':
+            sop['tooltip'] = {'headerFormat': '<small>{point.key}</small><br/><table>',
+                              'pointFormat': '<tr><td style="color:{series.color}">{series.name}</td>\
+                                <td style = "text-align: right">: <b>{point.y}</b></td></tr>'}
+        allseries.append(sop)
         options['series'] = allseries
         jop = json.dumps(options,default=date_handler)
         # remove quotes around date stuff
@@ -213,11 +217,16 @@ class ChartBaseView(TemplateView):
             name = s.name
             if name is None or name == '':
                 name = ser.name
-            allseries.append({
-                              'name': name,
-                              'type': s.type,
-                              'yAxis': s.axis-1,
-                              'data': pts})
+            sop = {'name': name,
+                   'type': s.type,
+                   'yAxis': s.axis-1,
+                   'data': pts}
+            if ser.type == 'scatter':
+                sop['tooltip'] = {'headerFormat': '<small>{point.key}</small><br/><table>',
+                                  'pointFormat': '<tr><td style="color:{series.color}">{series.name}</td>\
+                                    <td style = "text-align: right">: <b>{point.y}</b></td></tr>'}
+            
+            allseries.append(sop)
         options['series'] = allseries
         jop = json.dumps(options,default=date_handler)
         # remove quotes around date stuff

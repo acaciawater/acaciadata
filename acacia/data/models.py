@@ -534,7 +534,7 @@ class Parameter(models.Model):
     thumbtag.short_description='thumbnail'
     
     def make_thumbnail(self,data=None):
-        if data is None or self.formula is not None:
+        if data is None:
             data = self.get_data()
         logger.debug('Generating thumbnail for parameter %s' % self.name)
         dest =  up.param_thumb_upload(self, self.name+'.png')
@@ -575,7 +575,7 @@ AGGREGATION_METHOD = (
               ('first', 'eerste'),
               ('last', 'laatste'),
               )
-# set  default series type in sqlite database: 
+# set  default series type from parameter type in sqlite database: 
 # update data_series set type = (select p.type from data_parameter p where id = data_series.parameter_id) 
 
 class Series(models.Model):
@@ -797,12 +797,18 @@ class Series(models.Model):
         return self.thumbnail
     
 class Variable(models.Model):
+    locatie = models.ForeignKey(MeetLocatie)
     name = models.CharField(max_length=10, verbose_name = 'variabele')
     series = models.ForeignKey(Series)
     
     def __unicode__(self):
         return '%s = %s' % (self.name, self.series)
-    
+
+    class Meta:
+        verbose_name='variabele'
+        verbose_name_plural='variabelen'
+        unique_together = ('locatie', 'name', )
+        
 class Formula(Series):
     locatie = models.ForeignKey(MeetLocatie)
     formula_text = models.TextField(blank=True,verbose_name='berekening')
@@ -948,7 +954,7 @@ class Dashboard(models.Model):
     description = models.TextField(blank=True, verbose_name = 'omschrijving')
     charts = models.ManyToManyField(Chart, verbose_name = 'grafieken')
     user=models.ForeignKey(User,default=User)
-
+    
     def grafieken(self):
         return self.charts.count()
 
@@ -968,3 +974,27 @@ class Dashboard(models.Model):
 
     class Meta:
         ordering = ['name',]
+
+class TabGroup(models.Model):
+    location = models.ForeignKey(ProjectLocatie,verbose_name='projectlocatie')
+    name = models.CharField(max_length = 40, verbose_name='naam', help_text='naam van dashboard tabgroep')
+
+    def pagecount(self):
+        return self.tabpage_set.count()
+    pagecount.short_description = 'aantal tabs'
+    
+    def pages(self):
+        return self.tabpage_set.order_by('order')
+    
+    def __unicode__(self):
+        return self.name
+    
+class TabPage(models.Model):
+    tabgroup = models.ForeignKey(TabGroup)
+    name = models.CharField(max_length=40,default='basis',verbose_name='naam', help_text='naam van tabpage')
+    order = models.IntegerField(default=1,verbose_name='volgorde', help_text='volgorde van tabpage')
+    dashboard = models.ForeignKey(Dashboard)
+
+    def __unicode__(self):
+        return self.name
+    
