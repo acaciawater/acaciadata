@@ -38,11 +38,11 @@ class Command(BaseCommand):
             self.stdout.write('Updating calculated timeseries\n')
             count = 0
             for f in Formula.objects.all():
-                self.stdout.write('  Updating timeseries %s\n' % s.name)
+                self.stdout.write('  Updating timeseries %s\n' % f.name)
                 try:
                     f.update()
                     count = count + 1
                 except Exception as e:
-                    self.stderr.write('ERROR updating calculated timeseries %s: %s\n' % (s.name, e))
+                    self.stderr.write('ERROR updating calculated timeseries %s: %s\n' % (f.name, e))
             self.stdout.write('%d calculated timeseries were updated\n' % count)
                         

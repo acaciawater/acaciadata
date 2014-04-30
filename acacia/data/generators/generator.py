@@ -2,12 +2,9 @@ import os, urllib2, cgi
 import re
 import dateutil
 import acacia.data.util as util
-from acacia import settings
 from django.utils import timezone
 from django.core.files.base import File
-from pandas import compat
-import pandas.core.common as com
-
+import pandas as pd
 
 def spliturl(url):
     pattern = r'^(?P<scheme>ftp|https?)://(?:(?P<user>\w+)?(?::(?P<passwd>\S+))?@)?(?P<url>.+)'
@@ -19,9 +16,14 @@ def spliturl(url):
 
 class Generator(object):
 
-    def __init__(self,**kwargs):
+    def __init__(self, *args, **kwargs):
         pass
-
+    
+    def read_csv(self, *args, **kwargs):
+        #kwargs['engine'] = 'python'
+        ret = pd.read_csv(*args,**kwargs)
+        return ret
+    
     def get_header(self,fil):
         return {}
 

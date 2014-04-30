@@ -88,7 +88,7 @@ class Regenradar(Generator):
 
     def get_data(self,fil,**kwargs):
         with self.get_handle(fil) as f:
-            data = pd.read_csv(f, index_col = 0, parse_dates = True)
+            data = self.read_csv(f, index_col = 0, parse_dates = True)
             return data
 
     def get_parameters(self, fil):

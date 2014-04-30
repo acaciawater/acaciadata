@@ -184,7 +184,8 @@ class FormulaAdmin(SeriesAdmin):
 class ChartSeriesInline(admin.StackedInline):
     model = ChartSeries
     extra = 0
-        
+    fields = ('series', 'name', ('axis', 'axislr', 'label'), ('color', 'type', 'stack'), ('t0', 't1'), ('y0', 'y1'))
+    
 class DataPointAdmin(admin.ModelAdmin):
     list_display = ('series', 'date', 'value',)
     list_filter = ('series', )

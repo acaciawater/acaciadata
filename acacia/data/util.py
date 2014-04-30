@@ -60,7 +60,7 @@ def save_thumbnail(series,imagefile,kind='line'):
     
 def thumbtag(imagefile):
     url = os.path.join(settings.MEDIA_URL, imagefile)
-    return '<a href="%s"><img src="%s" height="60px"\></a>' % (url, url)
+    return '<a href="%s"><img src="%s" height="60px"/></a>' % (url, url)
 
 def find_files(pattern, root=os.curdir):
     for path, dirs, files in os.walk(os.path.abspath(root)):

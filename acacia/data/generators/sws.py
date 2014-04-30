@@ -3,7 +3,6 @@ Created on Jan 26, 2014
 
 @author: theo
 '''
-import pandas as pd
 import logging
 from generator import Generator
 logger = logging.getLogger(__name__)
@@ -69,7 +68,7 @@ class Diver(Generator):
             name = sections['Channel %d' % i].get('Identification')
             names.append(name)
         num=int(f.readline())
-        data = pd.read_csv(f, header=0, index_col=0, names = names, delim_whitespace=True, parse_dates = {'date': [0,1]}, nrows=num-1)
+        data = self.read_csv(f, header=0, index_col=0, names = names, delim_whitespace=True, parse_dates = {'date': [0,1]}, nrows=num-1)
         return data
 
     def get_parameters(self, fil):

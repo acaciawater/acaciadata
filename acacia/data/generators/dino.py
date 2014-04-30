@@ -5,7 +5,6 @@ Created on Jan 29, 2013
 '''
 #from ...data.util import find_files
 import zipfile,os,fnmatch
-import pandas as pd
 import logging
 
 from acacia.data.generators.generator import Generator
@@ -112,7 +111,7 @@ class Dino(Generator):
         for i in range(0,len(hdr)):
             if hdr[i] == '':
                 hdr[i] = 'veld%d' % (i+1)
-        data = pd.read_csv(fil, header=0, names = hdr, index_col = [2], dayfirst=True, parse_dates = [2])
+        data = self.read_csv(fil, header=0, names = hdr, index_col = [2], dayfirst=True, parse_dates = [2])
         return data
 
     def get_parameters(self,fil):

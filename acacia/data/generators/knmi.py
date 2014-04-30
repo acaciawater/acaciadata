@@ -3,7 +3,6 @@ Created on Jan 24, 2014
 
 @author: theo
 '''
-import pandas as pd
 import logging, re
 import urlparse
 
@@ -61,11 +60,10 @@ class Meteo(Generator):
         return header
     
     def get_data(self, f, **kwargs):
-        with self.get_handle(f) as f:
-            header = self.get_header(f)
-            columns = header['COLUMNS']
-            data = pd.read_csv(f, header=0, names=columns, skipinitialspace=True, comment = '#', index_col = 1, parse_dates = True)
-            return data
+        header = self.get_header(f)
+        columns = header['COLUMNS']
+        data = self.read_csv(f, header=0, names=columns, skipinitialspace=True, comment = '#', index_col = 1, parse_dates = True)
+        return data
 
     def get_unit(self,descr):
         pat = re.compile(r'\(in\s([^)]+)\)')
@@ -142,5 +140,5 @@ class Neerslag(Meteo):
         header = self.get_header(f)
         names = header['COLUMNS']
         names.append('NAME')
-        data = pd.read_csv(f, header=None, names=names, skipinitialspace=True, comment = '#', index_col = 1, parse_dates = True)
+        data = self.read_csv(f, header=None, names=names, skipinitialspace=True, comment = '#', index_col = 1, parse_dates = True)
         return data

@@ -1,19 +1,10 @@
-import pandas as pd
 import logging
-import json
 import urllib2
 logger = logging.getLogger(__name__)
 
 from generator import Generator
 class NMCPro(Generator):
-        
-    def __init__(self, **kwargs):
-        super(NMCPro, self).__init__(**kwargs)
-        self.args = {'url': 'ftp://theo:Heinis14@grondwatertoolbox.nl/home/arjen/Breezand/Processed'}
-
-    def get_default_args(self):
-        return json.dumps(self.args)
-    
+            
     def get_header(self, f):
         sections = {}
         line = f.readline()
@@ -32,7 +23,7 @@ class NMCPro(Generator):
     def get_data(self, f, **kwargs):
         header = self.get_header(f)
         names = header['COLUMNS']
-        data = pd.read_csv(f, header=0, names=names, comment = '#', index_col=[0], 
+        data = self.read_csv(f, header=0, names=names, comment = '#', index_col=[0], 
                            parse_dates = [[0,1]], dayfirst=True, na_values = ['----', '-------'])
         return data
 
@@ -43,6 +34,9 @@ class NMCPro(Generator):
         for name in names:
             params[name] = {'description' : name, 'unit': '-'} 
         return params
+
+class NMCJr(NMCPro):
+    pass
         
 if __name__ == '__main__':
     nmc = NMCPro()

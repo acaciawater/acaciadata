@@ -413,12 +413,16 @@ class SourceFile(models.Model):
         return self.datasource.meetlocatie.projectlocatie.project
        
     def filename(self):
-        return os.path.basename(self.file.name)
+        try:
+            return os.path.basename(self.file.name)
+        except:
+            return ''
     filename.short_description = 'bestandsnaam'
 
     def filesize(self):
         try:
-            return os.path.getsize(self.filepath())
+            return self.file.size
+            #return os.path.getsize(self.filepath())
         except:
             # file may not (yet) exist
             return 0
@@ -433,7 +437,11 @@ class SourceFile(models.Model):
     filedate.short_description = 'bestandsdatum'
 
     def filepath(self):
-        return os.path.join(settings.MEDIA_ROOT,self.file.name) 
+        try:
+            return self.file.path
+            #return os.path.join(settings.MEDIA_ROOT,self.file.name)
+        except:
+            return ''
     filedate.short_description = 'bestandslocatie'
 
     def filetag(self):
@@ -572,6 +580,7 @@ AGGREGATION_METHOD = (
               ('max', 'maximum'),
               ('min', 'minimum'),
               ('sum', 'som'),
+              ('diff', 'verschil'),
               ('first', 'eerste'),
               ('last', 'laatste'),
               )
@@ -657,12 +666,16 @@ class Series(models.Model):
         return self.do_postprocess(series)
     
     def create(self, data=None, thumbnail=True):
-        logger.info('Creating series %s' % self.name)
-        series = self.get_series_data(data)
         tz = timezone.get_current_timezone()
         num_created = 0
         num_skipped = 0
         datapoints = []
+        logger.info('Creating series %s' % self.name)
+        series = self.get_series_data(data)
+        if series is None:
+            logger.error('Creation of series %s failed' % self.name)
+            return
+
         for date,value in series.iteritems():
             try:
                 value = float(value)
@@ -687,19 +700,24 @@ class Series(models.Model):
         self.create()
 
     def update(self, data=None):
-        logger.info('Updating series %s' % self.name)
-        series = self.get_series_data(data)
         tz = timezone.get_current_timezone()
         num_bad = 0
         num_created = 0
         num_updated = 0
+        logger.info('Updating series %s' % self.name)
+        series = self.get_series_data(data)
+        if series is None:
+            logger.error('Update of series %s failed' % self.name)
+            return
+        
         for date,value in series.iteritems():
             try:
                 value = float(value)
                 if math.isnan(value) or date is None:
                     continue
-                adate = timezone.make_aware(date,tz)
-                point, created = self.datapoints.get_or_create(date=adate, defaults={'value': value})
+                if not timezone.is_aware(date):
+                    date = timezone.make_aware(date,tz)
+                point, created = self.datapoints.get_or_create(date=date, defaults={'value': value})
                 if created:
                     num_created = num_created+1
                 elif point.value != value:
@@ -747,7 +765,8 @@ class Series(models.Model):
         return self.datapoints.order_by('date')[0]
         
     def thumbpath(self):
-        return os.path.join(settings.MEDIA_ROOT,self.thumbnail.name)
+        #return os.path.join(settings.MEDIA_ROOT,self.thumbnail.name)
+        return self.thumbnail.path
         
     def thumbtag(self):
         return util.thumbtag(self.thumbnail.name)
@@ -927,13 +946,14 @@ AXIS_CHOICES = (
                )
 
 class ChartSeries(models.Model):
-    chart = models.ForeignKey(Chart,related_name='series')
-    series = models.ForeignKey(Series)
+    chart = models.ForeignKey(Chart,related_name='series', verbose_name='grafiek')
+    series = models.ForeignKey(Series, verbose_name = 'tijdreeks')
     name = models.CharField(max_length=50,blank=True,null=True,verbose_name='legendanaam')
     axis = models.IntegerField(default=1,verbose_name='Nummer y-as')
     axislr = models.CharField(max_length=2, choices=AXIS_CHOICES, default='l',verbose_name='Positie y-as')
     color = models.CharField(null=True,blank=True,max_length=16, verbose_name = 'Kleur')
     type = models.CharField(max_length=10, default='line', choices = SERIES_CHOICES)
+    stack = models.CharField(max_length=20, blank=True, null=True, verbose_name = 'stapel')
     label = models.CharField(max_length=20, blank=True,default='')
     y0 = models.FloatField(null=True,blank=True,verbose_name='ymin')
     y1 = models.FloatField(null=True,blank=True,verbose_name='ymax')

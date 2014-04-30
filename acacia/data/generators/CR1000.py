@@ -4,8 +4,6 @@ Created on Jan 28, 2014
 @author: theo
 '''
 import csv
-import pandas as pd
-
 import logging
 logger = logging.getLogger(__name__)
 
@@ -29,7 +27,7 @@ class CR1000(Generator):
     def get_data(self, f, **kwargs):
         header = self.get_header(f)
         names = header['COLUMNS']
-        data = pd.read_csv(f, header=None, names=names, parse_dates = True )
+        data = self.read_csv(f, header=None, names=names, parse_dates = True )
         return [header, data]
 
     def upload(self,f,**kwargs):

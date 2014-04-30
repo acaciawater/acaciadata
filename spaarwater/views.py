@@ -17,8 +17,8 @@ summary = {'Borgsweer': {
                          }
                          },
            'Breezand': {
-                         'debiet' : {'in': ['Systeem Bron in 1 0.1m3', 'Systeem Bron in 2 0.1m3', 'Systeem Bron in 3 0.1m3', 'Systeem Bron in 4 0.1 m3'],
-                                     'out': ['Systeem Bron Uit 1 0.1m3','Systeem Bron Uit 2 0.1m3', 'Systeem Bron Uit 3 0.1m3', 'Systeem Bron Uit 4 0.1m3']
+                         'debiet' : {'in': ['Bron1 in', 'Bron2 in', 'Bron3 in', 'Bron4 in'],
+                                     'out': ['Bron1 uit','Bron2 uit', 'Bron3 uit', 'Bron4 uit']
                          },
                          'ec': {'out': ['Systeem 1 EC Bronuit',],
                                 'in': ['Systeem EC Bron in',],
@@ -50,18 +50,19 @@ class SpaarwaterDetailView(ProjectDetailView):
             locseries = loc.series()
             data[key] = {'debiet': {'in': 0, 'out': 0}, 'ec': {'in': 0, 'out': 0}}
             sumin = 0
+            factor = 10 if 'weer'in key else 1
             names = values['debiet']['in']
             for name in names:
                 series = get_series(locseries,name)
                 sumin += series[-1]
-            data[key]['debiet']['in'] = sumin/10
+            data[key]['debiet']['in'] = sumin/factor
 
             sumout = 0
             names = values['debiet']['out']
             for name in names:
                 series = get_series(locseries,name)
                 sumout += series[-1]
-            data[key]['debiet']['out'] = sumout/10
+            data[key]['debiet']['out'] = sumout/factor
 
             ecin = 0
             names = values['ec']['in']
@@ -69,7 +70,7 @@ class SpaarwaterDetailView(ProjectDetailView):
             for mask,name in zip(masks,names):
                 series = get_series(locseries,name,mask)
                 ecin += series.mean()
-            data[key]['ec']['in'] = ecin / len(names)
+            data[key]['ec']['in'] = ecin / len(names) * 10.0
 
             ecout = 0
             names = values['ec']['out']
@@ -77,7 +78,7 @@ class SpaarwaterDetailView(ProjectDetailView):
             for mask,name in zip(masks,names):
                 series = get_series(locseries,name,mask)
                 ecout += series.mean()
-            data[key]['ec']['out'] = ecout / len(names)
+            data[key]['ec']['out'] = ecout / len(names) * 10.0
             
         return data
 

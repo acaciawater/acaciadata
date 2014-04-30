@@ -1,6 +1,4 @@
-import pandas as pd
 import logging
-import urllib2
 logger = logging.getLogger(__name__)
 
 from generator import Generator
@@ -24,7 +22,7 @@ class OWB(Generator):
             
     def get_data(self, f, **kwargs):
         header = self.get_header(f)
-        data = pd.read_csv(f, header=None, sep = ';', index_col = 0, parse_dates = {'datum': [0,1]}, dayfirst = True)
+        data = self.read_csv(f, header=None, sep = ';', index_col = 0, parse_dates = {'datum': [0,1]}, dayfirst = True)
         if data is not None:
             names = header['COLUMNS'][2:]
             #names.append('Laatste kolom')

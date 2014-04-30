@@ -193,17 +193,20 @@ class ChartBaseView(TemplateView):
                         'shared': True,
                        }, 
             'legend': {'enabled': chart.series.count() > 1},
-            'plotOptions': {'line': {'marker': {'enabled': False}}},            
+            'plotOptions': {'line': {'marker': {'enabled': False}},
+                            'column': {'allowpointSelect': True}},            
             'credits': {'enabled': True, 
                         'text': 'acaciawater.com', 
                         'href': 'http://www.acaciawater.com',
                        }
             }
+
         start = chart.auto_start()
         options['xAxis']['min'] = tojs(start)
 #         if not chart.stop is None:
 #             options['xAxis']['max'] = tojs(chart.stop)
         allseries = []
+        now = datetime.datetime.utcnow()
         for i,s in enumerate(chart.series.all()):
             ser = s.series
             title = s.label #ser.name if len(ser.unit)==0 else '%s [%s]' % (ser.name, ser.unit) if chart.series.count()>1 else ser.unit
@@ -221,11 +224,16 @@ class ChartBaseView(TemplateView):
                    'type': s.type,
                    'yAxis': s.axis-1,
                    'data': pts}
-            if ser.type == 'scatter':
-                sop['tooltip'] = {'headerFormat': '<small>{point.key}</small><br/><table>',
+            if s.type == 'scatter':
+                sop['tooltip'] = {'valueSuffix': ' '+ser.unit,
+                                  'headerFormat': '<small>{point.key}</small><br/><table>',
                                   'pointFormat': '<tr><td style="color:{series.color}">{series.name}</td>\
                                     <td style = "text-align: right">: <b>{point.y}</b></td></tr>'}
             
+            else:
+                sop['tooltip'] = {'valueSuffix': ' ' + ser.unit}                           
+            if s.type == 'column' and s.stack is not None:
+                sop['stack'] = s.stack
             allseries.append(sop)
         options['series'] = allseries
         jop = json.dumps(options,default=date_handler)
