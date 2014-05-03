@@ -150,6 +150,8 @@ def post187(a):
     for i,x in enumerate(a):
         if(i>0):
             b.append([x[0] - a[i-1][0],])
+        else:
+            b.append([None,])
     return b
 
 def conv189(x):
@@ -167,6 +169,8 @@ def post189(a):
     for i,x in enumerate(a):
         if(i>0):
             b.append([x[0] - a[i-1][0],])
+        else:
+            b.append([None,])
     return b
         
 SENSORDATA = {
@@ -341,10 +345,22 @@ class Dataservice(Generator):
             process = data.get('postprocessor',None)
             if process is not None:
                 values = process(values)
+            length = len(df.index)
             for i,p in enumerate(params):
                 data = [x[i] for x in values]
-                df[p['name']] = pd.Series(data, index = df.index)
-                df.dropna(how='all',inplace=True)
+                dlen = len(data)
+                if dlen != length:
+                    # pad with nan
+                    for i in range(dlen,length):
+                        data[i] = np.nan
+                    # trunc to length of index
+                    data = data[:length]
+                series = pd.Series(data,index=df.index)
+                df[p['name']] = series
+        # drop row where index = None
+        df.drop(None,inplace=True)
+        # drop rows if all values are na
+        df.dropna(how='all',inplace=True)
         return df
     
 try:

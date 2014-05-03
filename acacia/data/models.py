@@ -270,7 +270,7 @@ class Datasource(models.Model):
                 try:
                     params.update(gen.get_parameters(sourcefile.file))
                 except Exception as e:
-                    logger.error('Cannot update parameters for sourcefile %s' % (sourcefile, e))
+                    logger.error('Cannot update parameters for sourcefile %s: %s' % (sourcefile, e))
             except Exception as e:
                 logger.error('Cannot open sourcefile %s: %s' % (sourcefile, e))
         logger.info('Update completed, got %d parameters from %d files', len(params),self.sourcefiles.count())
