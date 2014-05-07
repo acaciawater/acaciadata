@@ -407,10 +407,10 @@ class SourceFile(models.Model):
         return self.datasource.meetlocatie
 
     def projectlocatie(self):
-        return self.datasource.meetlocatie.projectlocatie
+        return self.meetlocatie().projectlocatie
 
     def project(self):
-        return self.datasource.meetlocatie.projectlocatie.project
+        return self.projectlocatie().project
        
     def filename(self):
         try:
@@ -465,9 +465,7 @@ class SourceFile(models.Model):
             logger.info('Got %d rows, %d columns', shape[0], shape[1])
         return data
 
-    def get_dimensions(self, gen=None, data=None):
-        if gen is None:
-            gen = self.datasource.get_generator_instance()
+    def get_dimensions(self, data=None):
         if data is None:
             data = self.get_data()
         if data is None:
