@@ -45,17 +45,20 @@ def trans(p, srid):
 
 def save_thumbnail(series,imagefile,kind='line'):
     plt.figure()
-    options = {'figsize': (9,3), 'grid': False, 'xticks': [], 'legend': False}
-    if kind == 'column':
-        series.plot(kind='bar', **options)
-    elif kind == 'area':
-        x = series.index
-        y = series.values
-        series.plot(**options)
-        plt.fill_between(x,y)
-    else:
-        series.plot(**options)
-    plt.savefig(imagefile,transparent=True)
+    try:
+        options = {'figsize': (9,3), 'grid': False, 'xticks': [], 'legend': False}
+        if kind == 'column':
+            series.plot(kind='bar', **options)
+        elif kind == 'area':
+            x = series.index
+            y = series.values
+            series.plot(**options)
+            plt.fill_between(x,y)
+        else:
+            series.plot(**options)
+        plt.savefig(imagefile,transparent=True)
+    except:
+        pass
     plt.close()
     
 def thumbtag(imagefile):

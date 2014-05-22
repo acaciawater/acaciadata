@@ -7,6 +7,7 @@ from django.core.files.base import ContentFile
 from django.utils import timezone
 from django.core.urlresolvers import reverse
 from django.contrib.gis.db import models as geo
+from django.utils.text import slugify
 from acacia import settings
 import upload as up
 import pandas as pd
@@ -185,7 +186,7 @@ class Datasource(models.Model):
                 logger.error('Configuration error in generator %s: %s' % (self.generator, err))
                 return None
     
-    def download(self,save=True):
+    def download(self):
         if self.url is None or len(self.url) == 0:
             logger.error('Cannot download datasource %s: no url supplied' % (self.name))
             return 0
@@ -246,7 +247,7 @@ class Datasource(models.Model):
                 sourcefile.crc = crc
                 try:
                     contentfile = ContentFile(contents)
-                    sourcefile.file.save(name=filename, content=contentfile, save=save or created)
+                    sourcefile.file.save(name=filename, content=contentfile)
                     logger.info('File %s saved to %s' % (filename, sourcefile.filepath()))
                     downloaded += 1
                     crcs[crc] = sourcefile.file
@@ -543,7 +544,7 @@ class Parameter(models.Model):
         if data is None:
             data = self.get_data()
         logger.debug('Generating thumbnail for parameter %s' % self.name)
-        dest =  up.param_thumb_upload(self, self.name+'.png')
+        dest =  up.param_thumb_upload(self, slugify(self.name) +'.png')
         imagefile = os.path.join(settings.MEDIA_ROOT, dest)
         imagedir = os.path.dirname(imagefile)
         if not os.path.exists(imagedir):
@@ -801,7 +802,7 @@ class Series(models.Model):
             if self.datapoints.count() == 0:
                 self.create(thumbnail=False)
             series = self.to_pandas()
-            dest =  up.series_thumb_upload(self, self.name+'.png')
+            dest =  up.series_thumb_upload(self, slugify(self.name)+'.png')
             imagefile = os.path.join(settings.MEDIA_ROOT, dest)
             imagedir = os.path.dirname(imagefile)
             if not os.path.exists(imagedir):

@@ -145,13 +145,12 @@ def conv187(x):
 
 def post187(a):
     ''' postprocessor for ECRN-100: calculate precipitation per interval from cumulative values ''' 
+    # TODO: remove postprocessor, use cumulative option in series: no access to previous data -> first value is always None
     b = []
     b.append([None,])
     for i,x in enumerate(a):
         if(i>0):
             b.append([x[0] - a[i-1][0],])
-        else:
-            b.append([None,])
     return b
 
 def conv189(x):
@@ -164,13 +163,12 @@ def conv189(x):
 
 def post189(a):
     ''' postprocessor for ECRN-50: calculate precipitation per interval from cumulative values ''' 
+    # TODO: remove postprocessor, use cumulative option in series: no access to previous data -> first value is always None
     b = []
     b.append([None,])
     for i,x in enumerate(a):
         if(i>0):
             b.append([x[0] - a[i-1][0],])
-        else:
-            b.append([None,])
     return b
         
 SENSORDATA = {
@@ -321,8 +319,10 @@ class Dataservice(Generator):
         io = StringIO.StringIO(data.text)
 
         # read raw port values into dataframe, converting decatime to python datetime 
-        # TODO: skip records with date/time = None 
+        # TODO: skip records with date/time = None
+        logger.debug('Reading data') 
         df = self.read_csv(io, header=None, index_col=[0], skiprows = 1, skipinitialspace=True, parse_dates = True, date_parser = date_parser)
+        logger.debug('%d records read' % df.shape[0])
 
         ports = device.findall('Configuration/Measurement/Ports/Port')
         nports = len(ports)
@@ -347,18 +347,22 @@ class Dataservice(Generator):
                 values = process(values)
             length = len(df.index)
             for i,p in enumerate(params):
+                pname = p['name']
                 data = [x[i] for x in values]
                 dlen = len(data)
                 if dlen != length:
+                    logger.warning('Column %s: padding with NAN: size index = %d, size data = %d' % (pname, length, dlen))
                     # pad with nan
                     for i in range(dlen,length):
                         data[i] = np.nan
                     # trunc to length of index
                     data = data[:length]
+                logger.debug('Adding data for %s' % pname)
                 series = pd.Series(data,index=df.index)
                 df[p['name']] = series
-        # drop row where index = None
-        df.drop(None,inplace=True)
+                logger.debug('Finished adding data for %s' % pname)
+        # drop rows where index = None
+        #df.drop([np.nan, None],inplace=True)
         # drop rows if all values are na
         df.dropna(how='all',inplace=True)
         return df

@@ -10,16 +10,38 @@ from acacia.data.models import Datasource, Formula
 class Command(BaseCommand):
     args = ''
     help = 'Downloads data from remote sites and updates time series'
+    option_list = BaseCommand.option_list + (
+            make_option('--nodownload',
+                action='store_false',
+                dest='down',
+                default=True,
+                help='Don\'t download new files'),
+            make_option('--pk',
+                action='store',
+                type = 'int',
+                dest = 'pk',
+                default = None,
+                help = 'update single datasource')
+        )
     def handle(self, *args, **options):
-        self.stdout.write('Downloading data, updating parameters and related time series\n')
+        down = options.get('down')
+        if down:
+            self.stdout.write('Downloading data, updating parameters and related time series\n')
+        else:
+            self.stdout.write('Updating parameters and related time series\n')
         count = 0
-        datasources = Datasource.objects.exclude(url=None)         
+        pk = options.get('pk', None)
+        if pk is None:
+            datasources = Datasource.objects.exclude(url=None)
+        else:
+            datasources = Datasource.objects.filter(pk=pk)
         for d in datasources:
-            self.stdout.write('Downloading datasource %s\n' % d.name)
-            newfilecount = d.download()
-            self.stdout.write('Got %d new files\n' % newfilecount)
-            if newfilecount == 0:
-                continue
+            if down:
+                self.stdout.write('Downloading datasource %s\n' % d.name)
+                newfilecount = d.download()
+                self.stdout.write('Got %d new files\n' % newfilecount)
+                if newfilecount == 0:
+                    continue
             count = count + 1
             self.stdout.write('Reading datasource %s\n' % d.name)
             data = d.get_data()
