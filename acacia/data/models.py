@@ -186,7 +186,7 @@ class Datasource(models.Model):
                 logger.error('Configuration error in generator %s: %s' % (self.generator, err))
                 return None
     
-    def download(self):
+    def download(self, start=None):
         if self.url is None or len(self.url) == 0:
             logger.error('Cannot download datasource %s: no url supplied' % (self.name))
             return 0
@@ -213,7 +213,10 @@ class Datasource(models.Model):
             logger.error('Cannot download datasource %s: error in config options. %s' % (self.name, e))
             return 0
 
-        if not 'start' in options:
+        if start is not None:
+            # override starting date/time
+            options['start'] = start
+        elif not 'start' in options:
             # incremental download
             options['start'] = self.stop()
         try:

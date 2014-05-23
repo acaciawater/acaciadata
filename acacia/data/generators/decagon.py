@@ -6,6 +6,7 @@ import datetime, time
 import logging
 import StringIO
 import pytz
+from django.utils import timezone
 
 from acacia import settings
 
@@ -61,7 +62,10 @@ def conv125(x):
     if vwc < 0:
         vwc = np.nan
     RT = (raw >> 22) & m10
-    temp = (RT - 400) / 10.0
+    if RT == 0:
+        temp = np.nan
+    else:
+        temp = (RT - 400) / 10.0
     return [vwc, temp]
 
 def conv252(x):
@@ -83,9 +87,14 @@ def conv121(x):
         return [np.nan, np.nan]
     raw = np.uint32(x)
     Rw = raw & m16
-    psi = 10**(0.0001*Rw)/-10.20408
+    if Rw == 0:
+        psi = np.nan
+    else:
+        psi = 10**(0.0001*Rw)/-10.20408
     RT = (raw >> 16) & m10
-    if RT <= 900:
+    if RT == 0:
+        temp = np.nan
+    elif RT <= 900:
         temp = (RT-400) / 10.0
     else:
         temp = ((900 + 5 * (RT-900)) - 400) / 10.0
@@ -106,13 +115,18 @@ def conv119(x):
     if vwc < 0:
         vwc = np.nan
     RT = (raw >> 22) & m10
-    if RT <= 900:
+    if RT == 0:
+        temp = np.nan
+    elif RT <= 900:
         temp = (RT-400) / 10.0
     else:
         temp = ((900 + 5 * (RT-900)) - 400) / 10.0
 
     Rec = (raw >> 12) & m10
-    EC = 10**(Rec/215.0)/1000
+    if Rec == 0:
+        EC = np.nan
+    else:
+        EC = 10**(Rec/215.0)/1000
     return [vwc, temp, EC]
 
 def conv116(x):
@@ -126,13 +140,20 @@ def conv116(x):
         return [np.nan,np.nan,np.nan]
     raw = np.uint32(x)
     level = raw & m12
+    if level == 0:
+        level = np.nan
     RT = (raw >> 22) & m10
-    if RT <= 900:
+    if RT == 0:
+        temp = np.nan
+    elif RT <= 900:
         temp = (RT-400) / 10.0
     else:
         temp = ((900 + 5 * (RT-900)) - 400) / 10.0
     Rec = (raw >> 12) & m10
-    EC = 10**(Rec/190.0)/1000
+    if Rec == 0:
+        EC = np.nan
+    else:
+        EC = 10**(Rec/190.0)/1000
     return [level, temp, EC]
 
 def conv187(x):
@@ -208,12 +229,13 @@ SENSORDATA = {
 # seconds between 1/1/2000 and 1/1/1970
 DECATIME_OFFSET = 946684800.0
 tz = pytz.timezone(settings.TIME_ZONE)
-#tz = pytz.timezone('UTC')
 
 def decatime(dt):
     try:
         timestamp = float(dt)+DECATIME_OFFSET
-        return datetime.datetime.fromtimestamp(timestamp,tz)
+        # timestamp is in local timezone, synced by GSM network
+        dt = datetime.datetime.utcfromtimestamp(timestamp)
+        return timezone.make_aware(dt,tz)
     except:
         return None
 
