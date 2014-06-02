@@ -16,7 +16,8 @@ logger = logging.getLogger(__name__)
 # pandas read_csv does not work on server. Test here
 import numpy as np
 import pandas as pd
-from StringIO import StringIO
+from cStringIO import StringIO
+
 def pandas(request):
     #fname = '/home/theo/acaciadata.com/acacia/media/spaarwater/borgsweer/perceel-1/datafiles/bedelier-borgsweer/LogFile.csv'
     fname = '/var/www/vhosts/acaciadata.com/httpdocs/django/acacia/media/spaarwater/borgsweer/perceel-1/datafiles/bedelier-borgsweer/LogFile.csv'

@@ -44,6 +44,22 @@ class Project(models.Model):
     class Meta:
         verbose_name_plural = 'projecten'
 
+class Webcam(models.Model):
+    name = models.CharField(max_length=50,verbose_name='naam')
+    description = models.TextField(blank=True,verbose_name='omschrijving')
+    image = models.TextField(verbose_name = 'url voor snapshot')
+    video = models.TextField(verbose_name = 'url voor streaming video')
+    admin = models.TextField(verbose_name = 'url voor beheer')
+    
+    def snapshot(self):
+        url = self.image
+        return '<a href="%s"><img src="%s" height="160px"/></a>' % (url, url)
+
+    snapshot.allow_tags=True
+
+    def __unicode__(self):
+        return self.name
+    
 class ProjectLocatie(geo.Model):
     project = models.ForeignKey(Project)
     name = models.CharField(max_length=50,verbose_name='naam')
@@ -52,6 +68,7 @@ class ProjectLocatie(geo.Model):
     image = models.ImageField(upload_to=up.locatie_upload, blank = True, null = True)
     location = geo.PointField(srid=util.RDNEW,verbose_name='locatie', help_text='Projectlocatie in Rijksdriehoekstelsel coordinaten')
     objects = geo.GeoManager()
+    webcam = models.ForeignKey(Webcam, null = True, blank=True)
 
     def get_absolute_url(self):
         return reverse('projectlocatie-detail', args=[self.id])
@@ -83,6 +100,7 @@ class MeetLocatie(geo.Model):
     image = models.ImageField(upload_to=up.meetlocatie_upload, blank = True, null = True)
     location = geo.PointField(srid=util.RDNEW,verbose_name='locatie', help_text='Meetlocatie in Rijksdriehoekstelsel coordinaten')
     objects = geo.GeoManager()
+    webcam = models.ForeignKey(Webcam, null = True, blank=True)
 
     def project(self):
         return self.projectlocatie.project

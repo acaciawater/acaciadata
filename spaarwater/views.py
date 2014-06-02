@@ -41,7 +41,7 @@ def get_series(series, name, mask=None):
 
 class SpaarwaterDetailView(ProjectDetailView):
     
-    template_name = 'spaarwater.html'
+    template_name = 'spaarwater_detail.html'
 
     def get_summary_data(self):
         data = {}
@@ -84,7 +84,7 @@ class SpaarwaterDetailView(ProjectDetailView):
 
     def get_context_data(self, **kwargs):
         context = super(SpaarwaterDetailView,self).get_context_data(**kwargs)
-        context['summary'] = self.get_summary_data()
+        #context['summary'] = self.get_summary_data()
         return context
     
     def get_object(self):

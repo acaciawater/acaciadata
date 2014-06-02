@@ -47,6 +47,7 @@ $(function(){initialize();});
 <thead>
 <tr>
 <th>Meetlocatie</th>
+<th>Webcam</th>
 <th>Gegevensbronnen</th>
 <th>Bestanden</th>
 <th>Parameters</th>
@@ -58,6 +59,7 @@ $(function(){initialize();});
 {% for loc in object.meetlocatie_set.all %}
 <tr>
 <td><a href="{% url 'meetlocatie-detail' loc.id %}">{{loc.name}}</a></td>
+<td>{% if loc.webcam %}<br/>{{loc.webcam.snapshot|safe}}{%endif%}</td>
 <td>{{loc.datasources.count}}</td>
 <td>{{loc.filecount}}</td>
 <td>{{loc.paramcount}}</td>

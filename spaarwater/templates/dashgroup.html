@@ -9,10 +9,13 @@
  }
  </style>
 {% endblock %}
-{% block brandname %}<a class="navbar-brand">Dashboards {{group.name}}</a>{% endblock brandname %}
+{% block breadcrumbs %}
+<ol class="breadcrumb">
+	<li><a href="{% url 'spaarwater-home' %}">Spaarwater</a></li>
+	<li class="active"><a href="{% url 'spaarwater-dashboard' group.name %}">{{group.name}}</a></li>
+</ol>
+{% endblock breadcrumbs %}
 {% block admin_url %}tabgroup/{{group.id}}{% endblock %}
-{% block navbar %}
-{% endblock navbar %}
 {% block content %}
 <script language="JavaScript">
 function autoResize(id){

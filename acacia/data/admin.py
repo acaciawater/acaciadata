@@ -1,6 +1,6 @@
 from acacia.data.models import Project, ProjectLocatie, MeetLocatie, Datasource, SourceFile, Generator
 from acacia.data.models import Parameter, Series, DataPoint, Chart, ChartSeries, Dashboard, TabGroup, TabPage
-from acacia.data.models import Variable, Formula
+from acacia.data.models import Variable, Formula, Webcam
 
 from django.contrib import admin
 from django import forms
@@ -40,7 +40,7 @@ class ProjectAdmin(admin.ModelAdmin):
 
 class ProjectLocatieForm(ModelForm):
     model = ProjectLocatie
-    point = geoforms.PointField(widget=
+    location = geoforms.PointField(widget=
         geoforms.OSMWidget(attrs={'map_width': 800, 'map_height': 500}))
         
 class ProjectLocatieAdmin(admin.ModelAdmin):
@@ -229,6 +229,9 @@ class TabGroupAdmin(admin.ModelAdmin):
     list_filter = ('location',)
     inlines = [TabPageInline,]
     
+class WebcamAdmin(admin.ModelAdmin):
+    list_display = ('name', 'snapshot', )
+    
 admin.site.register(Project, ProjectAdmin)
 admin.site.register(ProjectLocatie, ProjectLocatieAdmin)
 admin.site.register(MeetLocatie, MeetLocatieAdmin)
@@ -244,3 +247,4 @@ admin.site.register(TabGroup, TabGroupAdmin)
 admin.site.register(TabPage, TabPageAdmin)
 admin.site.register(Formula, FormulaAdmin)
 admin.site.register(Variable, VariableAdmin)
+admin.site.register(Webcam, WebcamAdmin)
