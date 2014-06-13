@@ -1,6 +1,19 @@
-{% extends 'bootbase.html' %}
+{% extends 'boot.html' %}
 {% load l10n %}
 {% block title %}Project {{object.name}}{% endblock title %}
+{% block extrastyle %}
+<style type="text/css">
+    body {
+        //background-image: url("/static/acacia/img/spaarwaterbg.png");background-repeat: no-repeat;z-index: 0;background-position: center top;
+        z-index: inherit;
+    }
+    td a img {
+		float:right;
+		height:160px;
+		padding: 0px 0px 8px 8px;    
+    }
+</style>
+{% endblock %}
 {% block navbar %}{% endblock %}
 {% block admin_url %}project/{{object.id}}{% endblock %}
 {% block script %}
@@ -52,15 +65,13 @@ $(function(){initialize();});
 <!-- <th>Foto</th> -->
 <th>Locatie</th>
 <th>Omschrijving</th>
-<th></th>
 </tr>
 </thead>
 <tbody>
 {% for loc in object.projectlocatie_set.all %}
 <tr>
 <td><a href="{% url 'spaarwater-dashboard' loc.name %}">{{loc.name}}</a></td>
-<td>{{loc.description|safe}}</td>
-<td>{%if loc.webcam%}{{loc.webcam.snapshot|safe}}{% endif %}</td>
+<td>{%if loc.webcam%}<a href="{{loc.webcam.image}}"><img src="{{loc.webcam.image}}"/></a>{% endif %}{{loc.description|safe}}</td>
 </tr>
 {% empty %}
     <div>Geen locaties gevonden</div>

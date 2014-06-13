@@ -87,6 +87,7 @@ class DatasourceAdmin(admin.ModelAdmin):
     form = DatasourceForm
 #    inlines = [ParameterInline,]
     inlines = [SourceFileInline,]
+    search_fields = ['name',]
     actions = [actions.upload_datasource, actions.replace_parameters, actions.update_parameters]
     list_filter = ('meetlocatie','meetlocatie__projectlocatie','meetlocatie__projectlocatie__project',)
     list_display = ('name', 'description', 'meetlocatie', 'last_download', 'filecount', 'parametercount', 'seriescount', 'start', 'stop', 'rows',)
@@ -109,6 +110,7 @@ class SourceFileAdmin(admin.ModelAdmin):
     fields = ('name', 'datasource', 'file',)
     list_display = ('name','datasource', 'meetlocatie', 'filetag', 'rows', 'cols', 'start', 'stop', 'uploaded',)
     list_filter = ('datasource', 'datasource__meetlocatie', 'uploaded',)
+    search_fields = ['name','file__name',]
 
     def save_model(self, request, obj, form, change):
         obj.user = request.user
@@ -118,6 +120,7 @@ class ParameterAdmin(admin.ModelAdmin):
     list_filter = ('datasource','datasource__meetlocatie',)
     actions = [actions.update_thumbnails, actions.generate_series,]
     list_display = ('name', 'thumbtag', 'meetlocatie', 'datasource', 'unit', 'description', 'seriescount')
+    search_fields = ['name','description', 'datasource__name']
     ordering = ('name','datasource',)
 
 class ReadonlyTabularInline(admin.TabularInline):
@@ -144,6 +147,7 @@ class SeriesAdmin(admin.ModelAdmin):
     list_display = ('name', 'thumbtag', 'parameter', 'datasource', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
     exclude = ('user',)
     list_filter = ('parameter__datasource__meetlocatie', 'parameter__datasource')
+    search_fields = ['name','parameter__name','parameter__datasource__name']
 
     fieldsets = (
                  ('Algemeen', {'fields': ('parameter', 'name', ('unit', 'type'), 'description',),
@@ -161,6 +165,7 @@ class SeriesAdmin(admin.ModelAdmin):
 
 class FormulaAdmin(SeriesAdmin):
     list_display = ('name', 'thumbtag', 'locatie', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
+    search_fields = ['name',]
     
     fieldsets = (
                  ('Algemeen', {'fields': ('locatie', 'name', ('unit', 'type'), 'description',),
@@ -197,6 +202,7 @@ class ChartAdmin(admin.ModelAdmin):
     inlines = [ChartSeriesInline,]
     exclude = ('user',)
     fields = ('name', 'description', 'title', ('percount', 'perunit',), ('start', 'stop',),)
+    search_fields = ['name','description', 'title']
 
     def save_model(self, request, obj, form, change):
         obj.user = request.user
@@ -206,6 +212,7 @@ class DashAdmin(admin.ModelAdmin):
     filter_horizontal = ('charts',)
     list_display = ('name', 'description', 'grafieken',)
     exclude = ('user',)
+    search_fields = ['name','description']
     
     def save_model(self, request, obj, form, change):
         obj.user = request.user
@@ -214,10 +221,12 @@ class DashAdmin(admin.ModelAdmin):
 class VariableAdmin(admin.ModelAdmin):
     list_display = ('name', 'locatie', 'series', )
     list_filter = ('locatie',)
+    search_fields = ['name','locatie__name']
 
 class TabPageAdmin(admin.ModelAdmin):
     list_display = ('name', 'tabgroup', 'order', 'dashboard',)
     list_filter = ('tabgroup',)
+    search_fields = ['name',]
 
 class TabPageInline(admin.TabularInline):
     model = TabPage
@@ -226,6 +235,7 @@ class TabPageInline(admin.TabularInline):
     
 class TabGroupAdmin(admin.ModelAdmin):
     list_display = ('name', 'location', 'pagecount')
+    search_fields = ['name',]
     list_filter = ('location',)
     inlines = [TabPageInline,]
     

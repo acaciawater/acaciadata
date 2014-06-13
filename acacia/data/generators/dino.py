@@ -141,12 +141,14 @@ def hyear(date):
     
 if (__name__ == '__main__'):
     dino=Dino()
-    file = '/home/theo/Desktop/Windows/src/gwdata/dinoloket/Grondwaterstanden/B31B0046/B31B0046001_1.csv'
-    with open(file) as f:
-        data = dino.get_data(f)
-        stand = data['Stand (cm t.o.v. MV)']
-        stand.plot()
-        print stand
+    dino.load_zip('/media/sf_C_DRIVE/projdirs/Gorinchem/dino/1626d423-0d17-499f-b97b-b0ef48fb542f.zip')
+
+#     file = '/home/theo/Desktop/Windows/src/gwdata/dinoloket/Grondwaterstanden/B31B0046/B31B0046001_1.csv'
+#     with open(file) as f:
+#         data = dino.get_data(f)
+#         stand = data['Stand (cm t.o.v. MV)']
+#         stand.plot()
+#         print stand
         # aggregate by hydrological year
         # resample 14 and 28 th of every month
         

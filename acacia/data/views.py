@@ -16,25 +16,36 @@ logger = logging.getLogger(__name__)
 # pandas read_csv does not work on server. Test here
 import numpy as np
 import pandas as pd
-from cStringIO import StringIO
+from StringIO import StringIO
+import csv
+import io
 
 def pandas(request):
-    #fname = '/home/theo/acaciadata.com/acacia/media/spaarwater/borgsweer/perceel-1/datafiles/bedelier-borgsweer/LogFile.csv'
-    fname = '/var/www/vhosts/acaciadata.com/httpdocs/django/acacia/media/spaarwater/borgsweer/perceel-1/datafiles/bedelier-borgsweer/LogFile.csv'
+    fname = '/home/theo/acaciadata.com/acacia/media/spaarwater/borgsweer/perceel-1/datafiles/bedelier-borgsweer/LogFile.csv'
+    #fname = '/var/www/vhosts/acaciadata.com/httpdocs/django/acacia/media/spaarwater/borgsweer/perceel-1/datafiles/bedelier-borgsweer/LogFile.csv'
+    logger.debug('read csv')
+    with open(fname) as f:
+        io = StringIO(f.read())
+        reader = csv.reader(io, delimiter=';')
+        count = 0
+        for row in reader:
+            count = count+1
+    logger.debug('read csv done: %d rows' % count)
+    
     logger.debug('pandas read_csv from file')
     df3 = pd.read_csv(fname, delimiter=';')
     logger.debug('pandas read_csv from file finished')
       
     logger.debug('opening file')
-    with open(fname, 'rt') as f:
+    with open(fname, 'r') as f:
         logger.debug('reading file')
-        io = StringIO(f.read())
-        logger.debug('pandas read_csv in 1 go starting')
-        df3 = pd.read_csv(io, delimiter=';', encoding='utf-8')
-        logger.debug('pandas read_csv in 1 go finished')
+        s = StringIO(f.readlines())
+    logger.debug('pandas read_csv in 1 go starting')
+    pd.read_csv(s, delimiter=';')
+    logger.debug('pandas read_csv in 1 go finished')
      
     logger.debug('numpy read_csv starting')
-    df2 = np.genfromtxt(fname, delimiter=';')
+    np.genfromtxt(fname, delimiter=';')
     logger.debug('numpy read_csv finished')
    
     referer = request.META.get('HTTP_REFERER', 'home')
@@ -195,7 +206,7 @@ class ChartBaseView(TemplateView):
                        }, 
             'legend': {'enabled': chart.series.count() > 1},
             'plotOptions': {'line': {'marker': {'enabled': False}},
-                            'column': {'allowpointSelect': True}},            
+                            'column': {'allowpointSelect': True, 'pointPadding': 0, 'groupPadding': 0, 'pointPlacement': 'between'}},            
             'credits': {'enabled': True, 
                         'text': 'acaciawater.com', 
                         'href': 'http://www.acaciawater.com',
@@ -234,7 +245,7 @@ class ChartBaseView(TemplateView):
             else:
                 sop['tooltip'] = {'valueSuffix': ' ' + ser.unit}                           
             if s.type == 'column' and s.stack is not None:
-                sop['stack'] = s.stack
+                sop['stacking'] = s.stack
             allseries.append(sop)
         options['series'] = allseries
         jop = json.dumps(options,default=date_handler)

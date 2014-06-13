@@ -86,7 +86,10 @@ def get_dirlist(content):
 from zipfile import ZipFile
 import StringIO
 from django.http import HttpResponse
-from django.utils.text import slugify
+import django.utils.text as dut
+
+def slugify(value):
+    return dut.slugify(unicode(value))
 
 def datasources_as_zip(datasources, zipname):
     io = StringIO.StringIO()

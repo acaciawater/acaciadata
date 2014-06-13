@@ -266,15 +266,15 @@ class Datasource(models.Model):
                     sourcefile = SourceFile(name=filename,datasource=self,user=self.user)
                     created = True
                 sourcefile.crc = crc
-                try:
-                    contentfile = ContentFile(contents)
-                    sourcefile.file.save(name=filename, content=contentfile)
-                    logger.info('File %s saved to %s' % (filename, sourcefile.filepath()))
-                    downloaded += 1
-                    crcs[crc] = sourcefile.file
-                except Exception as e:
-                    logger.error('Error saving sourcefile %s: %s' % (filename, e))
-                    errors += 1
+#                try:
+                contentfile = ContentFile(contents)
+                sourcefile.file.save(name=filename, content=contentfile)
+                logger.info('File %s saved to %s' % (filename, sourcefile.filepath()))
+                downloaded += 1
+                crcs[crc] = sourcefile.file
+#                 except Exception as e:
+#                     logger.error('Error saving sourcefile %s: %s' % (filename, e))
+#                     errors += 1
             if errors == 0 and downloaded > 0:
                 self.last_download = timezone.now()
                 self.save(update_fields=['last_download'])
@@ -565,7 +565,7 @@ class Parameter(models.Model):
         if data is None:
             data = self.get_data()
         logger.debug('Generating thumbnail for parameter %s' % self.name)
-        dest =  up.param_thumb_upload(self, slugify(self.name) +'.png')
+        dest =  up.param_thumb_upload(self, slugify(unicode(self.name)) +'.png')
         imagefile = os.path.join(settings.MEDIA_ROOT, dest)
         imagedir = os.path.dirname(imagefile)
         if not os.path.exists(imagedir):
@@ -823,7 +823,7 @@ class Series(models.Model):
             if self.datapoints.count() == 0:
                 self.create(thumbnail=False)
             series = self.to_pandas()
-            dest =  up.series_thumb_upload(self, slugify(self.name)+'.png')
+            dest =  up.series_thumb_upload(self, slugify(unicode(self.name))+'.png')
             imagefile = os.path.join(settings.MEDIA_ROOT, dest)
             imagedir = os.path.dirname(imagefile)
             if not os.path.exists(imagedir):
