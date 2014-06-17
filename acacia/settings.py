@@ -70,27 +70,23 @@ WSGI_APPLICATION = 'acacia.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/1.6/ref/settings/#databases
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.contrib.gis.db.backends.mysql',
-#         'NAME': 'acaciadata',                      # Or path to database file if using sqlite3.
-#         'USER': 'acacia',                      # Not used with sqlite3.
-#         'PASSWORD': 'Acacia@12345',                  # Not used with sqlite3.
-#         'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
-#         'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
-#     }
-# }
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.spatialite',
         'NAME': os.path.join(BASE_DIR, 'acaciadata.db'),                      # Or path to database file if using sqlite3.
+    },
+    'mysql': {
+        'ENGINE': 'django.contrib.gis.db.backends.mysql',
+        'NAME': 'acaciadata',                      # Or path to database file if using sqlite3.
+        'USER': 'acacia',                      # Not used with sqlite3.
+        'PASSWORD': 'Beaumont1',                  # Not used with sqlite3.
+        'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
+        'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
     }
 }
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.6/topics/i18n/
-
 LANGUAGE_CODE = 'nl-nl'
 
 TIME_ZONE = 'Europe/Amsterdam'

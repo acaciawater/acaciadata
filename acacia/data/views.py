@@ -206,7 +206,7 @@ class ChartBaseView(TemplateView):
                        }, 
             'legend': {'enabled': chart.series.count() > 1},
             'plotOptions': {'line': {'marker': {'enabled': False}},
-                            'column': {'allowpointSelect': True, 'pointPadding': 0, 'groupPadding': 0, 'pointPlacement': 'between'}},            
+                            'column': {'allowpointSelect': True, 'pointPadding': 0.01, 'groupPadding': 0.01, 'pointPlacement': 'between'}},            
             'credits': {'enabled': True, 
                         'text': 'acaciawater.com', 
                         'href': 'http://www.acaciawater.com',

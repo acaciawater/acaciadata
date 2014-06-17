@@ -74,6 +74,11 @@ def replace_series(modeladmin, request, queryset):
         s.replace()
 replace_series.short_description = 'Geselecteerde tijdreeksen opnieuw aanmaken'
 
+def empty_series(modeladmin, request, queryset):
+    for s in queryset:
+        s.datapoints.all().delete()
+empty_series.short_description = 'Data van geselecteerde tijdreeksen verwijderen'
+
 def series_thumbnails(modeladmin, request, queryset):
     for s in queryset:
         s.make_thumbnail()

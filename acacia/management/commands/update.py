@@ -40,7 +40,7 @@ class Command(BaseCommand):
                 self.stdout.write('Downloading datasource %s\n' % d.name)
                 newfilecount = d.download()
                 self.stdout.write('Got %d new files\n' % newfilecount)
-                if newfilecount == 0:
+                if newfilecount == 0 and pk is None:
                     continue
             count = count + 1
             self.stdout.write('Reading datasource %s\n' % d.name)

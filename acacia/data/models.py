@@ -26,7 +26,7 @@ THEME_CHOICES = (('dark-blue','blauw'),
 
 class Project(models.Model):
     name = models.CharField(max_length=50, unique=True)
-    description = models.TextField(blank=True,verbose_name='omschrijving')
+    description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     image = models.ImageField(upload_to=up.project_upload, blank = True, null=True)
     logo = models.ImageField(upload_to=up.project_upload, blank=True, null=True,help_text='Mini-logo voor grafieken')
     theme = models.CharField(max_length=50,verbose_name='thema', default='dark-blue',choices=THEME_CHOICES,help_text='Thema voor grafieken')
@@ -46,7 +46,7 @@ class Project(models.Model):
 
 class Webcam(models.Model):
     name = models.CharField(max_length=50,verbose_name='naam')
-    description = models.TextField(blank=True,verbose_name='omschrijving')
+    description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     image = models.TextField(verbose_name = 'url voor snapshot')
     video = models.TextField(verbose_name = 'url voor streaming video')
     admin = models.TextField(verbose_name = 'url voor beheer')
@@ -63,7 +63,7 @@ class Webcam(models.Model):
 class ProjectLocatie(geo.Model):
     project = models.ForeignKey(Project)
     name = models.CharField(max_length=50,verbose_name='naam')
-    description = models.TextField(blank=True,verbose_name='omschrijving')
+    description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     description.allow_tags=True
     image = models.ImageField(upload_to=up.locatie_upload, blank = True, null = True)
     location = geo.PointField(srid=util.RDNEW,verbose_name='locatie', help_text='Projectlocatie in Rijksdriehoekstelsel coordinaten')
@@ -96,7 +96,7 @@ class ProjectLocatie(geo.Model):
 class MeetLocatie(geo.Model):
     projectlocatie = models.ForeignKey(ProjectLocatie)
     name = models.CharField(max_length=50,verbose_name='naam')
-    description = models.TextField(blank=True,verbose_name='omschrijving')
+    description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     image = models.ImageField(upload_to=up.meetlocatie_upload, blank = True, null = True)
     location = geo.PointField(srid=util.RDNEW,verbose_name='locatie', help_text='Meetlocatie in Rijksdriehoekstelsel coordinaten')
     objects = geo.GeoManager()
@@ -158,7 +158,7 @@ class Generator(models.Model):
     name = models.CharField(max_length=50,verbose_name='naam', unique=True)
     classname = models.CharField(max_length=50,verbose_name='python klasse',
                                  help_text='volledige naam van de generator klasse, bijvoorbeeld acacia.data.generators.knmi.Meteo')
-    description = models.TextField(blank=True,verbose_name='omschrijving')
+    description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     
     def get_class(self):
         return classForName(self.classname)
@@ -168,16 +168,16 @@ class Generator(models.Model):
         
 class Datasource(models.Model):
     name = models.CharField(max_length=50,verbose_name='naam')
-    description = models.TextField(blank=True,verbose_name='omschrijving')
+    description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     meetlocatie=models.ForeignKey(MeetLocatie,related_name='datasources',help_text='Meetlocatie van deze gegevensbron')
-    url=models.CharField(blank=True,max_length=200,help_text='volledige url van de gegevensbron. Leeg laten voor handmatige uploads')
+    url=models.CharField(blank=True,null=True,max_length=200,help_text='volledige url van de gegevensbron. Leeg laten voor handmatige uploads')
     generator=models.ForeignKey(Generator,help_text='Generator voor het maken van tijdseries')
     created = models.DateTimeField(auto_now_add=True)
     last_download = models.DateTimeField(null=True, blank=True, verbose_name='geactualiseerd')
     user=models.ForeignKey(User,default=User)
     config=models.TextField(blank=True,null=True,default='{}',verbose_name = 'Additionele configuraties',help_text='Geldige JSON dictionary')
-    username=models.CharField(max_length=50, blank=True, default='anonymous', verbose_name='Gebuikersnaam',help_text='Gebruikersnaam voor downloads')
-    password=models.CharField(max_length=50, blank=True, verbose_name='Wachtwoord',help_text='Wachtwoord voor downloads')
+    username=models.CharField(max_length=50, blank=True, null=True, default='anonymous', verbose_name='Gebuikersnaam',help_text='Gebruikersnaam voor downloads')
+    password=models.CharField(max_length=50, blank=True, null=True, verbose_name='Wachtwoord',help_text='Wachtwoord voor downloads')
 
     class Meta:
         unique_together = ('name', 'meetlocatie',)
@@ -407,7 +407,7 @@ class Datasource(models.Model):
 class SourceFile(models.Model):
     name=models.CharField(max_length=50)
     datasource = models.ForeignKey('Datasource',related_name='sourcefiles', verbose_name = 'gegevensbron')
-    file=models.FileField(upload_to=up.sourcefile_upload,blank=True)
+    file=models.FileField(upload_to=up.sourcefile_upload,blank=True,null=True)
     rows=models.IntegerField(default=0)
     cols=models.IntegerField(default=0)
     start=models.DateTimeField(null=True,blank=True)
@@ -513,8 +513,9 @@ def sourcefile_delete(sender, instance, **kwargs):
 
 @receiver(pre_save, sender=SourceFile)
 def sourcefile_save(sender, instance, **kwargs):
-    instance.get_dimensions()
-    
+    #instance.get_dimensions()
+    pass
+
 SERIES_CHOICES = (('line', 'lijn'),
                   ('column', 'staaf'),
                   ('scatter', 'punt'),
@@ -525,10 +526,10 @@ SERIES_CHOICES = (('line', 'lijn'),
 class Parameter(models.Model):
     datasource = models.ForeignKey(Datasource)
     name = models.CharField(max_length=50,verbose_name='naam')
-    description = models.TextField(blank=True,verbose_name='omschrijving')
+    description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     unit = models.CharField(max_length=10, default='m',verbose_name='eenheid')
     type = models.CharField(max_length=20, default='line', choices = SERIES_CHOICES)
-    thumbnail = models.ImageField(upload_to=up.param_thumb_upload, blank=True, null=True)
+    thumbnail = models.ImageField(upload_to=up.param_thumb_upload, max_length=200, blank=True, null=True)
 
     def __unicode__(self):
         return '%s - %s' % (self.datasource.name, self.name)
@@ -609,17 +610,17 @@ AGGREGATION_METHOD = (
 
 class Series(models.Model):
     name = models.CharField(max_length=50,verbose_name='naam')
-    description = models.TextField(blank=True,verbose_name='omschrijving')
-    unit = models.CharField(max_length=10, blank=True, verbose_name='eenheid')
+    description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
+    unit = models.CharField(max_length=10, blank=True, null=True, verbose_name='eenheid')
     type = models.CharField(max_length=20, blank = True, default='line', choices = SERIES_CHOICES)
     parameter = models.ForeignKey(Parameter, null=True, blank=True)
-    thumbnail = models.ImageField(upload_to=up.series_thumb_upload, blank=True, null=True)
+    thumbnail = models.ImageField(upload_to=up.series_thumb_upload, max_length=200, blank=True, null=True)
     user=models.ForeignKey(User,default=User)
      
     # Nabewerkingen
-    resample = models.CharField(max_length=10,choices=RESAMPLE_METHOD,default='',blank=True, 
+    resample = models.CharField(max_length=10,choices=RESAMPLE_METHOD,blank=True, null=True, 
                                 verbose_name='frequentie',help_text='Frequentie voor resampling van tijdreeks')
-    aggregate = models.CharField(max_length=10,choices=AGGREGATION_METHOD,default='', blank=True, 
+    aggregate = models.CharField(max_length=10,choices=AGGREGATION_METHOD,blank=True, null=True, 
                                  verbose_name='aggregatie', help_text = 'Aggregatiemethode bij resampling van tijdreeks')
     scale = models.FloatField(default = 1.0,verbose_name = 'verschaling', help_text = 'constante factor voor verschaling van de meetwaarden (vóór compensatie)')
     offset = models.FloatField(default = 0.0, verbose_name = 'compensatie', help_text = 'constante compensatie van meetwaarden (ná verschaling)')
@@ -850,7 +851,7 @@ class Variable(models.Model):
         
 class Formula(Series):
     locatie = models.ForeignKey(MeetLocatie)
-    formula_text = models.TextField(blank=True,verbose_name='berekening')
+    formula_text = models.TextField(blank=True,null=True,verbose_name='berekening')
     formula_variables = models.ManyToManyField(Variable,verbose_name = 'variabelen')
     
     def meetlocatie(self):
@@ -908,7 +909,7 @@ import dateutil
     
 class Chart(models.Model):
     name = models.CharField(max_length = 50, verbose_name = 'naam')
-    description = models.TextField(blank=True,verbose_name='omschrijving')
+    description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     title = models.CharField(max_length = 50, verbose_name = 'titel')
     user=models.ForeignKey(User,default=User)
     start = models.DateTimeField(blank=True,null=True)
@@ -974,7 +975,7 @@ class ChartSeries(models.Model):
     color = models.CharField(null=True,blank=True,max_length=16, verbose_name = 'Kleur')
     type = models.CharField(max_length=10, default='line', choices = SERIES_CHOICES)
     stack = models.CharField(max_length=20, blank=True, null=True, verbose_name = 'stapel')
-    label = models.CharField(max_length=20, blank=True,default='')
+    label = models.CharField(max_length=20, blank=True,null=True,default='')
     y0 = models.FloatField(null=True,blank=True,verbose_name='ymin')
     y1 = models.FloatField(null=True,blank=True,verbose_name='ymax')
     t0 = models.DateTimeField(null=True,blank=True,verbose_name='start')
@@ -991,7 +992,7 @@ from django.template.loader import render_to_string
 
 class Dashboard(models.Model):
     name = models.CharField(max_length=50)
-    description = models.TextField(blank=True, verbose_name = 'omschrijving')
+    description = models.TextField(blank=True, null=True,verbose_name = 'omschrijving')
     charts = models.ManyToManyField(Chart, verbose_name = 'grafieken')
     user=models.ForeignKey(User,default=User)
     
