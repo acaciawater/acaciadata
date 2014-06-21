@@ -1,5 +1,5 @@
 from django.conf.urls import patterns, url
-from .views import SpaarwaterDetailView, DashView, DashGroupView
+from .views import SpaarwaterDetailView, DashGroupView
 
 urlpatterns = patterns('spaarwater.views',
     url(r'^$', SpaarwaterDetailView.as_view(), name='spaarwater-home'),

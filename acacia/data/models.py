@@ -174,6 +174,7 @@ class Datasource(models.Model):
     generator=models.ForeignKey(Generator,help_text='Generator voor het maken van tijdseries')
     created = models.DateTimeField(auto_now_add=True)
     last_download = models.DateTimeField(null=True, blank=True, verbose_name='geactualiseerd')
+    autoupdate = models.BooleanField(default=True)
     user=models.ForeignKey(User,default=User)
     config=models.TextField(blank=True,null=True,default='{}',verbose_name = 'Additionele configuraties',help_text='Geldige JSON dictionary')
     username=models.CharField(max_length=50, blank=True, null=True, default='anonymous', verbose_name='Gebuikersnaam',help_text='Gebruikersnaam voor downloads')
@@ -364,7 +365,7 @@ class Datasource(models.Model):
                 data = data.groupby(level=0).last()
             except:
                 pass
-        return data
+        return data.sort()
 
     def to_csv(self):
         io = StringIO.StringIO()
@@ -513,8 +514,7 @@ def sourcefile_delete(sender, instance, **kwargs):
 
 @receiver(pre_save, sender=SourceFile)
 def sourcefile_save(sender, instance, **kwargs):
-    #instance.get_dimensions()
-    pass
+    instance.get_dimensions()
 
 SERIES_CHOICES = (('line', 'lijn'),
                   ('column', 'staaf'),
@@ -972,10 +972,10 @@ class ChartSeries(models.Model):
     name = models.CharField(max_length=50,blank=True,null=True,verbose_name='legendanaam')
     axis = models.IntegerField(default=1,verbose_name='Nummer y-as')
     axislr = models.CharField(max_length=2, choices=AXIS_CHOICES, default='l',verbose_name='Positie y-as')
-    color = models.CharField(null=True,blank=True,max_length=16, verbose_name = 'Kleur')
+    color = models.CharField(null=True,blank=True,max_length=20, verbose_name = 'Kleur', help_text='Standaard kleur (bv Orange) of rgba waarde (bv rgba(128,128,0,1)) of hexadecimaal getal (bv #ffa500)')
     type = models.CharField(max_length=10, default='line', choices = SERIES_CHOICES)
-    stack = models.CharField(max_length=20, blank=True, null=True, verbose_name = 'stapel')
-    label = models.CharField(max_length=20, blank=True,null=True,default='')
+    stack = models.CharField(max_length=20, blank=True, null=True, verbose_name = 'stapel', help_text='leeg laten of <i>normal</i> of <i>percent</i>')
+    label = models.CharField(max_length=20, blank=True,null=True,default='',help_text='label op de y-as')
     y0 = models.FloatField(null=True,blank=True,verbose_name='ymin')
     y1 = models.FloatField(null=True,blank=True,verbose_name='ymax')
     t0 = models.DateTimeField(null=True,blank=True,verbose_name='start')

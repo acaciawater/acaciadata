@@ -83,6 +83,15 @@ class DatasourceForm(ModelForm):
             raise forms.ValidationError('Onjuiste JSON dictionary: %s'% ex)
         return config
     
+    def clean(self):
+        cleaned_data = super(DatasourceForm, self).clean()
+        update = self.cleaned_data['autoupdate']
+        if update:
+            url = self.cleaned_data['url']
+            if url == '' or url is None:
+                raise forms.ValidationError('Als autoupdate aangevinkt is moet een url opgegeven worden')
+        return cleaned_data
+        
 class DatasourceAdmin(admin.ModelAdmin):
     form = DatasourceForm
 #    inlines = [ParameterInline,]
@@ -95,7 +104,7 @@ class DatasourceAdmin(admin.ModelAdmin):
                  ('Algemeen', {'fields': ('name', 'description', 'meetlocatie',),
                                'classes': ('grp-collapse grp-open',),
                                }),
-                 ('Bronnen', {'fields': ('generator', 'url',('username', 'password'), 'config',),
+                 ('Bronnen', {'fields': (('generator', 'autoupdate'), 'url',('username', 'password',), 'config',),
                                'classes': ('grp-collapse grp-closed',),
                               }),
     )

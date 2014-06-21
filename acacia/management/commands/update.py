@@ -32,9 +32,9 @@ class Command(BaseCommand):
         count = 0
         pk = options.get('pk', None)
         if pk is None:
-            datasources = Datasource.objects.exclude(url=None)
+            datasources = Datasource.objects.exclude(autoupdate=False, url=None)
         else:
-            datasources = Datasource.objects.filter(pk=pk)
+            datasources = Datasource.objects.filter(pk=pk, autoupdate=True)
         for d in datasources:
             if down:
                 self.stdout.write('Downloading datasource %s\n' % d.name)

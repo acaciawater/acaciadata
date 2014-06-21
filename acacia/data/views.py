@@ -236,6 +236,8 @@ class ChartBaseView(TemplateView):
                    'type': s.type,
                    'yAxis': s.axis-1,
                    'data': pts}
+            if not s.color is None and len(s.color)>0:
+                sop['color'] = s.color
             if s.type == 'scatter':
                 sop['tooltip'] = {'valueSuffix': ' '+ser.unit,
                                   'headerFormat': '<small>{point.key}</small><br/><table>',

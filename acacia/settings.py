@@ -71,11 +71,11 @@ WSGI_APPLICATION = 'acacia.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/1.6/ref/settings/#databases
 DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.contrib.gis.db.backends.spatialite',
+#         'NAME': os.path.join(BASE_DIR, 'acaciadata.db'),                      # Or path to database file if using sqlite3.
+#     },
     'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.spatialite',
-        'NAME': os.path.join(BASE_DIR, 'acaciadata.db'),                      # Or path to database file if using sqlite3.
-    },
-    'mysql': {
         'ENGINE': 'django.contrib.gis.db.backends.mysql',
         'NAME': 'acaciadata',                      # Or path to database file if using sqlite3.
         'USER': 'acacia',                      # Not used with sqlite3.
