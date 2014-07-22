@@ -1,0 +1,83 @@
+{% extends 'boot.html' %}
+{% load l10n %}
+{% block title %}Project {{object.name}}{% endblock title %}
+{% block extrastyle %}
+<style type="text/css">
+    body {
+        //background-image: url("/static/acacia/img/spaarwaterbg.png");background-repeat: no-repeat;z-index: 0;background-position: center top;
+        z-index: inherit;
+    }
+    td a img {
+		float:right;
+		height:160px;
+		padding: 0px 0px 8px 8px;    
+    }
+</style>
+{% endblock %}
+{% block navbar %}{% endblock %}
+{% block admin_url %}project/{{object.id}}{% endblock %}
+{% block script %}
+{{ block.super }}
+{% localize off %}
+<script src="http://maps.google.com/maps/api/js?sensor=false"></script>
+<script>
+var map;
+function initialize() {
+    map = new google.maps.Map(document.getElementById('map'), {
+        zoom: 14,
+        mapTypeId: google.maps.MapTypeId.{{maptype}}
+    });
+	var json = {{content|safe}};
+	var bounds = new google.maps.LatLngBounds();
+	var infowindow = new google.maps.InfoWindow();
+	var marker;
+	json.forEach(function(loc) {
+   		marker = new google.maps.Marker({
+   			position: new google.maps.LatLng(loc.lat,loc.lon),
+			title: "Locatie "+ loc.name, 
+   			map: map
+   		});
+   		google.maps.event.addListener(marker, 'click', (function(marker) {
+	        return function() {
+	          infowindow.setContent(loc.info);
+	          infowindow.open(map, marker);
+	        }
+	      })(marker));
+		bounds.extend(marker.position);
+	});
+	map.fitBounds(bounds);
+}
+$(function(){initialize();});
+</script>
+{% endlocalize %}
+{% endblock %}
+
+{% block content %}
+<div class = "container">
+<div class = "row-fluid">
+<h3>{{object.name}}</h3>
+{{object.description|safe}}
+</div>
+<div id = map style="width:100%;height:400px;"></div>
+<table class="table table-striped">
+<thead>
+<tr>
+<!-- <th>Foto</th> -->
+<th>Locatie</th>
+<th>Omschrijving</th>
+</tr>
+</thead>
+<tbody>
+{% for loc in object.projectlocatie_set.all %}
+<tr>
+<td><a href="{% url 'vic-dashboard' loc.name %}">{{loc.name}}</a></td>
+<td>{%if loc.webcam%}<a href="{{loc.webcam.image}}"><img src="{{loc.webcam.image}}"/></a>{% endif %}{{loc.description|safe}}</td>
+</tr>
+{% empty %}
+    <div>Geen locaties gevonden</div>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</div>
+{% endblock content %}

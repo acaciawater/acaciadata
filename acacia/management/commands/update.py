@@ -21,7 +21,12 @@ class Command(BaseCommand):
                 type = 'int',
                 dest = 'pk',
                 default = None,
-                help = 'update single datasource')
+                help = 'update single datasource'),
+            make_option('--nocalc',
+                action='store_false',
+                dest = 'calc',
+                default = True,
+                help = 'skip update of calculated series')
         )
     def handle(self, *args, **options):
         down = options.get('down')
@@ -57,14 +62,16 @@ class Command(BaseCommand):
         self.stdout.write('%d datasources were updated\n' % count)
         
         if Formula.objects.count() > 0:
-            self.stdout.write('Updating calculated timeseries\n')
-            count = 0
-            for f in Formula.objects.all():
-                self.stdout.write('  Updating timeseries %s\n' % f.name)
-                try:
-                    f.update()
-                    count = count + 1
-                except Exception as e:
-                    self.stderr.write('ERROR updating calculated timeseries %s: %s\n' % (f.name, e))
-            self.stdout.write('%d calculated timeseries were updated\n' % count)
-                        
+            calc = options.get('calc')
+            if calc:
+                self.stdout.write('Updating calculated timeseries\n')
+                count = 0
+                for f in Formula.objects.all():
+                    self.stdout.write('  Updating timeseries %s\n' % f.name)
+                    try:
+                        f.update()
+                        count = count + 1
+                    except Exception as e:
+                        self.stderr.write('ERROR updating calculated timeseries %s: %s\n' % (f.name, e))
+                self.stdout.write('%d calculated timeseries were updated\n' % count)
+                            

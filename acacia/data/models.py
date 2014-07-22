@@ -667,25 +667,28 @@ class Series(models.Model):
             except Exception as e:
                 logger.error('Resampling of series %s failed: %s' % (self.name, e))
                 return None
-        if self.scale != 1.0:
-            series = series * self.scale
-        if self.offset != 0.0:
-            series = series + self.offset
         if self.cumsum:
             if self.cumstart is not None:
                 start = series.index.searchsorted(self.cumstart)
                 series = series[start:]
             series = series.cumsum()
+        if self.scale != 1.0:
+            series = series * self.scale
+        if self.offset != 0.0:
+            series = series + self.offset
         return series
          
-    def get_series_data(self, dataframe):
+    def get_series_data(self, dataframe, start=None):
         if dataframe is None:
             dataframe = self.parameter.get_data()
             if dataframe is None:
                 return None
         series = dataframe[self.parameter.name]
-        return self.do_postprocess(series)
-    
+        series = self.do_postprocess(series)
+        if start is not None:
+            series = series[start]
+        return series
+
     def create(self, data=None, thumbnail=True):
         tz = timezone.get_current_timezone()
         num_created = 0
@@ -720,13 +723,13 @@ class Series(models.Model):
         self.datapoints.all().delete()
         self.create()
 
-    def update(self, data=None):
+    def update(self, data=None, start=None):
         tz = timezone.get_current_timezone()
         num_bad = 0
         num_created = 0
         num_updated = 0
         logger.info('Updating series %s' % self.name)
-        series = self.get_series_data(data)
+        series = self.get_series_data(data, start)
         if series is None:
             logger.error('Update of series %s failed' % self.name)
             return
@@ -867,12 +870,12 @@ class Formula(Series):
                 variables[name] = series.resample(rule=self.resample, how=self.aggregate)
         # add all series into a single dataframe
         df = pd.DataFrame(variables)
-        # interpolate missing values
+        # TODO: interpolate missing values correct for inequal length series?
         df = df.interpolate(method='time')
         variables = df.to_dict('series')
         return variables
     
-    def get_series_data(self,data):
+    def get_series_data(self,data,start=None):
         variables = self.get_variables()
         result = eval(self.formula_text, globals(), variables)
         if isinstance(result, pd.DataFrame):

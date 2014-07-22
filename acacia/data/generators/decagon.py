@@ -383,8 +383,8 @@ class Dataservice(Generator):
                 series = pd.Series(data,index=df.index)
                 df[p['name']] = series
                 logger.debug('Finished adding data for %s' % pname)
-        # drop rows where index = None
-        #df.drop([np.nan, None],inplace=True)
+        # drop rows where index = NaT
+        df.drop([pd.NaT],inplace=True)
         # drop rows if all values are na
         df.dropna(how='all',inplace=True)
         return df
