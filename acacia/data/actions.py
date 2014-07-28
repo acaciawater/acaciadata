@@ -48,10 +48,7 @@ update_thumbnails.short_description = "Thumbnails vernieuwen van geselecteerde p
 def generate_series(modeladmin, request, queryset):
     for p in queryset:
         try:
-            s, created = p.series_set.get_or_create(name = p.name, description = p.description, unit = p.unit, user = request.user)
-            s.replace()
-            s.make_thumbnail() 
-            s.save()
+            p.series_set.get_or_create(name = p.name, description = p.description, unit = p.unit, user = request.user)
         except Exception as e:
             logger.error('ERROR creating series %s: %s' % (p.name, e))
 generate_series.short_description = 'Standaard tijdreeksen aanmaken voor geselecteerde parameters'

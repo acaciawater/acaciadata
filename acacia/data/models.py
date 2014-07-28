@@ -363,9 +363,10 @@ class Datasource(models.Model):
                     data = data[slicer]
                 # remove duplicates
                 data = data.groupby(level=0).last()
+                return data.sort()
             except:
                 pass
-        return data.sort()
+        return data
 
     def to_csv(self):
         io = StringIO.StringIO()

@@ -44,8 +44,10 @@ class DataTrac(Generator):
         return params
 
 # bit masks
+m9  = 0b111111111
 m10 = 0b1111111111
 m12 = 0b111111111111
+m13 = 0b1111111111111
 m16 = 0b1111111111111111
 
 # converters
@@ -156,6 +158,48 @@ def conv116(x):
         EC = 10**(Rec/190.0)/1000
     return [level, temp, EC]
 
+def conv106(x):
+    '''
+    conversion for CTD-5 Depth/Temp/EC
+    Water level in bits 0-12
+    Temperature in bits 23-31
+    EC in bits 13-22
+    '''
+    if np.isnan(x):
+        return [np.nan,np.nan,np.nan]
+    raw = np.uint32(x)
+    
+    if raw == 0:
+        # unplugged
+        return [np.nan,np.nan,np.nan]
+    
+    RL = raw & m13
+    if RL == 0:
+        level = np.nan
+    elif RL < 5100:
+        level = RL
+    elif RL <= 8190:
+        level = (RL-5100)*2 + 5100
+    else:
+        level = np.nan # error
+
+    RT = (raw >> 23) & m9
+    if RT == 0:
+        level = np.nan
+    elif RT <= 10:
+        temp = RT-11
+    elif RT <= 510:
+        temp = (RT-20) / 10.0
+    else:
+        temp = np.nan # error
+
+    Rec = (raw >> 13) & m10
+    if Rec == 0:
+        EC = np.nan
+    else:
+        EC = 10**(Rec/190.0)/1000
+    return [level, temp, EC]
+
 def conv187(x):
     ''' conversion for ECRN-100 Precipitation '''
     if np.isnan(x):
@@ -205,13 +249,19 @@ SENSORDATA = {
     119: {'converter': conv119,
           'parameters':[{'name': 'VWC', 'description': 'Volumetric water content', 'unit': 'm3/m3'},
                         {'name': 'Temp', 'description': 'Temperature', 'unit': 'oC'},
-                        {'name': 'EC', 'description': 'Bulk Electrical Conductivity', 'unit': 'dS/cm'}
+                        {'name': 'EC', 'description': 'Bulk Electrical Conductivity', 'unit': 'mS/cm'}
                         ]
           },
     116: {'converter': conv116,
           'parameters':[{'name': 'Level', 'description': 'Water level', 'unit': 'mm'},
                         {'name': 'Temp', 'description': 'Temperature', 'unit': 'oC'},
-                        {'name': 'EC', 'description': 'Electrical Conductivity', 'unit': 'dS/cm'}
+                        {'name': 'EC', 'description': 'Electrical Conductivity', 'unit': 'mS/cm'}
+                        ]
+          },
+    106: {'converter': conv106,
+          'parameters':[{'name': 'Level', 'description': 'Water level', 'unit': 'mm'},
+                        {'name': 'Temp', 'description': 'Temperature', 'unit': 'oC'},
+                        {'name': 'EC', 'description': 'Electrical Conductivity', 'unit': 'mS/cm'}
                         ]
           },
     187: { 'converter': conv187,
