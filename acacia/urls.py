@@ -12,7 +12,7 @@ urlpatterns = patterns('',
     url(r'^knmi/', include('acacia.data.knmi.urls')),
     url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
     url(r'^admin/', include(admin.site.urls)),
-    url(r'^data/', include('acacia.data.urls')),
+    url(r'^data/', include('acacia.data.urls',namespace='acacia')),
     url(r'^spaarwater/', include('spaarwater.urls')),
     url(r'^vic/', include('vic.urls')),
 )

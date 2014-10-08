@@ -7,7 +7,7 @@
 <div class="container-fluid">
 <div class="row row-fluid">
 {% for chart in dashboard.sorted_charts.all %}
-<div class=col-md-6><a href = "{% url 'chart-detail' chart.id %}"><iframe src="{% url 'chart-detail' chart.id %}" height="320px" width="600px" marginwidth="0" seamless="seamless" frameborder="0"></iframe></a></div>
+<div class=col-md-6><a href = "{% url acacia:chart-detail chart.id %}"><iframe src="{% url acacia:chart-detail chart.id %}" height="320px" width="600px" marginwidth="0" seamless="seamless" frameborder="0"></iframe></a></div>
 {% if forloop.counter|divisibleby:2 %}
 </div><div class="row row-fluid">
 {% endif %}

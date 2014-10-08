@@ -5,9 +5,9 @@
 {% block breadcrumbs %}
 <ol class="breadcrumb">
 	<li><a href="{% url 'home' %}">Home</a></li>
-	<li><a href="{% url 'project-list' %}">Projecten</a></li>
-	<li><a href="{% url 'project-detail' object.project.id %}">{{object.project.name}}</a></li>
-	<li class="active"><a href="{% url 'projectlocatie-detail' object.id %}">{{object.name}}</a></li>
+	<li><a href="{% url 'acacia:project-list' %}">Projecten</a></li>
+	<li><a href="{% url 'acacia:project-detail' object.project.id %}">{{object.project.name}}</a></li>
+	<li class="active"><a href="{% url 'acacia:projectlocatie-detail' object.id %}">{{object.name}}</a></li>
 </ol>
 {% endblock breadcrumbs %}
 {% block admin_url %}projectlocatie/{{object.id}}{% endblock %}
@@ -59,7 +59,7 @@ $(function(){initialize();});
 <tbody>
 {% for loc in object.meetlocatie_set.all %}
 <tr>
-<td><a href="{% url 'meetlocatie-detail' loc.id %}">{{loc.name}}</a></td>
+<td><a href="{% url 'acacia:meetlocatie-detail' loc.id %}">{{loc.name}}</a></td>
 <td>{% if loc.webcam %}<br/>{{loc.webcam.snapshot|safe}}{%endif%}</td>
 <td>{{loc.datasources.count}}</td>
 <td>{{loc.filecount}}</td>

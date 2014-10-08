@@ -4,7 +4,7 @@ from django.views.generic import DetailView
 from django.views.generic.base import TemplateView
 from django.template.loader import render_to_string
 from django.shortcuts import get_object_or_404, redirect
-from .models import Project, ProjectLocatie, MeetLocatie, Datasource, Series, Chart, Dashboard
+from .models import Project, ProjectLocatie, MeetLocatie, Datasource, Series, Chart, Dashboard, TabGroup
 from .util import datasource_as_zip, datasource_as_csv, meetlocatie_as_zip, series_as_csv, chart_as_csv
 import json
 import datetime
@@ -278,7 +278,7 @@ class ChartView(ChartBaseView):
     
 class DashView(TemplateView):
     template_name = 'data/dash.html'
-    
+     
     def get_context_data(self, **kwargs):
         context = super(DashView,self).get_context_data(**kwargs)
         pk = context.get('pk', None)
@@ -286,3 +286,18 @@ class DashView(TemplateView):
         context['dashboard'] = dash
         return context
     
+class DashGroupView(TemplateView):
+    template_name = 'dashgroup.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super(DashGroupView,self).get_context_data(**kwargs)
+        name = context.get('name')
+        page = int(self.request.GET.get('page', 1))
+        group = get_object_or_404(TabGroup, name__iexact=name)
+        dashboards =[p.dashboard for p in group.tabpage_set.order_by('order')]
+        context['group'] = group
+        page = min(page, len(dashboards))
+        if page > 0:
+            context['page'] = int(page)
+            context['dashboard'] = dashboards[page-1]
+        return context    

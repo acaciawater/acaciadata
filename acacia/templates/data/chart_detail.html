@@ -7,7 +7,7 @@
 {{ block.super }}
 <br/>
 <div class="text-center">
-<a href="{% url 'chart-csv' chart.id %}" class="btn btn-primary active" data-toggle="tooltip" title="Tijdreeksen van deze grafiek downloaden als csv bestand" id="download">Downloaden</a>
+<a href="{% url 'acacia:chart-csv' chart.id %}" class="btn btn-primary active" data-toggle="tooltip" title="Tijdreeksen van deze grafiek downloaden als csv bestand" id="download">Downloaden</a>
 </div>
 
 {% endblock %}

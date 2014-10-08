@@ -43,7 +43,11 @@ class Command(BaseCommand):
         for d in datasources:
             if down:
                 self.stdout.write('Downloading datasource %s\n' % d.name)
-                newfilecount = d.download()
+                try:
+                    newfilecount = d.download()
+                except Exception as e:
+                    self.stderr.write('ERROR downloading datasource %s: %s\n' % (d.name, e))
+                    continue
                 self.stdout.write('Got %d new files\n' % newfilecount)
                 if newfilecount == 0 and pk is None:
                     continue
@@ -51,7 +55,10 @@ class Command(BaseCommand):
             self.stdout.write('Reading datasource %s\n' % d.name)
             data = d.get_data()
             self.stdout.write('  Updating parameters\n')
-            d.update_parameters(data)
+#             try:
+#                 d.update_parameters(data)
+#             except Exception as e:
+#                     self.stderr.write('ERROR updating parameters for datasource %s: %s\n' % (d.name, e))
             for p in d.parameter_set.all():
                 for s in p.series_set.all():
                     self.stdout.write('  Updating timeseries %s\n' % s.name)

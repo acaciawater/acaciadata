@@ -45,9 +45,39 @@ class Koenders(Generator):
             params[name] = {'description' : name, 'unit': '-'} 
         return params
 
+class Koenders52(Koenders):
+    def get_header(self, f):
+        return {'COLUMNS': ['Datumtijd','regelnummer', 'pulswaarde','mmwater','ecwaarde','kanaal4','diwaarde','batterij','status']}
+    
+    def get_data(self, f, **kwargs):
+        header = self.get_header(f)
+        names = header['COLUMNS']
+        data = self.read_csv(f, header=0, names=names, index_col=[0], parse_dates = True)
+        data.dropna(inplace=True)
+        return data
+
+class Koenders5247(Koenders52):
+    def get_header(self, f):
+        sections = {}
+        line1 = f.readline()
+        line2 = f.readline()
+        line3 = f.readline()
+        line4 = f.readline()
+        colnames = [n.strip('"\r\n') for n in line2.split(',')]
+        sections['COLUMNS'] = colnames
+        return sections
+    
+    def get_data(self, f, **kwargs):
+        header = self.get_header(f)
+        names = header['COLUMNS']
+        data = self.read_csv(f, header=None, names=names, index_col=[0], parse_dates = True)
+        data.dropna(inplace=True)
+        return data
+
 if __name__ == '__main__':
-    k = Koenders()
-    with open('/home/theo/data/koenders/S5070.LOG') as f:
+    k = Koenders5247()
+    with open('/home/theo/data/koenders/S5247 Acacia water CR1000_meetwaarde.dat') as f:
         data = k.get_data(f)
         print data.index.min(), data.index.max()
-    
+
+        

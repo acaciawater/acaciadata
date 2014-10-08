@@ -4,8 +4,8 @@
 {% block breadcrumbs %}
 <ol class="breadcrumb">
 	<li><a href="{% url 'home' %}">Home</a></li>
-	<li><a href="{% url 'project-list' %}">Projecten</a></li>
-	<li class="active"><a href="{% url 'project-detail' object.id %}">{{object.name}}</a></li>
+	<li><a href="{% url 'acacia:project-list' %}">Projecten</a></li>
+	<li class="active"><a href="{% url 'acacia:project-detail' object.id %}">{{object.name}}</a></li>
 	
 </ol>
 {% endblock breadcrumbs %}
@@ -65,7 +65,7 @@ $(function(){initialize();});
 <tbody>
 {% for loc in object.projectlocatie_set.all %}
 <tr>
-<td><a href="{% url 'projectlocatie-detail' loc.id %}">{{loc.name}}</a></td>
+<td><a href="{% url 'acacia:projectlocatie-detail' loc.id %}">{{loc.name}}</a></td>
 <td>{{loc.description|safe}}</td>
 <td>{%if loc.webcam%}{{loc.webcam.snapshot|safe}}{% endif %}</td>
 </tr>

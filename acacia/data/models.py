@@ -36,7 +36,7 @@ class Project(models.Model):
     location_count.short_description='Aantal locaties'
     
     def get_absolute_url(self):
-        return reverse('project-detail', args=[self.id])
+        return reverse('acacia:project-detail', args=[self.id])
          
     def __unicode__(self):
         return self.name
@@ -71,7 +71,7 @@ class ProjectLocatie(geo.Model):
     webcam = models.ForeignKey(Webcam, null = True, blank=True)
 
     def get_absolute_url(self):
-        return reverse('projectlocatie-detail', args=[self.id])
+        return reverse('acacia:projectlocatie-detail', args=[self.id])
 
     def location_count(self):
         return self.meetlocatie_set.count()
@@ -113,7 +113,7 @@ class MeetLocatie(geo.Model):
     datasourcecount.short_description = 'Aantal datasources'
 
     def get_absolute_url(self):
-        return reverse('meetlocatie-detail',args=[self.id])
+        return reverse('acacia:meetlocatie-detail',args=[self.id])
     
     def __unicode__(self):
         return '%s %s' % (self.projectlocatie, self.name)
@@ -166,6 +166,9 @@ class Generator(models.Model):
     def __unicode__(self):
         return self.name
         
+    class Meta:
+        ordering = ['name',]
+        
 class Datasource(models.Model):
     name = models.CharField(max_length=50,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
@@ -181,6 +184,7 @@ class Datasource(models.Model):
     password=models.CharField(max_length=50, blank=True, null=True, verbose_name='Wachtwoord',help_text='Wachtwoord voor downloads')
 
     class Meta:
+        ordering = ['name',]
         unique_together = ('name', 'meetlocatie',)
         verbose_name = 'gegevensbron'
         verbose_name_plural = 'gegevensbronnen'
@@ -189,7 +193,7 @@ class Datasource(models.Model):
         return self.name
 
     def get_absolute_url(self):
-        return reverse('datasource-detail', args=[self.id]) 
+        return reverse('acacia:datasource-detail', args=[self.id]) 
     
     def get_generator_instance(self):
         if self.generator is None:
@@ -409,7 +413,7 @@ class Datasource(models.Model):
 class SourceFile(models.Model):
     name=models.CharField(max_length=50)
     datasource = models.ForeignKey('Datasource',related_name='sourcefiles', verbose_name = 'gegevensbron')
-    file=models.FileField(upload_to=up.sourcefile_upload,blank=True,null=True)
+    file=models.FileField(max_length=200,upload_to=up.sourcefile_upload,blank=True,null=True)
     rows=models.IntegerField(default=0)
     cols=models.IntegerField(default=0)
     start=models.DateTimeField(null=True,blank=True)
@@ -536,6 +540,7 @@ class Parameter(models.Model):
         return '%s - %s' % (self.datasource.name, self.name)
 
     class Meta:
+        ordering = ['name',]
         unique_together = ('name', 'datasource',)
 
     def meetlocatie(self):
@@ -629,12 +634,13 @@ class Series(models.Model):
     cumstart = models.DateTimeField(blank = True, null = True, verbose_name='start accumulatie')
     
     class Meta:
+        ordering = ['name',]
         unique_together = ('parameter', 'name',)
         verbose_name = 'Reeks'
         verbose_name_plural = 'Reeksen'
         
     def get_absolute_url(self):
-        return reverse('series-detail', args=[self.id]) 
+        return reverse('acacia:series-detail', args=[self.id]) 
 
     def datasource(self):
         p = self.parameter
@@ -928,7 +934,7 @@ class Chart(models.Model):
         return self.name
     
     def get_absolute_url(self):
-        return reverse('chart-view', args=[self.id])
+        return reverse('acacia:chart-view', args=[self.id])
 
     def auto_start(self):
         if self.start is None:
@@ -961,6 +967,7 @@ class Chart(models.Model):
         return io.getvalue()
         
     class Meta:
+        ordering = ['name',]
         verbose_name = 'Grafiek'
         verbose_name_plural = 'Grafieken'
 
@@ -989,6 +996,7 @@ class ChartSeries(models.Model):
         return self.series
     
     class Meta:
+        ordering = ['name',]
         verbose_name = 'tijdreeks'
         verbose_name_plural = 'tijdreeksen'
 
@@ -1007,7 +1015,7 @@ class Dashboard(models.Model):
         return self.charts.order_by('name')
     
     def get_absolute_url(self):
-        return reverse('dash-view', args=[self.id]) 
+        return reverse('acacia:dash-view', args=[self.id]) 
 
     def __unicode__(self):
         return self.name

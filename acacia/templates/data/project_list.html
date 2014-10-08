@@ -3,7 +3,7 @@
 {% block breadcrumbs %}
 <ol class="breadcrumb">
 	<li><a href="{% url 'home' %}">Home</a></li>
-	<li class="active"><a href="{% url 'project-list' %}">Projecten</a></li>
+	<li class="active"><a href="{% url 'acacia:project-list' %}">Projecten</a></li>
 </ol>
 {% endblock breadcrumbs %}
 {% block admin_url %}project{% endblock %}
@@ -23,11 +23,11 @@
 {% for project in object_list %}
 <tr>
 <!-- <td><img src="/media/{{project.image}}"/></td> -->
-<td><a href='{% url "project-detail" project.id %}'>{{project.name}}</a></td>
+<td><a href="{% url 'acacia:project-detail' project.id %}">{{project.name}}</a></td>
 <td>
 <ol>
 {% for loc in project.projectlocatie_set.all %} 
-	<li><a href='{% url "projectlocatie-detail" loc.id %}'>{{loc.name}}</a></li>
+	<li><a href="{% url 'acacia:projectlocatie-detail' loc.id %}">{{loc.name}}</a></li>
 {% empty %}
     <div class="text-warning"><em>Geen locaties gevonden</em></div>
 {% endfor %}

@@ -6,7 +6,7 @@ from .views import DatasourceDetailView, DatasourceAsZip, DatasourceAsCsv, Proje
     MeetLocatieDetailView, MeetlocatieAsZip, SeriesAsCsv, ChartAsCsv, UpdateMeetlocatie, ChartView, ChartBaseView, DashView, SeriesView
 
 
-urlpatterns = patterns('acacia.data.views',
+urlpatterns = patterns('',
     url(r'^$', ListView.as_view(model=Project), name='project-list'),
     url(r'^pandas/', 'pandas', name = 'pandas'),
     url(r'^bron/(?P<pk>\d+)/$', DatasourceDetailView.as_view(), name='datasource-detail'),

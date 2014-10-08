@@ -3,25 +3,14 @@
 {% block title %}Acacia Meetlocatie {{object.name}}{% endblock title %}
 {% block brandname %}{% endblock brandname %}
 {% block navbar-right %}
-<!-- {% localize off %} -->
-<!-- <li class="dropdown"> -->
-<!--   <a href="#" class="dropdown-toggle" data-toggle="dropdown">Toevoegen <b class="caret"></b></a> -->
-<!--   <ul class="dropdown-menu"> -->
-<!--     <li><a href="#" data-toggle="tooltip" title="Datafile toevoegen">Datafile</a></li> -->
-<!--     <li><a href="{% url 'find_stations'%}?type=meteo&amp;x={{object.location.x}}&amp;y={{object.location.y}}" data-toggle="tooltip" title="Dichtstbijzijnde KNMI Meteostation toevoegen">Meteostation</a></li> -->
-<!--     <li><a href="{% url 'find_stations'%}?type=neerslag&amp;x={{object.location.x}}&amp;y={{object.location.y}}" data-toggle="tooltip" title="Dichtstbijzijnde KNMI Neerslagstation toevoegen">Neerslagstation</a></li> -->
-<!--     <li><a href="#" data-toggle="tooltip" title="Dahelijkse neerslag van de nationale regenradar toevoegen">Regenradar</a></li> -->
-<!--   </ul> -->
-<!-- </li> -->
-<!-- {% endlocalize %} -->
 {% endblock navbar-right %}
 {% block breadcrumbs %}
 <ol class="breadcrumb">
 	<li><a href="{% url 'home' %}">Home</a></li>
-	<li><a href="{% url 'project-list' %}">Projecten</a></li>
-	<li><a href="{% url 'project-detail' object.project.id %}">{{object.project.name}}</a></li>
-	<li><a href="{% url 'projectlocatie-detail' object.projectlocatie.id %}">{{object.projectlocatie.name}}</a></li>
-	<li class="active"><a href="{% url 'meetlocatie-detail' object.id %}">{{object.name}}</a></li>
+	<li><a href="{% url 'acacia:project-list' %}">Projecten</a></li>
+	<li><a href="{% url 'acacia:project-detail' object.project.id %}">{{object.project.name}}</a></li>
+	<li><a href="{% url 'acacia:projectlocatie-detail' object.projectlocatie.id %}">{{object.projectlocatie.name}}</a></li>
+	<li class="active"><a href="{% url 'acacia:meetlocatie-detail' object.id %}">{{object.name}}</a></li>
 </ol>
 {% endblock breadcrumbs %}
 {% block admin_url %}meetlocatie/{{object.id}}{% endblock %}
@@ -72,7 +61,7 @@ $(function(){initialize();});
 <tbody>
 {% for d in object.datasources.all %}
 <tr>
-<td><a href='{% url "datasource-detail" d.id %}'>{{d.name}}</a></td>
+<td><a href='{% url "acacia:datasource-detail" d.id %}'>{{d.name}}</a></td>
 <td>{{d.filecount}}</td>
 <td>{{d.parametercount}}</a></td>
 <td>{{d.seriescount}}</td>
@@ -87,31 +76,8 @@ $(function(){initialize();});
 </table>
 </div>
 <div class="text-right">
-<!-- {% localize off %} -->
-<!-- <a class="btn btn-primary" data-toggle="modal" data-target="#stations" -->
-<!-- href="{% url 'select_station' %}?type=meteo&amp;x={{object.location.x}}&amp;y={{object.location.y}}" > -->
-<!-- Selecteer station</a> -->
-<!-- {% endlocalize %} -->
-<!-- <a href="{% url 'meetlocatie-update' object.id %}" class="btn btn-primary" data-toggle="tooltip" title="Alle gegevens van deze meetlocatie actualiseren" id="refresh">Actualiseren</a> -->
-<a href="{% url 'meetlocatie-zip' object.id %}" class="btn btn-default active" data-toggle="tooltip" title="Alle bestanden van deze meetlocatie downloaden" id="download">Downloaden</a>
+<a href="{% url 'acacia:meetlocatie-zip' object.id %}" class="btn btn-default active" data-toggle="tooltip" title="Alle bestanden van deze meetlocatie downloaden" id="download">Downloaden</a>
 </div>
 </div>
 </div>
-<!-- <div class="modal" id="stations" role="dialog"> -->
-<!--   <div class="modal-dialog"> -->
-<!--     <div class="modal-content"> -->
-<!--       <div class="modal-header"> -->
-<!--         <button type="button" class="close" data-dismiss="modal"></button> -->
-<!--         <h4 class="modal-title" id="myModalLabel">Modal title</h4> -->
-<!--       </div> -->
-<!--       <div class="modal-body"> -->
-<!--         ... -->
-<!--       </div> -->
-<!--       <div class="modal-footer"> -->
-<!--         <button type="button" class="btn btn-default" data-dismiss="modal">Close</button> -->
-<!--         <button type="button" class="btn btn-primary">Save changes</button> -->
-<!--       </div> -->
-<!--     </div> -->
-<!--   </div> -->
-<!-- </div> -->
 {% endblock content %}

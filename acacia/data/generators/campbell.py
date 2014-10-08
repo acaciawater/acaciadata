@@ -11,24 +11,33 @@ from generator import Generator
 class CR1000(Generator):
 
     def get_header(self, f):
+        
+        def rd(f):
+            return [n.strip('"\r\n') for n in f.readline().split(',')]
+        
         sections = {}
-        header = f.readlines(4)
-        reader = csv.reader(header)
-        row = reader.next()
-        sections['HEADER'] = row
-        row = reader.next()
-        sections['COLUMNS'] = row
-        row = reader.next()
-        sections['UNITS'] = row
-        row = reader.next()
-        sections['AGGR'] = row
+        sections['HEADER'] = rd(f) 
+        sections['COLUMNS'] = rd(f)
+        sections['UNITS'] = rd(f)
+        sections['AGGR'] = rd(f)
         return sections
+
+#     def get_header(self, f):
+#         sections = {}
+#         header = []
+#         header.extend(f.readline() for x in range(4))
+#         reader = csv.reader(header)
+#         sections['HEADER'] = reader.next()
+#         sections['COLUMNS'] = reader.next()
+#         sections['UNITS'] = reader.next()
+#         sections['AGGR'] = reader.next()
+#         return sections
     
     def get_data(self, f, **kwargs):
         header = self.get_header(f)
         names = header['COLUMNS']
-        data = self.read_csv(f, header=None, names=names, parse_dates = True )
-        return [header, data]
+        data = self.read_csv(f, header=None, names=names, index_col=[0], parse_dates = True)
+        return data
 
     def upload(self,f,**kwargs):
         pass
