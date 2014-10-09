@@ -41,24 +41,31 @@ class Command(BaseCommand):
         else:
             datasources = Datasource.objects.filter(pk=pk, autoupdate=True)
         for d in datasources:
+            start = d.stop()
             if down:
                 self.stdout.write('Downloading datasource %s\n' % d.name)
                 try:
-                    newfilecount = d.download()
+                    newfiles = d.download()
                 except Exception as e:
                     self.stderr.write('ERROR downloading datasource %s: %s\n' % (d.name, e))
                     continue
+                newfilecount = len(newfiles)
                 self.stdout.write('Got %d new files\n' % newfilecount)
-                if newfilecount == 0 and pk is None:
-                    continue
+                if newfilecount == 0:
+                    if pk is None:
+                        continue
+                    newfiles = None
             count = count + 1
-            self.stdout.write('Reading datasource %s\n' % d.name)
-            data = d.get_data()
+            if newfilecount == 0:
+                self.stdout.write('Reading all files in datasource %s\n' % d.name)
+            else:
+                self.stdout.write('Reading %s new files in datasource %s\n' % (newfilecount, d.name))
+            data = d.get_data(start=start,files=newfiles)
             self.stdout.write('  Updating parameters\n')
-#             try:
-#                 d.update_parameters(data)
-#             except Exception as e:
-#                     self.stderr.write('ERROR updating parameters for datasource %s: %s\n' % (d.name, e))
+            try:
+                d.update_parameters(data=data,files=newfiles)
+            except Exception as e:
+                    self.stderr.write('ERROR updating parameters for datasource %s: %s\n' % (d.name, e))
             for p in d.parameter_set.all():
                 for s in p.series_set.all():
                     self.stdout.write('  Updating timeseries %s\n' % s.name)

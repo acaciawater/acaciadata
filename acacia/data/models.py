@@ -10,6 +10,7 @@ from django.contrib.gis.db import models as geo
 from django.utils.text import slugify
 from acacia import settings
 import upload as up
+import numpy as np
 import pandas as pd
 import json,util
 import StringIO
@@ -23,6 +24,13 @@ THEME_CHOICES = (('dark-blue','blauw'),
                  ('gray','grijs'),
                  ('grid','grid'),
                  ('skies','wolken'),)
+
+def aware(d,tz=None):
+    ''' utility function to ensure datetime object is offset-aware '''
+    if d is not None:
+        if timezone.is_naive(d):
+            return timezone.make_aware(d, tz or timezone.get_current_timezone())            
+    return d
 
 class Project(models.Model):
     name = models.CharField(max_length=50, unique=True)
@@ -212,17 +220,17 @@ class Datasource(models.Model):
     def download(self, start=None):
         if self.url is None or len(self.url) == 0:
             logger.error('Cannot download datasource %s: no url supplied' % (self.name))
-            return 0
+            return None
 
         if self.generator is None:
             logger.error('Cannot download datasource %s: no generator defined' % (self.name))
-            return 0
+            return None
             
         logger.info('Downloading datasource %s from %s' % (self.name, self.url))
         gen = self.get_generator_instance()
         if gen is None:
             logger.error('Cannot download datasource %s: could not create instance of generator %s' % (self.name, self.generator))
-            return 0
+            return None
         
         options = {'url': self.url}
         if self.username is not None and self.username != '':
@@ -234,7 +242,7 @@ class Datasource(models.Model):
             options = dict(options.items() + config.items())
         except Exception as e:
             logger.error('Cannot download datasource %s: error in config options. %s' % (self.name, e))
-            return 0
+            return None
 
         if start is not None:
             # override starting date/time
@@ -246,16 +254,16 @@ class Datasource(models.Model):
             results = gen.download(**options)
         except Exception as e:
             logger.error('Error downloading datasource %s: %s' % (self.name, e))
-            return 0
+            return None
             
         if results is None:
             logger.error('No response from server')
-            return 0
+            return None
         elif results == {}:
             logger.warning('Empty response received from server, download aborted')
-            return 0
+            return None
         else:
-            downloaded = 0
+            files = []
             errors = 0
             logger.info('Download completed, got %s file(s)', len(results))
             crcs = {f.crc:f.file for f in self.sourcefiles.all()}
@@ -275,24 +283,25 @@ class Datasource(models.Model):
                 contentfile = ContentFile(contents)
                 sourcefile.file.save(name=filename, content=contentfile)
                 logger.info('File %s saved to %s' % (filename, sourcefile.filepath()))
-                downloaded += 1
                 crcs[crc] = sourcefile.file
+                files.append(sourcefile)
 #                 except Exception as e:
 #                     logger.error('Error saving sourcefile %s: %s' % (filename, e))
 #                     errors += 1
-            if errors == 0 and downloaded > 0:
+            if errors == 0 and len(files)>0:
                 self.last_download = timezone.now()
                 self.save(update_fields=['last_download'])
-                return downloaded
-            return 0
+            return files
         
-    def update_parameters(self,data=None):
+    def update_parameters(self,data=None,files=None):
         logger.info('Updating parameters for datasource %s' % self.name)
         gen = self.get_generator_instance()
         if gen is None:
             return
         params = {}
-        for sourcefile in self.sourcefiles.all():
+        if files is None:
+            files = self.sourcefiles.all();
+        for sourcefile in files:
             try:
                 try:
                     params.update(gen.get_parameters(sourcefile.file))
@@ -329,21 +338,24 @@ class Datasource(models.Model):
         data = self.get_data()
         for p in self.parameter_set.all():
             p.make_thumbnail(data)
-            
+    
     def get_data(self,**kwargs):
         logger.info('Getting data for datasource %s', self.name)
         gen = self.get_generator_instance()
         if gen is None:
             return
         data = None
-        start = kwargs.get('start', None)
-        stop = kwargs.get('stop', None)
-        for sourcefile in self.sourcefiles.all():
+        start = aware(kwargs.get('start', None))
+        stop = aware(kwargs.get('stop', None))
+        files = kwargs.get('files', None)
+        if files is None:
+            files = self.sourcefiles.all()
+        for sourcefile in files:
             if start is not None:
-                if sourcefile.stop < start:
+                if aware(sourcefile.stop) < start:
                     continue
             if stop is not None:
-                if sourcefile.start > stop:
+                if aware(sourcefile.start) > stop:
                     continue
             d = sourcefile.get_data(**kwargs)
             if d is not None:
@@ -352,9 +364,8 @@ class Datasource(models.Model):
                 else:
                     data = data.append(d)
         if data is not None:
-            try:
-                # slice data
-                date = data.index.date
+#            try:
+                date = np.array([aware(d, timezone.utc) for d in data.index.to_pydatetime()])
                 slicer = None
                 if start is not None:
                     if stop is not None:
@@ -368,8 +379,8 @@ class Datasource(models.Model):
                 # remove duplicates
                 data = data.groupby(level=0).last()
                 return data.sort()
-            except:
-                pass
+ #           except:
+ #               pass
         return data
 
     def to_csv(self):
@@ -400,11 +411,11 @@ class Datasource(models.Model):
 
     def start(self):
         agg = self.sourcefiles.aggregate(start=Min('start'))
-        return agg.get('start', None)
+        return aware(agg.get('start', None))
 
     def stop(self):
         agg = self.sourcefiles.aggregate(stop=Max('stop'))
-        return agg.get('stop', None)
+        return aware(agg.get('stop', None))
 
     def rows(self):
         agg = self.sourcefiles.aggregate(rows=Sum('rows'))

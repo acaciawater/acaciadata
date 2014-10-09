@@ -6,6 +6,6 @@
 {{ block.super }}
 <br/>
 <div class="text-center">
-<a href="{% url 'series-csv' object.id %}" class="btn btn-primary active" data-toggle="tooltip" title="Tijdreeks downloaden als csv bestand" id="download">Downloaden</a>
+<a href="{% url 'acacia:series-csv' object.id %}" class="btn btn-primary active" data-toggle="tooltip" title="Tijdreeks downloaden als csv bestand" id="download">Downloaden</a>
 </div>
 {% endblock %}
