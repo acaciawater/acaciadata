@@ -420,7 +420,16 @@ class Datasource(models.Model):
     def rows(self):
         agg = self.sourcefiles.aggregate(rows=Sum('rows'))
         return agg.get('rows', None)
-        
+
+class UpdateSchedule(models.Model):
+    datasource = models.ForeignKey(Datasource)
+    minute = models.CharField(max_length=2,default='0')
+    hour = models.CharField(max_length=2,default='0')
+    day = models.CharField(max_length=2,default='*')
+    month = models.CharField(max_length=2,default='*')
+    dayofweek = models.CharField(max_length=1,default='*')
+    active = models.BooleanField(default=True)
+    
 class SourceFile(models.Model):
     name=models.CharField(max_length=50)
     datasource = models.ForeignKey('Datasource',related_name='sourcefiles', verbose_name = 'gegevensbron')
@@ -1052,6 +1061,9 @@ class TabGroup(models.Model):
     
     def __unicode__(self):
         return self.name
+
+    def get_absolute_url(self):
+        return reverse('acacia:tabgroup', args=[self.id]) 
     
 class TabPage(models.Model):
     tabgroup = models.ForeignKey(TabGroup)
@@ -1062,3 +1074,4 @@ class TabPage(models.Model):
     def __unicode__(self):
         return self.name
     
+

@@ -286,14 +286,14 @@ class DashView(TemplateView):
         context['dashboard'] = dash
         return context
     
-class DashGroupView(TemplateView):
-    template_name = 'dashgroup.html'
+class TabGroupView(TemplateView):
+    template_name = 'data/tabgroup.html'
     
     def get_context_data(self, **kwargs):
-        context = super(DashGroupView,self).get_context_data(**kwargs)
-        name = context.get('name')
+        context = super(TabGroupView,self).get_context_data(**kwargs)
+        pk = context.get('pk')
         page = int(self.request.GET.get('page', 1))
-        group = get_object_or_404(TabGroup, name__iexact=name)
+        group = get_object_or_404(TabGroup, pk=pk)
         dashboards =[p.dashboard for p in group.tabpage_set.order_by('order')]
         context['group'] = group
         page = min(page, len(dashboards))

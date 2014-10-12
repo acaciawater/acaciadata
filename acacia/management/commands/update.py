@@ -55,17 +55,24 @@ class Command(BaseCommand):
                     if pk is None:
                         continue
                     newfiles = None
+            else:
+                newfilecount = 0
+                newfiles = None
+
             count = count + 1
             if newfilecount == 0:
                 self.stdout.write('Reading all files in datasource %s\n' % d.name)
             else:
                 self.stdout.write('Reading %s new files in datasource %s\n' % (newfilecount, d.name))
             data = d.get_data(start=start,files=newfiles)
+            if data is None:
+                # don't bother to continue: no data
+                continue
             self.stdout.write('  Updating parameters\n')
             try:
                 d.update_parameters(data=data,files=newfiles)
             except Exception as e:
-                    self.stderr.write('ERROR updating parameters for datasource %s: %s\n' % (d.name, e))
+                self.stderr.write('ERROR updating parameters for datasource %s: %s\n' % (d.name, e))
             for p in d.parameter_set.all():
                 for s in p.series_set.all():
                     self.stdout.write('  Updating timeseries %s\n' % s.name)
