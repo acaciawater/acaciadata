@@ -17,10 +17,11 @@ def spliturl(url):
 class Generator(object):
 
     def __init__(self, *args, **kwargs):
-        pass
+        #self.engine = 'c'
+        self.engine = 'python'
     
     def read_csv(self, *args, **kwargs):
-        #kwargs['engine'] = 'python'
+        kwargs['engine'] = self.engine
         ret = pd.read_csv(*args,**kwargs)
         return ret
     

@@ -20,8 +20,8 @@ INCREMENTAL_DOWNLOAD = False
 
 class Regenradar(Generator):
     ''' dagtotalen ophalen van nationale regenradar'''
-    def __init__(self, **kwargs):
-        super(Regenradar,self).__init__(**kwargs)
+    def __init__(self, *args, **kwargs):
+        super(Regenradar,self).__init__(*args, **kwargs)
         self.url = 'http://opendap.nationaleregenradar.nl/thredds/dodsC/radar/TF2400_A/2000/01/01/RAD_TF2400_A_20000101000000.h5'
         self.x = 0.0
         self.y = 0.0
@@ -87,9 +87,8 @@ class Regenradar(Generator):
         return {filename: response}
 
     def get_data(self,fil,**kwargs):
-        with self.get_handle(fil) as f:
-            data = self.read_csv(f, index_col = 0, parse_dates = True)
-            return data
+        data = self.read_csv(fil, index_col = 0, parse_dates = True)
+        return data
 
     def get_parameters(self, fil):
         return  dict({'Neerslag': {'description' : 'dagelijkse neerslag', 'unit': 'mm/d'}})  

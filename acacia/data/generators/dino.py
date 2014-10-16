@@ -17,7 +17,7 @@ def find_files(pattern, root=os.curdir):
             yield os.path.join(path, filename)
 
 class Dino(Generator):
-
+# TODO: modify for engine = python
     def skip_section(self,f):
         while True:
             line=f.readline()
@@ -96,8 +96,8 @@ class Dino(Generator):
                         result.append(data)
         return result
 
-    def __init__(self,**kwargs):
-        super(Dino,self).__init__(**kwargs)
+    def __init__(self,*args,**kwargs):
+        super(Dino,self).__init__(*args,**kwargs)
     
     def get_header(self,fil):
         self.skip_section(fil)

@@ -5,6 +5,7 @@ Created on Jan 26, 2014
 '''
 import logging
 from generator import Generator
+from StringIO import StringIO
 logger = logging.getLogger(__name__)
 
 class MonFileException(Exception):
@@ -25,8 +26,10 @@ class Diver(Generator):
         if not line.startswith('====='):
             raise MonFileException('%s is not recognized as mon file' % f.name )
         header = {}
+        self.skiprows = 2
         while True:
             line = f.readline()
+            self.skiprows += 1
             if 'BEGINNING OF DATA' in line:
                 break
             colon = line.find(':')
@@ -43,6 +46,7 @@ class Diver(Generator):
         sections['DEFAULT'] = section
         while True:
             line = f.readline().strip()
+            self.skiprows += 1
             if line == '':
                 continue
             if line == '[Data]':
@@ -68,12 +72,17 @@ class Diver(Generator):
             name = sections['Channel %d' % i].get('Identification')
             names.append(name)
         num=int(f.readline())
-        data = self.read_csv(f, header=0, index_col=0, names = names, delim_whitespace=True, parse_dates = {'date': [0,1]}, nrows=num-1)
+        if self.engine == 'python':
+            skiprows = self.skiprows+1
+            io = StringIO(f.read())
+            data = self.read_csv(io, header=None, index_col=0, names = names, sep='\s+', parse_dates = {'date': [0,1]}, skipfooter=1)
+        else:
+            data = self.read_csv(f, header=None, index_col=0, names = names, delim_whitespace=True, parse_dates = {'date': [0,1]}, nrows=num-2, error_bad_lines=False)
         return data
 
     def get_parameters(self, fil):
         header = self.get_header(fil)
-        params = []
+        params = {}
         num = int(header['Logger settings'].get('Number of channels'))
         for i in range(1,num+1):
             channel = 'Channel %d' % i

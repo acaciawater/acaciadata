@@ -38,9 +38,11 @@ class Meteo(Generator):
         descr = {}
         header['DESCRIPTION'] = descr
         line = f.readline()
+        self.skiprows = 1
         while line != '':
             if line.startswith('# YYYYMMDD'):
                 line = f.readline()
+                self.skiprows += 1
                 while line.startswith('#'):
                     if line.startswith('# STN,YYYYMMDD'):
                         columns = [w.strip() for w in line[2:].split(',')]
@@ -54,22 +56,25 @@ class Meteo(Generator):
                             val = line[eq+1:].strip()
                             descr[key]=val
                         line = f.readline()
+                        self.skiprows += 1
                 break
             else:
                 line = f.readline()
+                self.skiprows += 1
         return header
     
     def get_data(self, f, **kwargs):
         header = self.get_header(f)
         columns = header['COLUMNS']
-        data = self.read_csv(f, header=0, names=columns, skipinitialspace=True, comment = '#', index_col = 1, parse_dates = True)
+        skiprows = self.skiprows if self.engine == 'python' else 0
+        data = self.read_csv(f, header=None, names=columns, skiprows = skiprows, skipinitialspace=True, comment = '#', index_col = 1, parse_dates = True)
         return data
 
     def get_unit(self,descr):
         pat = re.compile(r'\(in\s([^)]+)\)')
         m = re.search(pat,descr)
         if m is not None:
-            return m.group(1)
+            return m.group(1)[:10]
         else:
             return None
         
@@ -111,12 +116,15 @@ class Neerslag(Meteo):
         header = {}
         descr = {}
         header['DESCRIPTION'] = descr
+        self.skiprows = 0
         for i in range(0,9):
             line = f.readline()
+            self.skiprows += 1
         lastkey = ''
         while line != '':
             if line.strip() == '':
                 line = f.readline()
+                self.skiprows += 1
                 break
             key = line[:9].strip()
             if len(key) > 0:
@@ -126,6 +134,7 @@ class Neerslag(Meteo):
                 key = lastkey
                 descr[key] = descr[key] + line[11:].strip()
             line = f.readline()
+            self.skiprows += 1
             
         while line != '':
             if line.startswith('STN,YYYYMMDD'):
@@ -134,11 +143,13 @@ class Neerslag(Meteo):
                 break
             else:
                 line = f.readline()
+                self.skiprows += 1
         return header
 
     def get_data(self, f, **kwargs):
         header = self.get_header(f)
         names = header['COLUMNS']
         names.append('NAME')
-        data = self.read_csv(f, header=None, names=names, skipinitialspace=True, comment = '#', index_col = 1, parse_dates = True)
+        skiprows = self.skiprows if self.engine == 'python' else 0
+        data = self.read_csv(f, header=None, skiprows = skiprows, names=names, skipinitialspace=True, comment = '#', index_col = 1, parse_dates = True)
         return data

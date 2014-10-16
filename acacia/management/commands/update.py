@@ -26,7 +26,12 @@ class Command(BaseCommand):
                 action='store_false',
                 dest = 'calc',
                 default = True,
-                help = 'skip update of calculated series')
+                help = 'skip update of calculated series'),
+            make_option('--replace',
+                action='store_true',
+                dest = 'replace',
+                default = False,
+                help = 'recreate existing series')
         )
     def handle(self, *args, **options):
         down = options.get('down')
@@ -40,8 +45,23 @@ class Command(BaseCommand):
             datasources = Datasource.objects.exclude(autoupdate=False, url=None)
         else:
             datasources = Datasource.objects.filter(pk=pk, autoupdate=True)
+
+        replace = options.get('replace')
+        if replace:
+            self.stdout.write('Recreating all series\n')
+        
         for d in datasources:
-            start = d.stop()
+            series = d.getseries()
+            if replace:
+                start = None
+            else:
+                data_start = d.stop()
+                if len(series) == 0:
+                    series_start = data_start
+                else:
+                    series_start = min([s.tot() for s in series])
+                start = min(series_start,data_start)
+
             if down:
                 self.stdout.write('Downloading datasource %s\n' % d.name)
                 try:
@@ -52,34 +72,28 @@ class Command(BaseCommand):
                 newfilecount = len(newfiles)
                 self.stdout.write('Got %d new files\n' % newfilecount)
                 if newfilecount == 0:
-                    if pk is None:
-                        continue
                     newfiles = None
             else:
                 newfilecount = 0
                 newfiles = None
 
             count = count + 1
-            if newfilecount == 0:
-                self.stdout.write('Reading all files in datasource %s\n' % d.name)
-            else:
-                self.stdout.write('Reading %s new files in datasource %s\n' % (newfilecount, d.name))
-            data = d.get_data(start=start,files=newfiles)
+            self.stdout.write('Reading datasource %s\n' % d.name)
+            data = d.get_data(start=start)
             if data is None:
                 # don't bother to continue: no data
                 continue
             self.stdout.write('  Updating parameters\n')
             try:
-                d.update_parameters(data=data,files=newfiles)
+                d.update_parameters(data=data,files=newfiles,limit=10)
             except Exception as e:
                 self.stderr.write('ERROR updating parameters for datasource %s: %s\n' % (d.name, e))
-            for p in d.parameter_set.all():
-                for s in p.series_set.all():
-                    self.stdout.write('  Updating timeseries %s\n' % s.name)
-                    try:
-                        s.update(data)
-                    except Exception as e:
-                        self.stderr.write('ERROR updating timeseries %s: %s\n' % (s.name, e))
+            for s in series:
+                self.stdout.write('  Updating timeseries %s\n' % s.name)
+                try:
+                    s.update(data)
+                except Exception as e:
+                    self.stderr.write('ERROR updating timeseries %s: %s\n' % (s.name, e))
         self.stdout.write('%d datasources were updated\n' % count)
         
         if Formula.objects.count() > 0:

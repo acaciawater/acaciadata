@@ -22,13 +22,22 @@ class MeetlocatieInline(admin.TabularInline):
 
 class SourceFileInline(admin.TabularInline):
     model = SourceFile
-    exclude = ('cols', 'crc', 'user')
+    exclude = ('cols', 'crc')
     extra = 0
-    ordering = ('-start', '-stop', 'name',)
+    ordering = ('-start', '-stop', 'name')
 
-    def save_model(self, request, obj, form, change):
+    def save(self, request, obj, form, change):
         obj.user = request.user
         obj.save()
+    
+    def clean(self):
+        cd = self.cleaned_data
+        name = cd['name'].strip()
+        if len(name) == 0:
+            cd['name'] = cd['file']
+        else:
+            cd['name'] = name
+        return cd
     
 class ParameterInline(admin.TabularInline):
     model = Parameter
@@ -94,7 +103,6 @@ class DatasourceForm(ModelForm):
         
 class DatasourceAdmin(admin.ModelAdmin):
     form = DatasourceForm
-#    inlines = [ParameterInline,]
     inlines = [SourceFileInline,]
     search_fields = ['name',]
     actions = [actions.upload_datasource, actions.replace_parameters, actions.update_parameters]
@@ -127,8 +135,11 @@ class SourceFileAdmin(admin.ModelAdmin):
     
 class ParameterAdmin(admin.ModelAdmin):
     list_filter = ('datasource','datasource__meetlocatie',)
-    actions = [actions.update_thumbnails, actions.generate_series,]
-    list_display = ('name', 'thumbtag', 'meetlocatie', 'datasource', 'unit', 'description', 'seriescount')
+    # thumbnail eruit gegooid: niet altijd betrouwbaar en actueel (wordt niet goed bijgehouden)
+#     actions = [actions.update_thumbnails, actions.generate_series,]
+#     list_display = ('name', 'thumbtag', 'meetlocatie', 'datasource', 'unit', 'description', 'seriescount')
+    actions = [actions.generate_series,]
+    list_display = ('name', 'meetlocatie', 'datasource', 'unit', 'description', 'seriescount')    
     search_fields = ['name','description', 'datasource__name']
     ordering = ('name','datasource',)
 

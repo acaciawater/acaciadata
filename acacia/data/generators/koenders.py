@@ -2,7 +2,10 @@ import numpy as np
 import logging
 import urllib2
 import datetime
+from datetime import timedelta, tzinfo
 from pytz import timezone
+from .campbell import CR1000
+
 logger = logging.getLogger(__name__)
 
 from generator import Generator
@@ -11,29 +14,42 @@ def convtime(txt,tz=None):
     try:
         dt = datetime.datetime.strptime(txt,'%Y-%m-%d %H:%M:%S')
         if tz is not None:
-            dt = tz.localize(dt)
+            dt = dt.replace(tzinfo=tz)
         return dt
     except:
         return None
 
+class FixedOffset(tzinfo):
+    """Fixed offset in hours east from UTC."""
+
+    def __init__(self, offset='0', name='UTC'):
+        self.__offset = timedelta(hours = offset)
+        self.__name = name
+
+    def utcoffset(self, dt):
+        return self.__offset
+
+    def tzname(self, dt):
+        return self.__name
+
+    def dst(self, dt):
+        return timedelta(0)
+
 def date_parser(dt):
     ''' date parser for pandas read_csv '''
-    # Koenders' time is synced with internet time server, so always up-to-date
-    tz = timezone('Europe/Amsterdam')
+    # Koenders' time is UTC+1
+    tz = FixedOffset(1,'UTC')
     return np.array([convtime(t,tz) for t in dt])
 
 class Koenders(Generator):
             
     def get_header(self, f):
         return {'COLUMNS': ['Date', 'Puls1', 'Puls2', 'Batt'],}
-    
-    def get_file(self, path):
-        return urllib2.urlopen(self.url + '/' + path)
-        
+            
     def get_data(self, f, **kwargs):
         header = self.get_header(f)
         names = header['COLUMNS']
-        data = self.read_csv(f, header=0, names=names, index_col=[0], usecols = [0,2,3,7],  parse_dates = True)
+        data = self.read_csv(f, header=None, names=names, index_col=[0], usecols = [0,2,3,7],  parse_dates = True, date_parser = date_parser)
         data.dropna(inplace=True)
         return data
 
@@ -47,32 +63,35 @@ class Koenders(Generator):
 
 class Koenders52(Koenders):
     def get_header(self, f):
-        return {'COLUMNS': ['Datumtijd','regelnummer', 'pulswaarde','mmwater','ecwaarde','kanaal4','diwaarde','batterij','status']}
+        return {'COLUMNS': ['Datumtijd','pulswaarde','mmwater','ecwaarde','kanaal4','diwaarde','batterij','status']}
     
     def get_data(self, f, **kwargs):
         header = self.get_header(f)
         names = header['COLUMNS']
-        data = self.read_csv(f, header=0, names=names, index_col=[0], parse_dates = True)
+        data = self.read_csv(f, header=0, names=names, index_col=[0], usecols=[0,2,3,4,5,6,7,8], parse_dates = True, date_parser=date_parser)
         data.dropna(inplace=True)
         return data
 
-class Koenders5247(Koenders52):
-    def get_header(self, f):
-        sections = {}
-        line1 = f.readline()
-        line2 = f.readline()
-        line3 = f.readline()
-        line4 = f.readline()
-        colnames = [n.strip('"\r\n') for n in line2.split(',')]
-        sections['COLUMNS'] = colnames
-        return sections
-    
-    def get_data(self, f, **kwargs):
-        header = self.get_header(f)
-        names = header['COLUMNS']
-        data = self.read_csv(f, header=None, names=names, index_col=[0], parse_dates = True)
-        data.dropna(inplace=True)
-        return data
+class Koenders5247(CR1000):
+    pass
+
+# class Koenders5247(Koenders52):
+#     def get_header(self, f):
+#         sections = {}
+#         line1 = f.readline()
+#         line2 = f.readline()
+#         line3 = f.readline()
+#         line4 = f.readline()
+#         colnames = [n.strip('"\r\n') for n in line2.split(',')]
+#         sections['COLUMNS'] = colnames
+#         return sections
+#     
+#     def get_data(self, f, **kwargs):
+#         header = self.get_header(f)
+#         names = header['COLUMNS']
+#         data = self.read_csv(f, header=None, names=names, index_col=[0], parse_dates = True)
+#         data.dropna(inplace=True)
+#         return data
 
 if __name__ == '__main__':
     k = Koenders5247()

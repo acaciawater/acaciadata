@@ -20,27 +20,15 @@ class CR1000(Generator):
         sections['COLUMNS'] = rd(f)
         sections['UNITS'] = rd(f)
         sections['AGGR'] = rd(f)
+        if self.engine == 'python':
+            self.skiprows = 4
         return sections
 
-#     def get_header(self, f):
-#         sections = {}
-#         header = []
-#         header.extend(f.readline() for x in range(4))
-#         reader = csv.reader(header)
-#         sections['HEADER'] = reader.next()
-#         sections['COLUMNS'] = reader.next()
-#         sections['UNITS'] = reader.next()
-#         sections['AGGR'] = reader.next()
-#         return sections
-    
     def get_data(self, f, **kwargs):
         header = self.get_header(f)
         names = header['COLUMNS']
-        data = self.read_csv(f, header=None, names=names, index_col=[0], parse_dates = True)
+        data = self.read_csv(f, header=None, skiprows = self.skiprows, names=names, index_col=[0], parse_dates = True)
         return data
-
-    def upload(self,f,**kwargs):
-        pass
 
     def get_parameters(self, fil):
         header = self.get_header(fil)

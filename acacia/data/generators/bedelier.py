@@ -17,12 +17,12 @@ class OWB(Generator):
                     cols[i] = COL_LOOKUP[col]
         sections = {}
         sections['COLUMNS'] = cols
-        self.skiprows = 1
         return sections
             
     def get_data(self, f, **kwargs):
         header = self.get_header(f)
-        data = self.read_csv(f, header=None, sep = ';', index_col = 0, parse_dates = {'datum': [0,1]}, dayfirst = True)
+        h = 0 if self.engine == 'python' else None
+        data = self.read_csv(f, header=h, sep = ';', index_col = 0, parse_dates = {'datum': [0,1]}, dayfirst = True)
         if data is not None:
             names = header['COLUMNS'][2:]
             #names.append('Laatste kolom')

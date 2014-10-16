@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import os,datetime,math,binascii
-from django.db import models, transaction
+from django.db import models
 from django.db.models import Avg, Max, Min, Sum
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
@@ -293,14 +293,14 @@ class Datasource(models.Model):
                 self.save(update_fields=['last_download'])
             return files
         
-    def update_parameters(self,data=None,files=None):
+    def update_parameters(self,data=None,files=None,limit=10):
         logger.info('Updating parameters for datasource %s' % self.name)
         gen = self.get_generator_instance()
         if gen is None:
             return
         params = {}
         if files is None:
-            files = self.sourcefiles.all();
+            files = self.sourcefiles.all()[:limit]; 
         for sourcefile in files:
             try:
                 try:
@@ -312,8 +312,8 @@ class Datasource(models.Model):
         logger.info('Update completed, got %d parameters from %d files', len(params),self.sourcefiles.count())
         num_created = 0
         num_updated = 0
-        if data is None:
-            data = self.get_data()
+#        if data is None:
+#            data = self.get_data()
         for name,defaults in params.iteritems():
             name = name.strip()
             if name == '':
@@ -326,7 +326,7 @@ class Datasource(models.Model):
                 param = Parameter(name=name,**defaults)
                 param.datasource = self
                 num_created = num_created+1
-            param.make_thumbnail(data)
+            #param.make_thumbnail(data)
             param.save()
         logger.info('%d parameters created, %d updated' % (num_created, num_updated))
 
@@ -351,11 +351,15 @@ class Datasource(models.Model):
         if files is None:
             files = self.sourcefiles.all()
         for sourcefile in files:
+            if sourcefile.rows == 0:
+                continue
             if start is not None:
-                if aware(sourcefile.stop) < start:
+                sstop = aware(sourcefile.stop)
+                if sstop is None or sstop < start:
                     continue
             if stop is not None:
-                if aware(sourcefile.start) > stop:
+                sstart = aware(sourcefile.start)
+                if sstart is None or sstart > stop:
                     continue
             d = sourcefile.get_data(**kwargs)
             if d is not None:
@@ -364,7 +368,7 @@ class Datasource(models.Model):
                 else:
                     data = data.append(d)
         if data is not None:
-#            try:
+            #try:
                 date = np.array([aware(d, timezone.utc) for d in data.index.to_pydatetime()])
                 slicer = None
                 if start is not None:
@@ -379,8 +383,8 @@ class Datasource(models.Model):
                 # remove duplicates
                 data = data.groupby(level=0).last()
                 return data.sort()
- #           except:
- #               pass
+            #except:
+                pass
         return data
 
     def to_csv(self):
@@ -404,6 +408,12 @@ class Datasource(models.Model):
         return count if count>0 else None
     seriescount.short_description = 'tijdreeksen'
 
+    def getseries(self):
+        r = set()
+        for p in self.parameter_set.all():
+            for s in p.series_set.all():
+                r.add(s) 
+        return r   
     def chartscount(self):
         count = sum([p.chartscount() for p in self.parameter_set.all()])
         return count if count>0 else None
@@ -421,14 +431,14 @@ class Datasource(models.Model):
         agg = self.sourcefiles.aggregate(rows=Sum('rows'))
         return agg.get('rows', None)
 
-class UpdateSchedule(models.Model):
-    datasource = models.ForeignKey(Datasource)
-    minute = models.CharField(max_length=2,default='0')
-    hour = models.CharField(max_length=2,default='0')
-    day = models.CharField(max_length=2,default='*')
-    month = models.CharField(max_length=2,default='*')
-    dayofweek = models.CharField(max_length=1,default='*')
-    active = models.BooleanField(default=True)
+# class UpdateSchedule(models.Model):
+#     datasource = models.ForeignKey(Datasource)
+#     minute = models.CharField(max_length=2,default='0')
+#     hour = models.CharField(max_length=2,default='0')
+#     day = models.CharField(max_length=2,default='*')
+#     month = models.CharField(max_length=2,default='*')
+#     dayofweek = models.CharField(max_length=1,default='*')
+#     active = models.BooleanField(default=True)
     
 class SourceFile(models.Model):
     name=models.CharField(max_length=50)
@@ -694,15 +704,31 @@ class Series(models.Model):
             except Exception as e:
                 logger.error('Resampling of series %s failed: %s' % (self.name, e))
                 return None
+
+        add_value = 0
         if self.cumsum:
             if self.cumstart is not None:
-                start = series.index.searchsorted(self.cumstart)
-                series = series[start:]
+                #start = series.index.searchsorted(self.cumstart)
+                series = series[self.cumstart:]
+                if series.empty:
+                    return series
             series = series.cumsum()
+            if self.aantal() > 0:
+                # we hadden al bestaande datapoints in de reeks
+                # vind laatste punt van bestaande reeks dat voor begin van nieuwe reeks valt
+                start = pd.to_datetime(series.index[0]) #begin nieuwe reeks
+                try:
+                    before = self.datapoints.filter(date__lt = start).order_by('-date')
+                    if before:
+                        add_value = before[0].value
+                except Exception as e:
+                    logger.error('Accumulation of series %s failed: %s' % (self.name, e))
         if self.scale != 1.0:
             series = series * self.scale
         if self.offset != 0.0:
             series = series + self.offset
+        if add_value != 0:
+            series = series + add_value
         return series
          
     def get_series_data(self, dataframe, start=None):
@@ -855,13 +881,14 @@ class Series(models.Model):
                 self.create(thumbnail=False)
             series = self.to_pandas()
             dest =  up.series_thumb_upload(self, slugify(unicode(self.name))+'.png')
-            imagefile = os.path.join(settings.MEDIA_ROOT, dest)
+            self.thumbnail.name = dest
+            imagefile = self.thumbnail.path #os.path.join(settings.MEDIA_ROOT, dest)
             imagedir = os.path.dirname(imagefile)
             if not os.path.exists(imagedir):
                 os.makedirs(imagedir)
-            util.save_thumbnail(series, imagefile,self.type)
+            util.save_thumbnail(series, imagefile, self.type)
             logger.info('Generated thumbnail %s' % dest)
-            self.thumbnail.name = dest
+
         except Exception as e:
             logger.error('Error generating thumbnail: %s' % e)
         return self.thumbnail

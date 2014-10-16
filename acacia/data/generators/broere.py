@@ -7,23 +7,21 @@ class NMCPro(Generator):
             
     def get_header(self, f):
         sections = {}
+        self.skiprows = 0
         line = f.readline()
         while not (line.startswith('Date') or line.startswith('Datum')):
             line = f.readline()
+            self.skiprows += 1
             if not line:
                 return {}
         colnames = [n.strip() for n in line.split(',')]
         sections['COLUMNS'] = colnames
         return sections
     
-    def get_file(self, path):
-        response = urllib2.urlopen(self.url + '/' + path)
-        return response
-        
     def get_data(self, f, **kwargs):
         header = self.get_header(f)
         names = header['COLUMNS']
-        data = self.read_csv(f, header=0, names=names, comment = '#', index_col=[0], 
+        data = self.read_csv(f, header=0, skiprows = self.skiprows, names=names, comment = '#', index_col=[0], 
                            parse_dates = [[0,1]], dayfirst=True, na_values = ['----', '-------'])
         return data
 
