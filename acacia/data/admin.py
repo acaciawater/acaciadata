@@ -1,3 +1,4 @@
+import os
 from acacia.data.models import Project, ProjectLocatie, MeetLocatie, Datasource, SourceFile, Generator
 from acacia.data.models import Parameter, Series, DataPoint, Chart, ChartSeries, Dashboard, TabGroup, TabPage
 from acacia.data.models import Variable, Formula, Webcam
@@ -22,23 +23,10 @@ class MeetlocatieInline(admin.TabularInline):
 
 class SourceFileInline(admin.TabularInline):
     model = SourceFile
-    exclude = ('cols', 'crc')
+    exclude = ('cols', 'crc', 'user')
     extra = 0
     ordering = ('-start', '-stop', 'name')
-
-    def save(self, request, obj, form, change):
-        obj.user = request.user
-        obj.save()
-    
-    def clean(self):
-        cd = self.cleaned_data
-        name = cd['name'].strip()
-        if len(name) == 0:
-            cd['name'] = cd['file']
-        else:
-            cd['name'] = name
-        return cd
-    
+            
 class ParameterInline(admin.TabularInline):
     model = Parameter
     extra = 0
@@ -119,7 +107,20 @@ class DatasourceAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         obj.user = request.user
         obj.save()
-
+        
+    def save_formset(self, request, form, formset, change):
+        instances = formset.save(commit=False)
+        for instance in instances:
+            try:
+                if instance.user is None:
+                    instance.user = request.user
+            except:
+                    instance.user = request.user
+            if instance.name is None or len(instance.name) == 0:
+                instance.name,ext = os.path.splitext(os.path.basename(instance.file.name))
+            instance.save()
+        formset.save_m2m()
+        
 class GeneratorAdmin(admin.ModelAdmin):
     list_display = ('name', 'classname', 'description')
 
@@ -135,11 +136,10 @@ class SourceFileAdmin(admin.ModelAdmin):
     
 class ParameterAdmin(admin.ModelAdmin):
     list_filter = ('datasource','datasource__meetlocatie',)
-    # thumbnail eruit gegooid: niet altijd betrouwbaar en actueel (wordt niet goed bijgehouden)
-#     actions = [actions.update_thumbnails, actions.generate_series,]
-#     list_display = ('name', 'thumbtag', 'meetlocatie', 'datasource', 'unit', 'description', 'seriescount')
-    actions = [actions.generate_series,]
-    list_display = ('name', 'meetlocatie', 'datasource', 'unit', 'description', 'seriescount')    
+    actions = [actions.update_thumbnails, actions.generate_series,]
+    list_display = ('name', 'thumbtag', 'meetlocatie', 'datasource', 'unit', 'description', 'seriescount')
+#     actions = [actions.generate_series,]
+#     list_display = ('name', 'meetlocatie', 'datasource', 'unit', 'description', 'seriescount')    
     search_fields = ['name','description', 'datasource__name']
     ordering = ('name','datasource',)
 

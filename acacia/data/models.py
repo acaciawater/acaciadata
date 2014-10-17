@@ -441,7 +441,7 @@ class Datasource(models.Model):
 #     active = models.BooleanField(default=True)
     
 class SourceFile(models.Model):
-    name=models.CharField(max_length=50)
+    name=models.CharField(max_length=50,blank=True)
     datasource = models.ForeignKey('Datasource',related_name='sourcefiles', verbose_name = 'gegevensbron')
     file=models.FileField(max_length=200,upload_to=up.sourcefile_upload,blank=True,null=True)
     rows=models.IntegerField(default=0)
@@ -602,8 +602,9 @@ class Parameter(models.Model):
         if data is None:
             data = self.get_data()
         logger.debug('Generating thumbnail for parameter %s' % self.name)
-        dest =  up.param_thumb_upload(self, slugify(unicode(self.name)) +'.png')
-        imagefile = os.path.join(settings.MEDIA_ROOT, dest)
+        dest =  up.param_thumb_upload(self, slugify(unicode(self.name))+'.png')
+        self.thumbnail.name = dest
+        imagefile = self.thumbnail.path
         imagedir = os.path.dirname(imagefile)
         if not os.path.exists(imagedir):
             os.makedirs(imagedir)
@@ -611,7 +612,7 @@ class Parameter(models.Model):
             series = data[self.name]
             util.save_thumbnail(series,imagefile,self.type)
             logger.info('Generated thumbnail %s' % dest)
-            self.thumbnail.name = dest
+            self.save()
         except Exception as e:
             logger.error('Error generating thumbnail for parameter %s: %s' % (self.name, e))
             return None
@@ -770,7 +771,8 @@ class Series(models.Model):
         logger.info('Series %s updated: %d points created, %d points skipped' % (self.name, num_created, num_skipped))
         if thumbnail:
             self.make_thumbnail()
-
+        self.save()
+        
     def replace(self):
         logger.info('Deleting all %d datapoints from series %s' % (self.datapoints.count(), self.name))
         self.datapoints.all().delete()
@@ -804,9 +806,9 @@ class Series(models.Model):
             except Exception as e:
                 logger.debug('Datapoint %s,%g: %s' % (str(date), value, e))
                 num_bad = num_bad+1
-        self.save()
         logger.info('Series %s updated: %d points created, %d updated, %d skipped' % (self.name, num_created, num_updated, num_bad))
         self.make_thumbnail()
+        self.save()
 
     def aantal(self):
         return self.datapoints.count()
