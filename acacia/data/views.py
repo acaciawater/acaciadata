@@ -81,7 +81,7 @@ def ChartToJson(request, pk):
     data = {}
     for cs in c.series.all():
         s = cs.series
-        data[s.name] = [[p.date,p.value] for p in s.datapoints.order_by('date')]
+        data['series_%d' % s.id] = [[p.date,p.value] for p in s.datapoints.order_by('date')]
     return HttpResponse(json.dumps(data, default=lambda x: time.mktime(x.timetuple())*1000.0), content_type='application/json')
     
 def ChartAsCsv(request,pk):
@@ -265,7 +265,7 @@ class ChartBaseView(TemplateView):
             if name is None or name == '':
                 name = ser.name
             sop = {'name': name,
-                   'id': ser.name,
+                   'id': 'series_%d' % ser.id,
                    'type': s.type,
                    'yAxis': s.axis-1,
                    'data': pts}

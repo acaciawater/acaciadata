@@ -11,15 +11,14 @@
 			    datatype: "json",
  			    beforeSend: function(hdr) {
  				  	var chart = $('#container').highcharts();
- 			    	chart.showLoading("Gegevens ophalen...");
+ 			    	//chart.showLoading("Gegevens ophalen...");
  			    	return true;
  			    },
 			    success: function(data) {
 				  	var chart = $('#container').highcharts();
-				  	$.each(data,function(id,data) {
-				  		var series = chart.get(id);
-	 			    	chart.showLoading("Gegevens verversen van " + series.name);
-						series.setData(data);
+				  	$.each(data,function(key,values) {
+				  		var series = chart.get(key);
+						series.setData(values);
 				  	});
 			    },
 			    error: function(hdr,status,errorThrown) {
@@ -27,7 +26,7 @@
 			    },
  			    complete: function(hdr, status) {
  				  	var chart = $('#container').highcharts();
- 			    	chart.hideLoading();
+ 			    	//chart.hideLoading();
  			    }
 		    });
 		}
