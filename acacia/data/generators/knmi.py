@@ -3,8 +3,11 @@ Created on Jan 24, 2014
 
 @author: theo
 '''
-import logging, re
+import logging, re, os
 import urlparse
+import StringIO
+import datetime
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -26,10 +29,13 @@ class Meteo(Generator):
             filename = 'knmi_meteo'
             if url != '':
                 parts = urlparse.urlparse(url)
+                path = os.path.basename(os.path.dirname(parts[2]))
                 query = urlparse.parse_qs(parts[4])
                 stns=query.get('stns',[])
                 if stns != []:
-                    filename = '%s%s'% (filename,stns[0])
+                    filename = '%s_%s_%s'% (path,filename,stns[0])
+                else:
+                    filename = '%s_%s'% (path,filename)
             kwargs['filename'] = filename + '.txt'
         return super(Meteo, self).download(**kwargs)
         
@@ -38,7 +44,7 @@ class Meteo(Generator):
         descr = {}
         header['DESCRIPTION'] = descr
         line = f.readline()
-        self.skiprows = 1
+        self.skiprows = 0
         while line != '':
             if line.startswith('# YYYYMMDD'):
                 line = f.readline()
@@ -47,16 +53,14 @@ class Meteo(Generator):
                     if line.startswith('# STN,YYYYMMDD'):
                         columns = [w.strip() for w in line[2:].split(',')]
                         header['COLUMNS'] = [c for c in columns if len(c)>0]
-                        #f.readline()
-                        break
                     else:
                         eq = line.find('=')
                         if eq>0:
                             key = line[1:eq].strip()
                             val = line[eq+1:].strip()
                             descr[key]=val
-                        line = f.readline()
-                        self.skiprows += 1
+                    line = f.readline()
+                    self.skiprows += 1
                 break
             else:
                 line = f.readline()
@@ -77,10 +81,13 @@ class Meteo(Generator):
             return m.group(1)[:10]
         else:
             return None
-        
+
+    def get_columns(self, hdr):
+        return hdr['COLUMNS'][2:] # eerste 2 zijn station en datum
+                
     def get_parameters(self, fil):
         header = self.get_header(fil)
-        names = header['COLUMNS'][2:] # eerste 2 zijn station en datum
+        names = self.get_columns(header)
         desc = header['DESCRIPTION']
         params = {}
         for name in names:
@@ -93,7 +100,34 @@ class Meteo(Generator):
                 descr = descr.replace(rep,'')
             params[name] = {'description' : descr, 'unit': unit}
         return params
+
+def datehour_parser(ymd,h):
+    return np.array([datetime.datetime.strptime(a + ('0' if b == '24' else b), '%Y%m%d%H') for a,b in zip(ymd,h)])
+
+class UurGegevens(Meteo):
     
+    def get_data(self, f, **kwargs):
+        header = self.get_header(f)
+        columns = header['COLUMNS']
+        skiprows = self.skiprows # if self.engine == 'python' else 0
+        # Bij uurgegevens kan er een carriage return (\r) tussen de kolommen zitten
+        with open(f.path,'rb') as f:
+            text = f.read().translate(None,'\r')
+            io = StringIO.StringIO(text)
+            data = self.read_csv(io, 
+                                 header=None, 
+                                 names=columns, 
+                                 skiprows = skiprows, 
+                                 skipinitialspace=True, 
+                                 comment = '#', 
+                                 index_col = 'Datum', 
+                                 parse_dates={'Datum': [1,2]}, 
+                                 date_parser = datehour_parser)
+        return data
+
+    def get_columns(self, hdr):
+        return hdr['COLUMNS'][3:] # eerste 3 zijn station, datum en uur
+
 class Neerslag(Meteo):
     '''Dagwaarden van neerslagstations ophalen'''
     

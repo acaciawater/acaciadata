@@ -6,9 +6,16 @@ class Station(models.Model):
     naam = models.CharField(max_length=50)
     location = models.PointField(srid=RDNEW)
     objects = models.GeoManager()
-        
+    
+    def coords(self):
+        return (self.location.x, self.location.y)
+    coords.short_description = 'Coordinaten'
+                
     def __unicode__(self):
         return self.naam
+    
+    class Meta:
+        ordering = ('naam',)
 
 class NeerslagStation(models.Model):
     nummer = models.IntegerField()
@@ -16,5 +23,12 @@ class NeerslagStation(models.Model):
     location = models.PointField(srid=RDNEW)
     objects = models.GeoManager()
             
+    def coords(self):
+        return (self.location.x, self.location.y)
+    coords.short_description = 'Coordinaten'
+
     def __unicode__(self):
         return self.naam
+
+    class Meta:
+        ordering = ('naam',)

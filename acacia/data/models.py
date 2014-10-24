@@ -354,8 +354,8 @@ class Datasource(models.Model):
         if files is None:
             files = self.sourcefiles.all()
         for sourcefile in files:
-            if sourcefile.rows == 0:
-                continue
+#             if sourcefile.rows == 0:
+#                 continue
             if start is not None:
                 sstop = aware(sourcefile.stop)
                 if sstop is None or sstop < start:
@@ -558,7 +558,7 @@ def sourcefile_delete(sender, instance, **kwargs):
 def sourcefile_save(sender, instance, **kwargs):
     date = instance.filedate()
     if date != '':
-        if date > instance.uploaded:
+        if instance.uploaded is None or date > instance.uploaded:
             instance.uploaded = date
     instance.get_dimensions(data = kwargs.get('data', None))
     ds = instance.datasource
@@ -995,7 +995,6 @@ class Formula(Series):
     class Meta:
         verbose_name = 'Berekende reeks'
         verbose_name_plural = 'Berekende reeksen'
-
     
 class DataPoint(models.Model):
     series = models.ForeignKey(Series,related_name='datapoints')
@@ -1159,5 +1158,3 @@ class TabPage(models.Model):
 
     def __unicode__(self):
         return self.name
-    
-
