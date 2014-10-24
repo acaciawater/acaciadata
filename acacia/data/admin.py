@@ -159,13 +159,14 @@ class ReadonlyTabularInline(admin.TabularInline):
     def has_add_permission(self, request):
         return False
     
-class DataPointInline(ReadonlyTabularInline):
+class DataPointInline(admin.TabularInline):
     model = DataPoint
-        
+    
 class SeriesAdmin(admin.ModelAdmin):
     actions = [actions.copy_series, actions.download_series, actions.refresh_series, actions.replace_series, actions.series_thumbnails, actions.empty_series]
     list_display = ('name', 'thumbtag', 'parameter', 'datasource', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
     exclude = ('user',)
+#    inlines = [DataPointInline,]
     list_filter = ('parameter__datasource__meetlocatie', 'parameter__datasource')
     search_fields = ['name','parameter__name','parameter__datasource__name']
 
@@ -178,10 +179,16 @@ class SeriesAdmin(admin.ModelAdmin):
                               }),
     )
 
+#     def get_readonly_fields(self, request, obj=None):
+#         if obj and obj.parameter: 
+#             self.inlines = []
+#             return self.readonly_fields
+#         else:
+#             return self.readonly_fields  
+          
     def save_model(self, request, obj, form, change):
         obj.user = request.user
         obj.save()
-
 
 class FormulaAdmin(SeriesAdmin):
     list_display = ('name', 'thumbtag', 'locatie', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')

@@ -3,6 +3,42 @@
 {% block navbar %}{% endblock %}
 {% block brandname %}<a class="navbar-brand">{{chart.name}}</a>{% endblock brandname %}
 {% block admin_url %}chart/{{chart.id}}{% endblock %}
+{% block chartloader %}
+	<script>
+		function fetchSeries() {
+		    $.ajax({
+			    url: '/data/get/chart/{{chart.id}}',
+			    datatype: "json",
+ 			    beforeSend: function(hdr) {
+ 				  	var chart = $('#container').highcharts();
+ 			    	chart.showLoading("Gegevens ophalen...");
+ 			    	return true;
+ 			    },
+			    success: function(data) {
+				  	var chart = $('#container').highcharts();
+				  	$.each(data,function(id,data) {
+				  		var series = chart.get(id);
+	 			    	chart.showLoading("Gegevens verversen van " + series.name);
+						series.setData(data);
+				  	});
+			    },
+			    error: function(hdr,status,errorThrown) {
+			    	alert("Fout tijdens laden van tijdreeks: " + errorThrown);
+			    },
+ 			    complete: function(hdr, status) {
+ 				  	var chart = $('#container').highcharts();
+ 			    	chart.hideLoading();
+ 			    }
+		    });
+		}
+		
+		$(function () {
+		  var opt = {{options|safe}};
+		  opt.chart.events.load = fetchSeries;
+		  chart = $('#container').highcharts(opt);
+		});
+	</script>
+{% endblock %}
 {% block content %}
 {{ block.super }}
 <br/>

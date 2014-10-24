@@ -142,6 +142,9 @@ class MeetLocatie(geo.Model):
             for p in f.parameter_set.all():
                 for s in p.series_set.all():
                     ser.append(s)
+        # Ook berekende reeksen!
+        for f in self.formula_set.all():
+            ser.append(f)
         return ser
 
     def charts(self):
@@ -182,7 +185,7 @@ class Datasource(models.Model):
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     meetlocatie=models.ForeignKey(MeetLocatie,related_name='datasources',help_text='Meetlocatie van deze gegevensbron')
     url=models.CharField(blank=True,null=True,max_length=200,help_text='volledige url van de gegevensbron. Leeg laten voor handmatige uploads')
-    generator=models.ForeignKey(Generator,help_text='Generator voor het maken van tijdseries')
+    generator=models.ForeignKey(Generator,help_text='Generator voor het maken van tijdreeksen uit de datafiles')
     created = models.DateTimeField(auto_now_add=True)
     last_download = models.DateTimeField(null=True, blank=True, verbose_name='geactualiseerd')
     autoupdate = models.BooleanField(default=True)
@@ -294,10 +297,10 @@ class Datasource(models.Model):
             return files
         
     def update_parameters(self,data=None,files=None,limit=10):
-        logger.info('Updating parameters for datasource %s' % self.name)
         gen = self.get_generator_instance()
         if gen is None:
             return
+        logger.info('Updating parameters for datasource %s' % self.name)
         params = {}
         if files is None:
             files = self.sourcefiles.all()[:limit]; 
@@ -340,10 +343,10 @@ class Datasource(models.Model):
             p.make_thumbnail(data)
     
     def get_data(self,**kwargs):
-        logger.info('Getting data for datasource %s', self.name)
         gen = self.get_generator_instance()
         if gen is None:
             return
+        logger.info('Getting data for datasource %s', self.name)
         data = None
         start = aware(kwargs.get('start', None))
         stop = aware(kwargs.get('stop', None))
@@ -390,6 +393,8 @@ class Datasource(models.Model):
     def to_csv(self):
         io = StringIO.StringIO()
         df = self.get_data()
+        if df is None:
+            return None
         df.to_csv(io, index_label='Datum/tijd')
         return io.getvalue()
 
@@ -488,7 +493,9 @@ class SourceFile(models.Model):
 
     def filedate(self):
         try:
-            return datetime.datetime.fromtimestamp(os.path.getmtime(self.filepath()))
+            date = datetime.datetime.fromtimestamp(os.path.getmtime(self.filepath()))
+            date = aware(date,timezone.get_current_timezone())
+            return date
         except:
             # file may not (yet) exist
             return ''
@@ -549,7 +556,15 @@ def sourcefile_delete(sender, instance, **kwargs):
 
 @receiver(pre_save, sender=SourceFile)
 def sourcefile_save(sender, instance, **kwargs):
-    instance.get_dimensions()
+    date = instance.filedate()
+    if date != '':
+        if date > instance.uploaded:
+            instance.uploaded = date
+    instance.get_dimensions(data = kwargs.get('data', None))
+    ds = instance.datasource
+    if ds.last_download is None or ds.last_download < instance.uploaded:
+        ds.last_download = instance.uploaded
+        ds.save()
 
 SERIES_CHOICES = (('line', 'lijn'),
                   ('column', 'staaf'),
@@ -653,7 +668,7 @@ class Series(models.Model):
     parameter = models.ForeignKey(Parameter, null=True, blank=True)
     thumbnail = models.ImageField(upload_to=up.series_thumb_upload, max_length=200, blank=True, null=True)
     user=models.ForeignKey(User,default=User)
-     
+
     # Nabewerkingen
     resample = models.CharField(max_length=10,choices=RESAMPLE_METHOD,blank=True, null=True, 
                                 verbose_name='frequentie',help_text='Frequentie voor resampling van tijdreeks')
@@ -689,6 +704,10 @@ class Series(models.Model):
         p = self.projectlocatie()
         return None if p is None else p.project
 
+    def theme(self):
+        p = self.project()
+        return None if p is None else 'themes/%s.js' % p.theme
+    
     def default_type(self):
         p = self.parameter
         return 'line' if p is None else p.type
@@ -698,7 +717,7 @@ class Series(models.Model):
     
     def do_postprocess(self, series):
         ''' perform postprocessing of series data like resampling, scaling etc'''
-        
+        series.dropna(inplace=True)
         if self.resample is not None and self.resample != '':
             try:
                 series = series.resample(how=self.aggregate, rule=self.resample)
@@ -734,13 +753,13 @@ class Series(models.Model):
          
     def get_series_data(self, dataframe, start=None):
         if dataframe is None:
-            dataframe = self.parameter.get_data()
+            dataframe = self.parameter.get_data(start=start)
             if dataframe is None:
                 return None
         series = dataframe[self.parameter.name]
         series = self.do_postprocess(series)
         if start is not None:
-            series = series[start]
+            series = series[start:]
         return series
 
     def create(self, data=None, thumbnail=True):
@@ -840,11 +859,15 @@ class Series(models.Model):
     def laatste(self):
         return self.datapoints.order_by('-date')[0]
 
+    def beforelast(self):
+        if self.aantal() < 1:
+            return None
+        return self.datapoints.order_by('-date')[1]
+        
     def eerste(self):
         return self.datapoints.order_by('date')[0]
         
     def thumbpath(self):
-        #return os.path.join(settings.MEDIA_ROOT,self.thumbnail.name)
         return self.thumbnail.path
         
     def thumbtag(self):
@@ -894,6 +917,18 @@ class Series(models.Model):
         except Exception as e:
             logger.error('Error generating thumbnail: %s' % e)
         return self.thumbnail
+
+# cache series properties to speed up loading admin page for series
+# class SeriesProperties(models.Model):
+#     series = models.OneToOneField(Series,related_name='properties')
+#     aantal = models.IntegerField()
+#     min = models.FloatField()
+#     max = models.FloatField()
+#     eerste = models.ForeignKey('DataPoint',related_name='first')
+#     laatste = models.ForeignKey('DataPoint',related_name='last')
+#      
+#     def update(self):
+#         pass
     
 class Variable(models.Model):
     locatie = models.ForeignKey(MeetLocatie)
@@ -907,7 +942,24 @@ class Variable(models.Model):
         verbose_name='variabele'
         verbose_name_plural='variabelen'
         unique_together = ('locatie', 'name', )
-        
+
+# Series that can be edited manually
+# class ManualSeries(Series):
+#     locatie = models.ForeignKey(MeetLocatie)
+#     
+#     def meetlocatie(self):
+#         return self.locatie
+#         
+#     def __unicode__(self):
+#         return self.name
+# 
+#     def get_series_data(self,data,start=None):
+#         return self.to_pandas(start=start)
+#     
+#     class Meta:
+#         verbose_name = 'Handmatige reeks'
+#         verbose_name_plural = 'Handmatige reeksen'
+#         
 class Formula(Series):
     locatie = models.ForeignKey(MeetLocatie)
     formula_text = models.TextField(blank=True,null=True,verbose_name='berekening')
@@ -944,6 +996,7 @@ class Formula(Series):
         verbose_name = 'Berekende reeks'
         verbose_name_plural = 'Berekende reeksen'
 
+    
 class DataPoint(models.Model):
     series = models.ForeignKey(Series,related_name='datapoints')
     date = models.DateTimeField()
@@ -1044,6 +1097,10 @@ class ChartSeries(models.Model):
     def __unicode__(self):
         return self.series
     
+    def theme(self):
+        s = self.series
+        return None if s is None else s.theme
+
     class Meta:
         ordering = ['name',]
         verbose_name = 'tijdreeks'

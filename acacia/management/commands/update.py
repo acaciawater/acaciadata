@@ -55,12 +55,18 @@ class Command(BaseCommand):
             if replace:
                 start = None
             else:
+                # actualiseren (data toevoegen) vanaf laatste punt
                 data_start = d.stop()
                 if len(series) == 0:
                     series_start = data_start
                 else:
-                    series_start = min([s.tot() for s in series])
-                start = min(series_start,data_start)
+                    # actialisatie vanaf een na laatste datapoint
+                    # (rekening houden met niet volledig gevulde laatste tijdsinterval bij accumulatie of sommatie)
+                    series_start = min([s.beforelast().date for s in series])
+                if data_start is None:
+                    start = series_start
+                else:
+                    start = min(series_start,data_start)
 
             if down:
                 self.stdout.write('Downloading datasource %s\n' % d.name)
@@ -91,7 +97,10 @@ class Command(BaseCommand):
             for s in series:
                 self.stdout.write('  Updating timeseries %s\n' % s.name)
                 try:
-                    s.update(data)
+                    if replace:
+                        s.replace(data)
+                    else:
+                        s.update(data,start=start)
                 except Exception as e:
                     self.stderr.write('ERROR updating timeseries %s: %s\n' % (s.name, e))
         self.stdout.write('%d datasources were updated\n' % count)

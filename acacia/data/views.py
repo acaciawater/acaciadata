@@ -2,12 +2,14 @@ from django.views.generic.edit import CreateView
 from django.views.generic.list import ListView
 from django.views.generic import DetailView
 from django.views.generic.base import TemplateView
+from django.utils import timezone
 from django.template.loader import render_to_string
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render_to_response
+from django.http import HttpResponse
 from .models import Project, ProjectLocatie, MeetLocatie, Datasource, Series, Chart, Dashboard, TabGroup
 from .util import datasource_as_zip, datasource_as_csv, meetlocatie_as_zip, series_as_csv, chart_as_csv
 import json
-import datetime
+import datetime,time
 import re
 import logging
 
@@ -67,9 +69,30 @@ def SeriesAsCsv(request,pk):
     s = get_object_or_404(Series,pk=pk)
     return series_as_csv(s)
 
+def SeriesToJson(request, pk):
+    s = get_object_or_404(Series,pk=pk)
+    points = [[p.date,p.value] for p in s.datapoints.order_by('date')]
+    # convert datetime to javascript datetime using unix timetamp conversion
+    j = json.dumps(points, default=lambda x: time.mktime(x.timetuple())*1000.0)
+    return HttpResponse(j, content_type='application/json')
+
+def ChartToJson(request, pk):
+    c = get_object_or_404(Chart,pk=pk)
+    data = {}
+    for cs in c.series.all():
+        s = cs.series
+        data[s.name] = [[p.date,p.value] for p in s.datapoints.order_by('date')]
+    return HttpResponse(json.dumps(data, default=lambda x: time.mktime(x.timetuple())*1000.0), content_type='application/json')
+    
 def ChartAsCsv(request,pk):
     c = get_object_or_404(Chart,pk=pk)
     return chart_as_csv(c)
+
+def tojs(d):
+    return 'Date.UTC(%d,%d,%d,%d,%d,%d)' % (d.year, d.month-1, d.day, d.hour, d.minute, d.second)
+
+def date_handler(obj):
+    return tojs(obj) if isinstance(obj, datetime.date) or isinstance(obj, datetime.datetime) else obj
 
 def UpdateMeetlocatieDirect(request,pk):
     loc = get_object_or_404(MeetLocatie,pk=pk)
@@ -150,7 +173,15 @@ class SeriesView(DetailView):
         ser = self.get_object()
         unit = ser.unit
         options = {
-            'chart': {'type': ser.type, 'animation': False, 'zoomType': 'x'},
+            'loading': {'style': {'backgroundColor': 'white', 'fontFamily': 'Arial', 'fontSize': 'small'},
+                        'labelStyle': {'fontWeight': 'normal'},
+                        'hideDuration': 0,
+                        },
+            'chart': {'type': ser.type, 
+                      'animation': False, 
+                      'zoomType': 'x',
+                      'events': {'load': None},
+                      },
             'title': {'text': ser.name},
             'xAxis': {'type': 'datetime'},
             'yAxis': [],
@@ -170,7 +201,7 @@ class SeriesView(DetailView):
         options['yAxis'].append({
                                  'title': {'text': title},
                                  })
-        pts = [[p.date,p.value] for p in ser.datapoints.all().order_by('date')]
+        pts = [] #[[p.date,p.value] for p in ser.datapoints.all().order_by('date')]
         sop = {'name': ser.name,
                'type': ser.type,
                'data': pts}
@@ -184,20 +215,22 @@ class SeriesView(DetailView):
         # remove quotes around date stuff
         jop = re.sub(r'\"(Date\.UTC\([\d,]+\))\"',r'\1', jop)
         context['options'] = jop
+        context['theme'] = ser.theme()
         return context
-            
-def tojs(d):
-    return 'Date.UTC(%d,%d,%d,%d,%d,%d)' % (d.year, d.month-1, d.day, d.hour, d.minute, d.second)
-
-def date_handler(obj):
-    return tojs(obj) if isinstance(obj, datetime.date) or isinstance(obj, datetime.datetime) else obj
 
 class ChartBaseView(TemplateView):
     template_name = 'data/plain_chart.html'
 
     def get_json(self, chart):
         options = {
-            'chart': {'animation': False, 'zoomType': 'x'},
+            'loading': {'style': {'backgroundColor': 'white', 'fontFamily': 'Arial', 'fontSize': 'small'},
+                        'labelStyle': {'fontWeight': 'normal'},
+                        'hideDuration': 0,
+                        },
+            'chart': {'animation': False, 
+                      'zoomType': 'x',
+                      'events': {'load': None},
+                      },
             'title': {'text': chart.title},
             'xAxis': {'type': 'datetime'},
             'yAxis': [],
@@ -218,8 +251,7 @@ class ChartBaseView(TemplateView):
 #         if not chart.stop is None:
 #             options['xAxis']['max'] = tojs(chart.stop)
         allseries = []
-        now = datetime.datetime.utcnow()
-        for i,s in enumerate(chart.series.all()):
+        for _,s in enumerate(chart.series.all()):
             ser = s.series
             title = s.label #ser.name if len(ser.unit)==0 else '%s [%s]' % (ser.name, ser.unit) if chart.series.count()>1 else ser.unit
             options['yAxis'].append({
@@ -228,11 +260,12 @@ class ChartBaseView(TemplateView):
                                      'min': s.y0,
                                      'max': s.y1
                                      })
-            pts = [[p.date,p.value] for p in ser.datapoints.filter(date__gte=start).order_by('date')]
+            pts = [] #[[p.date,p.value] for p in ser.datapoints.filter(date__gte=start).order_by('date')]
             name = s.name
             if name is None or name == '':
                 name = ser.name
             sop = {'name': name,
+                   'id': ser.name,
                    'type': s.type,
                    'yAxis': s.axis-1,
                    'data': pts}
@@ -261,6 +294,7 @@ class ChartBaseView(TemplateView):
         chart = Chart.objects.get(pk=pk)
         jop = self.get_json(chart)
         context['options'] = jop
+        context['chart'] = chart
         return context
         
 class ChartView(ChartBaseView):

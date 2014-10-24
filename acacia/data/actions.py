@@ -3,7 +3,6 @@ from .models import Chart, Series
 import logging
 logger = logging.getLogger(__name__)
 
-
 def meteo_toevoegen(modeladmin, request, queryset):
     pass
     for loc in queryset:

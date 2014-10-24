@@ -1,8 +1,6 @@
 import numpy as np
 import logging
-import urllib2
 import datetime
-from datetime import timedelta, tzinfo
 from pytz import timezone
 from .campbell import CR1000
 
@@ -19,26 +17,10 @@ def convtime(txt,tz=None):
     except:
         return None
 
-class FixedOffset(tzinfo):
-    """Fixed offset in hours east from UTC."""
-
-    def __init__(self, offset='0', name='UTC'):
-        self.__offset = timedelta(hours = offset)
-        self.__name = name
-
-    def utcoffset(self, dt):
-        return self.__offset
-
-    def tzname(self, dt):
-        return self.__name
-
-    def dst(self, dt):
-        return timedelta(0)
-
 def date_parser(dt):
     ''' date parser for pandas read_csv '''
-    # Koenders' time is UTC+1
-    tz = FixedOffset(1,'UTC')
+    # Koenders' time is fixed at CET (UTC+1)
+    tz = timezone('CET')
     return np.array([convtime(t,tz) for t in dt])
 
 class Koenders(Generator):

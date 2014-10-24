@@ -122,9 +122,9 @@ LOGIN_REDIRECT_URL = '/data/'
 #INSTALLED_APPS += ('kombu.transport.django','djcelery',)                  
 
 # Celery stuff
-BROKER_URL = 'django://'
-CELERY_RESULT_BACKEND='djcelery.backends.database:DatabaseBackend'
-INSTALLED_APPS += ('kombu.transport.django','djcelery',)                  
+#BROKER_URL = 'django://'
+#CELERY_RESULT_BACKEND='djcelery.backends.database:DatabaseBackend'
+#INSTALLED_APPS += ('kombu.transport.django','djcelery',)                  
 
 LOGGING_ROOT = os.path.join(BASE_DIR, 'logs')
 

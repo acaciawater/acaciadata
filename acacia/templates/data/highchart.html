@@ -3,7 +3,11 @@
 {% block script %}
 {{ block.super }}
 <script src="http://code.highcharts.com/highcharts.js"></script>
-<script src="{% static "themes/gray.js" %}"></script>
+{% if theme %}
+<script src="{% static theme %}"></script>
+{% else %}
+<script src="{% static 'themes/gray.js' %}"></script>
+{% endif %}
 <!--
 <script src="{% static "highcharts/js/highcharts.js" %}"></script>
 <script src="{% static "highcharts/js/themes/gray.js" %}"></script> -->
@@ -15,11 +19,14 @@ Highcharts.setOptions({
 	weekdays: ["Zondag", "Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag", "Zaterdag"],
   }
 });
-
+</script>
+{% block chartloader %}
+<script>
 $(function () {
   $('#container').highcharts({{ options|safe }});
 });
 </script>
+{% endblock %}
 {% endblock %}
 {% block content %}
 <div class="container-fluid">
