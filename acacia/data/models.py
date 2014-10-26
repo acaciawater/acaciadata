@@ -976,12 +976,18 @@ class Formula(Series):
         if self.resample is not None and len(self.resample)>0:
             for name,series in variables.iteritems():
                 variables[name] = series.resample(rule=self.resample, how=self.aggregate)
-        # add all series into a single dataframe
-        df = pd.DataFrame(variables)
-        # TODO: interpolate missing values correct for inequal length series?
+
+        start = max([v.index.min() for v in variables.values()])
+        stop = min([v.index.max() for v in variables.values()])
+
+        # add all series into a single dataframe and select intersecting dates 
+        df = pd.DataFrame(variables)[start:stop]
+
+        # interpolate missing values
         df = df.interpolate(method='time')
-        variables = df.to_dict('series')
-        return variables
+        
+        # return dataframe as dict
+        return df.to_dict('series')
     
     def get_series_data(self,data,start=None):
         variables = self.get_variables()

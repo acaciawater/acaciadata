@@ -10,13 +10,16 @@ from acacia.data.views import DatasourceDetailView, DatasourceAsZip, DatasourceA
 urlpatterns = patterns('',
     url(r'^$', ListView.as_view(model=Project), name='project-list'),
     url(r'^bron/(?P<pk>\d+)/$', DatasourceDetailView.as_view(), name='datasource-detail'),
+
     url(r'^download/datasource/(?P<pk>\d+)', DatasourceAsZip,name='datasource-zip'),
     url(r'^download/tabel/(?P<pk>\d+)', DatasourceAsCsv,name='datasource-csv'),
     url(r'^download/meetlocatie/(?P<pk>\d+)', MeetlocatieAsZip,name='meetlocatie-zip'),
     url(r'^download/reeks/(?P<pk>\d+)', SeriesAsCsv,name='series-csv'),
+    url(r'^download/grafiek/(?P<pk>\d+)', ChartAsCsv,name='chart-csv'),
+    
     url(r'^get/series/(?P<pk>\d+)/$', SeriesToJson),
     url(r'^get/chart/(?P<pk>\d+)/$', ChartToJson),
-    url(r'^download/grafiek/(?P<pk>\d+)', ChartAsCsv,name='chart-csv'),
+    
     url(r'^update/meetlocatie/(?P<pk>\d+)', UpdateMeetlocatie,name='meetlocatie-update'),
     url(r'^reeks/(?P<pk>\d+)/$', SeriesView.as_view(), name='series-detail'),
     url(r'^chart/(?P<pk>\d+)/$', ChartBaseView.as_view(), name='chart-detail'),

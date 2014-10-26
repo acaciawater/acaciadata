@@ -1,4 +1,4 @@
-{% extends 'data/highchart.html' %}
+{% extends 'data/highstock.html' %}
 {% block title %}{{chart.name}}{% endblock title %}
 {% block navbar %}{% endblock %}
 {% block brandname %}<a class="navbar-brand">{{chart.name}}</a>{% endblock brandname %}
@@ -11,7 +11,7 @@
 			    datatype: "json",
  			    beforeSend: function(hdr) {
  				  	var chart = $('#container').highcharts();
- 			    	//chart.showLoading("Gegevens ophalen...");
+ 			    	chart.showLoading("Gegevens ophalen...");
  			    	return true;
  			    },
 			    success: function(data) {
@@ -26,7 +26,7 @@
 			    },
  			    complete: function(hdr, status) {
  				  	var chart = $('#container').highcharts();
- 			    	//chart.hideLoading();
+ 			    	chart.hideLoading();
  			    }
 		    });
 		}

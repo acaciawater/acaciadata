@@ -101,8 +101,12 @@ class Meteo(Generator):
             params[name] = {'description' : descr, 'unit': unit}
         return params
 
-def datehour_parser(ymd,h):
-    return np.array([datetime.datetime.strptime(a + ('0' if b == '24' else b), '%Y%m%d%H') for a,b in zip(ymd,h)])
+def datehour_parser(ymd,hours):
+    try:
+        return np.array([datetime.datetime.strptime(d,'%Y%m%d') + datetime.timedelta(hours=int(h)) for d,h in zip(ymd,hours)])
+    except Exception as e:
+        print e    
+#    return np.array([datetime.datetime.strptime(a + ('0' if b == '24' else b), '%Y%m%d%H') for a,b in zip(ymd,h)])
 
 class UurGegevens(Meteo):
     

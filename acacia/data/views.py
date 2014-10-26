@@ -173,10 +173,13 @@ class SeriesView(DetailView):
         ser = self.get_object()
         unit = ser.unit
         options = {
-            'loading': {'style': {'backgroundColor': 'white', 'fontFamily': 'Arial', 'fontSize': 'small'},
-                        'labelStyle': {'fontWeight': 'normal'},
-                        'hideDuration': 0,
-                        },
+            'rangeSelector': { 'enabled': True,
+                              'inputEnabled': True,
+                              },
+#             'loading': {'style': {'backgroundColor': 'white', 'fontFamily': 'Arial', 'fontSize': 'small'},
+#                         'labelStyle': {'fontWeight': 'normal'},
+#                         'hideDuration': 0,
+#                         },
             'chart': {'type': ser.type, 
                       'animation': False, 
                       'zoomType': 'x',
@@ -223,10 +226,15 @@ class ChartBaseView(TemplateView):
 
     def get_json(self, chart):
         options = {
-            'loading': {'style': {'backgroundColor': 'white', 'fontFamily': 'Arial', 'fontSize': 'small'},
-                        'labelStyle': {'fontWeight': 'normal'},
-                        'hideDuration': 0,
-                        },
+            'rangeSelector': { 'enabled': True,
+                              'inputEnabled': True,
+                              'selected': 5,
+                              },
+#            'navigator': {'adaptToUpdatedData': False, 'enabled': False},
+#             'loading': {'style': {'backgroundColor': 'white', 'fontFamily': 'Arial', 'fontSize': 'small'},
+#                         'labelStyle': {'fontWeight': 'normal'},
+#                         'hideDuration': 0,
+#                         },
             'chart': {'animation': False, 
                       'zoomType': 'x',
                       'events': {'load': None},
