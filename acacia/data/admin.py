@@ -97,7 +97,7 @@ class DatasourceAdmin(admin.ModelAdmin):
     list_filter = ('meetlocatie','meetlocatie__projectlocatie','meetlocatie__projectlocatie__project',)
     list_display = ('name', 'description', 'meetlocatie', 'last_download', 'filecount', 'parametercount', 'seriescount', 'start', 'stop', 'rows',)
     fieldsets = (
-                 ('Algemeen', {'fields': ('name', 'description', 'meetlocatie',),
+                 ('Algemeen', {'fields': ('name', 'description', 'timezone', 'meetlocatie',),
                                'classes': ('grp-collapse grp-open',),
                                }),
                  ('Bronnen', {'fields': (('generator', 'autoupdate'), 'url',('username', 'password',), 'config',),

@@ -4,11 +4,12 @@ from django.views.generic.list import ListView
 from acacia.data.models import Project, ProjectLocatie, MeetLocatie
 from acacia.data.views import DatasourceDetailView, DatasourceAsZip, DatasourceAsCsv, ProjectDetailView, ProjectLocatieDetailView, \
     MeetLocatieDetailView, MeetlocatieAsZip, SeriesAsCsv, SeriesToJson, ChartToJson, ChartAsCsv, UpdateMeetlocatie, ChartView, ChartBaseView, \
-    DashView, TabGroupView, SeriesView
+    DashView, TabGroupView, SeriesView, UpdateDatasource
 
 
 urlpatterns = patterns('',
     url(r'^$', ListView.as_view(model=Project), name='project-list'),
+    url(r'^/$', ListView.as_view(model=Project), name='project-list'),
     url(r'^bron/(?P<pk>\d+)/$', DatasourceDetailView.as_view(), name='datasource-detail'),
 
     url(r'^download/datasource/(?P<pk>\d+)', DatasourceAsZip,name='datasource-zip'),
@@ -16,6 +17,8 @@ urlpatterns = patterns('',
     url(r'^download/meetlocatie/(?P<pk>\d+)', MeetlocatieAsZip,name='meetlocatie-zip'),
     url(r'^download/reeks/(?P<pk>\d+)', SeriesAsCsv,name='series-csv'),
     url(r'^download/grafiek/(?P<pk>\d+)', ChartAsCsv,name='chart-csv'),
+    
+    url(r'^update/(?P<pk>\d+)',UpdateDatasource,name='datasource-update'),
     
     url(r'^get/series/(?P<pk>\d+)/$', SeriesToJson),
     url(r'^get/chart/(?P<pk>\d+)/$', ChartToJson),

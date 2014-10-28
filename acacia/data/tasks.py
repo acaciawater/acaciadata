@@ -3,7 +3,7 @@ from celery.utils.log import get_task_logger
 from celery import shared_task
 from django.shortcuts import get_object_or_404
 logger = get_task_logger(__name__)
-from .models import MeetLocatie
+from .models import MeetLocatie, Series, Datasource
 from acacia.management.commands import update
 
 @shared_task
@@ -20,27 +20,25 @@ def update_meetlocatie(pk):
 
 
 @shared_task
-def update_series(series, data = None, start = None):
-    series.update(data,start)
+def update_series(pk, start = None):
+    series = Series.objects.get(pk=pk)
+    series.update(start=start)
     
 @shared_task
-def download_datasource(datasource, start = None):
+def download_datasource(pk, start = None):
+    datasource = Datasource.objects.get(pk=pk)
     return datasource.download(start=start)
 
 @shared_task
-def update_parameter_thumbnail(parameter,data = None):
-    parameter.make_thumbnail(data)
-    parameter.save()
-
-@shared_task
-def update_series_thumbnail(series,data = None):
+def update_series_thumbnail(pk):
+    series = Series.objects.get(pk=pk)
     series.make_thumbnail()
     series.save()
 
 @shared_task
-def update_datasource(datasource, download = True, replace = False):
+def update_datasource(pk, download = True, replace = False, nocalc = False):
     command = update.Command()
-    command.handle(pk=datasource.pk,down=download,replace=replace)
+    command.execute(pk=pk,down=download,replace=replace,nocalc=nocalc)
     
 @shared_task
 def test():

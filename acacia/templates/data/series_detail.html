@@ -30,7 +30,7 @@
 		$(function () {
 		  var opt = {{options|safe}};
 		  opt.chart.events.load = fetchSeries;
-		  chart = $('#container').highcharts(opt);
+		  chart = $('#container').highcharts('StockChart', 	opt);
 		});
 	</script>
 {% endblock %}

@@ -5,9 +5,10 @@ from generator import Generator
 
 class Generic(Generator):
     ''' Generic csv file without header, comma separated, uses standard date/time formatting in first column '''
-    
-    def __init__(self,header=None):
-        self.header = header
+
+    def __init__(self, *args, **kwargs):        
+        super(Generic,self).__init__(*args, **kwargs)
+        self.header = kwargs.get('header', None)
 
     def set_labels(self,data):
         if self.header is None:
@@ -34,8 +35,9 @@ class Generic(Generator):
         return params
 
 class GenericCSV(Generic):
-    def __init__(self):
-        super(Generic,self).__init__(header=True)
+    def __init__(self, *args, **kwargs):
+        kwargs['header'] = 0        
+        super(GenericCSV,self).__init__(*args, **kwargs)
         
 from StringIO import StringIO
 if __name__ == '__main__':

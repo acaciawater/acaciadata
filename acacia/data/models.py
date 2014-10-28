@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 import json,util
 import StringIO
-
+import pytz
 import logging
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,15 @@ def aware(d,tz=None):
     ''' utility function to ensure datetime object is offset-aware '''
     if d is not None:
         if timezone.is_naive(d):
-            return timezone.make_aware(d, tz or timezone.get_current_timezone())            
+            if tz is None:
+                tz = settings.TIME_ZONE
+            if not isinstance(tz, timezone.tzinfo):
+                tz = pytz.timezone(tz)
+            try:
+                return timezone.make_aware(d, tz)            
+            except:
+#                 pytz.NonExistentTimeError, pytz.AmbiguousTimeError: # CET/CEST transition?
+                return timezone.make_aware(d, pytz.utc)            
     return d
 
 class Project(models.Model):
@@ -193,7 +201,8 @@ class Datasource(models.Model):
     config=models.TextField(blank=True,null=True,default='{}',verbose_name = 'Additionele configuraties',help_text='Geldige JSON dictionary')
     username=models.CharField(max_length=50, blank=True, null=True, default='anonymous', verbose_name='Gebuikersnaam',help_text='Gebruikersnaam voor downloads')
     password=models.CharField(max_length=50, blank=True, null=True, verbose_name='Wachtwoord',help_text='Wachtwoord voor downloads')
-
+    timezone=models.CharField(max_length=50, blank=True, default=settings.TIME_ZONE)
+    
     class Meta:
         ordering = ['name',]
         unique_together = ('name', 'meetlocatie',)
@@ -267,8 +276,8 @@ class Datasource(models.Model):
             return None
         else:
             files = []
-            errors = 0
             logger.info('Download completed, got %s file(s)', len(results))
+            self.last_download = timezone.now()
             crcs = {f.crc:f.file for f in self.sourcefiles.all()}
             for filename, contents in results.iteritems():
                 crc = abs(binascii.crc32(contents))
@@ -277,10 +286,8 @@ class Datasource(models.Model):
                     continue
                 try:
                     sourcefile = self.sourcefiles.get(name=filename)
-                    created = False
                 except:
                     sourcefile = SourceFile(name=filename,datasource=self,user=self.user)
-                    created = True
                 sourcefile.crc = crc
 #                try:
                 contentfile = ContentFile(contents)
@@ -291,9 +298,7 @@ class Datasource(models.Model):
 #                 except Exception as e:
 #                     logger.error('Error saving sourcefile %s: %s' % (filename, e))
 #                     errors += 1
-            if errors == 0 and len(files)>0:
-                self.last_download = timezone.now()
-                self.save(update_fields=['last_download'])
+            self.save(update_fields=['last_download'])
             return files
         
     def update_parameters(self,data=None,files=None,limit=10):
@@ -337,8 +342,9 @@ class Datasource(models.Model):
         self.parameter_set.all().delete()
         self.update_parameters(data)
 
-    def make_thumbnails(self):
-        data = self.get_data()
+    def make_thumbnails(self, data=None):
+        if data is None:
+            data = self.get_data()
         for p in self.parameter_set.all():
             p.make_thumbnail(data)
     
@@ -357,11 +363,11 @@ class Datasource(models.Model):
 #             if sourcefile.rows == 0:
 #                 continue
             if start is not None:
-                sstop = aware(sourcefile.stop)
+                sstop = aware(sourcefile.stop,self.timezone)
                 if sstop is None or sstop < start:
                     continue
             if stop is not None:
-                sstart = aware(sourcefile.start)
+                sstart = aware(sourcefile.start,self.timezone)
                 if sstart is None or sstart > stop:
                     continue
             d = sourcefile.get_data(**kwargs)
@@ -372,7 +378,7 @@ class Datasource(models.Model):
                     data = data.append(d)
         if data is not None:
             #try:
-                date = np.array([aware(d, timezone.utc) for d in data.index.to_pydatetime()])
+                date = np.array([aware(d, self.timezone) for d in data.index.to_pydatetime()])
                 slicer = None
                 if start is not None:
                     if stop is not None:
@@ -419,6 +425,7 @@ class Datasource(models.Model):
             for s in p.series_set.all():
                 r.add(s) 
         return r   
+    
     def chartscount(self):
         count = sum([p.chartscount() for p in self.parameter_set.all()])
         return count if count>0 else None
@@ -562,9 +569,13 @@ def sourcefile_save(sender, instance, **kwargs):
             instance.uploaded = date
     instance.get_dimensions(data = kwargs.get('data', None))
     ds = instance.datasource
-    if ds.last_download is None or ds.last_download < instance.uploaded:
+    if instance.uploaded is None:
+        instance.uploaded = timezone.now()
+    if ds.last_download is None:
         ds.last_download = instance.uploaded
-        ds.save()
+    elif ds.last_download < instance.uploaded:
+        ds.last_download = instance.uploaded
+    ds.save()
 
 SERIES_CHOICES = (('line', 'lijn'),
                   ('column', 'staaf'),
@@ -862,6 +873,8 @@ class Series(models.Model):
     def beforelast(self):
         if self.aantal() < 1:
             return None
+        if self.aantal() == 1:
+            return self.van()
         return self.datapoints.order_by('-date')[1]
         
     def eerste(self):
@@ -997,6 +1010,19 @@ class Formula(Series):
         if isinstance(result, pd.Series):
             result.name = self.name
         return self.do_postprocess(result)
+    
+    def get_dependencies(self):
+        ''' return list of dependencies in order of processing '''
+        deps = []
+        for v in self.formula_variables.all():
+            s = v.series
+            try:
+                f = s.formula
+                deps.extend(f.get_dependencies())
+            except Formula.DoesNotExist:
+                pass
+            deps.append(s)
+        return deps
     
     class Meta:
         verbose_name = 'Berekende reeks'

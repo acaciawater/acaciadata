@@ -1,10 +1,8 @@
-from django.views.generic.edit import CreateView
 from django.views.generic.list import ListView
 from django.views.generic import DetailView
 from django.views.generic.base import TemplateView
-from django.utils import timezone
 from django.template.loader import render_to_string
-from django.shortcuts import get_object_or_404, redirect, render_to_response
+from django.shortcuts import get_object_or_404, redirect
 from django.http import HttpResponse
 from .models import Project, ProjectLocatie, MeetLocatie, Datasource, Series, Chart, Dashboard, TabGroup
 from .util import datasource_as_zip, datasource_as_csv, meetlocatie_as_zip, series_as_csv, chart_as_csv
@@ -15,55 +13,20 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# pandas read_csv does not work on server. Test here
-import numpy as np
-import pandas as pd
-from StringIO import StringIO
-import csv
-import io
-
-def pandas(request):
-    fname = '/home/theo/acaciadata.com/acacia/media/spaarwater/borgsweer/perceel-1/datafiles/bedelier-borgsweer/LogFile.csv'
-    #fname = '/var/www/vhosts/acaciadata.com/httpdocs/django/acacia/media/spaarwater/borgsweer/perceel-1/datafiles/bedelier-borgsweer/LogFile.csv'
-    logger.debug('read csv')
-    with open(fname) as f:
-        io = StringIO(f.read())
-        reader = csv.reader(io, delimiter=';')
-        count = 0
-        for row in reader:
-            count = count+1
-    logger.debug('read csv done: %d rows' % count)
-    
-    logger.debug('pandas read_csv from file')
-    df3 = pd.read_csv(fname, delimiter=';')
-    logger.debug('pandas read_csv from file finished')
-      
-    logger.debug('opening file')
-    with open(fname, 'r') as f:
-        logger.debug('reading file')
-        s = StringIO(f.readlines())
-    logger.debug('pandas read_csv in 1 go starting')
-    pd.read_csv(s, delimiter=';')
-    logger.debug('pandas read_csv in 1 go finished')
-     
-    logger.debug('numpy read_csv starting')
-    np.genfromtxt(fname, delimiter=';')
-    logger.debug('numpy read_csv finished')
-   
-    referer = request.META.get('HTTP_REFERER', 'home')
-    return redirect(referer)
     
 def DatasourceAsZip(request,pk):
+    ''' Alle bestanden in datasource downloaden als zip file '''
     ds = get_object_or_404(Datasource,pk=pk)
     return datasource_as_zip(ds)
+
+def DatasourceAsCsv(request,pk):
+    ''' Datasource downloaden als csv file met een parameter in elke kolom '''
+    ds = get_object_or_404(Datasource,pk=pk)
+    return datasource_as_csv(ds)
 
 def MeetlocatieAsZip(request,pk):
     loc = get_object_or_404(MeetLocatie,pk=pk)
     return meetlocatie_as_zip(loc)
-
-def DatasourceAsCsv(request,pk):
-    ds = get_object_or_404(Datasource,pk=pk)
-    return datasource_as_csv(ds)
 
 def SeriesAsCsv(request,pk):
     s = get_object_or_404(Series,pk=pk)
@@ -94,24 +57,15 @@ def tojs(d):
 def date_handler(obj):
     return tojs(obj) if isinstance(obj, datetime.date) or isinstance(obj, datetime.datetime) else obj
 
-def UpdateMeetlocatieDirect(request,pk):
-    loc = get_object_or_404(MeetLocatie,pk=pk)
-    for d in loc.datasources.all():
-        num = d.download()
-        if num > 0:
-            d.update_parameters()
-            data = d.get_data()
-            for p in d.parameter_set.all():
-                for s in p.series_set.all():
-                    s.update(data)
+from .tasks import update_meetlocatie, update_datasource
+
+def UpdateMeetlocatie(request,pk):
+    update_meetlocatie(pk)
     referer = request.META.get('HTTP_REFERER',None)
     return redirect(referer)
 
-from .tasks import update_meetlocatie
-
-def UpdateMeetlocatie(request,pk):
-    # TODO: prevent double task
-    update_meetlocatie.delay(pk)
+def UpdateDatasource(request,pk):
+    update_datasource(pk)
     referer = request.META.get('HTTP_REFERER',None)
     return redirect(referer)
 
@@ -173,9 +127,9 @@ class SeriesView(DetailView):
         ser = self.get_object()
         unit = ser.unit
         options = {
-            'rangeSelector': { 'enabled': True,
-                              'inputEnabled': True,
-                              },
+#             'rangeSelector': { 'enabled': True,
+#                               'inputEnabled': True,
+#                               },
 #             'loading': {'style': {'backgroundColor': 'white', 'fontFamily': 'Arial', 'fontSize': 'small'},
 #                         'labelStyle': {'fontWeight': 'normal'},
 #                         'hideDuration': 0,
@@ -218,7 +172,7 @@ class SeriesView(DetailView):
         # remove quotes around date stuff
         jop = re.sub(r'\"(Date\.UTC\([\d,]+\))\"',r'\1', jop)
         context['options'] = jop
-        context['theme'] = ser.theme()
+        context['theme'] = ' None' #ser.theme()
         return context
 
 class ChartBaseView(TemplateView):

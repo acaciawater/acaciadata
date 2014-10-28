@@ -6,6 +6,7 @@ Created on Feb 13, 2014
 from django.core.management.base import BaseCommand
 from optparse import make_option
 from acacia.data.models import Datasource, Formula
+import numpy as np
 
 class Command(BaseCommand):
     args = ''
@@ -42,13 +43,13 @@ class Command(BaseCommand):
         count = 0
         pk = options.get('pk', None)
         if pk is None:
-            datasources = Datasource.objects.exclude(autoupdate=False, url=None)
+            datasources = Datasource.objects.all()
         else:
-            datasources = Datasource.objects.filter(pk=pk, autoupdate=True)
+            datasources = Datasource.objects.filter(pk=pk)
 
         replace = options.get('replace')
         if replace:
-            self.stdout.write('Recreating all series\n')
+            self.stdout.write('Recreating series\n')
         
         for d in datasources:
             series = d.getseries()
@@ -62,13 +63,13 @@ class Command(BaseCommand):
                 else:
                     # actialisatie vanaf een na laatste datapoint
                     # (rekening houden met niet volledig gevulde laatste tijdsinterval bij accumulatie of sommatie)
-                    series_start = min([s.beforelast().date for s in series])
+                    series_start = min([p.date for p in [s.beforelast() for s in series] if p is not None])
                 if data_start is None:
                     start = series_start
                 else:
                     start = min(series_start,data_start)
 
-            if down:
+            if down and d.autoupdate and d.url is not None:
                 self.stdout.write('Downloading datasource %s\n' % d.name)
                 try:
                     newfiles = d.download()
@@ -92,6 +93,8 @@ class Command(BaseCommand):
             self.stdout.write('  Updating parameters\n')
             try:
                 d.update_parameters(data=data,files=newfiles,limit=10)
+                if replace:
+                    d.make_thumbnails(data=data)
             except Exception as e:
                 self.stderr.write('ERROR updating parameters for datasource %s: %s\n' % (d.name, e))
             for s in series:
@@ -110,6 +113,7 @@ class Command(BaseCommand):
             if calc:
                 self.stdout.write('Updating calculated timeseries\n')
                 count = 0
+                # TODO: sort formulas by dependency
                 for f in Formula.objects.all():
                     self.stdout.write('  Updating timeseries %s\n' % f.name)
                     try:
