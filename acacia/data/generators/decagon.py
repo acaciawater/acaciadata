@@ -285,6 +285,11 @@ def decatime(dt):
         timestamp = float(dt)+DECATIME_OFFSET
         # timestamp is in local timezone, synced by GSM network
         dt = datetime.datetime.utcfromtimestamp(timestamp)
+
+        # temp workaround for invalid dates
+        if dt.date() > datetime.date.today():
+            return None
+        
         return timezone.make_aware(dt,tz)
     except:
         return None

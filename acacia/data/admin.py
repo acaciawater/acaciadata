@@ -44,7 +44,7 @@ class ProjectLocatieAdmin(admin.ModelAdmin):
     #form = ProjectLocatieForm
     list_display = ('name','project','location_count',)
     list_filter = ('project',)
-    #formfield_overrides = {models.PointField:{'widget': Textarea}}
+    formfield_overrides = {models.PointField:{'widget': Textarea}}
 
 class MeetLocatieForm(ModelForm):
     
@@ -64,7 +64,7 @@ class MeetLocatieAdmin(admin.ModelAdmin):
     form = MeetLocatieForm
     list_display = ('name','projectlocatie','project','datasourcecount',)
     list_filter = ('projectlocatie','projectlocatie__project',)
-    #formfield_overrides = {models.PointField:{'widget': Textarea, 'required': False}}
+    formfield_overrides = {models.PointField:{'widget': Textarea, 'required': False}}
     actions = [actions.meteo_toevoegen]
     
 class DatasourceForm(ModelForm):
