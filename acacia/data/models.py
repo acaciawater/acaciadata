@@ -389,8 +389,8 @@ class Datasource(models.Model):
                     slicer = (date <= stop)
                 if slicer is not None:
                     data = data[slicer]
-                # remove duplicates
-                data = data.groupby(level=0).last()
+                # Don't remove duplicates
+                # data = data.groupby(level=0).last()
                 return data.sort()
             #except:
                 pass
@@ -728,10 +728,18 @@ class Series(models.Model):
     
     def do_postprocess(self, series):
         ''' perform postprocessing of series data like resampling, scaling etc'''
-        series.dropna(inplace=True)
+        # remove n/a values and duplicates
+        series = series.dropna()
+        if series.empty:
+            return series
+        series = series.groupby(level=0).last()
+        if series.empty:
+            return series
         if self.resample is not None and self.resample != '':
             try:
                 series = series.resample(how=self.aggregate, rule=self.resample)
+                if series.empty:
+                    return series
             except Exception as e:
                 logger.error('Resampling of series %s failed: %s' % (self.name, e))
                 return None
@@ -744,6 +752,8 @@ class Series(models.Model):
                 if series.empty:
                     return series
             series = series.cumsum()
+            if series.empty:
+                return series
             if self.aantal() > 0:
                 # we hadden al bestaande datapoints in de reeks
                 # vind laatste punt van bestaande reeks dat voor begin van nieuwe reeks valt
@@ -874,7 +884,7 @@ class Series(models.Model):
         if self.aantal() < 1:
             return None
         if self.aantal() == 1:
-            return self.van()
+            return self.eerste()
         return self.datapoints.order_by('-date')[1]
         
     def eerste(self):

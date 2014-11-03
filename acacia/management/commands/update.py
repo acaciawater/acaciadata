@@ -52,6 +52,8 @@ class Command(BaseCommand):
             self.stdout.write('Recreating series\n')
         
         for d in datasources:
+            if not d.autoupdate and pk is None:
+                continue
             series = d.getseries()
             if replace:
                 start = None
@@ -101,7 +103,7 @@ class Command(BaseCommand):
                 self.stdout.write('  Updating timeseries %s\n' % s.name)
                 try:
                     if replace:
-                        s.replace(data)
+                        s.replace()
                     else:
                         s.update(data,start=start)
                 except Exception as e:
