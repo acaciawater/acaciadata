@@ -201,7 +201,7 @@ class FormulaAdmin(SeriesAdmin):
                  ('Bewerkingen', {'fields': (('resample', 'aggregate',),('scale', 'offset',), ('cumsum', 'cumstart' ),),
                                'classes': ('grp-collapse grp-closed',),
                               }),
-                 ('Berekening', {'fields': ('formula_variables', 'formula_text'),
+                 ('Berekening', {'fields': ('formula_variables', 'intersect', 'formula_text'),
                                'classes': ('grp-collapse grp-closed',),
                               }),
     )

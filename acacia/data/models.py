@@ -700,7 +700,11 @@ class Series(models.Model):
         return reverse('acacia:series-detail', args=[self.id]) 
 
     def datasource(self):
-        p = self.parameter
+        try:
+            p = self.parameter
+        except:
+            # Parameter defined but does not exist. Database integrity problem!
+            return None
         return None if p is None else p.datasource
 
     def meetlocatie(self):
@@ -773,10 +777,16 @@ class Series(models.Model):
         return series
          
     def get_series_data(self, dataframe, start=None):
+        
+        if self.parameter is None:
+            #raise Exception('Parameter is None for series %s' % self.name)
+            return None
+
         if dataframe is None:
             dataframe = self.parameter.get_data(start=start)
             if dataframe is None:
                 return None
+            
         series = dataframe[self.parameter.name]
         series = self.do_postprocess(series)
         if start is not None:
@@ -987,7 +997,8 @@ class Formula(Series):
     locatie = models.ForeignKey(MeetLocatie)
     formula_text = models.TextField(blank=True,null=True,verbose_name='berekening')
     formula_variables = models.ManyToManyField(Variable,verbose_name = 'variabelen')
-    
+    intersect = models.BooleanField(default=True,verbose_name = 'bereken alleen voor overlappend tijdsinterval')
+        
     def meetlocatie(self):
         return self.locatie
         
@@ -999,19 +1010,22 @@ class Formula(Series):
         if self.resample is not None and len(self.resample)>0:
             for name,series in variables.iteritems():
                 variables[name] = series.resample(rule=self.resample, how=self.aggregate)
+        
+        # add all series into a single dataframe 
+        df = pd.DataFrame(variables)
 
-        start = max([v.index.min() for v in variables.values()])
-        stop = min([v.index.max() for v in variables.values()])
-
-        # add all series into a single dataframe and select intersecting dates 
-        df = pd.DataFrame(variables)[start:stop]
+        if self.intersect:
+            # using intersecting time interval only (no extrapolation)
+            start = max([v.index.min() for v in variables.values()])
+            stop = min([v.index.max() for v in variables.values()])
+            df = df[start:stop]
 
         # interpolate missing values
         df = df.interpolate(method='time')
         
         # return dataframe as dict
         return df.to_dict('series')
-    
+
     def get_series_data(self,data,start=None):
         variables = self.get_variables()
         result = eval(self.formula_text, globals(), variables)
