@@ -29,7 +29,7 @@ def aware(d,tz=None):
     ''' utility function to ensure datetime object is offset-aware '''
     if d is not None:
         if timezone.is_naive(d):
-            if tz is None:
+            if tz is None or tz == '':
                 tz = settings.TIME_ZONE
             if not isinstance(tz, timezone.tzinfo):
                 tz = pytz.timezone(tz)

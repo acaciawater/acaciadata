@@ -22,7 +22,10 @@ class NMCPro(Generator):
         header = self.get_header(f)
         names = header['COLUMNS']
         data = self.read_csv(f, header=0, skiprows = self.skiprows, names=names, comment = '#', index_col=[0], 
-                           parse_dates = [[0,1]], dayfirst=True, na_values = ['----', '-------'])
+                           parse_dates = [0], na_values = ['----', '-------'])
+        data.dropna(how='all',inplace=True)
+        data.sort(inplace=True)
+        print data.tail(10)
         return data
 
     def get_parameters(self, fil):
