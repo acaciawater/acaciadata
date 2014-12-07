@@ -127,7 +127,7 @@ class GeneratorAdmin(admin.ModelAdmin):
 class SourceFileAdmin(admin.ModelAdmin):
     fields = ('name', 'datasource', 'file',)
     list_display = ('name','datasource', 'meetlocatie', 'filetag', 'rows', 'cols', 'start', 'stop', 'uploaded',)
-    list_filter = ('datasource', 'datasource__meetlocatie', 'uploaded',)
+    list_filter = ('datasource', 'datasource__meetlocatie', 'datasource__meetlocatie__projectlocatie__project', 'uploaded',)
     search_fields = ['name','file__name',]
 
     def save_model(self, request, obj, form, change):
@@ -135,7 +135,7 @@ class SourceFileAdmin(admin.ModelAdmin):
         obj.save()
     
 class ParameterAdmin(admin.ModelAdmin):
-    list_filter = ('datasource','datasource__meetlocatie',)
+    list_filter = ('datasource','datasource__meetlocatie', 'datasource__meetlocatie__projectlocatie__project')
     actions = [actions.update_thumbnails, actions.generate_series,]
     list_display = ('name', 'thumbtag', 'meetlocatie', 'datasource', 'unit', 'description', 'seriescount')
 #     actions = [actions.generate_series,]
@@ -167,7 +167,7 @@ class SeriesAdmin(admin.ModelAdmin):
     list_display = ('name', 'thumbtag', 'parameter', 'datasource', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
     exclude = ('user',)
 #    inlines = [DataPointInline,]
-    list_filter = ('parameter__datasource__meetlocatie', 'parameter__datasource')
+    list_filter = ('parameter__datasource__meetlocatie', 'parameter__datasource', 'parameter__datasource__meetlocatie__projectlocatie__project')
     search_fields = ['name','parameter__name','parameter__datasource__name']
 
     fieldsets = (

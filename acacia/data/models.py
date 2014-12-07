@@ -215,6 +215,13 @@ class Datasource(models.Model):
     def get_absolute_url(self):
         return reverse('acacia:datasource-detail', args=[self.id]) 
     
+    def projectlocatie(self):
+        return None if self.meetlocatie is None else self.meetlocatie.projectlocatie
+
+    def project(self):
+        loc = self.projectlocatie()
+        return None if loc is None else loc.project
+
     def get_generator_instance(self):
         if self.generator is None:
             raise Exception('Generator not defined for datasource %s' % self.name)
@@ -477,10 +484,10 @@ class SourceFile(models.Model):
         return self.datasource.meetlocatie
 
     def projectlocatie(self):
-        return self.meetlocatie().projectlocatie
+        return self.datasource.projectlocatie()
 
     def project(self):
-        return self.projectlocatie().project
+        return self.datasource.project()
        
     def filename(self):
         try:
@@ -603,10 +610,10 @@ class Parameter(models.Model):
         return self.datasource.meetlocatie
 
     def projectlocatie(self):
-        return self.datasource.meetlocatie.projectlocatie
+        return self.datasource.projectlocatie()
 
     def project(self):
-        return self.datasource.meetlocatie.projectlocatie.project
+        return self.datasource.project()
     
     def get_data(self,**kwargs):
         return self.datasource.get_data(param=self.name,**kwargs)
