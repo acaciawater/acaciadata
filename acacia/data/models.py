@@ -829,6 +829,7 @@ class Series(models.Model):
         if thumbnail:
             self.make_thumbnail()
         self.save()
+        self.getproperties()#.update()
         
     def replace(self):
         logger.info('Deleting all %d datapoints from series %s' % (self.datapoints.count(), self.name))
@@ -866,46 +867,81 @@ class Series(models.Model):
         logger.info('Series %s updated: %d points created, %d updated, %d skipped' % (self.name, num_created, num_updated, num_bad))
         self.make_thumbnail()
         self.save()
+        self.getproperties().update()
 
+# start properties
+#     def aantal(self):
+#         return self.datapoints.count()
+#     
+#     def van(self):
+#         van = datetime.datetime.now()
+#         agg = self.datapoints.aggregate(van=Min('date'))
+#         return agg.get('van', van)
+# 
+#     def tot(self):
+#         tot = datetime.datetime.now()
+#         agg = self.datapoints.aggregate(tot=Max('date'))
+#         return agg.get('tot', tot)
+#     
+#     def minimum(self):
+#         agg = self.datapoints.aggregate(min=Min('value'))
+#         return agg.get('min', 0)
+# 
+#     def maximum(self):
+#         agg = self.datapoints.aggregate(max=Max('value'))
+#         return agg.get('max', 0)
+# 
+#     def gemiddelde(self):
+#         agg = self.datapoints.aggregate(avg=Avg('value'))
+#         return agg.get('avg', 0)
+# 
+#     def laatste(self):
+#         return self.datapoints.order_by('-date')[0]
+# 
+#     def beforelast(self):
+#         if self.aantal() < 1:
+#             return None
+#         if self.aantal() == 1:
+#             return self.eerste()
+#         return self.datapoints.order_by('-date')[1]
+#         
+#     def eerste(self):
+#         return self.datapoints.order_by('date')[0]
+        
+# end properties
+
+    def getproperties(self):
+        if not hasattr(self,'properties'):
+            props = SeriesProperties.objects.create(series = self)
+            props.update()
+        return self.properties
+    
     def aantal(self):
-        return self.datapoints.count()
+        return self.getproperties().aantal
     
     def van(self):
-#        return self.datapoints.earliest('date')
-        van = datetime.datetime.now()
-        agg = self.datapoints.aggregate(van=Min('date'))
-        return agg.get('van', van)
+        return self.getproperties().van
 
     def tot(self):
-#        return self.datapoints.latest('date')
-        tot = datetime.datetime.now()
-        agg = self.datapoints.aggregate(tot=Max('date'))
-        return agg.get('tot', tot)
-    
+        return self.getproperties().tot
+   
     def minimum(self):
-        agg = self.datapoints.aggregate(min=Min('value'))
-        return agg.get('min', 0)
+        return self.getproperties().min
 
     def maximum(self):
-        agg = self.datapoints.aggregate(max=Max('value'))
-        return agg.get('max', 0)
+        return self.getproperties().max
 
     def gemiddelde(self):
-        agg = self.datapoints.aggregate(avg=Avg('value'))
-        return agg.get('avg', 0)
+        return self.getproperties().gemiddelde
 
     def laatste(self):
-        return self.datapoints.order_by('-date')[0]
+        return self.getproperties().laatste
 
     def beforelast(self):
-        if self.aantal() < 1:
-            return None
-        if self.aantal() == 1:
-            return self.eerste()
-        return self.datapoints.order_by('-date')[1]
+        return self.getproperties().beforelast
         
     def eerste(self):
-        return self.datapoints.order_by('date')[0]
+        return self.getproperties().eerste
         
     def thumbpath(self):
         return self.thumbnail.path
@@ -959,16 +995,42 @@ class Series(models.Model):
         return self.thumbnail
 
 # cache series properties to speed up loading admin page for series
-# class SeriesProperties(models.Model):
-#     series = models.OneToOneField(Series,related_name='properties')
-#     aantal = models.IntegerField()
-#     min = models.FloatField()
-#     max = models.FloatField()
-#     eerste = models.ForeignKey('DataPoint',related_name='first')
-#     laatste = models.ForeignKey('DataPoint',related_name='last')
-#      
-#     def update(self):
-#         pass
+class SeriesProperties(models.Model):
+    series = models.OneToOneField(Series,related_name='properties')
+    aantal = models.IntegerField(default = 0)
+    min = models.FloatField(default = 0, null = True)
+    max = models.FloatField(default = 0, null = True)
+    van = models.DateTimeField(null = True)
+    tot = models.DateTimeField(null = True)
+    gemiddelde = models.FloatField(default = 0)
+    eerste = models.ForeignKey('DataPoint',null = True, related_name='first')
+    laatste = models.ForeignKey('DataPoint',null = True, related_name='last')
+    beforelast = models.ForeignKey('DataPoint', null = True, related_name='beforelast')  
+
+    def update(self, save = True):
+        agg = self.series.datapoints.aggregate(van=Min('date'), tot=Max('date'), min=Min('value'), max=Max('value'), avg=Avg('value'))
+        self.aantal = self.series.datapoints.count()
+        self.van = agg.get('van', datetime.datetime.now())
+        self.tot = agg.get('tot', datetime.datetime.now())
+        self.min = agg.get('min', 0)
+        self.max = agg.get('max', 0)
+        self.gemiddelde = agg.get('avg', 0)
+        if self.aantal == 0:
+            self.eerste = None
+            self.laatste = None
+            self.beforelast = None
+        else:
+            self.eerste = self.series.datapoints.order_by('date')[0]
+            if self.aantal == 1:
+                self.laaste = self.eerste
+                self.beforelast =  self.laatste
+            else:
+                points = self.series.datapoints.order_by('-date')
+                self.laatste = points[0]
+                self.beforelast = points[1]
+        if save:
+            self.save()
+            
     
 class Variable(models.Model):
     locatie = models.ForeignKey(MeetLocatie)

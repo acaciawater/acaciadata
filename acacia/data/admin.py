@@ -163,7 +163,7 @@ class DataPointInline(admin.TabularInline):
     model = DataPoint
     
 class SeriesAdmin(admin.ModelAdmin):
-    actions = [actions.copy_series, actions.download_series, actions.refresh_series, actions.replace_series, actions.series_thumbnails, actions.empty_series]
+    actions = [actions.copy_series, actions.download_series, actions.refresh_series, actions.replace_series, actions.series_thumbnails, actions.update_series_properties, actions.empty_series]
     list_display = ('name', 'thumbtag', 'parameter', 'datasource', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
     exclude = ('user',)
 #    inlines = [DataPointInline,]

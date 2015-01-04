@@ -95,6 +95,11 @@ def copy_series(modeladmin, request, queryset):
         s.save()
 copy_series.short_description = "Geselecteerde tijdreeksen dupliceren"
 
+def update_series_properties(modeladmin, request, queryset):
+    for s in queryset:
+        s.getproperties().update()
+update_series_properties.short_description = "Eigenschappen van geselecteerde tijdreeksen bijwerken"
+        
 def copy_charts(modeladmin, request, queryset):
     for c in queryset:
         name = 'kopie van %s' % (c.name)
