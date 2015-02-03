@@ -85,7 +85,8 @@ class ProjectLocatie(geo.Model):
     location = geo.PointField(srid=util.RDNEW,verbose_name='locatie', help_text='Projectlocatie in Rijksdriehoekstelsel coordinaten')
     objects = geo.GeoManager()
     webcam = models.ForeignKey(Webcam, null = True, blank=True)
-
+    dashboard = models.ForeignKey('TabGroup', blank=True, null=True, verbose_name = 'Standaard dashboard')
+    
     def get_absolute_url(self):
         return reverse('acacia:projectlocatie-detail', args=[self.id])
 
@@ -187,22 +188,31 @@ class Generator(models.Model):
         
     class Meta:
         ordering = ['name',]
-        
+
+LOGGING_CHOICES = (
+                  ('OFF', 'Geen'),
+                  ('DEBUG', 'Debug'),
+                  ('INFO', 'Informatie'),
+                  ('WARNING', 'Waarschuwingen'),
+                  ('ERROR', 'Fouten'),
+#                  ('CRITICAL', 'Alleen kritieke fouten'),
+                  )
+
 class Datasource(models.Model):
     name = models.CharField(max_length=50,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     meetlocatie=models.ForeignKey(MeetLocatie,related_name='datasources',help_text='Meetlocatie van deze gegevensbron')
     url=models.CharField(blank=True,null=True,max_length=200,help_text='volledige url van de gegevensbron. Leeg laten voor handmatige uploads')
     generator=models.ForeignKey(Generator,help_text='Generator voor het maken van tijdreeksen uit de datafiles')
-    created = models.DateTimeField(auto_now_add=True)
+    user=models.ForeignKey(User,default=User,verbose_name='Aangemaakt door')
+    created = models.DateTimeField(auto_now_add=True,verbose_name='Aangemaakt op')
     last_download = models.DateTimeField(null=True, blank=True, verbose_name='geactualiseerd')
     autoupdate = models.BooleanField(default=True)
-    user=models.ForeignKey(User,default=User)
     config=models.TextField(blank=True,null=True,default='{}',verbose_name = 'Additionele configuraties',help_text='Geldige JSON dictionary')
     username=models.CharField(max_length=50, blank=True, null=True, default='anonymous', verbose_name='Gebuikersnaam',help_text='Gebruikersnaam voor downloads')
     password=models.CharField(max_length=50, blank=True, null=True, verbose_name='Wachtwoord',help_text='Wachtwoord voor downloads')
     timezone=models.CharField(max_length=50, blank=True, default=settings.TIME_ZONE)
-    
+
     class Meta:
         ordering = ['name',]
         unique_together = ('name', 'meetlocatie',)
@@ -450,6 +460,19 @@ class Datasource(models.Model):
         agg = self.sourcefiles.aggregate(rows=Sum('rows'))
         return agg.get('rows', None)
 
+class Notification(models.Model):
+    datasource = models.ForeignKey(Datasource,help_text='Gegevensbron welke gevolgd wordt')
+    user = models.ForeignKey(User,blank=True,null=True,verbose_name='Gebruiker',help_text='Gebruiker die berichtgeving ontvangt over updates')
+    email = models.EmailField(max_length=254)
+    subject = models.TextField(blank=True,default='Acaciadata update')
+    level = models.CharField(max_length=10,choices = LOGGING_CHOICES, default = 'ERROR', verbose_name='Niveau',help_text='Niveau van berichtgeving')
+    active = models.BooleanField(default = True,verbose_name='activeren')
+
+    class Meta:
+        verbose_name ='Email berichten'
+        verbose_name_plural = 'Email berichten'
+    
+    
 # class UpdateSchedule(models.Model):
 #     datasource = models.ForeignKey(Datasource)
 #     minute = models.CharField(max_length=2,default='0')
@@ -829,7 +852,7 @@ class Series(models.Model):
         if thumbnail:
             self.make_thumbnail()
         self.save()
-        self.getproperties()#.update()
+        #self.getproperties()#.update()
         
     def replace(self):
         logger.info('Deleting all %d datapoints from series %s' % (self.datapoints.count(), self.name))
@@ -867,85 +890,85 @@ class Series(models.Model):
         logger.info('Series %s updated: %d points created, %d updated, %d skipped' % (self.name, num_created, num_updated, num_bad))
         self.make_thumbnail()
         self.save()
-        self.getproperties().update()
+        #self.getproperties().update()
 
 # start properties
-#     def aantal(self):
-#         return self.datapoints.count()
-#     
-#     def van(self):
-#         van = datetime.datetime.now()
-#         agg = self.datapoints.aggregate(van=Min('date'))
-#         return agg.get('van', van)
-# 
-#     def tot(self):
-#         tot = datetime.datetime.now()
-#         agg = self.datapoints.aggregate(tot=Max('date'))
-#         return agg.get('tot', tot)
-#     
-#     def minimum(self):
-#         agg = self.datapoints.aggregate(min=Min('value'))
-#         return agg.get('min', 0)
-# 
-#     def maximum(self):
-#         agg = self.datapoints.aggregate(max=Max('value'))
-#         return agg.get('max', 0)
-# 
-#     def gemiddelde(self):
-#         agg = self.datapoints.aggregate(avg=Avg('value'))
-#         return agg.get('avg', 0)
-# 
-#     def laatste(self):
-#         return self.datapoints.order_by('-date')[0]
-# 
-#     def beforelast(self):
-#         if self.aantal() < 1:
-#             return None
-#         if self.aantal() == 1:
-#             return self.eerste()
-#         return self.datapoints.order_by('-date')[1]
-#         
-#     def eerste(self):
-#         return self.datapoints.order_by('date')[0]
+    def aantal(self):
+        return self.datapoints.count()
+     
+    def van(self):
+        van = datetime.datetime.now()
+        agg = self.datapoints.aggregate(van=Min('date'))
+        return agg.get('van', van)
+ 
+    def tot(self):
+        tot = datetime.datetime.now()
+        agg = self.datapoints.aggregate(tot=Max('date'))
+        return agg.get('tot', tot)
+     
+    def minimum(self):
+        agg = self.datapoints.aggregate(min=Min('value'))
+        return agg.get('min', 0)
+ 
+    def maximum(self):
+        agg = self.datapoints.aggregate(max=Max('value'))
+        return agg.get('max', 0)
+ 
+    def gemiddelde(self):
+        agg = self.datapoints.aggregate(avg=Avg('value'))
+        return agg.get('avg', 0)
+ 
+    def laatste(self):
+        return self.datapoints.order_by('-date')[0]
+ 
+    def beforelast(self):
+        if self.aantal() < 1:
+            return None
+        if self.aantal() == 1:
+            return self.eerste()
+        return self.datapoints.order_by('-date')[1]
+         
+    def eerste(self):
+        return self.datapoints.order_by('date')[0]
         
 # end properties
 
-    def getproperties(self):
-        if not hasattr(self,'properties'):
-            props = SeriesProperties.objects.create(series = self)
-            props.update()
-        return self.properties
-    
-    def aantal(self):
-        return self.getproperties().aantal
-    
-    def van(self):
-        return self.getproperties().van
-
-    def tot(self):
-        return self.getproperties().tot
-   
-    def minimum(self):
-        return self.getproperties().min
-
-    def maximum(self):
-        return self.getproperties().max
-
-    def gemiddelde(self):
-        return self.getproperties().gemiddelde
-
-    def laatste(self):
-        return self.getproperties().laatste
-
-    def beforelast(self):
-        return self.getproperties().beforelast
-        
-    def eerste(self):
-        return self.getproperties().eerste
-        
+#     def getproperties(self):
+#         if not hasattr(self,'properties'):
+#             props = SeriesProperties.objects.create(series = self)
+#             props.update()
+#         return self.properties
+#     
+#     def aantal(self):
+#         return self.getproperties().aantal
+#     
+#     def van(self):
+#         return self.getproperties().van
+# 
+#     def tot(self):
+#         return self.getproperties().tot
+#    
+#     def minimum(self):
+#         return self.getproperties().min
+# 
+#     def maximum(self):
+#         return self.getproperties().max
+# 
+#     def gemiddelde(self):
+#         return self.getproperties().gemiddelde
+# 
+#     def laatste(self):
+#         return self.getproperties().laatste
+# 
+#     def beforelast(self):
+#         return self.getproperties().beforelast
+#         
+#     def eerste(self):
+#         return self.getproperties().eerste
+         
     def thumbpath(self):
         return self.thumbnail.path
-        
+         
     def thumbtag(self):
         return util.thumbtag(self.thumbnail.name)
     
@@ -1002,7 +1025,7 @@ class SeriesProperties(models.Model):
     max = models.FloatField(default = 0, null = True)
     van = models.DateTimeField(null = True)
     tot = models.DateTimeField(null = True)
-    gemiddelde = models.FloatField(default = 0)
+    gemiddelde = models.FloatField(default = 0, null = True)
     eerste = models.ForeignKey('DataPoint',null = True, related_name='first')
     laatste = models.ForeignKey('DataPoint',null = True, related_name='last')
     beforelast = models.ForeignKey('DataPoint', null = True, related_name='beforelast')  
@@ -1145,7 +1168,7 @@ import dateutil
     
 class Chart(models.Model):
     name = models.CharField(max_length = 50, verbose_name = 'naam')
-    description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
+    description = models.TextField(blank=True,null=True,verbose_name='toelichting',help_text='Toelichting bij grafiek op het dashboard')
     title = models.CharField(max_length = 50, verbose_name = 'titel')
     user=models.ForeignKey(User,default=User)
     start = models.DateTimeField(blank=True,null=True)
@@ -1205,6 +1228,7 @@ AXIS_CHOICES = (
 
 class ChartSeries(models.Model):
     chart = models.ForeignKey(Chart,related_name='series', verbose_name='grafiek')
+    order = models.IntegerField(default=1,verbose_name='volgorde')
     series = models.ForeignKey(Series, verbose_name = 'tijdreeks')
     name = models.CharField(max_length=50,blank=True,null=True,verbose_name='legendanaam')
     axis = models.IntegerField(default=1,verbose_name='Nummer y-as')
@@ -1226,23 +1250,23 @@ class ChartSeries(models.Model):
         return None if s is None else s.theme
 
     class Meta:
-        ordering = ['name',]
+        ordering = ['order', 'name',]
         verbose_name = 'tijdreeks'
         verbose_name_plural = 'tijdreeksen'
 
 from django.template.loader import render_to_string
 
 class Dashboard(models.Model):
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=50, verbose_name= 'naam')
     description = models.TextField(blank=True, null=True,verbose_name = 'omschrijving')
-    charts = models.ManyToManyField(Chart, verbose_name = 'grafieken')
+    charts = models.ManyToManyField(Chart, verbose_name = 'grafieken', through='DashboardChart')
     user=models.ForeignKey(User,default=User)
     
     def grafieken(self):
         return self.charts.count()
 
     def sorted_charts(self):
-        return self.charts.order_by('name')
+        return self.charts.order_by('dashboardchart__order')
     
     def get_absolute_url(self):
         return reverse('acacia:dash-view', args=[self.id]) 
@@ -1250,14 +1274,24 @@ class Dashboard(models.Model):
     def __unicode__(self):
         return self.name
     
-    def summary(self):
-        '''summary as html for inserting in dashboard'''
-        summary = {'Geinfiltreerd': {'Debiet': "23 m3", 'EC': "788 uS/cm"}, 'Onttrokken': {'Debiet': "14 m3", 'EC': "800 uS/cm"} }
-        return render_to_string('data/dash-summary.html', {'summary': summary})
+#     def summary(self):
+#         '''summary as html for inserting in dashboard'''
+#         summary = {'Geinfiltreerd': {'Debiet': "23 m3", 'EC': "788 uS/cm"}, 'Onttrokken': {'Debiet': "14 m3", 'EC': "800 uS/cm"} }
+#         return render_to_string('data/dash-summary.html', {'summary': summary})
 
     class Meta:
         ordering = ['name',]
 
+class DashboardChart(models.Model):
+    chart = models.ForeignKey(Chart, verbose_name='Grafiek')
+    dashboard = models.ForeignKey(Dashboard)
+    order = models.IntegerField(default = 1, verbose_name = 'volgorde')
+
+    class Meta:
+        ordering = ['order',]
+        verbose_name = 'Grafiek'
+        verbose_name_plural = 'Grafieken'
+    
 class TabGroup(models.Model):
     location = models.ForeignKey(ProjectLocatie,verbose_name='projectlocatie')
     name = models.CharField(max_length = 40, verbose_name='naam', help_text='naam van dashboard tabgroep')
@@ -1283,3 +1317,9 @@ class TabPage(models.Model):
 
     def __unicode__(self):
         return self.name
+
+# 
+# class EmailLog(models.Model):
+#     user = models.ForeignKey(User)
+#     level = models.CharField(max_length=10, choices = LOGGING_CHOICES, default = 'INFO')
+#     datasource = models.ForeignKey(Datasource)

@@ -6,7 +6,10 @@ Created on Feb 13, 2014
 from django.core.management.base import BaseCommand
 from optparse import make_option
 from acacia.data.models import Datasource, Formula
-import numpy as np
+import logging
+from acacia.data.loggers import DatasourceAdapter
+
+logger = DatasourceAdapter(logging.getLogger('update'))
 
 class Command(BaseCommand):
     args = ''
@@ -36,10 +39,11 @@ class Command(BaseCommand):
         )
     def handle(self, *args, **options):
         down = options.get('down')
+        logger.datasource = ''
         if down:
-            self.stdout.write('Downloading data, updating parameters and related time series\n')
+            logger.info('Downloading data, updating parameters and related time series')
         else:
-            self.stdout.write('Updating parameters and related time series\n')
+            logger.info('Updating parameters and related time series')
         count = 0
         pk = options.get('pk', None)
         if pk is None:
@@ -49,79 +53,93 @@ class Command(BaseCommand):
 
         replace = options.get('replace')
         if replace:
-            self.stdout.write('Recreating series\n')
+            logger.info('Recreating series')
         
         for d in datasources:
+            logger.datasource = d
+            logger.info('Updating datasource %s', d.name)
             if not d.autoupdate and pk is None:
                 continue
-            series = d.getseries()
-            if replace:
-                start = None
-            else:
-                # actualiseren (data toevoegen) vanaf laatste punt
-                data_start = d.stop()
-                if len(series) == 0:
-                    series_start = data_start
-                else:
-                    # actialisatie vanaf een na laatste datapoint
-                    # (rekening houden met niet volledig gevulde laatste tijdsinterval bij accumulatie of sommatie)
-                    series_start = min([p.date for p in [s.beforelast() for s in series] if p is not None])
-                if data_start is None:
-                    start = series_start
-                else:
-                    start = min(series_start,data_start)
-
-            if down and d.autoupdate and d.url is not None:
-                self.stdout.write('Downloading datasource %s\n' % d.name)
-                try:
-                    newfiles = d.download()
-                except Exception as e:
-                    self.stderr.write('ERROR downloading datasource %s: %s\n' % (d.name, e))
-                    continue
-                newfilecount = len(newfiles)
-                self.stdout.write('Got %d new files\n' % newfilecount)
-                if newfilecount == 0:
-                    newfiles = None
-            else:
-                newfilecount = 0
-                newfiles = None
-
-            count = count + 1
-            self.stdout.write('Reading datasource %s\n' % d.name)
-            data = d.get_data(start=start)
-            if data is None:
-                # don't bother to continue: no data
-                continue
-            self.stdout.write('  Updating parameters\n')
             try:
-                d.update_parameters(data=data,files=newfiles,limit=10)
+                series = d.getseries()
                 if replace:
-                    d.make_thumbnails(data=data)
-            except Exception as e:
-                self.stderr.write('ERROR updating parameters for datasource %s: %s\n' % (d.name, e))
-            for s in series:
-                self.stdout.write('  Updating timeseries %s\n' % s.name)
-                try:
-                    if replace:
-                        s.replace()
+                    start = None
+                else:
+                    # actualiseren (data toevoegen) vanaf laatste punt
+                    data_start = d.stop()
+                    if len(series) == 0:
+                        series_start = data_start
                     else:
-                        s.update(data,start=start)
+                        # actialisatie vanaf een na laatste datapoint
+                        # (rekening houden met niet volledig gevulde laatste tijdsinterval bij accumulatie of sommatie)
+                        series_start = min([p.date for p in [s.beforelast() for s in series] if p is not None])
+                    if data_start is None:
+                        start = series_start
+                    else:
+                        start = min(series_start,data_start)
+    
+                if down and d.autoupdate and d.url is not None:
+                    logger.info('Downloading datasource %s' % d.name)
+                    try:
+                        newfiles = d.download()
+                    except Exception as e:
+                        logger.error('ERROR downloading datasource %s: %s' % (d.name, e))
+                        continue
+                    if newfiles is None:
+                        newfilecount = 0
+                    else:
+                        newfilecount = len(newfiles)
+                    logger.info('Got %d new files' % newfilecount)
+                    if newfilecount == 0:
+                        newfiles = None
+                else:
+                    newfilecount = 0
+                    newfiles = None
+    
+                count = count + 1
+                logger.info('Reading datasource %s' % d.name)
+                try:
+                    data = d.get_data(start=start)
                 except Exception as e:
-                    self.stderr.write('ERROR updating timeseries %s: %s\n' % (s.name, e))
-        self.stdout.write('%d datasources were updated\n' % count)
+                    logger.error('Error reading datasource %s: %s', d.name, e)
+                    continue
+                if data is None:
+                    # don't bother to continue: no data
+                    continue
+                logger.info('Updating parameters')
+                try:
+                    d.update_parameters(data=data,files=newfiles,limit=10)
+                    if replace:
+                        d.make_thumbnails(data=data)
+                except Exception as e:
+                    logger.error('ERROR updating parameters for datasource %s: %s' % (d.name, e))
+                for s in series:
+                    logger.info('Updating timeseries %s' % s.name)
+                    try:
+                        if replace:
+                            s.replace()
+                        else:
+                            s.update(data,start=start)
+                    except Exception as e:
+                        logger.error('ERROR updating timeseries %s: %s' % (s.name, e))
+            except Exception as e:
+                logger.error('ERROR updating datasource %s: %s' % (d.name, e))
+
+        logger.datasource = ''
+        logger.info('%d datasources were updated' % count)
         
         if Formula.objects.count() > 0:
             calc = options.get('calc')
             if calc:
-                self.stdout.write('Updating calculated timeseries\n')
+                logger.info('Updating calculated timeseries')
                 count = 0
                 # TODO: sort formulas by dependency
                 for f in Formula.objects.all():
-                    self.stdout.write('  Updating timeseries %s\n' % f.name)
+                    logger.info('Updating timeseries %s' % f.name)
                     try:
                         f.update()
                         count = count + 1
                     except Exception as e:
-                        self.stderr.write('ERROR updating calculated timeseries %s: %s\n' % (f.name, e))
-                self.stdout.write('%d calculated timeseries were updated\n' % count)
+                        logger.error('ERROR updating calculated timeseries %s: %s' % (f.name, e))
+                logger.info('%d calculated timeseries were updated' % count)
                             

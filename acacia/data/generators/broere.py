@@ -1,13 +1,24 @@
 import logging
-import urllib2
+import numpy as np
+import datetime
+
 logger = logging.getLogger(__name__)
 
 from generator import Generator
+
+def date_parser(dt):
+    ''' date parser for pandas read_csv '''
+    return np.array([datetime.datetime.strptime(t,'%Y-%m-%d %H:%M:%S') for t in dt if t is not None])
+
 class NMCPro(Generator):
             
+    def __init__(self, *args, **kwargs):        
+        super(NMCPro,self).__init__(*args, **kwargs)
+        self.dayfirst = kwargs.get('dayfirst', False)
+
     def get_header(self, f):
         sections = {}
-        self.skiprows = 0
+        self.skiprows = 1
         line = f.readline()
         while not (line.startswith('Date') or line.startswith('Datum')):
             line = f.readline()
@@ -21,11 +32,10 @@ class NMCPro(Generator):
     def get_data(self, f, **kwargs):
         header = self.get_header(f)
         names = header['COLUMNS']
-        data = self.read_csv(f, header=0, skiprows = self.skiprows, names=names, comment = '#', index_col=[0], 
-                           parse_dates = [0], na_values = ['----', '-------'])
+        data = self.read_csv(f, header=None, skiprows = self.skiprows, names=names, comment = '#', index_col=0, 
+                           parse_dates=0, dayfirst = self.dayfirst, na_values = ['----', '-------'])
         data.dropna(how='all',inplace=True)
         data.sort(inplace=True)
-        print data.tail(10)
         return data
 
     def get_parameters(self, fil):
@@ -37,7 +47,9 @@ class NMCPro(Generator):
         return params
 
 class NMCJr(NMCPro):
-    pass
+
+    def __init__(self, *args, **kwargs):        
+        super(NMCJr,self).__init__(*args, **kwargs)
         
 if __name__ == '__main__':
     nmc = NMCPro()

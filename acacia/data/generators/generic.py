@@ -9,6 +9,7 @@ class Generic(Generator):
     def __init__(self, *args, **kwargs):        
         super(Generic,self).__init__(*args, **kwargs)
         self.header = kwargs.get('header', None)
+        self.dayfirst = kwargs.get('dayfirst', False)
 
     def set_labels(self,data):
         if self.header is None:
@@ -19,13 +20,13 @@ class Generic(Generator):
         return data.columns
     
     def get_data(self, f, **kwargs):
-        data = self.read_csv(f, parse_dates = True, index_col = 0, header = self.header)
+        data = self.read_csv(f, parse_dates = True, index_col = 0, header = self.header, dayfirst = self.dayfirst)
         self.set_labels(data)
-        data.dropna(inplace=True)
+        data.dropna(how='all', inplace=True)
         return data
 
     def get_parameters(self, f):
-        data = self.read_csv(f, parse_dates = True, nrows=1, index_col = 0, header = self.header)
+        data = self.read_csv(f, parse_dates = True, nrows=1, index_col = 0, header = self.header, dayfirst = self.dayfirst)
         self.set_labels(data)
         params = {}
         colno = 1
@@ -36,15 +37,34 @@ class Generic(Generator):
 
 class GenericCSV(Generic):
     def __init__(self, *args, **kwargs):
-        kwargs['header'] = 0        
+        kwargs['header'] = 0
         super(GenericCSV,self).__init__(*args, **kwargs)
         
 from StringIO import StringIO
+
+#if __name__ == '__main__':
+#    g = Generic()
+#    data = '2014-9-12 12:00,2,3,4\n2014-9-13 13:00,6,7,8\n'
+#    f = StringIO(data)
+#    p = g.get_parameters(f)
+#    f.seek(0)
+#    data = g.get_data(f)
+#    print data
+
+# if __name__ == '__main__':
+#     g = GenericCSV(dayfirst=True)
+#     data = 'Datum, een, twee, drie, vier, vijf, zes\n"30-04-2014 12:00", 2749, 109, 4.7, 1882, 149, 2.9\n"7-5-2014 12:00", 1140, 115, 5.9, 806, 122, 6.1\n"14-5-2014 12:00", 3500, 156, 2.7, 991, 188, 4.6\n'
+#     f = StringIO(data)
+#     p = g.get_parameters(f)
+#     f.seek(0)
+#     data = g.get_data(f)
+#     print data
+
+src = '/home/theo/acaciadata.com/texel/media/proef-zoetwaterberging/proefperceel/referentie-veld/datafiles/koenders-2015-ref/2015REF_33.LOG'
+
 if __name__ == '__main__':
     g = Generic()
-    data = '2014-9-12 12:00,2,3,4\n2014-9-13 13:00,6,7,8\n'
-    f = StringIO(data)
-    p = g.get_parameters(f)
-    f.seek(0)
-    data = g.get_data(f)
+    with open(src,'rb') as f:
+        data = g.get_data(f)
+    print data.index
     print data

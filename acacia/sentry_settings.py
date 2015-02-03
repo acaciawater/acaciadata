@@ -46,6 +46,7 @@ INSTALLED_APPS = (
 )
 
 MIDDLEWARE_CLASSES = (
+    'sentry.client.middleware.SentryResponseErrorIdMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -126,6 +127,27 @@ import djcelery
 djcelery.setup_loader()
 CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
 
+# sentry
+RAVEN_CONFIG = {
+    'dsn': 'http://68706cd5c9e94922ac0fb6ec6a5e4bc0:4116c9ed3dda453297548b36c2519d20@localhost:9000/3',
+#    'dsn': 'http://68706cd5c9e94922ac0fb6ec6a5e4bc0@localhost:9000/3',
+}
+
+# RAVEN_CONFIG = {
+#     'dsn': 'http://abcd823b4d544afba65f7bd710db155c:acb589fdc9e5427c81b2f0b08278496b@localhost:9000/2'
+# }
+
+# Add raven to the list of installed apps
+INSTALLED_APPS = INSTALLED_APPS + (
+    # ...
+    'raven.contrib.django.raven_compat',
+)
+
+# Previous celery stuff
+#BROKER_URL = 'django://'
+#CELERY_RESULT_BACKEND='djcelery.backends.database:DatabaseBackend'
+#INSTALLED_APPS += ('kombu.transport.django','djcelery',)                  
+
 LOGGING_ROOT = os.path.join(BASE_DIR, 'logs')
 
 # Logging
@@ -142,15 +164,6 @@ LOGGING = {
             'backupCount': 0,
             'formatter': 'default'
         },
-        'update': {
-            'level': 'DEBUG',
-            'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': os.path.join(LOGGING_ROOT, 'update.log'),
-            'when': 'D',
-            'interval': 1, # every day a new file
-            'backupCount': 0,
-            'formatter': 'update'
-        },
         'django': {
             'level': 'DEBUG',
             'class': 'logging.handlers.TimedRotatingFileHandler',
@@ -159,13 +172,14 @@ LOGGING = {
             'interval': 1, # every day a new file
             'backupCount': 0,
         },
+        'sentry': {
+            'level': 'WARNING',
+            'class': 'raven.contrib.django.handlers.SentryHandler',
+        },
     },
     'formatters': {
         'default': {
             'format': '%(levelname)s %(asctime)s %(name)s: %(message)s'
-        },
-        'update' : {
-            'format': '%(levelname)s %(asctime)s %(datasource)s: %(message)s'
         }
     },
     'loggers': {
@@ -175,12 +189,7 @@ LOGGING = {
             'propagate': True,
         },
         'acacia.data': {
-            'handlers': ['file',],
-            'level': 'DEBUG',
-            'propagate': True,
-        },
-        'update' : {
-            'handlers': ['update', ],
+            'handlers': ['file','sentry'],
             'level': 'DEBUG',
             'propagate': True,
         },

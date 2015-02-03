@@ -1,17 +1,23 @@
 import os
 from acacia.data.models import Project, ProjectLocatie, MeetLocatie, Datasource, SourceFile, Generator
-from acacia.data.models import Parameter, Series, DataPoint, Chart, ChartSeries, Dashboard, TabGroup, TabPage
-from acacia.data.models import Variable, Formula, Webcam
+from acacia.data.models import Parameter, Series, DataPoint, Chart, ChartSeries, Dashboard, DashboardChart, TabGroup, TabPage
+from acacia.data.models import Variable, Formula, Webcam, Notification
 
 from django.contrib import admin
 from django import forms
 from django.forms import PasswordInput, ModelForm
 from django.contrib.gis.db import models
-from django.forms.widgets import Textarea
 import django.contrib.gis.forms as geoforms
 import json
 import actions
+from django.contrib.auth.models import User
 
+class Media:
+    js = [
+        '/static/grappelli/tinymce/jscripts/tiny_mce/tiny_mce.js',
+        '/static/acacia/js/tinymce_setup/tinymce_setup.js',
+    ]
+    
 class LocatieInline(admin.TabularInline):
     model = ProjectLocatie
     options = {
@@ -21,12 +27,20 @@ class LocatieInline(admin.TabularInline):
 class MeetlocatieInline(admin.TabularInline):
     model = MeetLocatie
 
+from django.forms.models import BaseInlineFormSet
+
+class SourceInlineFormSet(BaseInlineFormSet):
+    def get_queryset(self):
+        qs = super(SourceInlineFormSet, self).get_queryset()
+        return qs[:100] # limit number of formsets
+    
 class SourceFileInline(admin.TabularInline):
     model = SourceFile
     exclude = ('cols', 'crc', 'user')
     extra = 0
     ordering = ('-start', '-stop', 'name')
-            
+    formset = SourceInlineFormSet
+    
 class ParameterInline(admin.TabularInline):
     model = Parameter
     extra = 0
@@ -44,7 +58,7 @@ class ProjectLocatieAdmin(admin.ModelAdmin):
     #form = ProjectLocatieForm
     list_display = ('name','project','location_count',)
     list_filter = ('project',)
-    formfield_overrides = {models.PointField:{'widget': Textarea}}
+    formfield_overrides = {models.PointField:{'widget': forms.TextInput(attrs={'size': '40'})}}
 
 class MeetLocatieForm(ModelForm):
     
@@ -64,7 +78,7 @@ class MeetLocatieAdmin(admin.ModelAdmin):
     form = MeetLocatieForm
     list_display = ('name','projectlocatie','project','datasourcecount',)
     list_filter = ('projectlocatie','projectlocatie__project',)
-    formfield_overrides = {models.PointField:{'widget': Textarea, 'required': False}}
+    formfield_overrides = {models.PointField:{'widget': forms.TextInput, 'required': False}}
     actions = [actions.meteo_toevoegen]
     
 class DatasourceForm(ModelForm):
@@ -91,7 +105,7 @@ class DatasourceForm(ModelForm):
         
 class DatasourceAdmin(admin.ModelAdmin):
     form = DatasourceForm
-    inlines = [SourceFileInline,]
+    inlines = [SourceFileInline,] # takes VERY long for decagon with more than 1000 files
     search_fields = ['name',]
     actions = [actions.upload_datasource, actions.replace_parameters, actions.update_parameters]
     list_filter = ('meetlocatie','meetlocatie__projectlocatie','meetlocatie__projectlocatie__project',)
@@ -179,8 +193,7 @@ class SeriesAdmin(admin.ModelAdmin):
                               }),
     )
 
-#     def get_readonly_fields(self, request, obj=None):
-#         if obj and obj.parameter: 
+#     def get_readonly_fields(self, request, obj=None):#         if obj and obj.parameter: 
 #             self.inlines = []
 #             return self.readonly_fields
 #         else:
@@ -216,7 +229,8 @@ class FormulaAdmin(SeriesAdmin):
 class ChartSeriesInline(admin.StackedInline):
     model = ChartSeries
     extra = 0
-    fields = ('series', 'name', ('axis', 'axislr', 'label'), ('color', 'type', 'stack'), ('t0', 't1'), ('y0', 'y1'))
+    fields = (('series', 'order', 'name'), ('axis', 'axislr', 'label'), ('color', 'type', 'stack'), ('t0', 't1'), ('y0', 'y1'))
+    ordering = ('order',)
     
 class DataPointAdmin(admin.ModelAdmin):
     list_display = ('series', 'date', 'value',)
@@ -231,16 +245,24 @@ class ChartAdmin(admin.ModelAdmin):
     fields = ('name', 'description', 'title', ('percount', 'perunit',), ('start', 'stop',),)
     search_fields = ['name','description', 'title']
 
+    formfield_overrides = {models.TextField: {'widget': forms.Textarea(attrs={'class': 'htmleditor'})}}
+                
     def save_model(self, request, obj, form, change):
         obj.user = request.user
         obj.save()
+        
+class ChartInline(admin.TabularInline):
+    model = DashboardChart
+    extra = 0
+    ordering = ('order',)
     
 class DashAdmin(admin.ModelAdmin):
     filter_horizontal = ('charts',)
     list_display = ('name', 'description', 'grafieken',)
     exclude = ('user',)
     search_fields = ['name','description']
-    
+    inlines = [ChartInline,]
+        
     def save_model(self, request, obj, form, change):
         obj.user = request.user
         obj.save()
@@ -268,9 +290,46 @@ class TabGroupAdmin(admin.ModelAdmin):
     
 class WebcamAdmin(admin.ModelAdmin):
     list_display = ('name', 'snapshot', )
+
+class NotificationForm(ModelForm):
+    model = Notification
     
-admin.site.register(Project, ProjectAdmin)
-admin.site.register(ProjectLocatie, ProjectLocatieAdmin)
+    def __init__(self, *args, **kwargs):
+        #kwargs['initial'].update({'description': get_default_content()})
+        super(NotificationForm, self).__init__(*args, **kwargs)
+      
+class NotificationAdmin(admin.ModelAdmin):
+    Model = Notification
+    #exclude = ('user','email')
+    #form = NotificationForm
+    
+#     def get_prepopulated_fields(self, request, obj=None):
+#         if request is not None:
+#             self.user = request.user
+#             self.email = self.user.email
+#         return self.prepopulated_fields
+    #def formfield_for_db_field(self):
+        
+    def get_form(self, request, obj=None, **kwargs):
+        form = super(NotificationAdmin,self).get_form(request,obj,**kwargs)
+        if obj is None:
+            user = request.user
+            email = request.user.email
+            if hasattr(form,'initial'):
+                initial = form.initial
+            else:
+                initial = {}
+            initial.update({'user': user, 'email': email})
+            form.initial = initial
+        return form
+    
+    def save_model(self, request, obj, form, change):
+        obj.user = request.user
+        obj.email = request.user.email
+        obj.save()
+        
+admin.site.register(Project, ProjectAdmin, Media = Media)
+admin.site.register(ProjectLocatie, ProjectLocatieAdmin, Media = Media)
 admin.site.register(MeetLocatie, MeetLocatieAdmin)
 admin.site.register(Series, SeriesAdmin)
 admin.site.register(Parameter, ParameterAdmin)
@@ -278,10 +337,11 @@ admin.site.register(Generator, GeneratorAdmin)
 admin.site.register(Datasource, DatasourceAdmin)
 admin.site.register(SourceFile, SourceFileAdmin)
 #admin.site.register(DataPoint, DataPointAdmin)
-admin.site.register(Chart, ChartAdmin)
+admin.site.register(Chart, ChartAdmin, Media = Media)
 admin.site.register(Dashboard, DashAdmin)
 admin.site.register(TabGroup, TabGroupAdmin)
 admin.site.register(TabPage, TabPageAdmin)
 admin.site.register(Formula, FormulaAdmin)
 admin.site.register(Variable, VariableAdmin)
 admin.site.register(Webcam, WebcamAdmin)
+admin.site.register(Notification, NotificationAdmin)
