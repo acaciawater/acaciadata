@@ -36,9 +36,9 @@ def update_series_thumbnail(pk):
     series.save()
 
 @shared_task
-def update_datasource(pk, download = True, replace = False, nocalc = False):
+def update_datasource(pk, download = True, replace = False, calc = False):
     command = update.Command()
-    command.execute(pk=pk,down=download,replace=replace,nocalc=nocalc)
+    command.execute(pk=pk,down=download,replace=replace,calc=calc)
     
 @shared_task
 def test():

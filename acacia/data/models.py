@@ -463,10 +463,13 @@ class Datasource(models.Model):
 class Notification(models.Model):
     datasource = models.ForeignKey(Datasource,help_text='Gegevensbron welke gevolgd wordt')
     user = models.ForeignKey(User,blank=True,null=True,verbose_name='Gebruiker',help_text='Gebruiker die berichtgeving ontvangt over updates')
-    email = models.EmailField(max_length=254)
-    subject = models.TextField(blank=True,default='Acaciadata update')
+    email = models.EmailField(max_length=254,blank=True)
+    subject = models.TextField(blank=True,default='acaciadata.com update rapport')
     level = models.CharField(max_length=10,choices = LOGGING_CHOICES, default = 'ERROR', verbose_name='Niveau',help_text='Niveau van berichtgeving')
     active = models.BooleanField(default = True,verbose_name='activeren')
+
+    def __unicode__(self):
+        return self.datasource.name
 
     class Meta:
         verbose_name ='Email berichten'
@@ -817,6 +820,14 @@ class Series(models.Model):
             if dataframe is None:
                 return None
             
+        if not self.parameter.name in dataframe:
+            # maybe datasource has stopped reporting about this parameter?
+            msg = 'series %s: parameter %s not found' % (self.name, self.parameter.name)
+#             msg = msg + "\navailable parameters are: %s" % ','.join(dataframe.columns.values.tolist())
+            logger.warning(msg)
+#             raise Exception(msg)
+            return None
+        
         series = dataframe[self.parameter.name]
         series = self.do_postprocess(series)
         if start is not None:

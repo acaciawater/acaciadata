@@ -13,7 +13,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-    
 def DatasourceAsZip(request,pk):
     ''' Alle bestanden in datasource downloaden als zip file '''
     ds = get_object_or_404(Datasource,pk=pk)
@@ -63,13 +62,13 @@ from .tasks import update_meetlocatie, update_datasource
 
 def UpdateMeetlocatie(request,pk):
     update_meetlocatie(pk)
-    referer = request.META.get('HTTP_REFERER',None)
-    return redirect(referer)
+    return redirect(request.GET['next'])
+#     referer = request.META.get('HTTP_REFERER',None)
+#     return redirect(referer)
 
 def UpdateDatasource(request,pk):
     update_datasource(pk)
-    referer = request.META.get('HTTP_REFERER',None)
-    return redirect(referer)
+    return redirect(request.GET['next'])
 
 class DatasourceDetailView(DetailView):
     model = Datasource

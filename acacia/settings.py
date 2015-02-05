@@ -128,6 +128,13 @@ CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
 
 LOGGING_ROOT = os.path.join(BASE_DIR, 'logs')
 
+EMAIL_HOST='smtp.gmail.com'
+EMAIL_PORT=587
+EMAIL_HOST_USER='grondwatertoolbox@gmail.com'
+EMAIL_HOST_PASSWORD='pw4toolbox'
+EMAIL_USE_TLS = True
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
 # Logging
 LOGGING = {
     'version': 1,
@@ -144,13 +151,25 @@ LOGGING = {
         },
         'update': {
             'level': 'DEBUG',
-            'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': os.path.join(LOGGING_ROOT, 'update.log'),
-            'when': 'D',
-            'interval': 1, # every day a new file
-            'backupCount': 0,
+            'class': 'acacia.data.loggers.BulkEmailHandler',
+            'capacity': 10000,
+            'mailhost': ('smtp.gmail.com',587),
+            'credentials': ('tkleinen@gmail.com', 'pw4Gmail'),
+            'fromaddr': 'tkleinen@gmail.com',
+            'toaddrs': '',
+            'subject': 'acaciadata update',
             'formatter': 'update'
         },
+
+#         'update': {
+#             'level': 'DEBUG',
+#             'class': 'logging.handlers.TimedRotatingFileHandler',
+#             'filename': os.path.join(LOGGING_ROOT, 'update.log'),
+#             'when': 'D',
+#             'interval': 1, # every day a new file
+#             'backupCount': 0,
+#             'formatter': 'update'
+#         },
         'django': {
             'level': 'DEBUG',
             'class': 'logging.handlers.TimedRotatingFileHandler',
@@ -179,7 +198,7 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': True,
         },
-        'update' : {
+        'acacia.data.update' : {
             'handlers': ['update', ],
             'level': 'DEBUG',
             'propagate': True,

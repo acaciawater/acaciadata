@@ -290,42 +290,26 @@ class TabGroupAdmin(admin.ModelAdmin):
     
 class WebcamAdmin(admin.ModelAdmin):
     list_display = ('name', 'snapshot', )
-
-class NotificationForm(ModelForm):
-    model = Notification
-    
-    def __init__(self, *args, **kwargs):
-        #kwargs['initial'].update({'description': get_default_content()})
-        super(NotificationForm, self).__init__(*args, **kwargs)
       
 class NotificationAdmin(admin.ModelAdmin):
     Model = Notification
-    #exclude = ('user','email')
-    #form = NotificationForm
-    
-#     def get_prepopulated_fields(self, request, obj=None):
-#         if request is not None:
-#             self.user = request.user
-#             self.email = self.user.email
-#         return self.prepopulated_fields
-    #def formfield_for_db_field(self):
         
+    list_display = ('datasource', 'user', 'email', 'level', 'active')
+    list_filter = ('datasource', 'user', 'email', 'level', 'active')
+    search_fields = ('datasource', 'user')
     def get_form(self, request, obj=None, **kwargs):
-        form = super(NotificationAdmin,self).get_form(request,obj,**kwargs)
         if obj is None:
-            user = request.user
-            email = request.user.email
-            if hasattr(form,'initial'):
-                initial = form.initial
-            else:
-                initial = {}
-            initial.update({'user': user, 'email': email})
-            form.initial = initial
+            self.exclude = ('user', 'email')
+        else:
+            self.exclude = ()
+        form = super(NotificationAdmin,self).get_form(request,obj,**kwargs)
         return form
     
     def save_model(self, request, obj, form, change):
-        obj.user = request.user
-        obj.email = request.user.email
+        if obj.user is None:
+            obj.user = request.user
+            obj.email = request.user.email
+        obj.subject = obj.subject.replace('%(datasource)', obj.datasource.name)
         obj.save()
         
 admin.site.register(Project, ProjectAdmin, Media = Media)
