@@ -6,7 +6,23 @@ Created on Jan 28, 2015
 import logging
 from acacia.data.models import Datasource
  
-class DatasourceAdapter(logging.LoggerAdapter):
+class AutoFlushLoggingAdapter(logging.LoggerAdapter):
+
+    def flush(self):
+        ''' call flush() on all handlers '''
+        if self.logger is not None:
+            for h in self.logger.handlers:
+                if hasattr(h,'flush'):
+                    h.flush()
+    
+    def __enter__(self):
+        return self
+
+    def __exit__(self, _type, _value, _traceback):
+        ''' called when with block terminates '''
+        self.flush()
+     
+class DatasourceAdapter(AutoFlushLoggingAdapter):
     
     def __init__(self,logger,datasource=None):
         self.datasource = datasource
@@ -16,30 +32,12 @@ class DatasourceAdapter(logging.LoggerAdapter):
         kwargs['extra'] = {'datasource': self.datasource}
         return (msg, kwargs)
 
-    def flushAll(self):
-        for h in self.logger.handlers:
-            if hasattr(h,'flush'):
-                h.flush()
-            
 class BulkEmailHandler(logging.handlers.BufferingHandler):
     
-    def __init__(self, mailhost, fromaddr, toaddrs, subject, capacity,
-                 credentials=None, secure=None):
+    def __init__(self, fromaddr, subject, capacity):
         super(BulkEmailHandler,self).__init__(capacity)
-        if isinstance(mailhost, tuple):
-            self.mailhost, self.mailport = mailhost
-        else:
-            self.mailhost, self.mailport = mailhost, None
-        if isinstance(credentials, tuple):
-            self.username, self.password = credentials
-        else:
-            self.username = None
         self.fromaddr = fromaddr
-        if isinstance(toaddrs, basestring):
-            toaddrs = [toaddrs]
-        self.toaddrs = toaddrs
         self.subject = subject
-        self.secure = secure
 
     def group_records_by_user(self, records):
         group = {}

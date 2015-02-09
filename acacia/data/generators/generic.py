@@ -1,6 +1,8 @@
 import logging
 logger = logging.getLogger(__name__)
 
+import pandas as pd
+
 from generator import Generator
 
 class Generic(Generator):
@@ -18,15 +20,19 @@ class Generic(Generator):
             data.columns = ['Channel%d'%(i+1) for i in range(cols)]
             data.index.name = 'Date'
         return data.columns
-    
+
     def get_data(self, f, **kwargs):
         data = self.read_csv(f, parse_dates = True, index_col = 0, header = self.header, dayfirst = self.dayfirst)
         self.set_labels(data)
+        if not isinstance(data.index,pd.DatetimeIndex):
+            # for some reason dateutil.parser.parse not always recognizes valid dates?
+            data.drop('None', inplace = True)
+            data.index = pd.to_datetime(data.index)
         data.dropna(how='all', inplace=True)
         return data
 
     def get_parameters(self, f):
-        data = self.read_csv(f, parse_dates = True, nrows=1, index_col = 0, header = self.header, dayfirst = self.dayfirst)
+        data = self.read_csv(f, parse_dates = [0], nrows=1, index_col = 0, header = self.header, dayfirst = self.dayfirst)
         self.set_labels(data)
         params = {}
         colno = 1
@@ -61,6 +67,7 @@ from StringIO import StringIO
 #     print data
 
 src = '/home/theo/acaciadata.com/texel/media/proef-zoetwaterberging/proefperceel/referentie-veld/datafiles/koenders-2015-ref/2015REF_33.LOG'
+src = '/home/theo/data/koenders/2015FER1_52.LOG'
 
 if __name__ == '__main__':
     g = Generic()

@@ -280,43 +280,37 @@ class Datasource(models.Model):
             # incremental download
             options['start'] = self.stop()
         try:
-            results = gen.download(**options)
-        except Exception as e:
-            logger.error('Error downloading datasource %s: %s' % (self.name, e))
-            return None
-            
-        if results is None:
-            logger.error('No response from server')
-            return None
-        elif results == {}:
-            logger.warning('Empty response received from server, download aborted')
-            return None
-        else:
             files = []
-            logger.info('Download completed, got %s file(s)', len(results))
-            self.last_download = timezone.now()
             crcs = {f.crc:f.file for f in self.sourcefiles.all()}
-            for filename, contents in results.iteritems():
+
+            def callback(filename, contents):
                 crc = abs(binascii.crc32(contents))
                 if crc in crcs:
                     logger.warning('Downloaded file %s ignored: identical to local file %s' % (filename, crcs[crc].file.name))
-                    continue
+                    return
                 try:
                     sourcefile = self.sourcefiles.get(name=filename)
                 except:
                     sourcefile = SourceFile(name=filename,datasource=self,user=self.user)
                 sourcefile.crc = crc
-#                try:
                 contentfile = ContentFile(contents)
-                sourcefile.file.save(name=filename, content=contentfile)
-                logger.info('File %s saved to %s' % (filename, sourcefile.filepath()))
-                crcs[crc] = sourcefile.file
-                files.append(sourcefile)
-#                 except Exception as e:
-#                     logger.error('Error saving sourcefile %s: %s' % (filename, e))
-#                     errors += 1
-            self.save(update_fields=['last_download'])
-            return files
+                try:
+                    sourcefile.file.save(name=filename, content=contentfile)
+                    logger.info('File %s saved to %s' % (filename, sourcefile.filepath()))
+                    crcs[crc] = sourcefile.file
+                    files.append(sourcefile)
+                except Exception as e:
+                    logger.exception('Problem saving file %s: %s', (filename,e))
+            options['callback'] = callback
+            results = gen.download(**options)
+
+        except Exception as e:
+            logger.exception('Error downloading datasource %s: %s' % (self.name, e))
+            return None            
+        logger.info('Download completed, got %s file(s)', len(results))
+        self.last_download = timezone.now()
+        self.save(update_fields=['last_download'])
+        return files
         
     def update_parameters(self,data=None,files=None,limit=10):
         gen = self.get_generator_instance()
@@ -331,9 +325,9 @@ class Datasource(models.Model):
                 try:
                     params.update(gen.get_parameters(sourcefile.file))
                 except Exception as e:
-                    logger.error('Cannot update parameters for sourcefile %s: %s' % (sourcefile, e))
+                    logger.exception('Cannot update parameters for sourcefile %s: %s' % (sourcefile, e))
             except Exception as e:
-                logger.error('Cannot open sourcefile %s: %s' % (sourcefile, e))
+                logger.exception('Cannot open sourcefile %s: %s' % (sourcefile, e))
         logger.info('Update completed, got %d parameters from %d files', len(params),self.sourcefiles.count())
         num_created = 0
         num_updated = 0
@@ -561,7 +555,7 @@ class SourceFile(models.Model):
         try:
             data = gen.get_data(self.file,**kwargs)
         except Exception as e:
-            logger.error('Error retrieving data from %s: %s' % (self.file.name, e))
+            logger.exception('Error retrieving data from %s: %s' % (self.file.name, e))
             return None
         if data is None:
             logger.warning('No data retrieved from %s' % self.file.name)
@@ -600,7 +594,10 @@ def sourcefile_save(sender, instance, **kwargs):
     if date != '':
         if instance.uploaded is None or date > instance.uploaded:
             instance.uploaded = date
-    instance.get_dimensions(data = kwargs.get('data', None))
+    try:
+        instance.get_dimensions(data = kwargs.get('data', None))
+    except Exception as e:
+        logger.exception('Error getting dimensions while saving sourcefile %s: %s' % (instance, e))
     ds = instance.datasource
     if instance.uploaded is None:
         instance.uploaded = timezone.now()
@@ -673,7 +670,7 @@ class Parameter(models.Model):
             logger.info('Generated thumbnail %s' % dest)
             self.save()
         except Exception as e:
-            logger.error('Error generating thumbnail for parameter %s: %s' % (self.name, e))
+            logger.exception('Error generating thumbnail for parameter %s: %s' % (self.name, e))
             return None
         return self.thumbnail
     
@@ -778,7 +775,7 @@ class Series(models.Model):
                 if series.empty:
                     return series
             except Exception as e:
-                logger.error('Resampling of series %s failed: %s' % (self.name, e))
+                logger.exception('Resampling of series %s failed: %s' % (self.name, e))
                 return None
 
         add_value = 0
@@ -800,7 +797,7 @@ class Series(models.Model):
                     if before:
                         add_value = before[0].value
                 except Exception as e:
-                    logger.error('Accumulation of series %s failed: %s' % (self.name, e))
+                    logger.exception('Accumulation of series %s failed: %s' % (self.name, e))
         if self.scale != 1.0:
             series = series * self.scale
         if self.offset != 0.0:
@@ -823,7 +820,7 @@ class Series(models.Model):
         if not self.parameter.name in dataframe:
             # maybe datasource has stopped reporting about this parameter?
             msg = 'series %s: parameter %s not found' % (self.name, self.parameter.name)
-#             msg = msg + "\navailable parameters are: %s" % ','.join(dataframe.columns.values.tolist())
+#             msg = msg + ". Available parameters are: %s" % ','.join(dataframe.columns.values.tolist())
             logger.warning(msg)
 #             raise Exception(msg)
             return None
@@ -1025,7 +1022,7 @@ class Series(models.Model):
             logger.info('Generated thumbnail %s' % dest)
 
         except Exception as e:
-            logger.error('Error generating thumbnail: %s' % e)
+            logger.exception('Error generating thumbnail: %s' % e)
         return self.thumbnail
 
 # cache series properties to speed up loading admin page for series

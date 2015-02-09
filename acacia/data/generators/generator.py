@@ -44,6 +44,8 @@ class Generator(object):
         filename = kwargs.get('filename', None)
         content = ''
         start = kwargs.get('start', None)
+        callback = kwargs.get('callback', None)
+        
         result = {}
         if 'url' in kwargs:
             url = kwargs['url']
@@ -91,6 +93,10 @@ class Generator(object):
                 _,params = cgi.parse_header(response.headers.get('Content-Disposition',''))
                 filename = filename or params.get('filename','file.txt')
                 result[filename] = response.read()
+
+            if callback is not None:
+                callback(filename, result[filename])
+                
         return result
 
     def get_parameters(self,fil):

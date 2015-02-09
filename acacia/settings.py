@@ -128,12 +128,19 @@ CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
 
 LOGGING_ROOT = os.path.join(BASE_DIR, 'logs')
 
-EMAIL_HOST='smtp.gmail.com'
-EMAIL_PORT=587
-EMAIL_HOST_USER='grondwatertoolbox@gmail.com'
-EMAIL_HOST_PASSWORD='pw4toolbox'
+# EMAIL_HOST='smtp.gmail.com'
+# EMAIL_PORT=587
+# EMAIL_HOST_USER='grondwatertoolbox@gmail.com'
+# EMAIL_HOST_PASSWORD='pw4toolbox'
+# EMAIL_USE_TLS = True
+
+#EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+EMAIL_HOST='acaciadata.com'
+EMAIL_PORT=25
+EMAIL_HOST_USER='webmaster@acaciadata.com'
+EMAIL_HOST_PASSWORD='acaciawater'
 EMAIL_USE_TLS = True
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # Logging
 LOGGING = {
@@ -152,11 +159,8 @@ LOGGING = {
         'update': {
             'level': 'DEBUG',
             'class': 'acacia.data.loggers.BulkEmailHandler',
-            'capacity': 10000,
-            'mailhost': ('smtp.gmail.com',587),
-            'credentials': ('tkleinen@gmail.com', 'pw4Gmail'),
-            'fromaddr': 'tkleinen@gmail.com',
-            'toaddrs': '',
+            'capacity': 100000, # max 100k lines per message
+            'fromaddr': 'webmaster@acaciadata.com',
             'subject': 'acaciadata update',
             'formatter': 'update'
         },

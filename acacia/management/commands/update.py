@@ -38,113 +38,111 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         down = options.get('down')
-        logger = DatasourceAdapter(logging.getLogger('acacia.data.update'))
-        logger.datasource = ''
-        if down:
-            logger.info('Downloading data, updating parameters and related time series')
-        else:
-            logger.info('Updating parameters and related time series')
-        count = 0
-        pk = options.get('pk', None)
-        if pk is None:
-            datasources = Datasource.objects.all()
-        else:
-            datasources = Datasource.objects.filter(pk=pk)
-
-        replace = options.get('replace')
-        if replace:
-            logger.info('Recreating series')
-        
-        for d in datasources:
-            if not d.autoupdate and pk is None:
-                continue
-            logger.datasource = d
-            logger.info('Updating datasource')
-            try:
-                series = d.getseries()
-                if replace:
-                    start = None
-                else:
-                    # actualiseren (data toevoegen) vanaf laatste punt
-                    data_start = d.stop()
-                    if len(series) == 0:
-                        series_start = data_start
-                    else:
-                        # actialisatie vanaf een na laatste datapoint
-                        # (rekening houden met niet volledig gevulde laatste tijdsinterval bij accumulatie of sommatie)
-                        series_start = min([p.date for p in [s.beforelast() for s in series] if p is not None])
-                    if data_start is None:
-                        start = series_start
-                    else:
-                        start = min(series_start,data_start)
+        with DatasourceAdapter(logging.getLogger('acacia.data.update')) as logger:
+            logger.datasource = ''
+            if down:
+                logger.info('Downloading data, updating parameters and related time series')
+            else:
+                logger.info('Updating parameters and related time series')
+            count = 0
+            pk = options.get('pk', None)
+            if pk is None:
+                datasources = Datasource.objects.all()
+            else:
+                datasources = Datasource.objects.filter(pk=pk)
     
-                if down and d.autoupdate and d.url is not None:
-                    logger.info('Downloading datasource')
-                    try:
-                        newfiles = d.download()
-                    except Exception as e:
-                        logger.exception('ERROR downloading datasource: %s' % e)
-                        continue
-                    if newfiles is None:
-                        newfilecount = 0
-                    else:
-                        newfilecount = len(newfiles)
-                    logger.info('Got %d new files' % newfilecount)
-                    if newfilecount == 0:
-                        newfiles = None
-                else:
-                    newfilecount = 0
-                    newfiles = None
-    
-                count = count + 1
-                logger.info('Reading datasource')
-                try:
-                    data = d.get_data(start=start)
-                except Exception as e:
-                    logger.exception('Error reading datasource: %s', e)
+            replace = options.get('replace')
+            if replace:
+                logger.info('Recreating series')
+            
+            for d in datasources:
+                if not d.autoupdate and pk is None:
                     continue
-                if data is None:
-                    # don't bother to continue: no data
-                    continue
-                logger.info('Updating parameters')
+                logger.datasource = d
+                logger.info('Updating datasource')
                 try:
-                    d.update_parameters(data=data,files=newfiles,limit=10)
+                    series = d.getseries()
                     if replace:
-                        d.make_thumbnails(data=data)
-                except Exception as e:
-                    logger.exception('ERROR updating parameters for datasource: %s' % e)
-                for s in series:
-                    logger.info('Updating timeseries %s' % s.name)
-                    try:
-                        if replace:
-                            s.replace()
+                        start = None
+                    else:
+                        # actualiseren (data toevoegen) vanaf laatste punt
+                        data_start = d.stop()
+                        if len(series) == 0:
+                            series_start = data_start
                         else:
-                            s.update(data,start=start)
-                    except Exception as e:
-                        logger.exception('ERROR updating timeseries %s: %s' % (s.name, e))
-            
-                logger.info('Datasource updated.')
-            
-            except Exception as e:
-                logger.exception('ERROR updating datasource %s: %s' % (d.name, e))
-            
-        logger.datasource = ''
-        logger.info('%d datasources were updated' % count)
+                            # actialisatie vanaf een na laatste datapoint
+                            # (rekening houden met niet volledig gevulde laatste tijdsinterval bij accumulatie of sommatie)
+                            series_start = min([p.date for p in [s.beforelast() for s in series] if p is not None])
+                        if data_start is None:
+                            start = series_start
+                        else:
+                            start = min(series_start,data_start)
         
-        if Formula.objects.count() > 0:
-            calc = options.get('calc',True)
-            if calc:
-                logger.info('Updating calculated time series')
-                count = 0
-                # TODO: sort formulas by dependency
-                for f in Formula.objects.all():
-                    logger.info('Updating time series %s' % f.name)
+                    if down and d.autoupdate and d.url is not None:
+                        logger.info('Downloading datasource')
+                        try:
+                            newfiles = d.download()
+                        except Exception as e:
+                            logger.exception('ERROR downloading datasource: %s' % e)
+                            continue
+                        if newfiles is None:
+                            newfilecount = 0
+                        else:
+                            newfilecount = len(newfiles)
+                        logger.info('Got %d new files' % newfilecount)
+                        if newfilecount == 0:
+                            newfiles = None
+                    else:
+                        newfilecount = 0
+                        newfiles = None
+        
+                    count = count + 1
+                    logger.info('Reading datasource')
                     try:
-                        f.update()
-                        count = count + 1
+                        data = d.get_data(start=start)
                     except Exception as e:
-                        logger.exception('ERROR updating calculated time series %s: %s' % (f.name, e))
-                logger.info('%d calculated time series were updated' % count)
-        
-        logger.flushAll()
+                        logger.exception('Error reading datasource: %s', e)
+                        continue
+                    if data is None:
+                        # don't bother to continue: no data
+                        continue
+                    logger.info('Updating parameters')
+                    try:
+                        d.update_parameters(data=data,files=newfiles,limit=10)
+                        if replace:
+                            d.make_thumbnails(data=data)
+                    except Exception as e:
+                        logger.exception('ERROR updating parameters for datasource: %s' % e)
+                    for s in series:
+                        logger.info('Updating timeseries %s' % s.name)
+                        try:
+                            if replace:
+                                s.replace()
+                            else:
+                                s.update(data,start=start)
+                        except Exception as e:
+                            logger.exception('ERROR updating timeseries %s: %s' % (s.name, e))
+                
+                    logger.info('Datasource updated.')
+                
+                except Exception as e:
+                    logger.exception('ERROR updating datasource %s: %s' % (d.name, e))
+                
+            logger.datasource = ''
+            logger.info('%d datasources were updated' % count)
+            
+            if Formula.objects.count() > 0:
+                calc = options.get('calc',True)
+                if calc:
+                    logger.info('Updating calculated time series')
+                    count = 0
+                    # TODO: sort formulas by dependency
+                    for f in Formula.objects.all():
+                        logger.info('Updating time series %s' % f.name)
+                        try:
+                            f.update()
+                            count = count + 1
+                        except Exception as e:
+                            logger.exception('ERROR updating calculated time series %s: %s' % (f.name, e))
+                    logger.info('%d calculated time series were updated' % count)
         

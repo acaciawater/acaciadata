@@ -4,7 +4,8 @@ from django.views.generic.list import ListView
 from acacia.data.models import Project, ProjectLocatie, MeetLocatie
 from acacia.data.views import DatasourceDetailView, DatasourceAsZip, DatasourceAsCsv, ProjectDetailView, ProjectLocatieDetailView, \
     MeetLocatieDetailView, MeetlocatieAsZip, SeriesAsCsv, SeriesToJson, ChartToJson, ChartAsCsv, UpdateMeetlocatie, ChartView, ChartBaseView, \
-    DashView, TabGroupView, SeriesView, UpdateDatasource
+    DashView, TabGroupView, SeriesView, UpdateDatasource,\
+    StartUpdateDatasource, poll_state
 
 
 urlpatterns = patterns('',
@@ -19,11 +20,14 @@ urlpatterns = patterns('',
     url(r'^download/grafiek/(?P<pk>\d+)', ChartAsCsv,name='chart-csv'),
     
     url(r'^update/(?P<pk>\d+)',UpdateDatasource,name='datasource-update'),
+    url(r'^update/meetlocatie/(?P<pk>\d+)', UpdateMeetlocatie,name='meetlocatie-update'),
     
+    url(r'^start/(?P<pk>\d+)',StartUpdateDatasource,name='start-datasource-update'),
+    url(r'^start/poll_state$', poll_state, name="poll_state"),
+        
     url(r'^get/series/(?P<pk>\d+)/$', SeriesToJson),
     url(r'^get/chart/(?P<pk>\d+)/$', ChartToJson),
     
-    url(r'^update/meetlocatie/(?P<pk>\d+)', UpdateMeetlocatie,name='meetlocatie-update'),
     url(r'^reeks/(?P<pk>\d+)/$', SeriesView.as_view(), name='series-detail'),
     url(r'^chart/(?P<pk>\d+)/$', ChartBaseView.as_view(), name='chart-detail'),
     url(r'^grafiek/(?P<pk>\d+)/$', ChartView.as_view(), name='chart-view'),

@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 from celery.utils.log import get_task_logger
-from celery import shared_task
+from celery import shared_task, current_task
 from django.shortcuts import get_object_or_404
 logger = get_task_logger(__name__)
 from .models import MeetLocatie, Series, Datasource
@@ -44,3 +44,14 @@ def update_datasource(pk, download = True, replace = False, calc = False):
 def test():
     print 'test task started'
     return 'test task finished'
+
+from time import sleep
+
+@shared_task
+def longjob(pk):
+    for i in range(20):
+        print 'longjob', i
+        sleep(0.5)
+        current_task.update_state(state='PROGRESS', meta = {'progress': (i*100.0) / 20})
+    current_task.update_state(state='PROGRESS', meta = {'progress': 100})
+    return 'all done'

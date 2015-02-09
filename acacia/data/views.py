@@ -1,8 +1,9 @@
 from django.views.generic.list import ListView
 from django.views.generic import DetailView
 from django.views.generic.base import TemplateView
+from django.template import RequestContext
 from django.template.loader import render_to_string
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render, render_to_response
 from django.http import HttpResponse
 from .models import Project, ProjectLocatie, MeetLocatie, Datasource, Series, Chart, Dashboard, TabGroup
 from .util import datasource_as_zip, datasource_as_csv, meetlocatie_as_zip, series_as_csv, chart_as_csv
@@ -58,17 +59,36 @@ def tojs(d):
 def date_handler(obj):
     return tojs(obj) if isinstance(obj, datetime.date) or isinstance(obj, datetime.datetime) else obj
 
-from .tasks import update_meetlocatie, update_datasource
+from .tasks import update_meetlocatie, update_datasource, longjob
 
 def UpdateMeetlocatie(request,pk):
     update_meetlocatie(pk)
     return redirect(request.GET['next'])
-#     referer = request.META.get('HTTP_REFERER',None)
-#     return redirect(referer)
 
 def UpdateDatasource(request,pk):
+    next = request.GET['next']
     update_datasource(pk)
-    return redirect(request.GET['next'])
+    return redirect(next)
+
+from django.http import HttpResponseRedirect
+from django.core.urlresolvers import reverse
+from celery.result import AsyncResult
+
+def poll_state(request):
+    """ A view to report progress """
+    if 'job' in request.GET:
+        job_id = request.GET['job']
+    else:
+        return HttpResponse('No job id given.')
+
+    job = AsyncResult(job_id)
+    data = {'state':job.state, 'result': job.result}
+    return HttpResponse(json.dumps(data), mimetype='application/json')
+
+def StartUpdateDatasource(request,pk):
+    #job = update_datasource.delay(pk)
+    job = longjob.delay(pk)
+    return render_to_response('data/poll_view.html', {'job': job.id }, context_instance=RequestContext(request))
 
 class DatasourceDetailView(DetailView):
     model = Datasource
