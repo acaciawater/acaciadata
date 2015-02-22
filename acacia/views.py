@@ -17,5 +17,5 @@ def cam(request, how):
 
 def mail(request):
     from django.core.mail import send_mail
-    send_mail('Onderwerp', 'Dit is het bericht', 'webmaster@acaciadata.com', ['theo.kleinendorst@acaciawater.com'], auth_user='webmaster@acaciadata.com', auth_password = 'acaciawater')
+    send_mail('Re: mailtest', 'Dit is verzonden door acaciadata.com', 'webmaster@acaciadata.com', ['theo.kleinendorst@acaciawater.com'], auth_user='webmaster@acaciadata.com', auth_password = 'acaciawater')
     return HttpResponse('Sending email succeeded')

@@ -39,10 +39,10 @@ INSTALLED_APPS = (
     'registration',
     'south',
     'acacia',
+    'acacia.meetnet',
     'acacia.data',
     'acacia.data.knmi',
     'spaarwater',
-    'vic',
 )
 
 MIDDLEWARE_CLASSES = (

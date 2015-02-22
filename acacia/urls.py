@@ -15,7 +15,6 @@ urlpatterns = patterns('',
     url(r'^admin/', include(admin.site.urls)),
     url(r'^data/', include('acacia.data.urls',namespace='acacia')),
     url(r'^spaarwater/', include('spaarwater.urls')),
-    url(r'^vic/', include('vic.urls')),
 )
 
 from django.contrib.auth import views as auth_views

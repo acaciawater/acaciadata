@@ -1,0 +1,23 @@
+{% extends 'bootbase.html' %}
+{% block script %}
+{{ block.super }}
+<script src="http://code.highcharts.com/highcharts.js"></script>
+<script>
+Highcharts.setOptions({
+  lang: {
+  	shortMonths : ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dec"],
+	months: ["Januari", "Februari", "Maart", "April", "Mei", "Juni",  "Juli", "Augustus", "September", "Oktober", "November", "December"],
+	weekdays: ["Zondag", "Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag", "Zaterdag"],
+  }
+});
+
+$(function () {
+  $('#container').highcharts({{ options|safe }});
+});
+</script>
+{% endblock %}
+{% block content %}
+<div class="container-fluid">
+<div id="container" style="width:100%;height:400px;"></div>
+</div>
+{% endblock %}

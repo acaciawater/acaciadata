@@ -19,6 +19,7 @@ class MonFileException(Exception):
 class Diver(Generator):
 
     def get_header(self,f):
+        f.seek(0)
         line = f.readline()
         if not line.startswith('Data file for DataLogger.'):
             raise MonFileException('%s is not recognized as mon file' % f.name )
@@ -50,6 +51,7 @@ class Diver(Generator):
             if line == '':
                 continue
             if line == '[Data]':
+                header['Number of points'] = f.readline().strip()
                 break
             if line.startswith('['):
                 name = line.strip('[]').strip()
@@ -73,7 +75,7 @@ class Diver(Generator):
             names.append(name)
         num=int(f.readline())
         if self.engine == 'python':
-            skiprows = self.skiprows+1
+            #skiprows = self.skiprows+1
             io = StringIO(f.read())
             data = self.read_csv(io, header=None, index_col=0, names = names, sep='\s+', parse_dates = {'date': [0,1]}, skipfooter=1)
         else:

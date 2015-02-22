@@ -709,7 +709,12 @@ class Series(models.Model):
     parameter = models.ForeignKey(Parameter, null=True, blank=True)
     thumbnail = models.ImageField(upload_to=up.series_thumb_upload, max_length=200, blank=True, null=True)
     user=models.ForeignKey(User,default=User)
-
+    
+    # tijdslimiet
+#     limit_time = models.BooleanField(default = False)
+#     from_limit = models.DateTimeField(blank=True,null=True)
+#     to_limit = models.DateTimeField(blank=True,null=True)
+    
     # Nabewerkingen
     resample = models.CharField(max_length=10,choices=RESAMPLE_METHOD,blank=True, null=True, 
                                 verbose_name='frequentie',help_text='Frequentie voor resampling van tijdreeks')
@@ -760,7 +765,7 @@ class Series(models.Model):
     def __unicode__(self):
         return '%s - %s' % (self.datasource() or '(berekend)', self.name)
     
-    def do_postprocess(self, series):
+    def do_postprocess(self, series, start, stop):
         ''' perform postprocessing of series data like resampling, scaling etc'''
         # remove n/a values and duplicates
         series = series.dropna()
@@ -791,9 +796,9 @@ class Series(models.Model):
             if self.aantal() > 0:
                 # we hadden al bestaande datapoints in de reeks
                 # vind laatste punt van bestaande reeks dat voor begin van nieuwe reeks valt
-                start = pd.to_datetime(series.index[0]) #begin nieuwe reeks
+                begin = pd.to_datetime(series.index[0]) #begin nieuwe reeks
                 try:
-                    before = self.datapoints.filter(date__lt = start).order_by('-date')
+                    before = self.datapoints.filter(date__lt = begin).order_by('-date')
                     if before:
                         add_value = before[0].value
                 except Exception as e:
@@ -804,16 +809,25 @@ class Series(models.Model):
             series = series + self.offset
         if add_value != 0:
             series = series + add_value
-        return series
+            
+        # clip on time
+        if start is None and stop is None:
+            return series
+        elif start is None:
+            return series[:stop]
+        elif stop is None:
+            return series[start:]
+        else:
+            return series[start:stop]
          
-    def get_series_data(self, dataframe, start=None):
+    def get_series_data(self, dataframe, start=None, stop=None):
         
         if self.parameter is None:
             #raise Exception('Parameter is None for series %s' % self.name)
             return None
 
         if dataframe is None:
-            dataframe = self.parameter.get_data(start=start)
+            dataframe = self.parameter.get_data(start=start,stop=stop)
             if dataframe is None:
                 return None
             
@@ -826,11 +840,9 @@ class Series(models.Model):
             return None
         
         series = dataframe[self.parameter.name]
-        series = self.do_postprocess(series)
-        if start is not None:
-            series = series[start:]
+        series = self.do_postprocess(series, start, stop)
         return series
-
+    
     def create(self, data=None, thumbnail=True):
         tz = timezone.get_current_timezone()
         num_created = 0
@@ -1126,14 +1138,14 @@ class Formula(Series):
         # return dataframe as dict
         return df.to_dict('series')
 
-    def get_series_data(self,data,start=None):
+    def get_series_data(self,data,start=None,stop=None):
         variables = self.get_variables()
         result = eval(self.formula_text, globals(), variables)
         if isinstance(result, pd.DataFrame):
             result = result[0]
         if isinstance(result, pd.Series):
             result.name = self.name
-        return self.do_postprocess(result)
+        return self.do_postprocess(result,None,None)
     
     def get_dependencies(self):
         ''' return list of dependencies in order of processing '''

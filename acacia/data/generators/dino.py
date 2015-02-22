@@ -96,6 +96,26 @@ class Dino(Generator):
                         result.append(data)
         return result
 
+    def iter_folder(self,folder):
+        for name in find_files('*_1.csv', folder):
+            try:
+                with open(name,'r') as f:
+                    data = self.load_file(f)
+                    yield (name, data)
+            except Exception as e:
+                print 'ERROR in ', name, e
+    
+    def iter_zip(self, filename):
+        with zipfile.ZipFile(filename,'r') as z:
+            for info in z.infolist():
+                if info.filename.endswith('_1.csv'):
+                    try:
+                        with z.open(info.filename,'r') as f:
+                            data = self.load_file(f)
+                            yield (info.filename, data)
+                    except Exception as e:
+                        print 'ERROR in ', info.filename, e
+
     def __init__(self,*args,**kwargs):
         super(Dino,self).__init__(*args,**kwargs)
     

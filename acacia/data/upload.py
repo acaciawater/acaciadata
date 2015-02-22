@@ -25,42 +25,52 @@ def meetlocatie_upload(instance, filename):
                      filename])
 
 def sourcefile_upload(instance, filename):
-    sourcefile = instance
-    datasource = sourcefile.datasource
-    meetlocatie = datasource.meetlocatie
-    projectlocatie = meetlocatie.projectlocatie
-    project = projectlocatie.project
-    return '/'.join([slugify(project.name), 
-                     slugify(projectlocatie.name), 
-                     slugify(meetlocatie.name), 
-                     settings.UPLOAD_DATAFILES,
-                     slugify(datasource.name), 
-                     filename])
-
+    try:
+        sourcefile = instance
+        datasource = sourcefile.datasource
+        meetlocatie = datasource.meetlocatie
+        projectlocatie = meetlocatie.projectlocatie
+        project = projectlocatie.project
+        return '/'.join([slugify(project.name), 
+                         slugify(projectlocatie.name), 
+                         slugify(meetlocatie.name), 
+                         settings.UPLOAD_DATAFILES,
+                         slugify(datasource.name), 
+                         filename])
+    except:
+        return '/'.join([settings.UPLOAD_THUMBNAILS, 'files', str(instance.pk), filename])
+        
 def param_thumb_upload(instance, filename):
-    parameter = instance
-    datasource = parameter.datasource
-    meetlocatie = datasource.meetlocatie
-    projectlocatie = meetlocatie.projectlocatie
-    project = projectlocatie.project
-    return '/'.join([
-                     slugify(project.name),
+    try:
+        parameter = instance
+        datasource = parameter.datasource
+        meetlocatie = datasource.meetlocatie
+        projectlocatie = meetlocatie.projectlocatie
+        project = projectlocatie.project
+        return '/'.join([
+                         slugify(project.name),
+                         slugify(projectlocatie.name),
+                         slugify(meetlocatie.name),
+                         settings.UPLOAD_THUMBNAILS, 
+                         slugify(datasource.name),
+                         'parameter', 
+                         filename])
+    except:
+        return '/'.join([settings.UPLOAD_THUMBNAILS, 'parameter', str(instance.pk), filename])
+        
+def series_thumb_upload(instance, filename):
+    try:
+        datasource = instance.datasource()
+        meetlocatie = instance.meetlocatie()
+        projectlocatie = instance.projectlocatie()
+        project = instance.project()
+        return '/'.join([slugify(project.name),
                      slugify(projectlocatie.name),
                      slugify(meetlocatie.name),
                      settings.UPLOAD_THUMBNAILS, 
                      slugify(datasource.name),
-                     'parameter', 
-                     filename])
-
-def series_thumb_upload(instance, filename):
-    datasource = instance.datasource()
-    meetlocatie = instance.meetlocatie()
-    projectlocatie = instance.projectlocatie()
-    project = projectlocatie.project
-    return '/'.join([slugify(project.name),
-                     slugify(projectlocatie.name),
-                     slugify(meetlocatie.name),
-                     settings.UPLOAD_THUMBNAILS, 
-                     'berekend' if datasource is None else slugify(datasource.name),
                      'series', 
                      filename])
+    except:
+        return '/'.join([settings.UPLOAD_THUMBNAILS, 'series', str(instance.pk), filename])
+        

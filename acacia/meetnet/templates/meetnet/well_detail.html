@@ -1,0 +1,109 @@
+{% extends 'bootbase.html' %}
+{% block title %}Grondwaterput {{object.name}} {% endblock title %}
+{% block breadcrumbs %}
+<ol class="breadcrumb">
+  <li><a href="{% url 'network-detail' object.network.id %}">Netwerk</a></li>
+</ol>
+{% endblock breadcrumbs %}
+{% block brandname %}<div class="navbar-brand"><img style="margin-top: -7px;max-width: 100px;" src="/media/{{object.network.logo}}"/></div>{% endblock %}
+{% block extrastyle %}
+<style>
+html, body {height: 100%;margin:0;padding:0;}
+a img {
+	float: left;
+	height: 474px;
+	padding-right: 8px;
+}
+.log {
+	float:right;
+	padding-left: 0;
+	height: 474px;
+}
+.grafiek {
+	width: 100%;
+	height: 30%;
+}
+.grafiek img {
+	width: 100%;
+	height: 100%;
+}
+
+</style>
+{% endblock %}
+{% block content %}
+<div id="content">
+<div class="container-fluid">
+<h4>Grondwaterput {{object.name}}</h4>
+<table class="table table-striped">
+<!-- <tr><td class="col-md-2">NITG code</td><td class="col-md-10">{{object.nitg|default:'<i>geen</i>'}}</td></tr> -->
+<!-- <tr><td>BRO id</td><td>{{object.bro|default:'<i>geen</i>'}}</td></tr> -->
+<tr>
+	<td>Adres</td>
+	<td>{%if object.straat %} {{object.straat}} {{object.huisnummer}}{%else%}<i>onbekend</i>{%endif%}</td>
+	<td rowspan="10"><a href="/media/{{object.log}}"><img class="log" src="/media/{{object.log}}"/></a></td>
+</tr>
+<tr><td>Plaats</td><td>{%if object.plaats %}{{object.postcode}} {{object.plaats}}{%else%}<i>onbekend</i>{%endif%}</td></tr>
+<tr><td>Coördinaten</div></td><td>({{object.RD.x|floatformat:2}}&nbsp;{{object.RD.y|floatformat:2}})</td></tr>
+<tr><td>Constructiedatum</div></td><td>{{object.date}}</td></tr>
+<tr><td>Maaiveld</div></td><td>{{object.maaiveld|floatformat:2}} m NAP</td></tr>
+<tr><td>Referentiepunt</td><td>{{object.refpnt|floatformat:2}} m NAP</td></tr>
+<tr><td>Filters</td><td>{{object.num_filters}}</td></tr>
+<tr><td>Laatste uitleesronde</td><td>{{object.network.last_round|default:'<i>onbekend</i>'}}</td></tr>
+<tr><td>Volgende uitleesronde</td><td>{{object.network.next_round|default:'<i>onbekend</i>'}}</td></tr>
+<tr>
+<td>{%for f in object.photo_set.all %}<a href="/media/{{f.photo.name}}"><img src="/media/{{f.photo.name}}"/></a>{%empty%}<i>(Geen foto's)</i>{%endfor%}</td>
+<td>
+{% if object.has_data %}
+<div class="grafiek">
+	<a href="{% url 'chart-detail' object.id %}" target="_blank">
+		<img src="{{chart}}" alt='grafiek' title='Klik voor interactieve grafiek in aparte tab'/>
+	</a>
+</div>
+{% endif %}
+<table class="table table-bordered table-striped">
+<thead>
+<tr>
+	<th rowspan="2">Filter</th>
+	<th colspan="2"><div class = "text-center">Datalogger</div></th>
+	<th colspan="2"><div class = "text-center">Filterstelling (m tov maaiveld)</div></th>
+	<th colspan="6"><div class = "text-center">Standen (m tov NAP)</div></th>
+</tr>
+<tr>
+	<th>Serienummer</th>
+	<th>Diepte</th>
+	<th>Bovenkant</th>
+	<th>Onderkant</th>
+	<th>Van</th>
+	<th>Tot</th>
+	<th>Aantal</th>
+	<th>10%</th>
+	<th>50%</th>
+	<th>90%</th>
+</tr>
+</thead>
+<tbody>
+    {% for s in object.screen_set.all %}
+	<tr>
+    {% with s.stats as stats %}
+		<td>{{s.nr}}</td>
+		<td>{{s.last_logger|default:''}}</td>
+		<td>{{s.last_logger.depth}}</td>
+		<td>{{s.top}}</td>
+		<td>{{s.bottom}}</td>
+		<td>{{s.start|date:'d M Y'}}</td>
+		<td>{{s.stop|date:'d M Y'}}</td>
+		<td>{{s.num_standen}}</td>
+		<td>{{stats.p10|default:''}}</td>
+		<td>{{stats.p50|default:''}}</td>
+		<td>{{stats.p90|default:''}}</td>
+	{% endwith %}
+	</tr>
+    {% endfor %} 
+</tbody>
+</table>
+</td>
+</tr>
+</table>
+</div>
+</div>
+{% endblock content %}

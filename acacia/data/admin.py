@@ -108,8 +108,8 @@ class DatasourceAdmin(admin.ModelAdmin):
     inlines = [SourceFileInline,] # takes VERY long for decagon with more than 1000 files
     search_fields = ['name',]
     actions = [actions.upload_datasource, actions.replace_parameters, actions.update_parameters]
-    list_filter = ('meetlocatie','meetlocatie__projectlocatie','meetlocatie__projectlocatie__project',)
-    list_display = ('name', 'description', 'meetlocatie', 'last_download', 'filecount', 'parametercount', 'seriescount', 'start', 'stop', 'rows',)
+    list_filter = ('meetlocatie','meetlocatie__projectlocatie','meetlocatie__projectlocatie__project','generator')
+    list_display = ('name', 'description', 'meetlocatie', 'generator', 'last_download', 'filecount', 'parametercount', 'seriescount', 'start', 'stop', 'rows',)
     fieldsets = (
                  ('Algemeen', {'fields': ('name', 'description', 'timezone', 'meetlocatie',),
                                'classes': ('grp-collapse grp-open',),
