@@ -6,6 +6,7 @@ from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.utils import timezone
 from django.core.urlresolvers import reverse
+from django.core.exceptions import ValidationError
 from django.contrib.gis.db import models as geo
 from django.utils.text import slugify
 from acacia import settings
@@ -1078,8 +1079,17 @@ class SeriesProperties(models.Model):
 class Variable(models.Model):
     locatie = models.ForeignKey(MeetLocatie)
     name = models.CharField(max_length=10, verbose_name = 'variabele')
-    series = models.ForeignKey(Series)
-    
+    series = models.ForeignKey(Series, verbose_name = 'reeks')
+
+    def thumbtag(self):
+        try:
+            return self.series.thumbtag()
+        except:
+            return None
+        
+    thumbtag.allow_tags = True
+    thumbtag.short_description = 'thumbnail'
+
     def __unicode__(self):
         return '%s = %s' % (self.name, self.series)
 
@@ -1159,6 +1169,17 @@ class Formula(Series):
                 pass
             deps.append(s)
         return deps
+    
+#     def clean(self):
+#         try:
+#             variables = {var.name: var.series.to_pandas() for var in self.formula_variables.all()}
+#         except Exception as e:
+#             raise ValidationError('Probleem met definitie van de variabelen: %s' % e)
+#         try:
+#             eval(self.formula_text, globals(), variables)
+#         except Exception as e:
+#             raise ValidationError('Fout bij berekening van de formule: %s' % e)
+            
     
     class Meta:
         verbose_name = 'Berekende reeks'
@@ -1294,11 +1315,6 @@ class Dashboard(models.Model):
     def __unicode__(self):
         return self.name
     
-#     def summary(self):
-#         '''summary as html for inserting in dashboard'''
-#         summary = {'Geinfiltreerd': {'Debiet': "23 m3", 'EC': "788 uS/cm"}, 'Onttrokken': {'Debiet': "14 m3", 'EC': "800 uS/cm"} }
-#         return render_to_string('data/dash-summary.html', {'summary': summary})
-
     class Meta:
         ordering = ['name',]
 

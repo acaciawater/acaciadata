@@ -221,6 +221,16 @@ class FormulaAdmin(SeriesAdmin):
     filter_horizontal = ('formula_variables',)
     exclude = ('parameter',)
     
+#     def clean_formula_text(self):
+#         # try to evaluate the expression
+#         data = self.cleaned_data['formula_text']
+#         try:
+#             variables = self.instance.get_variables()
+#             eval(data, globals(), variables)
+#         except Exception as e:
+#             raise forms.ValidationError('Fout bij berekening formule: %s' % e)
+#         return data
+    
 #     def save_model(self, request, obj, form, change):
 #         # TODO: allow null value for parameter
 #         obj.parameter = Parameter.objects.first()
@@ -267,11 +277,23 @@ class DashAdmin(admin.ModelAdmin):
         obj.user = request.user
         obj.save()
 
+class VariableAdminForm(forms.ModelForm):
+
+    def clean_name(self):
+        name = self.cleaned_data["name"]
+        try:
+            exec("{0}=1".format(name))
+        except:
+            raise forms.ValidationError('{0} is een ongeldige python variable'.format(name))
+        return name
+
 class VariableAdmin(admin.ModelAdmin):
     list_display = ('name', 'locatie', 'series', )
     list_filter = ('locatie',)
     search_fields = ['name','locatie__name']
-
+    readonly_fields = ('thumbtag',)
+    form = VariableAdminForm
+    
 class TabPageAdmin(admin.ModelAdmin):
     list_display = ('name', 'tabgroup', 'order', 'dashboard',)
     list_filter = ('tabgroup',)

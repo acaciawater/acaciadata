@@ -314,6 +314,9 @@ class Dataservice(Generator):
         if not 'password' in kwargs:
             raise DecagonException('Password ontbreekt')
         
+        callback = kwargs.get('callback', None)
+        result = {}
+
         startkey = 'mrid'
         startvalue = 0
         
@@ -347,7 +350,12 @@ class Dataservice(Generator):
         filename = '%s_%s.dxd' % (kwargs['deviceid'], datetime.datetime.utcnow().strftime('%y%m%d%H%M'))
         #filename = '%s.dxd' % (kwargs['deviceid'])
         filename = kwargs.get('filename', params.get('filename', filename))
-        return {filename: response.read()}
+
+        result[filename] = response.read()
+        if callback is not None:
+            callback(filename, result[filename])
+        
+        return result
 
     def port2params(self,port):
         ''' determine parameter names from port description

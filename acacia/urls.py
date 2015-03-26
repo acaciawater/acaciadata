@@ -14,7 +14,8 @@ urlpatterns = patterns('',
     url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
     url(r'^admin/', include(admin.site.urls)),
     url(r'^data/', include('acacia.data.urls',namespace='acacia')),
-    url(r'^spaarwater/', include('spaarwater.urls')),
+    #url(r'^spaarwater/', include('spaarwater.urls')),
+    url(r'^spaarwater/', 'acacia.views.spaarwater'),
 )
 
 from django.contrib.auth import views as auth_views

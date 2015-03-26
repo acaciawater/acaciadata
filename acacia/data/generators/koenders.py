@@ -1,7 +1,7 @@
 import numpy as np
 import logging
 import datetime
-from pytz import timezone
+import pytz
 from .campbell import CR1000
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ def convtime(txt,tz=None):
 def date_parser(dt):
     ''' date parser for pandas read_csv '''
     # Koenders' time is fixed at CET (UTC+1)
-    tz = timezone('CET')
+    tz = pytz.timezone('CET')
     return np.array([convtime(t,tz) for t in dt])
 
 class Koenders(Generator):

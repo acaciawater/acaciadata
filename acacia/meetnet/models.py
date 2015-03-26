@@ -237,7 +237,7 @@ class Datalogger(models.Model):
     date = models.DateTimeField(verbose_name = 'datum', help_text = 'Datum en tijd van installatie datalogger')
     refpnt = models.FloatField(verbose_name = 'referentiepunt', help_text = 'ophangpunt in meter tov NAP')
     depth = models.FloatField(verbose_name = 'kabellengte', help_text = 'lengte van ophangkabel in meter')
-    baro = models.ForeignKey(Series, blank=True, null=True)
+    baro = models.ForeignKey(Series, blank=True, null=True, verbose_name='barometer', help_text = 'barometer reeks voor luchtdruk compensatie')
     
     def __unicode__(self):
         return self.serial
