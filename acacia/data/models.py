@@ -313,14 +313,16 @@ class Datasource(models.Model):
         self.save(update_fields=['last_download'])
         return files
         
-    def update_parameters(self,data=None,files=None,limit=10):
+    def update_parameters(self,data=None,files=None,limit=-1):
         gen = self.get_generator_instance()
         if gen is None:
             return
         logger.info('Updating parameters for datasource %s' % self.name)
         params = {}
         if files is None:
-            files = self.sourcefiles.all()[:limit]; 
+            files = self.sourcefiles.all();
+            if limit > 0:
+                files = files[:limit];
         for sourcefile in files:
             try:
                 try:
@@ -329,11 +331,9 @@ class Datasource(models.Model):
                     logger.exception('Cannot update parameters for sourcefile %s: %s' % (sourcefile, e))
             except Exception as e:
                 logger.exception('Cannot open sourcefile %s: %s' % (sourcefile, e))
-        logger.info('Update completed, got %d parameters from %d files', len(params),self.sourcefiles.count())
+        logger.info('Update completed, got %d parameters from %d files', len(params),files.count())
         num_created = 0
         num_updated = 0
-#        if data is None:
-#            data = self.get_data()
         for name,defaults in params.iteritems():
             name = name.strip()
             if name == '':
