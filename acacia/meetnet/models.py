@@ -34,8 +34,9 @@ class Well(geo.Model):
     nitg = models.CharField(max_length=50, verbose_name = 'TNO/NITG nummer', blank=True)
     bro = models.CharField(max_length=50, verbose_name = 'BRO nummer', blank=True)
     location = geo.PointField(srid=28992,verbose_name='locatie')
+    description = models.TextField(verbose_name='locatieomschrijving',blank=True)
     maaiveld = models.FloatField(verbose_name = 'maaiveld', help_text = 'maaiveld in meter tov NAP')
-    refpnt = models.FloatField(verbose_name = 'referentiepunt', help_text='referentiepunt in meter tov NAP')
+    #refpnt = models.FloatField(verbose_name = 'referentiepunt', help_text='referentiepunt in meter tov NAP')
     date = models.DateField(verbose_name = 'constructiedatum')
     straat = models.CharField(max_length=60, blank=True)
     huisnummer = models.CharField(max_length=6, blank=True)
@@ -117,63 +118,60 @@ MATERIALS = (
 class Screen(models.Model):
     well = models.ForeignKey(Well, verbose_name = 'put')
     nr = models.IntegerField(default=1, verbose_name = 'filternummer')
+    refpnt = models.FloatField(verbose_name = 'bovenkant buis', default=0, help_text = 'bovenkant stijgbuis in meter tov NAP')
     top = models.FloatField(verbose_name = 'bovenkant', help_text = 'bovenkant filter in meter min maaiveld')
     bottom = models.FloatField(verbose_name = 'onderkant', help_text = 'onderkant filter in meter min maaiveld')
     diameter = models.FloatField(verbose_name = 'diameter', default=32, help_text='diameter in mm (standaard = 32 mm)')
     material = models.CharField(max_length = 10,verbose_name = 'materiaal', default='pvc', choices = MATERIALS)
     chart = models.ImageField(null=True,blank=True, upload_to='charts', verbose_name='grafiek')
 
-    def get_series(self):
-        series = []
-        for logger in self.datalogger_set.all():
-            for ds in logger.datasources.all():
-                series.extend(ds.getseries())
-        return series
-    
-    def get_parameter_series(self, name):
-        series = []
-        for logger in self.datalogger_set.all():
-            for ds in logger.datasources.all():
-                for p in ds.parameter_set.filter(name=name):
-                    for s in p.series_set.all():
-                        series.append(s)
-        return series
-    
-    def get_pressure(self):
-        return self.get_parameter_series('PRESSURE')
-
-    def get_levels(self, ref='nap', formula='LEVEL'):
-        series = []
-        for logger in self.datalogger_set.all():
-            for ds in logger.datasources.all():
-                meetlocatie = ds.meetlocatie
-                for s in meetlocatie.formula_set.filter(name=formula):
-                    for dp in s.datapoints.all():
-                        level = dp.value / 100
-                        if ref == 'ref':
-                            # m h2o -> m tov refpnt
-                            level = logger.depth - level
-                        elif ref == 'nap':
-                            # m h2o -> m tov nap
-                            level = level + (logger.refpnt - logger.depth)
-                        elif ref == 'mv':
-                            level = level + (logger.refpnt - logger.depth - self.well.maaiveld)
-                        series.append((dp.date, level))
-        return series
+#     def get_series(self):
+#         series = []
+#         for lp in self.loggerpos_set.all():
+#             for mf in lp.monfile_set.all():
+#                 series.extend(ds.getseries())
+#             return series
+#     
+#     def get_parameter_series(self, name):
+#         series = []
+#         for logger in self.datalogger_set.all():
+#             for ds in logger.datasources.all():
+#                 for p in ds.parameter_set.filter(name=name):
+#                     for s in p.series_set.all():
+#                         series.append(s)
+#         return series
+#     
+#     def get_pressure(self):
+#         return self.get_parameter_series('PRESSURE')
+# 
+#     def get_levels(self, ref='nap', formula='LEVEL'):
+#         series = []
+#         for logger in self.datalogger_set.all():
+#             for ds in logger.datasources.all():
+#                 meetlocatie = ds.meetlocatie
+#                 for s in meetlocatie.formula_set.filter(name=formula):
+#                     for dp in s.datapoints.all():
+#                         level = dp.value / 100
+#                         if ref == 'ref':
+#                             # m h2o -> m tov refpnt
+#                             level = logger.depth - level
+#                         elif ref == 'nap':
+#                             # m h2o -> m tov nap
+#                             level = level + (logger.refpnt - logger.depth)
+#                         elif ref == 'mv':
+#                             level = level + (logger.refpnt - logger.depth - self.well.maaiveld)
+#                         series.append((dp.date, level))
+#         return series
 
     def get_monfiles(self):
         files = []
-        for logger in self.datalogger_set.all():
-            for ds in logger.datasources.all():
-                files.extend(list(ds.sourcefiles.all()))
+        for lp in self.loggerpos_set.all():
+            files.extend(lp.monfile_set.all())
         return files
 
     def num_files(self):
-        files = 0
-        for logger in self.datalogger_set.all():
-            for ds in logger.datasources.all():
-                files += ds.filecount() or 0
-        return files
+        files = self.get_monfiles()
+        return len(files)
     
     def num_standen(self):
         files = self.get_monfiles()
@@ -191,7 +189,7 @@ class Screen(models.Model):
         return max([f.stop for f in files]) if len(files) > 0 else None
         
     def last_logger(self):
-        return self.datalogger_set.all().order_by('date').last()
+        return self.loggerpos_set.all().order_by('date').last().logger
         
     def __unicode__(self):
         return '%s/%03d' % (self.well, self.nr)
@@ -224,39 +222,51 @@ class Screen(models.Model):
         
 DIVER_TYPES = (
                ('micro','Micro-Diver'),
-               ('td', 'TD-Diver'),
+               ('3', 'TD-Diver'),
                ('ctd','CTD-Diver'),
-               ('cera','Cera-Diver'),
-               ('mini','Mini-Diver'),
+               ('16','Cera-Diver'),
+               ('14','Mini-Diver'),
                ('baro','Baro-Diver')
                )
 class Datalogger(models.Model):
-    serial = models.CharField(max_length=50,verbose_name = 'serienummer', unique=True)
-    model = models.CharField(max_length=50,verbose_name = 'type', default='ctd', choices=DIVER_TYPES)
-    screen = models.ForeignKey(Screen,verbose_name = 'filter',blank=True, null=True)
-    date = models.DateTimeField(verbose_name = 'datum', help_text = 'Datum en tijd van installatie datalogger')
-    refpnt = models.FloatField(verbose_name = 'referentiepunt', help_text = 'ophangpunt in meter tov NAP')
-    depth = models.FloatField(verbose_name = 'kabellengte', help_text = 'lengte van ophangkabel in meter')
-    baro = models.ForeignKey(Series, blank=True, null=True, verbose_name='barometer', help_text = 'barometer reeks voor luchtdruk compensatie')
-    
+    serial = models.CharField(max_length=50,verbose_name = 'serienummer',unique=True)
+    model = models.CharField(max_length=50,verbose_name = 'type', default='14', choices=DIVER_TYPES)
+
     def __unicode__(self):
         return self.serial
+ 
+    class Meta:
+        ordering = ['serial']
+
+class LoggerPos(models.Model):
+    logger = models.ForeignKey(Datalogger)
+    screen = models.ForeignKey(Screen,verbose_name = 'filter',blank=True, null=True)
+    start_date = models.DateTimeField(verbose_name = 'start', help_text = 'Tijdstip van start datalogger')   
+    end_date = models.DateTimeField(verbose_name = 'stop', blank=True, null=True, help_text = 'Tijdstrip van stoppen datalogger')   
+    refpnt = models.FloatField(verbose_name = 'referentiepunt', default=0, help_text = 'ophangpunt in meter tov NAP')
+    depth = models.FloatField(verbose_name = 'kabellengte', default=0, help_text = 'lengte van ophangkabel in meter')
+    baro = models.ForeignKey(Series, blank=True, null=True, verbose_name='luchtdruk', help_text = 'tijdreeks voor luchtdruk compensatie')
+    remarks = models.TextField(verbose_name='opmerkingen', blank=True) 
+
+    def __unicode__(self):
+        return '%s@%s' % (self.logger, self.screen)
 
     class Meta:
-        ordering = ['serial',]
-
+        verbose_name = 'DataloggerInstallatie'
+        ordering = ['logger','start_date']
+            
 class LoggerDatasource(Datasource):
     logger = models.ForeignKey(Datalogger, related_name = 'datasources')
-    
+     
     class Meta:
-        verbose_name = 'Gegevensbron'
-        verbose_name_plural = 'Gegevensbronnen'
+        verbose_name = 'Loggerdata'
+        verbose_name_plural = 'Loggerdata'
 
 class MonFile(SourceFile):
     company = models.CharField(max_length=50)
     compstat = models.CharField(max_length=10)
     date = models.DateTimeField()
-    monfilename = models.CharField(max_length=512)
+    monfilename = models.CharField(verbose_name='Filename',max_length=512)
     createdby = models.CharField(max_length=100)
     instrument_type = models.CharField(max_length=50)
     status = models.CharField(max_length=50)
@@ -269,10 +279,9 @@ class MonFile(SourceFile):
     end_date = models.DateTimeField()
     num_channels = models.IntegerField(default = 1)
     num_points = models.IntegerField()
- 
-    def __unicode__(self):
-        return self.monfilename
-     
+
+    source = models.ForeignKey(LoggerPos,verbose_name='diver',blank=True,null=True)
+    
 class Channel(models.Model):
     monfile = models.ForeignKey(MonFile)
     number = models.IntegerField()
@@ -284,3 +293,25 @@ class Channel(models.Model):
  
     def __unicode__(self):
         return self.identification
+
+    class Meta:
+        verbose_name = 'Kanaal'
+        verbose_name_plural = 'Kanalen'
+
+# # Series that can be edited manually
+# class ManualSeries(Series):
+#     locatie = models.ForeignKey(MeetLocatie)
+#      
+#     def meetlocatie(self):
+#         return self.locatie
+#          
+#     def __unicode__(self):
+#         return self.name
+#  
+#     def get_series_data(self,data,start=None):
+#         return self.to_pandas(start=start)
+#      
+#     class Meta:
+#         verbose_name = 'Handmatige reeks'
+#         verbose_name_plural = 'Handmatige reeksen'
+#          

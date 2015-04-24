@@ -38,7 +38,7 @@ def sourcefile_upload(instance, filename):
                          slugify(datasource.name), 
                          filename])
     except:
-        return '/'.join([settings.UPLOAD_THUMBNAILS, 'files', str(instance.pk), filename])
+        return '/'.join([settings.UPLOAD_DATAFILES, 'files', str(instance.pk), filename])
         
 def param_thumb_upload(instance, filename):
     try:

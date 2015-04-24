@@ -3,8 +3,9 @@ Created on Jun 1, 2014
 
 @author: theo
 '''
-from .models import Network, Well, Photo, Screen, Datalogger, LoggerDatasource
+from .models import Network, Well, Photo, Screen, Datalogger, LoggerPos, LoggerDatasource, MonFile, Channel
 from acacia.data.models import Series
+from acacia.data.admin import DatasourceAdmin, SourceFileAdmin
 from django.conf import settings
 from django.contrib import admin
 from django.contrib.gis import admin as geo
@@ -53,30 +54,59 @@ class PhotoAdmin(admin.ModelAdmin):
         return super(PhotoAdmin,self).formfield_for_dbfield(db_field, **kwargs)
 
 class DataloggerAdmin(admin.ModelAdmin):
-    list_display=('serial', 'model', 'screen', 'baro', 'refpnt', 'depth', 'date')
-    search_fields = ('serial', 'screen__well__name',)
-    list_filter = ('screen__well', 'date')
+    list_display=('serial', 'model')
+    search_fields = ('serial',)
+    list_filter = ('model',)
 
-    def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if db_field.name == 'baro':
-            kwargs['queryset'] = Series.objects.filter(parameter__datasource__name__startswith='Baro')
-        return super(DataloggerAdmin, self).formfield_for_foreignkey(db_field, request, **kwargs)
-        
-class LoggerDatasourceAdmin(admin.ModelAdmin):
-    list_display=('logger', 'name', 'description', 'meetlocatie', 'last_download', 'filecount', 'parametercount', 'seriescount', 'start', 'stop', 'rows',)
-    search_fields = ['name',]
-    list_filter = ('meetlocatie','meetlocatie__projectlocatie','meetlocatie__projectlocatie__project',)
-        
+class LoggerPosAdmin(admin.ModelAdmin):
+    model = LoggerPos
+    list_display = ('logger', 'screen', 'start_date', 'end_date', 'refpnt', 'depth', 'baro', 'remarks')
+    
+class LoggerInline(admin.TabularInline):
+    model = LoggerPos
+    
+class LoggerDatasourceAdmin(DatasourceAdmin):
+    pass
+
+#     def __init__(self, *args, **kwargs):
+#         super(LoggerDatasourceAdmin,self).__init__(*args, **kwargs)
+#         self.list_display = self.list_display[:3] + ( 'logger', ) + self.list_display[3:] 
+#         self.search_fields = ['logger'].extend(self.search_fields)
+#         dic = self.fieldsets[0][1]
+#         fields = ('name', 'logger') + dic['fields'][1:]
+#         self.fieldsets[0][1]['fields'] = fields
+
+class ChannelInline(admin.TabularInline):
+    model = Channel
+
+class ChannelAdmin(admin.ModelAdmin):
+    list_display = ('identification', 'monfile', 'number', 'range', 'range_unit')
+    
+class MonFileAdmin(SourceFileAdmin):
+    model = MonFile
+    inlines = [ChannelInline,]
+    list_display = ('name','datasource', 'source', 'serial_number', 'status', 'instrument_type', 'location', 'num_channels', 'num_points', 'start_date', 'end_date', 'uploaded',)
+    list_filter = ('serial_number', 'datasource', 'datasource__meetlocatie', 'datasource__meetlocatie__projectlocatie__project', 'uploaded',)
+    search_fields = ['name','file__name','serial_number']
+    fields = None
+    fieldsets = (
+                 ('Algemeen', {'classes': ('grp-collapse', 'grp-open'),
+                              'fields':('name', 'datasource', 'file', 'source')}),
+                 ('Monfile', {'classes': ('grp-collapse', 'grp-closed'),
+                               'fields':('company', 'compstat', 'date', 'monfilename', 'createdby', 'instrument_type', 'status',
+                                         'serial_number','instrument_number','location','sample_period','sample_method','start_date','end_date', 'num_channels', 'num_points')}),
+                )
+    
 class ScreenAdmin(admin.ModelAdmin):
     actions = [actions.make_screencharts,]
-    list_display = ('__unicode__', 'top', 'bottom', 'num_files', 'num_standen', 'start', 'stop')
+    list_display = ('__unicode__', 'refpnt', 'top', 'bottom', 'num_files', 'num_standen', 'start', 'stop')
     search_fields = ('well__name',)
     list_filter = ('well','well__network')
     
 class WellAdmin(geo.OSMGeoAdmin):
     actions = [actions.make_wellcharts,]
     inlines = [PhotoInline, ]
-    list_display = ('name','network','num_filters', 'num_photos', 'logger_names', 'straat', 'plaats')
+    list_display = ('name','network','num_filters', 'num_photos', 'straat', 'plaats')
     #list_editable = ('location',)
     #list_per_page = 4
     ordering = ('network', 'name',)
@@ -86,9 +116,9 @@ class WellAdmin(geo.OSMGeoAdmin):
     list_select_related = True
     fieldsets = (
                  ('Algemeen', {'classes': ('grp-collapse', 'grp-open'),
-                               'fields':('network', 'name', 'nitg', 'bro', 'maaiveld', 'refpnt', 'date', 'log')}),
+                               'fields':('network', 'name', 'nitg', 'bro', 'maaiveld', 'date', 'log')}),
                  ('Locatie', {'classes': ('grp-collapse', 'grp-open'),
-                              'fields':(('straat', 'huisnummer'), ('postcode', 'plaats'),'location',)}),
+                              'fields':(('straat', 'huisnummer'), ('postcode', 'plaats'),'location','description')}),
                 )
     if USE_GOOGLE_TERRAIN_TILES:
         map_template = 'gis/admin/google.html'
@@ -130,9 +160,13 @@ class WellAdmin(geo.OSMGeoAdmin):
     #debug = False
     #widget = OpenLayersWidget
 
+admin.site.register(Network)
 admin.site.register(Well, WellAdmin)
 admin.site.register(Screen, ScreenAdmin)
-admin.site.register(Datalogger, DataloggerAdmin)
-admin.site.register(LoggerDatasource, LoggerDatasourceAdmin)
 admin.site.register(Photo,PhotoAdmin)
-admin.site.register(Network)
+
+admin.site.register(Datalogger, DataloggerAdmin)
+admin.site.register(LoggerPos, LoggerPosAdmin)
+admin.site.register(LoggerDatasource, LoggerDatasourceAdmin)
+admin.site.register(MonFile,MonFileAdmin)
+admin.site.register(Channel, ChannelAdmin)

@@ -110,6 +110,8 @@ def datehour_parser(ymd,hours):
 
 class UurGegevens(Meteo):
     
+    url = 'http://www.knmi.nl/klimatologie/uurgegevens/getdata_uur.cgi'
+
     def get_data(self, f, **kwargs):
         header = self.get_header(f)
         columns = header['COLUMNS']

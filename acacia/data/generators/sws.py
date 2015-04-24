@@ -73,12 +73,11 @@ class Diver(Generator):
         for i in range(1,num+1):
             name = sections['Channel %d' % i].get('Identification')
             names.append(name)
-        num=int(f.readline())
         if self.engine == 'python':
-            #skiprows = self.skiprows+1
             io = StringIO(f.read())
             data = self.read_csv(io, header=None, index_col=0, names = names, sep='\s+', parse_dates = {'date': [0,1]}, skipfooter=1)
         else:
+            num=int(sections['HEADER'].get('Number of points','0'))
             data = self.read_csv(f, header=None, index_col=0, names = names, delim_whitespace=True, parse_dates = {'date': [0,1]}, nrows=num-2, error_bad_lines=False)
         return data
 

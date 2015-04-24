@@ -497,7 +497,7 @@ class SourceFile(models.Model):
         return self.name
      
     class Meta:
-        unique_together = ('name', 'datasource',)
+#        unique_together = ('name', 'datasource',)
         verbose_name = 'bronbestand'
         verbose_name_plural = 'bronbestanden'
      
