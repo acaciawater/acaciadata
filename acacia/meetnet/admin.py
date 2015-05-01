@@ -96,7 +96,11 @@ class MonFileAdmin(SourceFileAdmin):
                                'fields':('company', 'compstat', 'date', 'monfilename', 'createdby', 'instrument_type', 'status',
                                          'serial_number','instrument_number','location','sample_period','sample_method','start_date','end_date', 'num_channels', 'num_points')}),
                 )
-    
+
+class ScreenInline(admin.TabularInline):
+    model = Screen
+    extra = 0
+        
 class ScreenAdmin(admin.ModelAdmin):
     actions = [actions.make_screencharts,]
     list_display = ('__unicode__', 'refpnt', 'top', 'bottom', 'num_files', 'num_standen', 'start', 'stop')
@@ -105,7 +109,7 @@ class ScreenAdmin(admin.ModelAdmin):
     
 class WellAdmin(geo.OSMGeoAdmin):
     actions = [actions.make_wellcharts,]
-    inlines = [PhotoInline, ]
+    inlines = [ ScreenInline, PhotoInline]
     list_display = ('name','network','num_filters', 'num_photos', 'straat', 'plaats')
     #list_editable = ('location',)
     #list_per_page = 4
@@ -117,7 +121,7 @@ class WellAdmin(geo.OSMGeoAdmin):
     fieldsets = (
                  ('Algemeen', {'classes': ('grp-collapse', 'grp-open'),
                                'fields':('network', 'name', 'nitg', 'bro', 'maaiveld', 'date', 'log')}),
-                 ('Locatie', {'classes': ('grp-collapse', 'grp-open'),
+                 ('Locatie', {'classes': ('grp-collapse', 'grp-closed'),
                               'fields':(('straat', 'huisnummer'), ('postcode', 'plaats'),'location','description')}),
                 )
     if USE_GOOGLE_TERRAIN_TILES:

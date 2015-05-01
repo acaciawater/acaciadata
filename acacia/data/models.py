@@ -766,7 +766,7 @@ class Series(models.Model):
     def __unicode__(self):
         return '%s - %s' % (self.datasource() or '(berekend)', self.name)
     
-    def do_postprocess(self, series, start, stop):
+    def do_postprocess(self, series, start=None, stop=None):
         ''' perform postprocessing of series data like resampling, scaling etc'''
         # remove n/a values and duplicates
         series = series.dropna()
@@ -1247,7 +1247,7 @@ class Chart(models.Model):
         return self.start
 
     def to_pandas(self):
-        s = { cd.series.name: cd.series.to_pandas() for cd in self.series.all() }
+        s = { unicode(cd.series): cd.series.to_pandas() for cd in self.series.all() }
         return pd.DataFrame(s)
     
     def to_csv(self):

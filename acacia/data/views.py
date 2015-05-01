@@ -163,7 +163,7 @@ class SeriesView(DetailView):
             'title': {'text': ser.name},
             'xAxis': {'type': 'datetime'},
             'yAxis': [],
-            'tooltip': {'valueSuffix': ' '+unit,
+            'tooltip': {'valueSuffix': ' '+(unit or ''),
                         'valueDecimals': 2
                        }, 
             'legend': {'enabled': False},
