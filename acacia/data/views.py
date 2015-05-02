@@ -46,7 +46,10 @@ def ChartToJson(request, pk):
     data = {}
     for cs in c.series.all():
         s = cs.series
-        data['series_%d' % s.id] = [[p.date,p.value] for p in s.datapoints.filter(date__gt=start).order_by('date')]
+        if c.stop is None:
+            data['series_%d' % s.id] = [[p.date,p.value] for p in s.datapoints.filter(date__gt=start).order_by('date')]
+        else:
+            data['series_%d' % s.id] = [[p.date,p.value] for p in s.datapoints.filter(date__gt=start, date__lt=c.stop).order_by('date')]
     return HttpResponse(json.dumps(data, default=lambda x: time.mktime(x.timetuple())*1000.0), content_type='application/json')
     
 def ChartAsCsv(request,pk):

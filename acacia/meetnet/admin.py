@@ -106,8 +106,13 @@ class ScreenAdmin(admin.ModelAdmin):
     list_display = ('__unicode__', 'refpnt', 'top', 'bottom', 'num_files', 'num_standen', 'start', 'stop')
     search_fields = ('well__name',)
     list_filter = ('well','well__network')
+
+from django.contrib.gis.db import models
+from django import forms
     
-class WellAdmin(geo.OSMGeoAdmin):
+#class WellAdmin(geo.OSMGeoAdmin):
+class WellAdmin(admin.ModelAdmin):
+    formfield_overrides = {models.PointField:{'widget': forms.TextInput(attrs={'size': '100'})}}
     actions = [actions.make_wellcharts,]
     inlines = [ ScreenInline, PhotoInline]
     list_display = ('name','network','num_filters', 'num_photos', 'straat', 'plaats')
