@@ -8,7 +8,7 @@ from django.template.loader import render_to_string
 from django.http import HttpResponse
 from django.core.urlresolvers import reverse
 from models import Network, Well, Screen
-import json, logging, time
+import json, logging, datetime, time
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -125,13 +125,16 @@ class WellChartView(TemplateView):
             }
         series = []
         xydata = []
+        start = datetime.datetime(2014,1,1)
+        stop = datetime.datetime(2015,1,1)
         for screen in well.screen_set.all():
             name = unicode(screen)
-            data = screen.to_pandas(ref='nap')
+            data = screen.to_pandas(ref='nap')[start:stop]
             xydata = zip(data.index.to_pydatetime(), data.values)
             series.append({'name': name,
                         'type': 'line',
                         'data': xydata,
+                        'lineWidth': 1,
                         'zIndex': 1,
                         })
             mean = pd.expanding_mean(data)
@@ -152,6 +155,14 @@ class WellChartView(TemplateView):
                         'linkedTo' : ':previous',
                         'zIndex': 0,
                         })
+            data = screen.to_pandas(ref='nap',kind='HAND')[start:stop]
+            hand = zip(data.index.to_pydatetime(), data.values)
+            series.append({'name': 'handpeiling',
+                        'type': 'scatter',
+                        'data': hand,
+                        'zIndex': 2,
+                        'marker': {'symbol': 'circle', 'radius': 6, 'lineColor': 'white', 'lineWidth': 2, 'fillColor': 'blue'},
+                        })
 
         if len(xydata)>0:
             mv = []
@@ -159,9 +170,12 @@ class WellChartView(TemplateView):
                 mv.append((xydata[i][0], screen.well.maaiveld))
             series.append({'name': 'maaiveld',
                         'type': 'line',
+                        'lineWidth': 1,
+                        'dashStyle': 'Dash',
+                        'color': 'white',
                         'data': mv
                         })
-
+        
         options['series'] = series
         context['options'] = json.dumps(options, default=lambda x: int(time.mktime(x.timetuple())*1000))
         context['object'] = well

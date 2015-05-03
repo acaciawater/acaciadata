@@ -4,7 +4,7 @@ Created on Jun 3, 2014
 @author: theo
 '''
 from .models import Well, Screen
-import logging
+import logging, datetime
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 from StringIO import StringIO
@@ -23,6 +23,12 @@ def chart_for_screen(screen):
         plt.plot_date(x, y, '-')
         y = [screen.well.maaiveld] * len(x)
         plt.plot_date(x, y, '-')
+
+    hand = screen.get_hand('nap')
+    if len(hand)>0:
+        x,y = zip(*hand)
+        plt.plot_date(x, y, 'ro',label='handpeiling')
+
     plt.title(screen)
     plt.ylabel('m tov NAP')
     img = StringIO() 
@@ -31,7 +37,11 @@ def chart_for_screen(screen):
     return img.getvalue()
 
 def chart_for_well(well):
-    plt.figure(figsize=(15,5))
+    fig=plt.figure(figsize=(15,5))
+    ax=fig.gca()
+    datemin=datetime.datetime(2014,1,1)
+    datemax=datetime.datetime(2015,1,1)
+    ax.set_xlim(datemin, datemax)
     plt.grid(linestyle='-', color='0.9')
     count = 0
     y = []
@@ -41,6 +51,11 @@ def chart_for_well(well):
             x,y = zip(*data)
             plt.plot_date(x, y, '-', label=screen)
             count += 1
+
+        hand = screen.get_hand('nap')
+        if len(hand)>0:
+            x,y = zip(*hand)
+            plt.plot_date(x, y, 'ro', label='handpeiling')
             
     y = [screen.well.maaiveld] * len(x)
     plt.plot_date(x, y, '-', label='maaiveld')

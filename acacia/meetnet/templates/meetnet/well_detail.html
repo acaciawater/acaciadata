@@ -35,23 +35,26 @@ a img {
 <div class="container-fluid">
 <h4>Grondwaterput {{object.name}}</h4>
 <table class="table table-striped">
-<!-- <tr><td class="col-md-2">NITG code</td><td class="col-md-10">{{object.nitg|default:'<i>geen</i>'}}</td></tr> -->
-<!-- <tr><td>BRO id</td><td>{{object.bro|default:'<i>geen</i>'}}</td></tr> -->
+<tr>
+	<td class="col-md-2">NITG code</td>
+	<td class="col-md-10">{{object.nitg|default:'<i>geen</i>'}}</td>
+	{% if object.log %}
+	<td rowspan="10"><a href="/media/{{object.log}}"><img class="log" src="/media/{{object.log}}"/></a></td>
+	{% endif %}
+</tr>
+<tr><td>BRO id</td><td>{{object.bro|default:'<i>geen</i>'}}</td></tr>
 <tr>
 	<td>Adres</td>
 	<td>{%if object.straat %} {{object.straat}} {{object.huisnummer}}{%else%}<i>onbekend</i>{%endif%}</td>
-	<td rowspan="10"><a href="/media/{{object.log}}"><img class="log" src="/media/{{object.log}}"/></a></td>
 </tr>
 <tr><td>Plaats</td><td>{%if object.plaats %}{{object.postcode}} {{object.plaats}}{%else%}<i>onbekend</i>{%endif%}</td></tr>
 <tr><td>Coördinaten</div></td><td>({{object.RD.x|floatformat:2}}&nbsp;{{object.RD.y|floatformat:2}})</td></tr>
 <tr><td>Constructiedatum</div></td><td>{{object.date}}</td></tr>
 <tr><td>Maaiveld</div></td><td>{{object.maaiveld|floatformat:2}} m NAP</td></tr>
-<tr><td>Referentiepunt</td><td>{{object.refpnt|floatformat:2}} m NAP</td></tr>
 <tr><td>Filters</td><td>{{object.num_filters}}</td></tr>
 <tr><td>Laatste uitleesronde</td><td>{{object.network.last_round|default:'<i>onbekend</i>'}}</td></tr>
-<tr><td>Volgende uitleesronde</td><td>{{object.network.next_round|default:'<i>onbekend</i>'}}</td></tr>
 <tr>
-<td>{%for f in object.photo_set.all %}<a href="/media/{{f.photo.name}}"><img src="/media/{{f.photo.name}}"/></a>{%empty%}<i>(Geen foto's)</i>{%endfor%}</td>
+<td>{%for f in object.photo_set.all %}<a href="/media/{{f.photo.name}}"><img src="/media/{{f.photo.name}}"/></a>{%endfor%}</td>
 <td>
 {% if object.has_data %}
 <div class="grafiek">

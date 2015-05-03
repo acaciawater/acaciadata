@@ -7,7 +7,7 @@ import os, pandas as pd, numpy as np
 from django.db import models
 from django.contrib.gis.db import models as geo
 from django.core.urlresolvers import reverse
-from acacia.data.models import Datasource, Series, SourceFile
+from acacia.data.models import MeetLocatie, Datasource, Series, SourceFile
 from acacia.data import util
 
 class Network(models.Model):
@@ -125,44 +125,37 @@ class Screen(models.Model):
     material = models.CharField(max_length = 10,verbose_name = 'materiaal', default='pvc', choices = MATERIALS)
     chart = models.ImageField(null=True,blank=True, upload_to='charts', verbose_name='grafiek')
 
-#     def get_series(self):
-#         series = []
-#         for lp in self.loggerpos_set.all():
-#             for mf in lp.monfile_set.all():
-#                 series.extend(ds.getseries())
-#             return series
-#     
-#     def get_parameter_series(self, name):
-#         series = []
-#         for logger in self.datalogger_set.all():
-#             for ds in logger.datasources.all():
-#                 for p in ds.parameter_set.filter(name=name):
-#                     for s in p.series_set.all():
-#                         series.append(s)
-#         return series
-#     
-#     def get_pressure(self):
-#         return self.get_parameter_series('PRESSURE')
-# 
-#     def get_levels(self, ref='nap', formula='LEVEL'):
-#         series = []
-#         for logger in self.datalogger_set.all():
-#             for ds in logger.datasources.all():
-#                 meetlocatie = ds.meetlocatie
-#                 for s in meetlocatie.formula_set.filter(name=formula):
-#                     for dp in s.datapoints.all():
-#                         level = dp.value / 100
-#                         if ref == 'ref':
-#                             # m h2o -> m tov refpnt
-#                             level = logger.depth - level
-#                         elif ref == 'nap':
-#                             # m h2o -> m tov nap
-#                             level = level + (logger.refpnt - logger.depth)
-#                         elif ref == 'mv':
-#                             level = level + (logger.refpnt - logger.depth - self.well.maaiveld)
-#                         series.append((dp.date, level))
-#         return series
+    def get_series(self, ref = 'nap', kind='COMP'):
+        
+        def bydate(record):
+            return record[0]
 
+        levels = []
+        # luchtdruk gecompenseerde standen (tov NAP) ophalen
+        name = '%s %s' % (unicode(self), kind)
+        try:
+            series = Series.objects.get(name=name)
+        except Series.DoesNotExist:
+            return levels
+        for dp in series.datapoints.all():
+            if ref == 'nap':
+                level = dp.value
+            elif ref == 'bkb':
+                level = self.refpnt - dp.value
+            elif ref == 'mv':
+                level = self.well.maaiveld - dp.value
+            else:
+                raise 'Illegal reference point for screen %s' % unicode(self)
+            levels.append((dp.date, level))
+        levels.sort(key=bydate)
+        return levels
+
+    def get_levels(self, ref='nap'):
+        return self.get_series(ref,kind='COMP')        
+
+    def get_hand(self, ref='nap'):
+        return self.get_series(ref,kind='HAND')        
+        
     def get_monfiles(self):
         files = []
         for lp in self.loggerpos_set.all():
@@ -188,8 +181,11 @@ class Screen(models.Model):
         files = self.get_monfiles()
         return max([f.stop for f in files]) if len(files) > 0 else None
         
+    def get_loggers(self):
+        return self.loggerpos_set.all().group_by('logger').last().logger
+        
     def last_logger(self):
-        return self.loggerpos_set.all().order_by('date').last().logger
+        return self.loggerpos_set.all().order_by('start_date').last().logger
         
     def __unicode__(self):
         return '%s/%03d' % (self.well, self.nr)
@@ -197,8 +193,8 @@ class Screen(models.Model):
     def get_absolute_url(self):
         return reverse('screen-detail', args=[self.id])
 
-    def to_pandas(self, ref='nap'):
-        levels = self.get_levels(ref)
+    def to_pandas(self, ref='nap',kind='COMP'):
+        levels = self.get_series(ref,kind)
         if len(levels) > 0:
             x,y = zip(*levels)
         else:
