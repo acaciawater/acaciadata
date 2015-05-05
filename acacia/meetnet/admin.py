@@ -61,6 +61,7 @@ class DataloggerAdmin(admin.ModelAdmin):
 class LoggerPosAdmin(admin.ModelAdmin):
     model = LoggerPos
     list_display = ('logger', 'screen', 'start_date', 'end_date', 'refpnt', 'depth', 'baro', 'remarks')
+    search_fields = ('logger__serial','screen__well__name')
     
 class LoggerInline(admin.TabularInline):
     model = LoggerPos
@@ -104,7 +105,7 @@ class ScreenInline(admin.TabularInline):
 class ScreenAdmin(admin.ModelAdmin):
     actions = [actions.make_screencharts,]
     list_display = ('__unicode__', 'refpnt', 'top', 'bottom', 'num_files', 'num_standen', 'start', 'stop')
-    search_fields = ('well__name',)
+    search_fields = ('well__name', 'well__nitg')
     list_filter = ('well','well__network')
 
 from django.contrib.gis.db import models
@@ -115,7 +116,7 @@ class WellAdmin(admin.ModelAdmin):
     formfield_overrides = {models.PointField:{'widget': forms.TextInput(attrs={'size': '100'})}}
     actions = [actions.make_wellcharts,]
     inlines = [ ScreenInline, PhotoInline]
-    list_display = ('name','network','num_filters', 'num_photos', 'straat', 'plaats')
+    list_display = ('name','nitg','network','num_filters', 'num_photos', 'straat', 'plaats')
     #list_editable = ('location',)
     #list_per_page = 4
     ordering = ('network', 'name',)

@@ -63,7 +63,8 @@ def chart_for_well(well):
     plt.title(well)
     plt.ylabel('m tov NAP')
     if count > 0:
-        plt.legend()
+        leg=plt.legend()
+        leg.get_frame().set_alpha(0.5)
     
     img = StringIO() 
     plt.savefig(img,format='png',bbox_inches='tight')

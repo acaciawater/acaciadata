@@ -11,12 +11,12 @@ def make_wellcharts(modeladmin, request, queryset):
     for w in queryset:
         if not w.has_data():
             continue
-        if w.chart.name is None or len(w.chart.name) == 0:
-            w.chart.name = os.path.join(w.chart.field.upload_to, slugify(unicode(w.name)) +'.png')
-            w.save()
-            imagedir = os.path.dirname(w.chart.path)
-            if not os.path.exists(imagedir):
-                os.makedirs(imagedir)
+#        if w.chart.name is None or len(w.chart.name) == 0:
+        w.chart.name = os.path.join(w.chart.field.upload_to, slugify(unicode(w.nitg)) +'.png')
+        w.save()
+        imagedir = os.path.dirname(w.chart.path)
+        if not os.path.exists(imagedir):
+            os.makedirs(imagedir)
         with open(w.chart.path,'wb') as f:
             f.write(make_chart(w))
         
@@ -27,7 +27,7 @@ def make_screencharts(modeladmin, request, queryset):
     for s in queryset:
         if not s.has_data():
             continue
-        if s.chart.name is None:
+        if s.chart.name is None or len(s.chart.name) == 0:
             s.chart.name = os.path.join(s.chart.field.upload_to, slugify(unicode(s)) +'.png')
             s.save()
             imagedir = os.path.dirname(s.chart.path)

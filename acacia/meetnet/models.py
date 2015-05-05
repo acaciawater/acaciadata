@@ -60,19 +60,19 @@ class Well(geo.Model):
         return self.photo_set.count()
     num_photos.short_description='aantal fotos'
 
-    def get_loggers(self):
-        loggers = []
-        for s in self.screen_set.all():
-            loggers.extend(s.datalogger_set.all())
-        return loggers
-    
-    def num_loggers(self):
-        return len(self.get_loggers())
-    num_loggers.short_description='aantal dataloggers'
-    
-    def logger_names(self):
-        return ','.join([l.serial for l in self.get_loggers()])
-    logger_names.short_description='dataloggers'
+#     def get_loggers(self):
+#         loggers = []
+#         for s in self.screen_set.all():
+#             loggers.extend(s.datalogger_set.all())
+#         return loggers
+#     
+#     def num_loggers(self):
+#         return len(self.get_loggers())
+#     num_loggers.short_description='aantal dataloggers'
+#     
+#     def logger_names(self):
+#         return ','.join([l.serial for l in self.get_loggers()])
+#     logger_names.short_description='dataloggers'
     
     def get_absolute_url(self):
         return reverse('well-detail', args=[self.id])
@@ -182,13 +182,14 @@ class Screen(models.Model):
         return max([f.stop for f in files]) if len(files) > 0 else None
         
     def get_loggers(self):
-        return self.loggerpos_set.all().group_by('logger').last().logger
+        return [p.logger for p in self.loggerpos_set.all().group_by('logger').last()]
         
     def last_logger(self):
-        return self.loggerpos_set.all().order_by('start_date').last().logger
+        last = self.loggerpos_set.all().order_by('start_date').last()
+        return None if last is None else last.logger
         
     def __unicode__(self):
-        return '%s/%03d' % (self.well, self.nr)
+        return '%s/%03d' % (self.well.nitg, self.nr)
 
     def get_absolute_url(self):
         return reverse('screen-detail', args=[self.id])
