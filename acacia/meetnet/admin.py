@@ -3,12 +3,11 @@ Created on Jun 1, 2014
 
 @author: theo
 '''
-from .models import Network, Well, Photo, Screen, Datalogger, LoggerPos, LoggerDatasource, MonFile, Channel
-from acacia.data.models import Series
-from acacia.data.admin import DatasourceAdmin, SourceFileAdmin
+from .models import Network, Well, Photo, Screen, Datalogger, LoggerPos, LoggerDatasource, MonFile, Channel, ManualSeries
+from acacia.data.admin import DatasourceAdmin, SourceFileAdmin, SeriesAdmin
+from acacia.data.models import DataPoint
 from django.conf import settings
 from django.contrib import admin
-from django.contrib.gis import admin as geo
 
 USE_GOOGLE_TERRAIN_TILES = False
 
@@ -77,6 +76,13 @@ class LoggerDatasourceAdmin(DatasourceAdmin):
 #         fields = ('name', 'logger') + dic['fields'][1:]
 #         self.fieldsets[0][1]['fields'] = fields
 
+class DataPointInline(admin.TabularInline):
+    model = DataPoint
+    
+class ManualSeriesAdmin(SeriesAdmin):
+    model = ManualSeries
+    inlines = [DataPointInline,]
+    
 class ChannelInline(admin.TabularInline):
     model = Channel
 
@@ -103,7 +109,7 @@ class ScreenInline(admin.TabularInline):
     extra = 0
         
 class ScreenAdmin(admin.ModelAdmin):
-    actions = [actions.make_screencharts,]
+    actions = [actions.make_screencharts,actions.recomp_screens]
     list_display = ('__unicode__', 'refpnt', 'top', 'bottom', 'num_files', 'num_standen', 'start', 'stop')
     search_fields = ('well__name', 'well__nitg')
     list_filter = ('well','well__network')
@@ -114,9 +120,9 @@ from django import forms
 #class WellAdmin(geo.OSMGeoAdmin):
 class WellAdmin(admin.ModelAdmin):
     formfield_overrides = {models.PointField:{'widget': forms.TextInput(attrs={'size': '100'})}}
-    actions = [actions.make_wellcharts,]
+    actions = [actions.make_wellcharts,actions.recomp_wells]
     inlines = [ ScreenInline, PhotoInline]
-    list_display = ('name','nitg','network','num_filters', 'num_photos', 'straat', 'plaats')
+    list_display = ('name','nitg','network','maaiveld', 'num_filters', 'num_photos', 'straat', 'plaats')
     #list_editable = ('location',)
     #list_per_page = 4
     ordering = ('network', 'name',)
@@ -128,7 +134,7 @@ class WellAdmin(admin.ModelAdmin):
                  ('Algemeen', {'classes': ('grp-collapse', 'grp-open'),
                                'fields':('network', 'name', 'nitg', 'bro', 'maaiveld', 'date', 'log')}),
                  ('Locatie', {'classes': ('grp-collapse', 'grp-closed'),
-                              'fields':(('straat', 'huisnummer'), ('postcode', 'plaats'),'location','description')}),
+                              'fields':(('straat', 'huisnummer'), ('postcode', 'plaats'),('location','g'),'description')}),
                 )
     if USE_GOOGLE_TERRAIN_TILES:
         map_template = 'gis/admin/google.html'
@@ -180,3 +186,5 @@ admin.site.register(LoggerPos, LoggerPosAdmin)
 admin.site.register(LoggerDatasource, LoggerDatasourceAdmin)
 admin.site.register(MonFile,MonFileAdmin)
 admin.site.register(Channel, ChannelAdmin)
+admin.site.register(ManualSeries,ManualSeriesAdmin)
+

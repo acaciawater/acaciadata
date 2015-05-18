@@ -5,7 +5,8 @@ Created on Jul 8, 2014
 '''
 import os
 from django.utils.text import slugify
-from .util import make_chart
+from .util import make_chart, recomp
+from acacia.data.models import Series
  
 def make_wellcharts(modeladmin, request, queryset):
     for w in queryset:
@@ -20,7 +21,7 @@ def make_wellcharts(modeladmin, request, queryset):
         with open(w.chart.path,'wb') as f:
             f.write(make_chart(w))
         
-make_wellcharts.short_description = "Grafieken vernieuwen van geseleceerde putten"
+make_wellcharts.short_description = "Grafieken vernieuwen van geselecteerde putten"
     
     
 def make_screencharts(modeladmin, request, queryset):
@@ -36,5 +37,17 @@ def make_screencharts(modeladmin, request, queryset):
         with open(s.chart.path,'wb') as f:
             f.write(make_chart(s))
         
-make_screencharts.short_description = "Grafieken vernieuwen van geseleceerde filters"
+make_screencharts.short_description = "Grafieken vernieuwen van geselecteerde filters"
+
+def recomp_screens(modeladmin, request, queryset):
+    for screen in queryset:
+        name = '%s COMP' % unicode(screen)
+        series, created = Series.objects.get_or_create(name=name,user=request.user)
+        recomp(screen, series)
+recomp_screens.short_description = "Gecompenseerde tijdreeksen opnieuw aanmaken voor geselecteerde filters"
+        
+def recomp_wells(modeladmin, request, queryset):
+    for well in queryset:
+        recomp_screens(modeladmin,request,well.screen_set.all())
+recomp_wells.short_description = "Gecompenseerde tijdreeksen opnieuw aanmaken voor geselecteerde putten"
     

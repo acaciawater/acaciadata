@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+import math
 import numpy as np
 import pandas as pd
 import cgi, urllib, urllib2
@@ -13,7 +15,6 @@ from acacia import settings
 logger = logging.getLogger(__name__)
 
 from generator import Generator
-from acacia.data import __version__
 
 class DecagonException(Exception):
     
@@ -160,7 +161,7 @@ def conv116(x):
 
 def conv106(x):
     '''
-    conversion for CTD-5 Depth/Temp/EC
+    conversion for CTD-5 and CTD-10 Depth/Temp/EC
     Water level in bits 0-12
     Temperature in bits 23-31
     EC in bits 13-22
@@ -185,7 +186,7 @@ def conv106(x):
 
     RT = (raw >> 23) & m9
     if RT == 0:
-        level = np.nan
+        temp = np.nan
     elif RT <= 10:
         temp = RT-11
     elif RT <= 510:
@@ -226,6 +227,26 @@ def conv189(x):
     p = pulses * 1.0 # every pulse = 1 mm
     return [p]
 
+def conv251(x):
+    ''' converter for ECT Temperature (A.K.A. RT-1 Temperature)
+        Typical output range for which the calibration is valid: -40.0 – 60.0 °C
+        Suggested precision: x.x °C
+        Calibrations: First a log transform (natural log), then a 3 rd order polynomial.
+        x = ln((4095/R) - 1) for 0 < R < 4095
+        °C = 25.01914 + x * (-22.8437 + x * (1.532076 + (-0.08372 * x))) '''
+    if np.isnan(x):
+        return [np.nan]
+    R = np.uint32(x)
+    if R < 5 or R > 4090:
+        return [np.nan]
+    x = math.log((4095.0/R) - 1.0)
+    temp = 25.01914 + x * (-22.8437 + x * (1.532076 + (-0.08372 * x)))
+    return [temp]
+
+def dummy(x):
+    ''' dummy converter '''
+    return [x]
+
 def post189(a):
     ''' postprocessor for ECRN-50: calculate precipitation per interval from cumulative values ''' 
     # TODO: remove postprocessor, use cumulative option in series: no access to previous data -> first value is always None
@@ -237,22 +258,7 @@ def post189(a):
     return b
         
 SENSORDATA = {
-    252: {'converter': conv252,
-          'parameters':[{'name': 'VWC', 'description': 'Volumetric water content', 'unit': 'm3/m3'},
-                        ]
-          },
-    121: {'converter': conv121,
-          'parameters':[{'name': 'Potential', 'description': 'Water Potential', 'unit': 'kPa'},
-                        {'name': 'Temp', 'description': 'Temperature', 'unit': 'oC'}
-                        ]
-          },
-    119: {'converter': conv119,
-          'parameters':[{'name': 'VWC', 'description': 'Volumetric water content', 'unit': 'm3/m3'},
-                        {'name': 'Temp', 'description': 'Temperature', 'unit': 'oC'},
-                        {'name': 'EC', 'description': 'Bulk Electrical Conductivity', 'unit': 'mS/cm'}
-                        ]
-          },
-    116: {'converter': conv116,
+    105: {'converter': conv106,
           'parameters':[{'name': 'Level', 'description': 'Water level', 'unit': 'mm'},
                         {'name': 'Temp', 'description': 'Temperature', 'unit': 'oC'},
                         {'name': 'EC', 'description': 'Electrical Conductivity', 'unit': 'mS/cm'}
@@ -264,6 +270,23 @@ SENSORDATA = {
                         {'name': 'EC', 'description': 'Electrical Conductivity', 'unit': 'mS/cm'}
                         ]
           },
+    116: {'converter': conv116,
+          'parameters':[{'name': 'Level', 'description': 'Water level', 'unit': 'mm'},
+                        {'name': 'Temp', 'description': 'Temperature', 'unit': 'oC'},
+                        {'name': 'EC', 'description': 'Electrical Conductivity', 'unit': 'mS/cm'}
+                        ]
+          },
+    119: {'converter': conv119,
+          'parameters':[{'name': 'VWC', 'description': 'Volumetric water content', 'unit': 'm3/m3'},
+                        {'name': 'Temp', 'description': 'Temperature', 'unit': 'oC'},
+                        {'name': 'EC', 'description': 'Bulk Electrical Conductivity', 'unit': 'mS/cm'}
+                        ]
+          },
+    121: {'converter': conv121,
+          'parameters':[{'name': 'Potential', 'description': 'Water Potential', 'unit': 'kPa'},
+                        {'name': 'Temp', 'description': 'Temperature', 'unit': 'oC'}
+                        ]
+          },
     187: { 'converter': conv187,
           'postprocessor': post187,
           'parameters': [{'name': 'Precipitation', 'description': 'Precipitation', 'unit': 'mm'},
@@ -273,8 +296,19 @@ SENSORDATA = {
           'postprocessor': post189,
           'parameters': [{'name': 'Precipitation', 'description': 'Precipitation', 'unit': 'mm'},
                          ]
-          }
+          },
+    251: { 'converter': conv251,
+          'parameters': [{'name': 'Temp', 'description': 'Temperature', 'unit': 'oC'},
+                         ]
+          },
+    252: {'converter': conv252,
+          'parameters':[{'name': 'VWC', 'description': 'Volumetric water content', 'unit': 'm3/m3'},
+                        ]
+          },
 }
+
+def DUMMYSENSOR(name='Sensor', description=''):
+    return {'converter': dummy, 'postprocessor': None, 'parameters': [{'name': name, 'description': description, 'unit': ''},]}
 
 # seconds between 1/1/2000 and 1/1/1970
 DECATIME_OFFSET = 946684800.0
@@ -365,13 +399,11 @@ class Dataservice(Generator):
         value = int(port['value'])
         if value == 255:
             return [] # not connected
-        if not value in SENSORDATA:
-            raise DecagonException('Sensor wordt niet ondersteund: %s' % port['sensor'])
-        data = SENSORDATA[value]
         sensor = port['sensor'].split()[0] # short sensor name
         portno = port['number'] # port number
         postfix = ' P%s (%s)' % (portno, sensor)
         params = [] # use array instead of dict to keep params in correct order
+        data = SENSORDATA.get(value,DUMMYSENSOR())
         for p in data['parameters']:
             name = p['name'] + postfix
             params.append({'name': name, 'description': p['description'], 'unit': p['unit']})
@@ -422,7 +454,7 @@ class Dataservice(Generator):
             if value == 255:
                 continue
             params = self.port2params(port)
-            data = SENSORDATA[value]
+            data = SENSORDATA.get(value,DUMMYSENSOR())
             convert = data['converter']
             label = 'port%s' % port['number']
             raw = df[label]
@@ -492,6 +524,8 @@ if __name__ == '__main__':
         
     api = Dataservice()
 
+    print conv106(270)
+    
     print conv119(2149036430)
 
 #     params = {

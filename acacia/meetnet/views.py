@@ -57,7 +57,7 @@ class NetworkView(DetailView):
         context['content'] = json.dumps(content)
         if not network.bound is None:
             context['boundary'] = network.bound
-        context['maptype'] = 'HYBRID'
+        context['maptype'] = 'ROADMAP'
         return context
         
 class ScreenChartView(TemplateView):
@@ -130,44 +130,46 @@ class WellChartView(TemplateView):
         for screen in well.screen_set.all():
             name = unicode(screen)
             data = screen.to_pandas(ref='nap')[start:stop]
-            xydata = zip(data.index.to_pydatetime(), data.values)
-            series.append({'name': name,
-                        'type': 'line',
-                        'data': xydata,
-                        'lineWidth': 1,
-                        'zIndex': 1,
-                        })
-            mean = pd.expanding_mean(data)
-#             series.append({'name': 'gemiddelde',
-#                         'type': 'line',
-#                         'data': zip(mean.index.to_pydatetime(), mean.values),
-#                         'linkedTo' : ':previous',
-#                         })
-            std = pd.expanding_std(data)
-            a = (mean - std).dropna()
-            b = (mean + std).dropna()
-            ranges = zip(a.index.to_pydatetime(), a.values, b.values)
-            series.append({'name': 'spreiding',
-                        'data': ranges,
-                        'type': 'arearange',
-                        'lineWidth': 0,
-                        'fillOpacity': 0.2,
-                        'linkedTo' : ':previous',
-                        'zIndex': 0,
-                        })
+            if data.size > 0:
+                xydata = zip(data.index.to_pydatetime(), data.values)
+                series.append({'name': name,
+                            'type': 'line',
+                            'data': xydata,
+                            'lineWidth': 1,
+                            'zIndex': 1,
+                            })
+                mean = pd.expanding_mean(data)
+    #             series.append({'name': 'gemiddelde',
+    #                         'type': 'line',
+    #                         'data': zip(mean.index.to_pydatetime(), mean.values),
+    #                         'linkedTo' : ':previous',
+    #                         })
+                std = pd.expanding_std(data)
+                a = (mean - std).dropna()
+                b = (mean + std).dropna()
+                ranges = zip(a.index.to_pydatetime(), a.values, b.values)
+                series.append({'name': 'spreiding',
+                            'data': ranges,
+                            'type': 'arearange',
+                            'lineWidth': 0,
+                            'fillOpacity': 0.2,
+                            'linkedTo' : ':previous',
+                            'zIndex': 0,
+                            })
             data = screen.to_pandas(ref='nap',kind='HAND')[start:stop]
-            hand = zip(data.index.to_pydatetime(), data.values)
-            series.append({'name': 'handpeiling',
-                        'type': 'scatter',
-                        'data': hand,
-                        'zIndex': 2,
-                        'marker': {'symbol': 'circle', 'radius': 6, 'lineColor': 'white', 'lineWidth': 2, 'fillColor': 'blue'},
-                        })
+            if data.size > 0:
+                hand = zip(data.index.to_pydatetime(), data.values)
+                series.append({'name': 'handpeiling',
+                            'type': 'scatter',
+                            'data': hand,
+                            'zIndex': 2,
+                            'marker': {'symbol': 'circle', 'radius': 6, 'lineColor': 'white', 'lineWidth': 2, 'fillColor': 'blue'},
+                            })
 
         if len(xydata)>0:
             mv = []
-            for i in range(len(xydata)):
-                mv.append((xydata[i][0], screen.well.maaiveld))
+            mv.append((xydata[0][0], screen.well.maaiveld))
+            mv.append((xydata[-1][0], screen.well.maaiveld))
             series.append({'name': 'maaiveld',
                         'type': 'line',
                         'lineWidth': 1,

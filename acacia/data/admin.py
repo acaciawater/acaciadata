@@ -3,6 +3,7 @@ from acacia.data.models import Project, ProjectLocatie, MeetLocatie, Datasource,
 from acacia.data.models import Parameter, Series, DataPoint, Chart, ChartSeries, Dashboard, DashboardChart, TabGroup, TabPage
 from acacia.data.models import Variable, Formula, Webcam, Notification
 
+from django.shortcuts import render
 from django.contrib import admin
 from django import forms
 from django.forms import PasswordInput, ModelForm
@@ -10,7 +11,8 @@ from django.contrib.gis.db import models
 import django.contrib.gis.forms as geoforms
 import json
 import actions
-from django.contrib.auth.models import User
+
+from .forms import NotificationActionForm
 
 class Media:
     js = [
@@ -73,13 +75,29 @@ class MeetLocatieForm(ModelForm):
     def clean_name(self):
         # trim whitespace from name
         return self.cleaned_data['name'].strip()
-    
+
 class MeetLocatieAdmin(admin.ModelAdmin):
     form = MeetLocatieForm
     list_display = ('name','projectlocatie','project','datasourcecount',)
     list_filter = ('projectlocatie','projectlocatie__project',)
     formfield_overrides = {models.PointField:{'widget': forms.TextInput, 'required': False}}
-    actions = [actions.meteo_toevoegen]
+    actions = [actions.meteo_toevoegen, 'add_notifications']
+
+    def add_notifications(self, request, queryset):
+        if 'apply' in request.POST:
+            form = NotificationActionForm(request.POST)   
+            if form.is_valid():
+                email = form.cleaned_data('email')
+                level = form.cleaned_data('level')
+                for loc in queryset:
+                    for ds in loc.datasources:
+                        ds.notification_set.add(Notification(user=request.user,email=email,level=level))
+                return
+        else:
+            form = NotificationActionForm()
+        return render(request,'data/notify.html',{'form': form})
+    
+    add_notifications.short_description='Berichtgeving toevoegen aan geselecteerde meetlocaties'
     
 class DatasourceForm(ModelForm):
     model = Datasource

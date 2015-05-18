@@ -1,10 +1,10 @@
 from .shortcuts import meteo2locatie
 from .models import Chart, Series
+
 import logging
 logger = logging.getLogger(__name__)
 
 def meteo_toevoegen(modeladmin, request, queryset):
-    pass
     for loc in queryset:
         meteo2locatie(loc,user=request.user)
 meteo_toevoegen.short_description = "Meteostation, neerslagstation en regenradar toevoegen"

@@ -33,17 +33,17 @@ class Well(geo.Model):
     name = models.CharField(max_length=50, unique=True, verbose_name = 'naam')
     nitg = models.CharField(max_length=50, verbose_name = 'TNO/NITG nummer', blank=True)
     bro = models.CharField(max_length=50, verbose_name = 'BRO nummer', blank=True)
-    location = geo.PointField(srid=28992,verbose_name='locatie')
+    location = geo.PointField(srid=28992,verbose_name='locatie',help_text='locatie in rijksdriehoeksstelsel coordinaten')
     description = models.TextField(verbose_name='locatieomschrijving',blank=True)
-    maaiveld = models.FloatField(verbose_name = 'maaiveld', help_text = 'maaiveld in meter tov NAP')
-    #refpnt = models.FloatField(verbose_name = 'referentiepunt', help_text='referentiepunt in meter tov NAP')
-    date = models.DateField(verbose_name = 'constructiedatum')
+    maaiveld = models.FloatField(null=True, blank=True, verbose_name = 'maaiveld', help_text = 'maaiveld in meter tov NAP')
+    date = models.DateField(null=True, blank=True, verbose_name = 'constructiedatum')
     straat = models.CharField(max_length=60, blank=True)
     huisnummer = models.CharField(max_length=6, blank=True)
     postcode = models.CharField(max_length=8, blank=True)
     plaats = models.CharField(max_length=60, blank=True)
     log = models.ImageField(null=True,blank=True,upload_to='logs',verbose_name = 'boorstaat')
     chart = models.ImageField(null=True,blank=True, upload_to='charts', verbose_name='grafiek')
+    g = models.FloatField(default=9.80665,verbose_name='valversnelling', help_text='valversnelling in m/s2')
     objects = geo.GeoManager()
 
     def latlon(self):
@@ -118,11 +118,12 @@ MATERIALS = (
 class Screen(models.Model):
     well = models.ForeignKey(Well, verbose_name = 'put')
     nr = models.IntegerField(default=1, verbose_name = 'filternummer')
-    refpnt = models.FloatField(verbose_name = 'bovenkant buis', default=0, help_text = 'bovenkant stijgbuis in meter tov NAP')
-    top = models.FloatField(verbose_name = 'bovenkant', help_text = 'bovenkant filter in meter min maaiveld')
-    bottom = models.FloatField(verbose_name = 'onderkant', help_text = 'onderkant filter in meter min maaiveld')
-    diameter = models.FloatField(verbose_name = 'diameter', default=32, help_text='diameter in mm (standaard = 32 mm)')
-    material = models.CharField(max_length = 10,verbose_name = 'materiaal', default='pvc', choices = MATERIALS)
+    density = models.FloatField(default=1000.0,verbose_name='dichtheid',help_text='dichtheid van het water in de peilbuis in kg/m3')
+    refpnt = models.FloatField(null=True, blank=True, verbose_name = 'bovenkant buis', help_text = 'bovenkant peilbuis in meter tov NAP')
+    top = models.FloatField(null=True, blank=True, verbose_name = 'bovenkant filter', help_text = 'bovenkant filter in meter min maaiveld')
+    bottom = models.FloatField(null=True, blank=True, verbose_name = 'onderkant filter', help_text = 'onderkant filter in meter min maaiveld')
+    diameter = models.FloatField(null=True, blank=True, verbose_name = 'diameter buis', default=32, help_text='diameter in mm (standaard = 32 mm)')
+    material = models.CharField(blank=True, max_length = 10,verbose_name = 'materiaal', default='pvc', choices = MATERIALS)
     chart = models.ImageField(null=True,blank=True, upload_to='charts', verbose_name='grafiek')
 
     def get_series(self, ref = 'nap', kind='COMP'):
@@ -138,15 +139,18 @@ class Screen(models.Model):
         except Series.DoesNotExist:
             return levels
         for dp in series.datapoints.all():
-            if ref == 'nap':
-                level = dp.value
-            elif ref == 'bkb':
-                level = self.refpnt - dp.value
-            elif ref == 'mv':
-                level = self.well.maaiveld - dp.value
-            else:
-                raise 'Illegal reference point for screen %s' % unicode(self)
-            levels.append((dp.date, level))
+            try:
+                if ref == 'nap':
+                    level = dp.value
+                elif ref == 'bkb':
+                    level = self.refpnt - dp.value
+                elif ref == 'mv':
+                    level = self.well.maaiveld - dp.value
+                else:
+                    raise 'Illegal reference for screen %s' % unicode(self)
+                levels.append((dp.date, level))
+            except:
+                pass # refpnt, maaiveld or value is None
         levels.sort(key=bydate)
         return levels
 
@@ -189,7 +193,8 @@ class Screen(models.Model):
         return None if last is None else last.logger
         
     def __unicode__(self):
-        return '%s/%03d' % (self.well.nitg, self.nr)
+        #return '%s/%03d' % (self.well.nitg, self.nr)
+        return '%s/%03d' % (self.well, self.nr)
 
     def get_absolute_url(self):
         return reverse('screen-detail', args=[self.id])
@@ -240,8 +245,8 @@ class LoggerPos(models.Model):
     screen = models.ForeignKey(Screen,verbose_name = 'filter',blank=True, null=True)
     start_date = models.DateTimeField(verbose_name = 'start', help_text = 'Tijdstip van start datalogger')   
     end_date = models.DateTimeField(verbose_name = 'stop', blank=True, null=True, help_text = 'Tijdstrip van stoppen datalogger')   
-    refpnt = models.FloatField(verbose_name = 'referentiepunt', default=0, help_text = 'ophangpunt in meter tov NAP')
-    depth = models.FloatField(verbose_name = 'kabellengte', default=0, help_text = 'lengte van ophangkabel in meter')
+    refpnt = models.FloatField(verbose_name = 'referentiepunt', blank=True, null=True, help_text = 'ophangpunt in meter tov NAP')
+    depth = models.FloatField(verbose_name = 'kabellengte', blank=True, null=True, help_text = 'lengte van ophangkabel in meter')
     baro = models.ForeignKey(Series, blank=True, null=True, verbose_name='luchtdruk', help_text = 'tijdreeks voor luchtdruk compensatie')
     remarks = models.TextField(verbose_name='opmerkingen', blank=True) 
 
@@ -295,20 +300,20 @@ class Channel(models.Model):
         verbose_name = 'Kanaal'
         verbose_name_plural = 'Kanalen'
 
-# # Series that can be edited manually
-# class ManualSeries(Series):
-#     locatie = models.ForeignKey(MeetLocatie)
-#      
-#     def meetlocatie(self):
-#         return self.locatie
-#          
-#     def __unicode__(self):
-#         return self.name
-#  
-#     def get_series_data(self,data,start=None):
-#         return self.to_pandas(start=start)
-#      
-#     class Meta:
-#         verbose_name = 'Handmatige reeks'
-#         verbose_name_plural = 'Handmatige reeksen'
-#          
+# Series that can be edited manually
+class ManualSeries(Series):
+    locatie = models.ForeignKey(MeetLocatie)
+     
+    def meetlocatie(self):
+        return self.locatie
+
+    def __unicode__(self):
+        return self.name
+ 
+    def get_series_data(self,data,start=None):
+        return self.to_pandas(start=start)
+     
+    class Meta:
+        verbose_name = 'Handmatige reeks'
+        verbose_name_plural = 'Handmatige reeksen'
+         

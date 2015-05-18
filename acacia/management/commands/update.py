@@ -7,7 +7,13 @@ from django.core.management.base import BaseCommand
 from optparse import make_option
 from acacia.data.models import Datasource, Formula
 import logging
-from acacia.data.loggers import DatasourceAdapter
+from acacia.data.loggers import DatasourceAdapter, BulkEmailHandler
+
+# Move this part to settings.py
+email_handler=BulkEmailHandler(fromaddr='webmaster@acaciadata.com', subject='Houston, we have a problem', capacity=100)
+email_handler.setFormatter(logging.Formatter('%(levelname)s %(asctime)s %(datasource)s: %(message)s'))
+email_handler.setLevel(logging.DEBUG)
+logging.getLogger('acacia.data.update').addHandler(email_handler)
 
 class Command(BaseCommand):
     args = ''
@@ -39,6 +45,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         down = options.get('down')
         with DatasourceAdapter(logging.getLogger('acacia.data.update')) as logger:
+            #logging.getLogger('acacia.data').addHandler(email_handler)
             logger.datasource = ''
             if down:
                 logger.info('Downloading data, updating parameters and related time series')
@@ -72,7 +79,12 @@ class Command(BaseCommand):
                         else:
                             # actialisatie vanaf een na laatste datapoint
                             # (rekening houden met niet volledig gevulde laatste tijdsinterval bij accumulatie of sommatie)
-                            series_start = min([p.date for p in [s.beforelast() for s in series] if p is not None])
+                            last = [p.date for p in [s.beforelast() for s in series] if p is not None]
+                            if len(last)>0:
+                                series_start = min(last)
+                            else:
+                                series_start = data_start
+                                
                         if data_start is None:
                             start = series_start
                         else:
@@ -145,4 +157,7 @@ class Command(BaseCommand):
                         except Exception as e:
                             logger.exception('ERROR updating calculated time series %s: %s' % (f.name, e))
                     logger.info('%d calculated time series were updated' % count)
-        
+
+            #email_handler.flush()
+            #logging.getLogger('acacia.data.update').removeHandler(email_handler)
+                    

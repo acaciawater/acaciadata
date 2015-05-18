@@ -42,15 +42,15 @@ a img {
 	<td rowspan="10"><a href="/media/{{object.log}}"><img class="log" src="/media/{{object.log}}"/></a></td>
 	{% endif %}
 </tr>
-<tr><td>BRO id</td><td>{{object.bro|default:'<i>geen</i>'}}</td></tr>
+<tr><td>BRO id</td><td>{{object.bro|default:'<i>onbekend</i>'}}</td></tr>
 <tr>
 	<td>Adres</td>
 	<td>{%if object.straat %} {{object.straat}} {{object.huisnummer}}{%else%}<i>onbekend</i>{%endif%}</td>
 </tr>
 <tr><td>Plaats</td><td>{%if object.plaats %}{{object.postcode}} {{object.plaats}}{%else%}<i>onbekend</i>{%endif%}</td></tr>
 <tr><td>Coördinaten</div></td><td>({{object.RD.x|floatformat:2}}&nbsp;{{object.RD.y|floatformat:2}})</td></tr>
-<tr><td>Constructiedatum</div></td><td>{{object.date}}</td></tr>
-<tr><td>Maaiveld</div></td><td>{{object.maaiveld|floatformat:2}} m NAP</td></tr>
+<tr><td>Constructiedatum</div></td><td>{% if object.date %}{{object.date}}{%else%}<i>onbekend</i>{%endif%}</td></tr>
+<tr><td>Maaiveld</div></td><td>{%if object.maaiveld %}{{object.maaiveld|floatformat:2}} m NAP{%else%}<i>onbekend</i>{%endif%}</td></tr>
 <tr><td>Filters</td><td>{{object.num_filters}}</td></tr>
 <tr><td>Laatste uitleesronde</td><td>{{object.network.last_round|default:'<i>onbekend</i>'}}</td></tr>
 <tr>

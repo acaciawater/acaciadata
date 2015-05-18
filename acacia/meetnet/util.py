@@ -8,6 +8,8 @@ import logging, datetime
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 from StringIO import StringIO
+from acacia.data.models import DataPoint
+import math, pytz
 
 rcParams['font.family'] = 'sans-serif'
 rcParams['font.size'] = '8'
@@ -64,7 +66,7 @@ def chart_for_well(well):
     plt.ylabel('m tov NAP')
     if count > 0:
         leg=plt.legend()
-        leg.get_frame().set_alpha(0.5)
+        leg.get_frame().set_alpha(0.3)
     
     img = StringIO() 
     plt.savefig(img,format='png',bbox_inches='tight')
@@ -84,3 +86,48 @@ def make_chart(obj):
     
 def make_encoded_chart(obj):
     return encode_chart(make_chart(obj))
+
+def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
+    ''' re-compensate timeseries for screen '''
+
+    seriesdata = None
+    for logpos in screen.loggerpos_set.all().order_by('start_date'):
+        if logpos.refpnt is None or logpos.depth is None or logpos.baro is None:
+            continue
+        if seriesdata is  None:
+            meteo = logpos.baro.meetlocatie().name
+            series.description = 'Gecompenseerd voor luchtdruk van %s' % meteo
+            print '  Luchtdruk:', meteo
+        if logpos.baro in baros:
+            baro = baros[logpos.baro]
+        else:
+            baro = logpos.baro.to_pandas() / 9.80638 # 0.1 hPa naar cm H2O
+            baro = baro.tz_convert(tz)
+            baros[logpos.baro] = baro
+        for mon in logpos.monfile_set.all().order_by('start_date'):
+            print ' ', logpos.logger, mon
+            data = mon.get_data()['PRESSURE']
+            data = series.do_postprocess(data).tz_localize(tz)
+            data = data - baro
+            data.dropna(inplace=True)
+            data = data / 100 + (logpos.refpnt - logpos.depth)
+            if seriesdata is None:
+                seriesdata = data
+            else:
+                seriesdata = seriesdata.append(data)
+                
+    series.datapoints.all().delete()
+    if seriesdata is not None:
+        seriesdata = seriesdata.groupby(level=0).last()
+        seriesdata.sort(inplace=True)
+        datapoints=[]
+        for date,value in seriesdata.iteritems():
+            value = float(value)
+            if math.isnan(value) or date is None:
+                continue
+            datapoints.append(DataPoint(series=series, date=date, value=value))
+        series.datapoints.bulk_create(datapoints)
+        series.unit = 'm tov NAP'
+        series.make_thumbnail()
+        series.save()
+    

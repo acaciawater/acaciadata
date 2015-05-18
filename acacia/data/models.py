@@ -19,7 +19,6 @@ import pytz
 import logging
 logger = logging.getLogger(__name__)
 
-
 THEME_CHOICES = (('dark-blue','blauw'),
                  ('darkgreen','groen'),
                  ('gray','grijs'),
@@ -122,7 +121,7 @@ class MeetLocatie(geo.Model):
 
     def project(self):
         return self.projectlocatie.project
-
+        
     def latlon(self):
         return util.toWGS84(self.location)
 
@@ -134,7 +133,10 @@ class MeetLocatie(geo.Model):
         return reverse('acacia:meetlocatie-detail',args=[self.id])
     
     def __unicode__(self):
-        return '%s %s' % (self.projectlocatie, self.name)
+        try:
+            return '%s %s' % (self.projectlocatie, self.name)
+        except ProjectLocatie.DoesNotExist:
+            return self.name
 
     class Meta:
         ordering = ['name',]
@@ -331,7 +333,7 @@ class Datasource(models.Model):
                     logger.exception('Cannot update parameters for sourcefile %s: %s' % (sourcefile, e))
             except Exception as e:
                 logger.exception('Cannot open sourcefile %s: %s' % (sourcefile, e))
-        logger.info('Update completed, got %d parameters from %d files', len(params),files.count())
+        logger.info('Update completed, got %d parameters from %d files', len(params),len(files))
         num_created = 0
         num_updated = 0
         for name,defaults in params.iteritems():
@@ -492,7 +494,11 @@ class SourceFile(models.Model):
     user=models.ForeignKey(User,default=User)
     created = models.DateTimeField(auto_now_add=True)
     uploaded = models.DateTimeField(auto_now=True)
-
+    
+#     @property
+#     def logger(self):
+#         return defaultlogger if self.datasource is None else self.datasource.logger
+    
     def __unicode__(self):
         return self.name
      
@@ -542,7 +548,7 @@ class SourceFile(models.Model):
             #return os.path.join(settings.MEDIA_ROOT,self.file.name)
         except:
             return ''
-    filedate.short_description = 'bestandslocatie'
+    filepath.short_description = 'bestandslocatie'
 
     def filetag(self):
         return '<a href="%s">%s</a>' % (os.path.join(settings.MEDIA_URL,self.file.name),self.filename())
@@ -622,6 +628,10 @@ class Parameter(models.Model):
     unit = models.CharField(max_length=10, default='m',verbose_name='eenheid')
     type = models.CharField(max_length=20, default='line', choices = SERIES_CHOICES)
     thumbnail = models.ImageField(upload_to=up.param_thumb_upload, max_length=200, blank=True, null=True)
+    
+#     @property
+#     def logger(self):
+#         return defaultlogger if self.datasource is None else self.datasource.logger
 
     def __unicode__(self):
         return '%s - %s' % (self.datasource.name, self.name)
@@ -711,6 +721,11 @@ class Series(models.Model):
     thumbnail = models.ImageField(upload_to=up.series_thumb_upload, max_length=200, blank=True, null=True)
     user=models.ForeignKey(User,default=User)
     
+#     @property
+#     def logger(self):
+#         ds = self.datasource()
+#         return defaultlogger if ds is None else ds.logger
+
     # tijdslimiet
 #     limit_time = models.BooleanField(default = False)
 #     from_limit = models.DateTimeField(blank=True,null=True)
@@ -841,6 +856,9 @@ class Series(models.Model):
             return None
         
         series = dataframe[self.parameter.name]
+        if isinstance(series,pd.DataFrame):
+            # drop duplicate column names, retain first
+            series = series.T.ix[0].T
         series = self.do_postprocess(series, start, stop)
         return series
     
