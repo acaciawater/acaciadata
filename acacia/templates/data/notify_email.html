@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+body {
+	font-family:Arial, Helvetica, sans-serif;
+	font-style:normal;
+	font-size: 11px;
+	color:navy;
+}
+h4 {
+	margin-bottom: 0em;
+}
+.ERROR {color: crimson;}
+.WARNING {color: darkorange;}
+.INFO {color: navy;}
+.DEBUG {color: darkgreen;}
+</style>
+</head>
+<body>
+{% for key, value in data.items %}
+<h4>{{key.project}}: {{key}}</h4>
+{% for r in value %}
+<div class="{{r.levelname}}">
+{{r.levelname|lower}}&nbsp;{{r.asctime}};&nbsp;{{r.message}}
+</div>
+{% endfor %}
+{% endfor %}
+</body>
+</html>
+

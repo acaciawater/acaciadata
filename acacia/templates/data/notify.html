@@ -1,0 +1,29 @@
+{% extends 'admin/base_site.html' %}
+{% block extrastyle %}
+<style>
+ul {
+  list-style-type: disc;
+}
+</style>
+{% endblock %}
+{% block content %}
+<form action="" method="post">
+{% csrf_token %}
+<h4>De volgende locaties worden getagged:</h4>
+<ul>{{locaties|unordered_list}}</ul>
+{% for loc in locaties %}
+<input type="hidden" name = "{{check}}" value = "{{loc.pk}}" />
+{% endfor %}
+<table>
+{{form.as_table}}
+</table>
+<div>
+<p>
+<input type="hidden" name="action" value="add_notifications" />
+<input type="submit" name="apply" value="Toevoegen"/>
+<input type="submit" name="cancel" value ="Annuleren"/>
+</p>
+</div>
+
+</form>
+{% endblock %}

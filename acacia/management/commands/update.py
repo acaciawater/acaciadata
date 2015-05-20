@@ -7,13 +7,13 @@ from django.core.management.base import BaseCommand
 from optparse import make_option
 from acacia.data.models import Datasource, Formula
 import logging
-from acacia.data.loggers import DatasourceAdapter, BulkEmailHandler
+from acacia.data.loggers import DatasourceAdapter, BufferingEmailHandler
 
 # Move this part to settings.py
-email_handler=BulkEmailHandler(fromaddr='webmaster@acaciadata.com', subject='Houston, we have a problem', capacity=100)
-email_handler.setFormatter(logging.Formatter('%(levelname)s %(asctime)s %(datasource)s: %(message)s'))
-email_handler.setLevel(logging.DEBUG)
-logging.getLogger('acacia.data.update').addHandler(email_handler)
+# email_handler=BufferingEmailHandler(fromaddr='webmaster@acaciadata.com', subject='Houston, we have a problem', capacity=1000, interval=30)
+# email_handler.setFormatter(logging.Formatter('%(levelname)s %(asctime)s %(datasource)s: %(message)s'))
+# email_handler.setLevel(logging.DEBUG)
+# logging.getLogger('acacia.data').addHandler(email_handler)
 
 class Command(BaseCommand):
     args = ''
@@ -44,7 +44,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         down = options.get('down')
-        with DatasourceAdapter(logging.getLogger('acacia.data.update')) as logger:
+        with DatasourceAdapter(logging.getLogger('acacia.data')) as logger:
             #logging.getLogger('acacia.data').addHandler(email_handler)
             logger.datasource = ''
             if down:

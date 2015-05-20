@@ -6,18 +6,13 @@ from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.utils import timezone
 from django.core.urlresolvers import reverse
-from django.core.exceptions import ValidationError
 from django.contrib.gis.db import models as geo
 from django.utils.text import slugify
 from acacia import settings
 import upload as up
 import numpy as np
 import pandas as pd
-import json,util
-import StringIO
-import pytz
-import logging
-logger = logging.getLogger(__name__)
+import json,util,StringIO,pytz,logging
 
 THEME_CHOICES = (('dark-blue','blauw'),
                  ('darkgreen','groen'),
@@ -40,6 +35,20 @@ def aware(d,tz=None):
                 return timezone.make_aware(d, pytz.utc)            
     return d
 
+class DatasourceMixin:
+    ''' Mixin that provides a logging adapter that adds datasource context to log records
+    Used to send emails to users that follow a datasource ''' 
+    def getDatasource(self):
+        if isinstance(self, Datasource):
+            return self
+        if hasattr(self,'datasource'):
+            datasource = getattr(self,'datasource')
+            return datasource() if callable(datasource) else datasource
+
+    def getLogger(self,name=__name__): 
+        logger = logging.getLogger(name)  
+        return logging.LoggerAdapter(logger,extra={'datasource': self.getDatasource()})
+       
 class Project(models.Model):
     name = models.CharField(max_length=50, unique=True)
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
@@ -193,7 +202,6 @@ class Generator(models.Model):
         ordering = ['name',]
 
 LOGGING_CHOICES = (
-                  ('OFF', 'Geen'),
                   ('DEBUG', 'Debug'),
                   ('INFO', 'Informatie'),
                   ('WARNING', 'Waarschuwingen'),
@@ -201,7 +209,7 @@ LOGGING_CHOICES = (
 #                  ('CRITICAL', 'Alleen kritieke fouten'),
                   )
 
-class Datasource(models.Model):
+class Datasource(models.Model, DatasourceMixin):
     name = models.CharField(max_length=50,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     meetlocatie=models.ForeignKey(MeetLocatie,related_name='datasources',help_text='Meetlocatie van deze gegevensbron')
@@ -236,6 +244,7 @@ class Datasource(models.Model):
         return None if loc is None else loc.project
 
     def get_generator_instance(self):
+        logger = self.getLogger()
         if self.generator is None:
             raise Exception('Generator not defined for datasource %s' % self.name)
         gen = self.generator.get_class()
@@ -250,6 +259,7 @@ class Datasource(models.Model):
                 return None
     
     def download(self, start=None):
+        logger = self.getLogger()
         if self.url is None or len(self.url) == 0:
             logger.error('Cannot download datasource %s: no url supplied' % (self.name))
             return None
@@ -299,7 +309,7 @@ class Datasource(models.Model):
                 contentfile = ContentFile(contents)
                 try:
                     sourcefile.file.save(name=filename, content=contentfile)
-                    logger.info('File %s saved to %s' % (filename, sourcefile.filepath()))
+                    logger.debug('File %s saved to %s' % (filename, sourcefile.filepath()))
                     crcs[crc] = sourcefile.file
                     files.append(sourcefile)
                 except Exception as e:
@@ -316,10 +326,11 @@ class Datasource(models.Model):
         return files
         
     def update_parameters(self,data=None,files=None,limit=-1):
+        logger = self.getLogger()
         gen = self.get_generator_instance()
         if gen is None:
             return
-        logger.info('Updating parameters for datasource %s' % self.name)
+        logger.debug('Updating parameters for datasource %s' % self.name)
         params = {}
         if files is None:
             files = self.sourcefiles.all();
@@ -350,7 +361,7 @@ class Datasource(models.Model):
                 num_created = num_created+1
             #param.make_thumbnail(data)
             param.save()
-        logger.info('%d parameters created, %d updated' % (num_created, num_updated))
+        logger.debug('%d parameters created, %d updated' % (num_created, num_updated))
 
     def replace_parameters(self,data=None):
         self.parameter_set.all().delete()
@@ -363,10 +374,11 @@ class Datasource(models.Model):
             p.make_thumbnail(data)
     
     def get_data(self,**kwargs):
+        logger = self.getLogger()
         gen = self.get_generator_instance()
         if gen is None:
             return
-        logger.info('Getting data for datasource %s', self.name)
+        logger.debug('Getting data for datasource %s', self.name)
         data = None
         start = aware(kwargs.get('start', None))
         stop = aware(kwargs.get('stop', None))
@@ -458,6 +470,7 @@ class Datasource(models.Model):
         return agg.get('rows', None)
 
 class Notification(models.Model):
+    # TODO: ook meetlocatie of projectlocatie volgen (ivm berekende reeksen)
     datasource = models.ForeignKey(Datasource,help_text='Gegevensbron welke gevolgd wordt')
     user = models.ForeignKey(User,blank=True,null=True,verbose_name='Gebruiker',help_text='Gebruiker die berichtgeving ontvangt over updates')
     email = models.EmailField(max_length=254,blank=True)
@@ -482,7 +495,7 @@ class Notification(models.Model):
 #     dayofweek = models.CharField(max_length=1,default='*')
 #     active = models.BooleanField(default=True)
     
-class SourceFile(models.Model):
+class SourceFile(models.Model,DatasourceMixin):
     name=models.CharField(max_length=50,blank=True)
     datasource = models.ForeignKey('Datasource',related_name='sourcefiles', verbose_name = 'gegevensbron')
     file=models.FileField(max_length=200,upload_to=up.sourcefile_upload,blank=True,null=True)
@@ -556,9 +569,10 @@ class SourceFile(models.Model):
     filetag.short_description='bestand'
            
     def get_data(self,gen=None,**kwargs):
+        logger = self.getLogger()
         if gen is None:
             gen = self.datasource.get_generator_instance()
-        logger.info('Getting data for sourcefile %s', self.name)
+        logger.debug('Getting data for sourcefile %s', self.name)
         try:
             data = gen.get_data(self.file,**kwargs)
         except Exception as e:
@@ -568,7 +582,7 @@ class SourceFile(models.Model):
             logger.warning('No data retrieved from %s' % self.file.name)
         else:
             shape = data.shape
-            logger.info('Got %d rows, %d columns', shape[0], shape[1])
+            logger.debug('Got %d rows, %d columns', shape[0], shape[1])
         return data
 
     def get_dimensions(self, data=None):
@@ -590,13 +604,15 @@ from django.dispatch.dispatcher import receiver
 
 @receiver(pre_delete, sender=SourceFile)
 def sourcefile_delete(sender, instance, **kwargs):
+    logger = instance.getLogger()
     filename = instance.file.name
-    logger.info('Deleting file %s for datafile %s' % (filename, instance.name))
+    logger.debug('Deleting file %s for datafile %s' % (filename, instance.name))
     instance.file.delete(False)
-    logger.info('File %s deleted' % filename)
+    logger.debug('File %s deleted' % filename)
 
 @receiver(pre_save, sender=SourceFile)
 def sourcefile_save(sender, instance, **kwargs):
+    logger = instance.getLogger()
     date = instance.filedate()
     if date != '':
         if instance.uploaded is None or date > instance.uploaded:
@@ -621,7 +637,7 @@ SERIES_CHOICES = (('line', 'lijn'),
                   ('spline', 'spline')
                   )
         
-class Parameter(models.Model):
+class Parameter(models.Model, DatasourceMixin):
     datasource = models.ForeignKey(Datasource)
     name = models.CharField(max_length=50,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
@@ -629,10 +645,6 @@ class Parameter(models.Model):
     type = models.CharField(max_length=20, default='line', choices = SERIES_CHOICES)
     thumbnail = models.ImageField(upload_to=up.param_thumb_upload, max_length=200, blank=True, null=True)
     
-#     @property
-#     def logger(self):
-#         return defaultlogger if self.datasource is None else self.datasource.logger
-
     def __unicode__(self):
         return '%s - %s' % (self.datasource.name, self.name)
 
@@ -666,6 +678,7 @@ class Parameter(models.Model):
     thumbtag.short_description='thumbnail'
     
     def make_thumbnail(self,data=None):
+        logger = self.getLogger()
         if data is None:
             data = self.get_data()
         logger.debug('Generating thumbnail for parameter %s' % self.name)
@@ -678,7 +691,7 @@ class Parameter(models.Model):
         try:
             series = data[self.name]
             util.save_thumbnail(series,imagefile,self.type)
-            logger.info('Generated thumbnail %s' % dest)
+            logger.debug('Generated thumbnail %s' % dest)
             self.save()
         except Exception as e:
             logger.exception('Error generating thumbnail for parameter %s: %s' % (self.name, e))
@@ -687,10 +700,11 @@ class Parameter(models.Model):
     
 @receiver(pre_delete, sender=Parameter)
 def parameter_delete(sender, instance, **kwargs):
-    logger.info('Deleting thumbnail %s for parameter %s' % (instance.thumbnail.name, instance.name))
+    logger=instance.getLogger()
+    logger.debug('Deleting thumbnail %s for parameter %s' % (instance.thumbnail.name, instance.name))
     instance.thumbnail.delete(False)
+    logger.debug('Thumbnail deleted')
 
-        
 RESAMPLE_METHOD = (
               ('T', 'minuut'),
               ('15T', 'kwartier'),
@@ -712,7 +726,7 @@ AGGREGATION_METHOD = (
 # set  default series type from parameter type in sqlite database: 
 # update data_series set type = (select p.type from data_parameter p where id = data_series.parameter_id) 
 
-class Series(models.Model):
+class Series(models.Model,DatasourceMixin):
     name = models.CharField(max_length=50,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     unit = models.CharField(max_length=10, blank=True, null=True, verbose_name='eenheid')
@@ -782,6 +796,7 @@ class Series(models.Model):
         return '%s - %s' % (self.datasource() or '(berekend)', self.name)
     
     def do_postprocess(self, series, start=None, stop=None):
+        logger = self.getLogger()
         ''' perform postprocessing of series data like resampling, scaling etc'''
         # remove n/a values and duplicates
         series = series.dropna()
@@ -837,7 +852,8 @@ class Series(models.Model):
             return series[start:stop]
          
     def get_series_data(self, dataframe, start=None, stop=None):
-        
+        logger = self.getLogger()
+       
         if self.parameter is None:
             #raise Exception('Parameter is None for series %s' % self.name)
             return None
@@ -863,11 +879,12 @@ class Series(models.Model):
         return series
     
     def create(self, data=None, thumbnail=True):
+        logger = self.getLogger()
         tz = timezone.get_current_timezone()
         num_created = 0
         num_skipped = 0
         datapoints = []
-        logger.info('Creating series %s' % self.name)
+        logger.debug('Creating series %s' % self.name)
         series = self.get_series_data(data)
         if series is None:
             logger.error('Creation of series %s failed' % self.name)
@@ -894,16 +911,18 @@ class Series(models.Model):
         #self.getproperties()#.update()
         
     def replace(self):
-        logger.info('Deleting all %d datapoints from series %s' % (self.datapoints.count(), self.name))
+        logger = self.getLogger()
+        logger.debug('Deleting all %d datapoints from series %s' % (self.datapoints.count(), self.name))
         self.datapoints.all().delete()
         self.create()
 
     def update(self, data=None, start=None):
+        logger = self.getLogger()
         tz = timezone.get_current_timezone()
         num_bad = 0
         num_created = 0
         num_updated = 0
-        logger.info('Updating series %s' % self.name)
+        logger.debug('Updating series %s' % self.name)
         series = self.get_series_data(data, start)
         if series is None:
             logger.error('Update of series %s failed' % self.name)
@@ -1038,6 +1057,7 @@ class Series(models.Model):
         return io.getvalue()
     
     def make_thumbnail(self):
+        logger = self.getLogger()
         logger.debug('Generating thumbnail for series %s' % self.name)
         try:
             if self.datapoints.count() == 0:
@@ -1050,7 +1070,7 @@ class Series(models.Model):
             if not os.path.exists(imagedir):
                 os.makedirs(imagedir)
             util.save_thumbnail(series, imagefile, self.type)
-            logger.info('Generated thumbnail %s' % dest)
+            logger.debug('Generated thumbnail %s' % dest)
 
         except Exception as e:
             logger.exception('Error generating thumbnail: %s' % e)
@@ -1313,8 +1333,6 @@ class ChartSeries(models.Model):
         verbose_name = 'tijdreeks'
         verbose_name_plural = 'tijdreeksen'
 
-from django.template.loader import render_to_string
-
 class Dashboard(models.Model):
     name = models.CharField(max_length=50, verbose_name= 'naam')
     description = models.TextField(blank=True, null=True,verbose_name = 'omschrijving')
@@ -1372,8 +1390,3 @@ class TabPage(models.Model):
     def __unicode__(self):
         return self.name
 
-# 
-# class EmailLog(models.Model):
-#     user = models.ForeignKey(User)
-#     level = models.CharField(max_length=10, choices = LOGGING_CHOICES, default = 'INFO')
-#     datasource = models.ForeignKey(Datasource)

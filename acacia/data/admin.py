@@ -1,9 +1,9 @@
 import os
-from acacia.data.models import Project, ProjectLocatie, MeetLocatie, Datasource, SourceFile, Generator
-from acacia.data.models import Parameter, Series, DataPoint, Chart, ChartSeries, Dashboard, DashboardChart, TabGroup, TabPage
-from acacia.data.models import Variable, Formula, Webcam, Notification
+from .models import Project, ProjectLocatie, MeetLocatie, Datasource, SourceFile, Generator
+from .models import Parameter, Series, DataPoint, Chart, ChartSeries, Dashboard, DashboardChart, TabGroup, TabPage
+from .models import Variable, Formula, Webcam, Notification
 
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib import admin
 from django import forms
 from django.forms import PasswordInput, ModelForm
@@ -11,8 +11,6 @@ from django.contrib.gis.db import models
 import django.contrib.gis.forms as geoforms
 import json
 import actions
-
-from .forms import NotificationActionForm
 
 class Media:
     js = [
@@ -83,19 +81,29 @@ class MeetLocatieAdmin(admin.ModelAdmin):
     formfield_overrides = {models.PointField:{'widget': forms.TextInput, 'required': False}}
     actions = [actions.meteo_toevoegen, 'add_notifications']
 
+    class NotificationActionForm(forms.Form):
+        from .models import LOGGING_CHOICES
+        email = forms.EmailField(label='Email adres', required=True)
+        level = forms.ChoiceField(label='Niveau', choices=LOGGING_CHOICES,required=True)
+    
     def add_notifications(self, request, queryset):
         if 'apply' in request.POST:
-            form = NotificationActionForm(request.POST)   
+            form = self.NotificationActionForm(request.POST)   
             if form.is_valid():
-                email = form.cleaned_data('email')
-                level = form.cleaned_data('level')
+                email = form.cleaned_data['email']
+                level = form.cleaned_data['level']
+                num = 0
                 for loc in queryset:
-                    for ds in loc.datasources:
+                    for ds in loc.datasources.all():
                         ds.notification_set.add(Notification(user=request.user,email=email,level=level))
+                        num += 1
+                self.message_user(request, "%d gegevensbronnen getagged" % num)
                 return
+        elif 'cancel' in request.POST:
+            return redirect(request.get_full_path())
         else:
-            form = NotificationActionForm()
-        return render(request,'data/notify.html',{'form': form})
+            form = self.NotificationActionForm(initial={'email': request.user.email, 'level': 'ERROR'})
+        return render(request,'data/notify.html',{'form': form, 'locaties': queryset, 'check': admin.helpers.ACTION_CHECKBOX_NAME})
     
     add_notifications.short_description='Berichtgeving toevoegen aan geselecteerde meetlocaties'
     
@@ -337,6 +345,9 @@ class NotificationAdmin(admin.ModelAdmin):
     list_display = ('datasource', 'user', 'email', 'level', 'active')
     list_filter = ('datasource', 'user', 'email', 'level', 'active')
     search_fields = ('datasource', 'user')
+    #action_form = LevelActionForm
+    #actions = ['set_level']
+    
     def get_form(self, request, obj=None, **kwargs):
         if obj is None:
             self.exclude = ('user', 'email')
@@ -351,6 +362,11 @@ class NotificationAdmin(admin.ModelAdmin):
             obj.email = request.user.email
         obj.subject = obj.subject.replace('%(datasource)', obj.datasource.name)
         obj.save()
+        
+    def set_level(self, request, queryset):
+        level = request.POST.get('level')
+        queryset.update(level=level)
+    set_level.short_description='Niveau aanpassen'
         
 admin.site.register(Project, ProjectAdmin, Media = Media)
 admin.site.register(ProjectLocatie, ProjectLocatieAdmin, Media = Media)
