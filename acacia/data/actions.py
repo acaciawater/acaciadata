@@ -15,6 +15,12 @@ def upload_datasource(modeladmin, request, queryset):
             df.download()
 upload_datasource.short_description = "Upload de geselecteerde datasources naar de server"
 
+def upload_datasource(modeladmin, request, queryset):
+    for df in queryset:
+        if df.url != '':
+            df.download()
+upload_datasource.short_description = "Upload de geselecteerde datasources naar de server"
+
 def update_parameters(modeladmin, request, queryset):
     for df in queryset:
         files = df.sourcefiles.all()

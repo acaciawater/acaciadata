@@ -1,7 +1,7 @@
 import os
 from .models import Project, ProjectLocatie, MeetLocatie, Datasource, SourceFile, Generator
 from .models import Parameter, Series, DataPoint, Chart, ChartSeries, Dashboard, DashboardChart, TabGroup, TabPage
-from .models import Variable, Formula, Webcam, Notification
+from .models import Variable, Formula, Webcam, Notification, ManualSeries
 
 from django.shortcuts import render, redirect
 from django.contrib import admin
@@ -201,7 +201,7 @@ class ReadonlyTabularInline(admin.TabularInline):
     
 class DataPointInline(admin.TabularInline):
     model = DataPoint
-    
+
 class SeriesAdmin(admin.ModelAdmin):
     actions = [actions.copy_series, actions.download_series, actions.refresh_series, actions.replace_series, actions.series_thumbnails, actions.update_series_properties, actions.empty_series]
     list_display = ('name', 'thumbtag', 'parameter', 'datasource', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
@@ -229,6 +229,10 @@ class SeriesAdmin(admin.ModelAdmin):
         obj.user = request.user
         obj.save()
 
+class ManualSeriesAdmin(SeriesAdmin):
+    model = ManualSeries
+    inlines = [DataPointInline,]
+    
 class FormulaAdmin(SeriesAdmin):
     list_display = ('name', 'thumbtag', 'locatie', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
     search_fields = ['name',]
@@ -264,6 +268,10 @@ class FormulaAdmin(SeriesAdmin):
     
 class ChartSeriesInline(admin.StackedInline):
     model = ChartSeries
+    raw_id_fields = ('series',)
+    autocomplete_lookup_fields = {
+        'fk': ['series'],
+    }
     extra = 0
     fields = (('series', 'order', 'name'), ('axis', 'axislr', 'label'), ('color', 'type', 'stack'), ('t0', 't1'), ('y0', 'y1'))
     ordering = ('order',)
@@ -368,6 +376,7 @@ class NotificationAdmin(admin.ModelAdmin):
         queryset.update(level=level)
     set_level.short_description='Niveau aanpassen'
         
+
 admin.site.register(Project, ProjectAdmin, Media = Media)
 admin.site.register(ProjectLocatie, ProjectLocatieAdmin, Media = Media)
 admin.site.register(MeetLocatie, MeetLocatieAdmin)
@@ -385,3 +394,4 @@ admin.site.register(Formula, FormulaAdmin)
 admin.site.register(Variable, VariableAdmin)
 admin.site.register(Webcam, WebcamAdmin)
 admin.site.register(Notification, NotificationAdmin)
+admin.site.register(ManualSeries, ManualSeriesAdmin)

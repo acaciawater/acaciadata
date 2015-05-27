@@ -419,6 +419,7 @@ class Dataservice(Generator):
         return params
 
     def get_parameters(self, f):
+        f.seek(0)
         tree = ET.ElementTree()
         tree.parse(f)
         params = self._get_parameters(tree)
@@ -429,6 +430,7 @@ class Dataservice(Generator):
         return result
     
     def get_data(self, f, **kwargs):
+        f.seek(0)
         tree = ET.ElementTree()
         tree.parse(f)
         device = tree.find('Device')

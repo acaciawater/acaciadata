@@ -48,6 +48,16 @@ class DatasourceMixin:
     def getLogger(self,name=__name__): 
         logger = logging.getLogger(name)  
         return logging.LoggerAdapter(logger,extra={'datasource': self.getDatasource()})
+
+class FollowMixin:
+    ''' Mixin that provides a logging adapter that adds source context to log records
+    Used to send emails to users that follow an object ''' 
+
+    def getSource(self):
+        return self
+    
+    def getLogger(self,name=__name__): 
+        return logging.LoggerAdapter(logging.getLogger(name),extra={'source': self.getSource()})
        
 class Project(models.Model):
     name = models.CharField(max_length=50, unique=True)
@@ -325,7 +335,7 @@ class Datasource(models.Model, DatasourceMixin):
         self.save(update_fields=['last_download'])
         return files
         
-    def update_parameters(self,data=None,files=None,limit=-1):
+    def update_parameters(self,data=None,files=None,limit=0):
         logger = self.getLogger()
         gen = self.get_generator_instance()
         if gen is None:
@@ -334,8 +344,10 @@ class Datasource(models.Model, DatasourceMixin):
         params = {}
         if files is None:
             files = self.sourcefiles.all();
-            if limit > 0:
-                files = files[:limit];
+            if limit != 0:
+                limit = abs(limit)
+                # take only last few entries
+                files = list(files)[-limit];
         for sourcefile in files:
             try:
                 try:
@@ -359,9 +371,9 @@ class Datasource(models.Model, DatasourceMixin):
                 param = Parameter(name=name,**defaults)
                 param.datasource = self
                 num_created = num_created+1
-            #param.make_thumbnail(data)
             param.save()
         logger.debug('%d parameters created, %d updated' % (num_created, num_updated))
+        return num_created+num_updated
 
     def replace_parameters(self,data=None):
         self.parameter_set.all().delete()
@@ -572,14 +584,23 @@ class SourceFile(models.Model,DatasourceMixin):
         logger = self.getLogger()
         if gen is None:
             gen = self.datasource.get_generator_instance()
+        try:
+            filename = self.file.name
+            pathname = self.file.path
+        except:
+            logger.error('Sourcefile %s has no associated file' % self.name)
+            return None
         logger.debug('Getting data for sourcefile %s', self.name)
         try:
+#             if os.path.isfile(pathname):
             data = gen.get_data(self.file,**kwargs)
+#             else:
+#                 raise Exception('Associated file not found: %s' % filename)
         except Exception as e:
-            logger.exception('Error retrieving data from %s: %s' % (self.file.name, e))
+            logger.exception('Error retrieving data from %s: %s' % (filename, e))
             return None
         if data is None:
-            logger.warning('No data retrieved from %s' % self.file.name)
+            logger.warning('No data retrieved from %s' % filename)
         else:
             shape = data.shape
             logger.debug('Got %d rows, %d columns', shape[0], shape[1])
@@ -734,11 +755,6 @@ class Series(models.Model,DatasourceMixin):
     parameter = models.ForeignKey(Parameter, null=True, blank=True)
     thumbnail = models.ImageField(upload_to=up.series_thumb_upload, max_length=200, blank=True, null=True)
     user=models.ForeignKey(User,default=User)
-    
-#     @property
-#     def logger(self):
-#         ds = self.datasource()
-#         return defaultlogger if ds is None else ds.logger
 
     # tijdslimiet
 #     limit_time = models.BooleanField(default = False)
@@ -764,6 +780,10 @@ class Series(models.Model,DatasourceMixin):
     def get_absolute_url(self):
         return reverse('acacia:series-detail', args=[self.id]) 
 
+    @staticmethod
+    def autocomplete_search_fields():
+        return ("id__iexact", "name__icontains",)
+    
     def datasource(self):
         try:
             p = self.parameter
@@ -946,7 +966,8 @@ class Series(models.Model,DatasourceMixin):
                 logger.debug('Datapoint %s,%g: %s' % (str(date), value, e))
                 num_bad = num_bad+1
         logger.info('Series %s updated: %d points created, %d updated, %d skipped' % (self.name, num_created, num_updated, num_bad))
-        self.make_thumbnail()
+        if (num_created + num_updated) > 0:
+            self.make_thumbnail()
         self.save()
         #self.getproperties().update()
 
@@ -1390,3 +1411,20 @@ class TabPage(models.Model):
     def __unicode__(self):
         return self.name
 
+# Series that can be edited manually
+class ManualSeries(Series):
+    locatie = models.ForeignKey(MeetLocatie)
+     
+    def meetlocatie(self):
+        return self.locatie
+
+    def __unicode__(self):
+        return self.name
+ 
+    def get_series_data(self,data,start=None):
+        return self.to_pandas(start=start)
+     
+    class Meta:
+        verbose_name = 'Handmatige reeks'
+        verbose_name_plural = 'Handmatige reeksen'
+         

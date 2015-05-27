@@ -43,22 +43,6 @@ def trans(p, srid):
         p.transform(tr)
     return p
 
-def chart_for_screen(screen):
-    plt.figure(figsize=(15,5))
-    plt.grid(linestyle='-', color='0.9')
-    data = screen.get_levels('nap')
-    if len(data)>0:
-        x,y = zip(*data)
-        plt.plot_date(x, y, '-')
-        y = [screen.well.maaiveld] * len(x)
-        plt.plot_date(x, y, '-')
-    plt.title(screen)
-    plt.ylabel('m tov NAP')
-    img = StringIO() 
-    plt.savefig(img,bbox_inches='tight', format='png')
-    plt.close()    
-    return img.getvalue()
-
 def save_thumbnail(series,imagefile,kind='line'):
     plt.figure(figsize=(9,3))
     try:

@@ -7,7 +7,7 @@ import logging
 from logging import handlers
 
 class AutoFlushLoggingAdapter(logging.LoggerAdapter):
-    ''' loggingadapter that automatically calls flush when destroyed. Can be used in 'with' block '''  
+    ''' logging adapter that automatically calls flush when destroyed. Can be used in 'with' block '''  
     def flush(self):
         ''' call flush() on all handlers '''
         if self.logger is not None:
@@ -23,7 +23,7 @@ class AutoFlushLoggingAdapter(logging.LoggerAdapter):
         self.flush()
       
 class DatasourceAdapter(AutoFlushLoggingAdapter):
-    ''' Lopgging adapter that adds datasource to log records '''
+    ''' Logging adapter that adds datasource to log records '''
     stack = []
     datasource = None
     
@@ -53,8 +53,12 @@ class TimedBufferingHandler(handlers.BufferingHandler):
         self.timer = Timer(self.interval, self.flush)
 
     def emit(self, record):
-        super(TimedBufferingHandler,self).emit(record)
+        self.acquire()
         self.timer.cancel()
+        self.buffer.append(record)
+        self.release()
+        if self.shouldFlush(record):
+            self.flush()
         self.timer = Timer(self.interval, self.flush)
         self.timer.start()
 
@@ -125,8 +129,8 @@ class BufferingEmailHandler(TimedBufferingHandler):
     def flush(self):
         if len(self.buffer) == 0:
             return
-
         try:
+            self.acquire()
             grp = self.group_records_by_email(self.buffer)
             for email, records in grp.items():
                 msg = self.format_message(records)
@@ -141,13 +145,12 @@ class BufferingEmailHandler(TimedBufferingHandler):
                     else:
                         subject = 'acaciadata.com update'
                 self.send_html_mail(subject, msg, self.fromaddr, [email])
-        except (KeyboardInterrupt, SystemExit):
-            raise
         except:
-            raise
-            #self.handleError(None)
-        self.buffer = [] 
-                
+            self.handleError(None)
+        finally:
+            self.buffer = [] 
+            self.release() 
+              
 # h=BufferingEmailHandler(fromaddr='webmaster@acaciadata.com', subject='Houston, we have a problem', capacity=10)
 # f=logging.Formatter('%(levelname)s %(asctime)s %(datasource)s: %(message)s')
 # h.setFormatter(f)

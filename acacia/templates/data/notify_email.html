@@ -24,6 +24,9 @@ h4 {
 {% for r in value %}
 <div class="{{r.levelname}}">
 {{r.levelname|lower}}&nbsp;{{r.asctime}};&nbsp;{{r.message}}
+{% if r.exc_info %}
+<p>{{r.exc_info}}</p>
+{% endif %}
 </div>
 {% endfor %}
 {% endfor %}
