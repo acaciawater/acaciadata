@@ -4,27 +4,19 @@ from south.db import db
 from south.v2 import DataMigration
 from django.db import models
 from django.contrib.contenttypes.models import ContentType
+
 class Migration(DataMigration):
 
     def forwards(self, orm):
-        for model in ['data.Series', 'data.Formula', 'data.ManualSeries']:
-            ct = ContentType.objects.get_for_model(orm[model])
-            for f in orm[model].objects.all():
-                if hasattr(f,'series_ptr_id'): # can use issublasss() here?
-                    s = orm.Series.objects.get(pk=f.series_ptr_id)
-                else:
-                    s = f
-                s.polymorphic_ctype_id = ct.id
-                s.save()
-        # Write your forwards methods here."
-        # Note: Don't use "from appname.models import ModelName". 
-        # Use orm.ModelName to refer to models in this application,
-        # and orm['appname.ModelName'] for models in other applications.
-
+        for ct in ContentType.objects.all():
+            model = ct.model_class()
+            if model:
+                ct.name = model._meta.verbose_name
+                ct.save()
+        
     def backwards(self, orm):
-        #"Write your backwards methods here."
         pass
-
+    
     models = {
         u'auth.group': {
             'Meta': {'object_name': 'Group'},
