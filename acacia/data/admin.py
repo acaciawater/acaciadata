@@ -50,6 +50,7 @@ class ParameterInline(admin.TabularInline):
 
 class ProjectAdmin(admin.ModelAdmin):
     list_display = ('name', 'location_count', )
+    formfield_overrides = {models.TextField: {'widget': forms.Textarea(attrs={'class': 'htmleditor'})}}
 
 class ProjectLocatieForm(ModelForm):
     model = ProjectLocatie
@@ -60,7 +61,8 @@ class ProjectLocatieAdmin(admin.ModelAdmin):
     #form = ProjectLocatieForm
     list_display = ('name','project','location_count',)
     list_filter = ('project',)
-    formfield_overrides = {models.PointField:{'widget': forms.TextInput(attrs={'size': '40'})}}
+    formfield_overrides = {models.PointField:{'widget': forms.TextInput(attrs={'width': '40px'})},
+                           models.TextField: {'widget': forms.Textarea(attrs={'class': 'htmleditor'})}}
 
 class MeetLocatieForm(ModelForm):
     
@@ -80,7 +82,8 @@ class MeetLocatieAdmin(admin.ModelAdmin):
     form = MeetLocatieForm
     list_display = ('name','projectlocatie','project','datasourcecount',)
     list_filter = ('projectlocatie','projectlocatie__project',)
-    formfield_overrides = {models.PointField:{'widget': forms.TextInput, 'required': False}}
+    formfield_overrides = {models.PointField:{'widget': forms.TextInput, 'required': False},
+                           models.TextField: {'widget': forms.Textarea(attrs={'class': 'htmleditor'})}}
     actions = [actions.meteo_toevoegen, 'add_notifications']
 
     class NotificationActionForm(forms.Form):
@@ -375,7 +378,7 @@ class ChartAdmin(admin.ModelAdmin):
     fields = ('name', 'description', 'title', ('percount', 'perunit',), ('start', 'stop',),)
     search_fields = ['name','description', 'title']
 
-    formfield_overrides = {models.TextField: {'widget': forms.Textarea(attrs={'class': 'htmleditor'})}}
+    #formfield_overrides = {models.TextField: {'widget': forms.Textarea(attrs={'class': 'htmleditor'})}}
                 
     def save_model(self, request, obj, form, change):
         obj.user = request.user
@@ -465,16 +468,16 @@ class NotificationAdmin(admin.ModelAdmin):
 
 admin.site.register(Project, ProjectAdmin, Media = Media)
 admin.site.register(ProjectLocatie, ProjectLocatieAdmin, Media = Media)
-admin.site.register(MeetLocatie, MeetLocatieAdmin)
+admin.site.register(MeetLocatie, MeetLocatieAdmin, Media = Media)
 admin.site.register(Series, SeriesAdmin)
 admin.site.register(Parameter, ParameterAdmin)
 admin.site.register(Generator, GeneratorAdmin)
 admin.site.register(Datasource, DatasourceAdmin)
-admin.site.register(SourceFile, SourceFileAdmin)
+#admin.site.register(SourceFile, SourceFileAdmin)
 admin.site.register(Chart, ChartAdmin, Media = Media)
 admin.site.register(Dashboard, DashAdmin)
 admin.site.register(TabGroup, TabGroupAdmin)
-admin.site.register(TabPage, TabPageAdmin)
+#admin.site.register(TabPage, TabPageAdmin)
 #admin.site.register(Formula, FormulaAdmin)
 admin.site.register(Variable, VariableAdmin)
 admin.site.register(Webcam, WebcamAdmin)

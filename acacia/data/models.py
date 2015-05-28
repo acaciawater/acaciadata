@@ -781,8 +781,8 @@ class Series(PolymorphicModel,DatasourceMixin):
     class Meta:
         ordering = ['name',]
         unique_together = ('parameter', 'name',)
-        verbose_name = 'Reeks'
-        verbose_name_plural = 'Reeksen'
+        verbose_name = 'Tijdreeks'
+        verbose_name_plural = 'Tijdreeksen'
         
     def get_absolute_url(self):
         return reverse('acacia:series-detail', args=[self.id]) 
@@ -1439,7 +1439,7 @@ class DashboardChart(models.Model):
     
 class TabGroup(models.Model):
     location = models.ForeignKey(ProjectLocatie,verbose_name='projectlocatie')
-    name = models.CharField(max_length = 40, verbose_name='naam', help_text='naam van dashboard tabgroep')
+    name = models.CharField(max_length = 40, verbose_name='naam', help_text='naam van dashboard groep')
 
     def pagecount(self):
         return self.tabpage_set.count()
@@ -1453,7 +1453,11 @@ class TabGroup(models.Model):
 
     def get_absolute_url(self):
         return reverse('acacia:tabgroup', args=[self.id]) 
-    
+
+    class Meta:
+        verbose_name = 'Dashboardgroep'
+        verbose_name_plural = 'Dashboardgroepen'
+        
 class TabPage(models.Model):
     tabgroup = models.ForeignKey(TabGroup)
     name = models.CharField(max_length=40,default='basis',verbose_name='naam', help_text='naam van tabpage')
@@ -1463,3 +1467,7 @@ class TabPage(models.Model):
     def __unicode__(self):
         return self.name
 
+    class Meta:
+        verbose_name = 'Tabblad'
+        verbose_name_plural = 'Tabbladen'
+        

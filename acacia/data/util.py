@@ -136,4 +136,3 @@ def chart_as_csv(chart):
     resp['Content-Disposition'] = 'attachment; filename=%s' % filename
     return resp
 
-
