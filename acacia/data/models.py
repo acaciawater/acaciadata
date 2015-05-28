@@ -747,27 +747,34 @@ AGGREGATION_METHOD = (
 # set  default series type from parameter type in sqlite database: 
 # update data_series set type = (select p.type from data_parameter p where id = data_series.parameter_id) 
 
-class Series(models.Model,DatasourceMixin):
+#class Series(models.Model,DatasourceMixin):
+from polymorphic import PolymorphicModel
+
+class Series(PolymorphicModel,DatasourceMixin):
     name = models.CharField(max_length=50,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     unit = models.CharField(max_length=10, blank=True, null=True, verbose_name='eenheid')
-    type = models.CharField(max_length=20, blank = True, default='line', choices = SERIES_CHOICES)
+    type = models.CharField(max_length=20, blank = True, verbose_name='weergave', help_text='Standaard weeggave op grafieken', default='line', choices = SERIES_CHOICES)
     parameter = models.ForeignKey(Parameter, null=True, blank=True)
     thumbnail = models.ImageField(upload_to=up.series_thumb_upload, max_length=200, blank=True, null=True)
     user=models.ForeignKey(User,default=User)
 
     # tijdslimiet
-#     limit_time = models.BooleanField(default = False)
-#     from_limit = models.DateTimeField(blank=True,null=True)
-#     to_limit = models.DateTimeField(blank=True,null=True)
+    limit_time = models.BooleanField(default = False,verbose_name='tijdsrestrictie',help_text='Beperk tijdreeks tot gegeven tijdsinterval')
+    from_limit = models.DateTimeField(blank=True,null=True,verbose_name='Begintijd')
+    to_limit = models.DateTimeField(blank=True,null=True,verbose_name='Eindtijd')
     
     # Nabewerkingen
     resample = models.CharField(max_length=10,choices=RESAMPLE_METHOD,blank=True, null=True, 
                                 verbose_name='frequentie',help_text='Frequentie voor resampling van tijdreeks')
     aggregate = models.CharField(max_length=10,choices=AGGREGATION_METHOD,blank=True, null=True, 
                                  verbose_name='aggregatie', help_text = 'Aggregatiemethode bij resampling van tijdreeks')
-    scale = models.FloatField(default = 1.0,verbose_name = 'verschaling', help_text = 'constante factor voor verschaling van de meetwaarden (vóór compensatie)')
-    offset = models.FloatField(default = 0.0, verbose_name = 'compensatie', help_text = 'constante compensatie van meetwaarden (ná verschaling)')
+    scale = models.FloatField(default = 1.0,verbose_name = 'verschalingsfactor', help_text = 'constante factor voor verschaling van de meetwaarden (vóór compensatie)')
+    scale_series = models.ForeignKey('Series',null=True,blank=True,verbose_name='verschalingsreeks', related_name='scaling_set', help_text='tijdreeks voor verschaling van de meetwaarden (vóór compensatie')
+
+    offset = models.FloatField(default = 0.0, verbose_name = 'compensatieconstante', help_text = 'constante voor compensatie van de meetwaarden (ná verschaling)')
+    offset_series = models.ForeignKey('Series',null=True, blank=True, verbose_name='compensatiereeks',related_name='offset_set', help_text = 'tijdreeks voor compensatie van de meetwaarden (ná verschaling)' )
+    
     cumsum = models.BooleanField(default = False, verbose_name='accumuleren', help_text = 'reeks transformeren naar accumulatie')
     cumstart = models.DateTimeField(blank = True, null = True, verbose_name='start accumulatie')
     
@@ -779,7 +786,12 @@ class Series(models.Model,DatasourceMixin):
         
     def get_absolute_url(self):
         return reverse('acacia:series-detail', args=[self.id]) 
-
+    
+    def typename(self):
+        from django.contrib.contenttypes.models import ContentType
+        return ContentType.objects.get_for_id(self.polymorphic_ctype_id).name
+    typename.short_description = 'reekstype'
+    
     @staticmethod
     def autocomplete_search_fields():
         return ("id__iexact", "name__icontains",)
@@ -815,16 +827,39 @@ class Series(models.Model,DatasourceMixin):
     def __unicode__(self):
         return '%s - %s' % (self.datasource() or '(berekend)', self.name)
     
+    def do_align(self, s1, s2):
+        ''' align series s2 with s1 and fill missing values by padding'''
+        # align series and forward fill the missing data
+        a,b = s1.align(s2,method='pad')
+        # back fill na values (in case s2 starts after s1)
+        s2 = b.fillna(method='bfill')
+        return s2
+    
+    def do_offset(self, s1, s2):
+        ''' apply offset to series '''
+        s2 = self.do_align(s1, s2)
+        return s1 + s2
+
+    def do_scale(self, s1, s2):
+        ''' scale series s1 with s2 '''
+        s2 = self.do_align(s1, s2)
+        return s1 * s2
+    
     def do_postprocess(self, series, start=None, stop=None):
-        logger = self.getLogger()
         ''' perform postprocessing of series data like resampling, scaling etc'''
-        # remove n/a values and duplicates
+
+        logger = self.getLogger()
+
+        # remove n/a values
         series = series.dropna()
         if series.empty:
             return series
+ 
+        # remove duplicates
         series = series.groupby(level=0).last()
         if series.empty:
             return series
+        
         if self.resample is not None and self.resample != '':
             try:
                 series = series.resample(how=self.aggregate, rule=self.resample)
@@ -854,14 +889,27 @@ class Series(models.Model,DatasourceMixin):
                         add_value = before[0].value
                 except Exception as e:
                     logger.exception('Accumulation of series %s failed: %s' % (self.name, e))
+
+        # apply scaling
         if self.scale != 1.0:
             series = series * self.scale
+        elif self.scale_series is not None:
+            series = self.do_scale(series, self.scale_series.to_pandas())
+
+        #  apply offset
         if self.offset != 0.0:
             series = series + self.offset
+        elif self.offset_series is not None:
+            series = self.do_offset(series, self.offset_series.to_pandas())
+
         if add_value != 0:
             series = series + add_value
             
         # clip on time
+        if start is None:
+            start = self.from_limit
+        if stop is None:
+            stop = self.to_limit
         if start is None and stop is None:
             return series
         elif start is None:
@@ -1151,30 +1199,32 @@ class Variable(models.Model):
 
     def __unicode__(self):
         return '%s = %s' % (self.name, self.series)
-
+        
     class Meta:
         verbose_name='variabele'
         verbose_name_plural='variabelen'
         unique_together = ('locatie', 'name', )
 
 # Series that can be edited manually
-# class ManualSeries(Series):
-#     locatie = models.ForeignKey(MeetLocatie)
-#     
-#     def meetlocatie(self):
-#         return self.locatie
-#         
-#     def __unicode__(self):
-#         return self.name
-# 
-#     def get_series_data(self,data,start=None):
-#         return self.to_pandas(start=start)
-#     
-#     class Meta:
-#         verbose_name = 'Handmatige reeks'
-#         verbose_name_plural = 'Handmatige reeksen'
-#         
+class ManualSeries(Series):
+    ''' Series that can be edited manually '''
+    locatie = models.ForeignKey(MeetLocatie)
+     
+    def meetlocatie(self):
+        return self.locatie
+
+    def __unicode__(self):
+        return self.name
+ 
+    def get_series_data(self,data,start=None):
+        return self.to_pandas(start=start)
+     
+    class Meta:
+        verbose_name = 'Handmatige reeks'
+        verbose_name_plural = 'Handmatige reeksen'
+         
 class Formula(Series):
+    ''' Calculated series '''
     locatie = models.ForeignKey(MeetLocatie)
     formula_text = models.TextField(blank=True,null=True,verbose_name='berekening')
     formula_variables = models.ManyToManyField(Variable,verbose_name = 'variabelen')
@@ -1246,10 +1296,12 @@ class Formula(Series):
     
 class DataPoint(models.Model):
     series = models.ForeignKey(Series,related_name='datapoints')
-    date = models.DateTimeField()
-    value = models.FloatField()
+    date = models.DateTimeField(verbose_name='Tijdstip')
+    value = models.FloatField(verbose_name='Waarde')
     
     class Meta:
+        verbose_name = 'Meetwaarde'
+        verbose_name_plural = 'Meetwaarden'
         unique_together=('series','date')
         #ordering = ['date']
         
@@ -1411,20 +1463,3 @@ class TabPage(models.Model):
     def __unicode__(self):
         return self.name
 
-# Series that can be edited manually
-class ManualSeries(Series):
-    locatie = models.ForeignKey(MeetLocatie)
-     
-    def meetlocatie(self):
-        return self.locatie
-
-    def __unicode__(self):
-        return self.name
- 
-    def get_series_data(self,data,start=None):
-        return self.to_pandas(start=start)
-     
-    class Meta:
-        verbose_name = 'Handmatige reeks'
-        verbose_name_plural = 'Handmatige reeksen'
-         

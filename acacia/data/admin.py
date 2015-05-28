@@ -8,6 +8,8 @@ from django.contrib import admin
 from django import forms
 from django.forms import PasswordInput, ModelForm
 from django.contrib.gis.db import models
+from django.contrib.contenttypes.models import ContentType
+
 import django.contrib.gis.forms as geoforms
 import json
 import actions
@@ -201,47 +203,87 @@ class ReadonlyTabularInline(admin.TabularInline):
     
 class DataPointInline(admin.TabularInline):
     model = DataPoint
+    classes = ('grp-collapse grp-closed',)
 
-class SeriesAdmin(admin.ModelAdmin):
+class SeriesForm(forms.ModelForm):
+    model =  Series
+
+    def clean_scale_series(self):
+        series = self.cleaned_data['scale_series']
+        if series is not None:
+            scale = self.cleaned_data['scale']
+            if scale != 1:
+                raise forms.ValidationError('Als een verschalingtijdreeks is opgegeven moet de verschalingsfactor gelijk aan 1 zijn')
+        return series
+
+    def clean_offset_series(self):
+        series = self.cleaned_data['offset_series']
+        if series is not None:
+            offset = self.cleaned_data['offset']
+            if offset != 0:
+                raise forms.ValidationError('Als een compenmsatietijdreeks is opgegeven moet de compensatiefactor gelijk aan 0 zijn')
+        return series
+
+from polymorphic.admin import PolymorphicParentModelAdmin, PolymorphicChildModelAdmin
+
+class SaveUserMixin:
+    def save_model(self, request, obj, form, change):
+        obj.user = request.user
+        obj.save()
+
+class ParameterSeriesAdmin(PolymorphicChildModelAdmin, SaveUserMixin):
     actions = [actions.copy_series, actions.download_series, actions.refresh_series, actions.replace_series, actions.series_thumbnails, actions.update_series_properties, actions.empty_series]
-    list_display = ('name', 'thumbtag', 'parameter', 'datasource', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
+    #list_display = ('name', 'thumbtag', 'parameter', 'datasource', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
+    base_model = Series
+    #base_form = SeriesForm
     exclude = ('user',)
-#    inlines = [DataPointInline,]
-    list_filter = ('parameter__datasource__meetlocatie', 'parameter__datasource', 'parameter__datasource__meetlocatie__projectlocatie__project')
+
+    raw_id_fields = ('scale_series','offset_series')
+    autocomplete_lookup_fields = {
+        'fk': ['scale_series', 'offset_series'],
+    }
     search_fields = ['name','parameter__name','parameter__datasource__name']
 
     fieldsets = (
                  ('Algemeen', {'fields': ('parameter', 'name', ('unit', 'type'), 'description',),
                                'classes': ('grp-collapse grp-open',),
                                }),
-                 ('Bewerkingen', {'fields': (('resample', 'aggregate',),('scale', 'offset',), ('cumsum', 'cumstart' ),),
+                 ('Tijdsrestricties', {'fields': ('limit_time',('from_limit','to_limit')),
+                               'classes': ('grp-collapse grp-closed',)
+                               }),
+                 ('Bewerkingen', {'fields': (('resample', 'aggregate',),('scale', 'scale_series'), ('offset','offset_series'), ('cumsum', 'cumstart' ),),
                                'classes': ('grp-collapse grp-closed',),
                               }),
     )
 
-#     def get_readonly_fields(self, request, obj=None):#         if obj and obj.parameter: 
-#             self.inlines = []
-#             return self.readonly_fields
-#         else:
-#             return self.readonly_fields  
-          
-    def save_model(self, request, obj, form, change):
-        obj.user = request.user
-        obj.save()
-
-class ManualSeriesAdmin(SeriesAdmin):
-    model = ManualSeries
+#class ManualSeriesAdmin(admin.ModelAdmin):
+class ManualSeriesAdmin(PolymorphicChildModelAdmin, SaveUserMixin):
+    base_model = Series
+    actions = [actions.copy_series, actions.series_thumbnails]
+    #list_display = ('name', 'locatie', 'thumbtag', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
+    exclude = ('user','parameter')
     inlines = [DataPointInline,]
-    
-class FormulaAdmin(SeriesAdmin):
-    list_display = ('name', 'thumbtag', 'locatie', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
-    search_fields = ['name',]
-    
+    search_fields = ['name','locatie']
     fieldsets = (
                  ('Algemeen', {'fields': ('locatie', 'name', ('unit', 'type'), 'description',),
                                'classes': ('grp-collapse grp-open',),
                                }),
-                 ('Bewerkingen', {'fields': (('resample', 'aggregate',),('scale', 'offset',), ('cumsum', 'cumstart' ),),
+    )
+
+#class FormulaAdmin(SeriesAdmin):
+class FormulaSeriesAdmin(PolymorphicChildModelAdmin, SaveUserMixin):
+    base_model = Series
+    #list_display = ('name', 'thumbtag', 'locatie', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
+    #search_fields = ['name','locatie']
+    
+    fieldsets = (
+                  ('Algemeen', {'fields': ('locatie', 'name', ('unit', 'type'), 'description',),
+                                'classes': ('grp-collapse grp-open',),
+                                }),
+                 ('Tijdsrestricties', {'fields': ('limit_time',('from_limit','to_limit')),
+                               'classes': ('grp-collapse grp-closed',)
+                               }),
+                 ('Bewerkingen', {'fields': (('resample', 'aggregate',),('scale', 'scale_series'), ('offset','offset_series'), ('cumsum', 'cumstart' ),),
                                'classes': ('grp-collapse grp-closed',),
                               }),
                  ('Berekening', {'fields': ('formula_variables', 'intersect', 'formula_text'),
@@ -249,7 +291,7 @@ class FormulaAdmin(SeriesAdmin):
                               }),
     )
     filter_horizontal = ('formula_variables',)
-    exclude = ('parameter',)
+    #exclude = ('parameter',)
     
 #     def clean_formula_text(self):
 #         # try to evaluate the expression
@@ -260,12 +302,56 @@ class FormulaAdmin(SeriesAdmin):
 #         except Exception as e:
 #             raise forms.ValidationError('Fout bij berekening formule: %s' % e)
 #         return data
+        
+#class SeriesAdmin(admin.ModelAdmin):
+class SeriesAdmin(PolymorphicParentModelAdmin):
+    actions = [actions.copy_series, actions.download_series, actions.refresh_series, actions.replace_series, actions.series_thumbnails, actions.update_series_properties, actions.empty_series]
+    list_display = ('name', 'thumbtag', 'typename', 'parameter', 'datasource', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
+    base_model = Series
+    #base_form = SeriesForm
+    child_models = ((ManualSeries, ManualSeriesAdmin), (Formula, FormulaSeriesAdmin), (Series, ParameterSeriesAdmin))
+    exclude = ('user',)
+
+    raw_id_fields = ('scale_series','offset_series')
+    autocomplete_lookup_fields = {
+        'fk': ['scale_series', 'offset_series'],
+    }
     
-#     def save_model(self, request, obj, form, change):
-#         # TODO: allow null value for parameter
-#         obj.parameter = Parameter.objects.first()
-#         return super(FormulaAdmin, self).save_model(request, obj, form, change)
-    
+    class ContentTypeFilter(admin.SimpleListFilter):
+        title = 'Tijdreeks type'
+        parameter_name = 'ctid'
+
+        def lookups(self, request, modeladmin):
+            ''' Possibilities are: series, formula and manual '''
+            ct_types = ContentType.objects.get_for_models(Series,Formula,ManualSeries)
+            return [(ct.id, ct.name) for ct in sorted(ct_types.values(), key=lambda x: x.name)]
+
+        def queryset(self, request, queryset):
+            if self.value() is not None:
+                return queryset.filter(polymorphic_ctype_id = self.value())
+            return queryset
+        
+#    inlines = [DataPointInline,]
+    list_filter = ('parameter__datasource__meetlocatie', 'parameter__datasource', 'parameter__datasource__meetlocatie__projectlocatie__project', ContentTypeFilter)
+    search_fields = ['name','parameter__name','parameter__datasource__name']
+
+    base_fieldsets = (
+                 ('Algemeen', {'fields': ('parameter', 'name', ('unit', 'type'), 'description',),
+                               'classes': ('grp-collapse grp-open',),
+                               }),
+                 ('Tijdsrestricties', {'fields': ('limit_time',('from_limit','to_limit')),
+                               'classes': ('grp-collapse grp-closed',)
+                               }),
+                 ('Bewerkingen', {'fields': (('resample', 'aggregate',),('scale', 'scale_series'), ('offset','offset_series'), ('cumsum', 'cumstart' ),),
+                               'classes': ('grp-collapse grp-closed',),
+                              }),
+    )
+
+    def save_model(self, request, obj, form, change):
+        obj.user = request.user
+        obj.save()
+
+
 class ChartSeriesInline(admin.StackedInline):
     model = ChartSeries
     raw_id_fields = ('series',)
@@ -385,13 +471,12 @@ admin.site.register(Parameter, ParameterAdmin)
 admin.site.register(Generator, GeneratorAdmin)
 admin.site.register(Datasource, DatasourceAdmin)
 admin.site.register(SourceFile, SourceFileAdmin)
-#admin.site.register(DataPoint, DataPointAdmin)
 admin.site.register(Chart, ChartAdmin, Media = Media)
 admin.site.register(Dashboard, DashAdmin)
 admin.site.register(TabGroup, TabGroupAdmin)
 admin.site.register(TabPage, TabPageAdmin)
-admin.site.register(Formula, FormulaAdmin)
+#admin.site.register(Formula, FormulaAdmin)
 admin.site.register(Variable, VariableAdmin)
 admin.site.register(Webcam, WebcamAdmin)
 admin.site.register(Notification, NotificationAdmin)
-admin.site.register(ManualSeries, ManualSeriesAdmin)
+#admin.site.register(ManualSeries, ManualSeriesAdmin)

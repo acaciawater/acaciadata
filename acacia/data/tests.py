@@ -17,3 +17,5 @@ class TestProvider(TestCase):
 def testmail():
     from django.core.mail import send_mail
     send_mail('Onderwerp', 'Dit is het bericht', 'webmaster@acaciadata.com', ['theo.kleinendorst@acaciawater.com'])
+
+    
