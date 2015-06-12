@@ -241,6 +241,8 @@ def conv251(x):
         return [np.nan]
     x = math.log((4095.0/R) - 1.0)
     temp = 25.01914 + x * (-22.8437 + x * (1.532076 + (-0.08372 * x)))
+    if temp < 0 or temp > 50:
+        temp = None # additional check on valid temperature range
     return [temp]
 
 def dummy(x):
