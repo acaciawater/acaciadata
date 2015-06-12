@@ -173,7 +173,7 @@ class SourceFileAdmin(admin.ModelAdmin):
     fields = ('name', 'datasource', 'file',)
     list_display = ('name','datasource', 'meetlocatie', 'filetag', 'rows', 'cols', 'start', 'stop', 'uploaded',)
     list_filter = ('datasource', 'datasource__meetlocatie', 'datasource__meetlocatie__projectlocatie__project', 'uploaded',)
-    search_fields = ['name','file__name',]
+    search_fields = ['name',]
 
     def save_model(self, request, obj, form, change):
         obj.user = request.user
@@ -251,7 +251,7 @@ class ParameterSeriesAdmin(PolymorphicChildModelAdmin, SaveUserMixin):
                  ('Algemeen', {'fields': ('parameter', 'name', ('unit', 'type'), 'description',),
                                'classes': ('grp-collapse grp-open',),
                                }),
-                 ('Tijdsrestricties', {'fields': ('limit_time',('from_limit','to_limit')),
+                 ('Tijdsinterval', {'fields': ('from_limit','to_limit'),
                                'classes': ('grp-collapse grp-closed',)
                                }),
                  ('Bewerkingen', {'fields': (('resample', 'aggregate',),('scale', 'scale_series'), ('offset','offset_series'), ('cumsum', 'cumstart' ),),
@@ -283,7 +283,7 @@ class FormulaSeriesAdmin(PolymorphicChildModelAdmin, SaveUserMixin):
                   ('Algemeen', {'fields': ('locatie', 'name', ('unit', 'type'), 'description',),
                                 'classes': ('grp-collapse grp-open',),
                                 }),
-                 ('Tijdsrestricties', {'fields': ('limit_time',('from_limit','to_limit')),
+                 ('Tijdsinterval', {'fields': ('from_limit','to_limit'),
                                'classes': ('grp-collapse grp-closed',)
                                }),
                  ('Bewerkingen', {'fields': (('resample', 'aggregate',),('scale', 'scale_series'), ('offset','offset_series'), ('cumsum', 'cumstart' ),),
@@ -334,7 +334,6 @@ class SeriesAdmin(PolymorphicParentModelAdmin):
                 return queryset.filter(polymorphic_ctype_id = self.value())
             return queryset
         
-#    inlines = [DataPointInline,]
     list_filter = ('parameter__datasource__meetlocatie', 'parameter__datasource', 'parameter__datasource__meetlocatie__projectlocatie__project', ContentTypeFilter)
     search_fields = ['name','parameter__name','parameter__datasource__name']
 
@@ -342,7 +341,7 @@ class SeriesAdmin(PolymorphicParentModelAdmin):
                  ('Algemeen', {'fields': ('parameter', 'name', ('unit', 'type'), 'description',),
                                'classes': ('grp-collapse grp-open',),
                                }),
-                 ('Tijdsrestricties', {'fields': ('limit_time',('from_limit','to_limit')),
+                 ('Tijdsinterval', {'fields': ('from_limit','to_limit'),
                                'classes': ('grp-collapse grp-closed',)
                                }),
                  ('Bewerkingen', {'fields': (('resample', 'aggregate',),('scale', 'scale_series'), ('offset','offset_series'), ('cumsum', 'cumstart' ),),
