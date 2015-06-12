@@ -15,12 +15,6 @@ def upload_datasource(modeladmin, request, queryset):
             df.download()
 upload_datasource.short_description = "Upload de geselecteerde datasources naar de server"
 
-def upload_datasource(modeladmin, request, queryset):
-    for df in queryset:
-        if df.url != '':
-            df.download()
-upload_datasource.short_description = "Upload de geselecteerde datasources naar de server"
-
 def update_parameters(modeladmin, request, queryset):
     for df in queryset:
         files = df.sourcefiles.all()
@@ -70,24 +64,22 @@ def download_series(modeladmin, request, queryset):
 download_series.short_description = 'Bronbestanden van geselecteerde tijdreeksen downloaden'
     
 def refresh_series(modeladmin, request, queryset):
-    #download_series(modeladmin, request, queryset)
-    for s in queryset:
+    for s in Series.objects.get_real_instances(queryset):
         s.update()
 refresh_series.short_description = 'Geselecteerde tijdreeksen actualiseren'
 
 def replace_series(modeladmin, request, queryset):
-    #download_series(modeladmin, request, queryset)
-    for s in queryset:
+    for s in Series.objects.get_real_instances(queryset):
         s.replace()
 replace_series.short_description = 'Geselecteerde tijdreeksen opnieuw aanmaken'
 
 def empty_series(modeladmin, request, queryset):
-    for s in queryset:
+    for s in Series.objects.get_real_instances(queryset):
         s.datapoints.all().delete()
 empty_series.short_description = 'Data van geselecteerde tijdreeksen verwijderen'
 
 def series_thumbnails(modeladmin, request, queryset):
-    for s in queryset:
+    for s in Series.objects.get_real_instances(queryset):
         s.make_thumbnail()
         s.save()
 series_thumbnails.short_description = "Thumbnails van tijdreeksen vernieuwen"
