@@ -23,16 +23,17 @@ THEME_CHOICES = (('dark-blue','blauw'),
 def aware(d,tz=None):
     ''' utility function to ensure datetime object is offset-aware '''
     if d is not None:
-        if timezone.is_naive(d):
-            if tz is None or tz == '':
-                tz = settings.TIME_ZONE
-            if not isinstance(tz, timezone.tzinfo):
-                tz = pytz.timezone(tz)
-            try:
-                return timezone.make_aware(d, tz)            
-            except:
-#                 pytz.NonExistentTimeError, pytz.AmbiguousTimeError: # CET/CEST transition?
-                return timezone.make_aware(d, pytz.utc)            
+        if isinstance(d, datetime.datetime):
+            if timezone.is_naive(d):
+                if tz is None or tz == '':
+                    tz = settings.TIME_ZONE
+                if not isinstance(tz, timezone.tzinfo):
+                    tz = pytz.timezone(tz)
+                try:
+                    return timezone.make_aware(d, tz)            
+                except:
+    #                 pytz.NonExistentTimeError, pytz.AmbiguousTimeError: # CET/CEST transition?
+                    return timezone.make_aware(d, pytz.utc)            
     return d
 
 class DatasourceMixin:
@@ -232,7 +233,7 @@ class Datasource(models.Model, DatasourceMixin):
     config=models.TextField(blank=True,null=True,default='{}',verbose_name = 'Additionele configuraties',help_text='Geldige JSON dictionary')
     username=models.CharField(max_length=50, blank=True, null=True, default='anonymous', verbose_name='Gebuikersnaam',help_text='Gebruikersnaam voor downloads')
     password=models.CharField(max_length=50, blank=True, null=True, verbose_name='Wachtwoord',help_text='Wachtwoord voor downloads')
-    timezone=models.CharField(max_length=50, blank=True, default=settings.TIME_ZONE)
+    timezone=models.CharField(max_length=50, blank=True, verbose_name = 'Tijzone', default=settings.TIME_ZONE)
 
     class Meta:
         ordering = ['name',]
@@ -415,23 +416,18 @@ class Datasource(models.Model, DatasourceMixin):
                 else:
                     data = data.append(d)
         if data is not None:
-            #try:
-                date = np.array([aware(d, self.timezone) for d in data.index.to_pydatetime()])
-                slicer = None
-                if start is not None:
-                    if stop is not None:
-                        slicer = (date >= start) & (date <= stop) 
-                    else:
-                        slicer = (date >= start)
-                elif stop is not None:
-                    slicer = (date <= stop)
-                if slicer is not None:
-                    data = data[slicer]
-                # Don't remove duplicates
-                # data = data.groupby(level=0).last()
-                return data.sort()
-            #except:
-                pass
+            date = np.array([aware(d, self.timezone) for d in data.index.to_pydatetime()])
+            slicer = None
+            if start is not None:
+                if stop is not None:
+                    slicer = (date >= start) & (date <= stop) 
+                else:
+                    slicer = (date >= start)
+            elif stop is not None:
+                slicer = (date <= stop)
+            if slicer is not None:
+                data = data[slicer]
+            return data.sort()
         return data
 
     def to_csv(self):
@@ -748,7 +744,7 @@ AGGREGATION_METHOD = (
 # update data_series set type = (select p.type from data_parameter p where id = data_series.parameter_id) 
 
 #class Series(models.Model,DatasourceMixin):
-from polymorphic import PolymorphicModel
+from polymorphic import PolymorphicManager, PolymorphicModel
 
 class Series(PolymorphicModel,DatasourceMixin):
     name = models.CharField(max_length=50,verbose_name='naam')
@@ -758,8 +754,9 @@ class Series(PolymorphicModel,DatasourceMixin):
     parameter = models.ForeignKey(Parameter, null=True, blank=True)
     thumbnail = models.ImageField(upload_to=up.series_thumb_upload, max_length=200, blank=True, null=True)
     user=models.ForeignKey(User,default=User)
-
-    # tijdslimiet
+    objects = PolymorphicManager()
+    
+    # tijdsinterval
     limit_time = models.BooleanField(default = False,verbose_name='tijdsrestrictie',help_text='Beperk tijdreeks tot gegeven tijdsinterval')
     from_limit = models.DateTimeField(blank=True,null=True,verbose_name='Begintijd')
     to_limit = models.DateTimeField(blank=True,null=True,verbose_name='Eindtijd')
@@ -897,14 +894,15 @@ class Series(PolymorphicModel,DatasourceMixin):
             series = self.do_scale(series, self.scale_series.to_pandas())
 
         #  apply offset
-        if self.offset != 0.0:
+        if add_value != 0:
+            # this is a cumulative series with a partial interval
+            # add sum from previous interval instead of series.offset
+            series = series + add_value
+        elif self.offset != 0.0:
             series = series + self.offset
         elif self.offset_series is not None:
             series = self.do_offset(series, self.offset_series.to_pandas())
 
-        if add_value != 0:
-            series = series + add_value
-            
         # clip on time
         if start is None:
             start = self.from_limit
@@ -925,7 +923,8 @@ class Series(PolymorphicModel,DatasourceMixin):
         if self.parameter is None:
             #raise Exception('Parameter is None for series %s' % self.name)
             return None
-
+        start = start or self.from_limit
+        stop = stop or self.to_limit
         if dataframe is None:
             dataframe = self.parameter.get_data(start=start,stop=stop)
             if dataframe is None:
@@ -1460,8 +1459,8 @@ class TabGroup(models.Model):
         
 class TabPage(models.Model):
     tabgroup = models.ForeignKey(TabGroup)
-    name = models.CharField(max_length=40,default='basis',verbose_name='naam', help_text='naam van tabpage')
-    order = models.IntegerField(default=1,verbose_name='volgorde', help_text='volgorde van tabpage')
+    name = models.CharField(max_length=40,default='basis',verbose_name='naam')
+    order = models.IntegerField(default=1,verbose_name='volgorde', help_text='volgorde van tabblad')
     dashboard = models.ForeignKey(Dashboard)
 
     def __unicode__(self):
