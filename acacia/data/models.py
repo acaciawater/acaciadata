@@ -23,7 +23,7 @@ THEME_CHOICES = (('dark-blue','blauw'),
 def aware(d,tz=None):
     ''' utility function to ensure datetime object is offset-aware '''
     if d is not None:
-        if isinstance(d, datetime.datetime):
+        if isinstance(d, (datetime.datetime, datetime.date,)):
             if timezone.is_naive(d):
                 if tz is None or tz == '':
                     tz = settings.TIME_ZONE
@@ -348,7 +348,9 @@ class Datasource(models.Model, DatasourceMixin):
             if limit != 0:
                 limit = abs(limit)
                 # take only last few entries
-                files = list(files)[-limit];
+                files = list(files);
+                if len(files) > limit:
+                    files = files[-limit];
         for sourcefile in files:
             try:
                 try:
