@@ -1,7 +1,7 @@
 import os
 from .models import Project, ProjectLocatie, MeetLocatie, Datasource, SourceFile, Generator
 from .models import Parameter, Series, DataPoint, Chart, ChartSeries, Dashboard, DashboardChart, TabGroup, TabPage
-from .models import Variable, Formula, Webcam, Notification, ManualSeries
+from .models import Variable, Formula, Webcam, Notification, ManualSeries, Grid
 
 from django.shortcuts import render, redirect
 from django.contrib import admin
@@ -363,6 +363,16 @@ class ChartSeriesInline(admin.StackedInline):
     extra = 0
     fields = (('series', 'order', 'name'), ('axis', 'axislr', 'label'), ('color', 'type', 'stack'), ('t0', 't1'), ('y0', 'y1'))
     ordering = ('order',)
+
+class GridSeriesInline(admin.TabularInline):
+    model = ChartSeries
+    raw_id_fields = ('series',)
+    autocomplete_lookup_fields = {
+        'fk': ['series'],
+    }
+    extra = 1
+    fields = ('series', 'order',)
+    ordering = ('order',)
     
 class DataPointAdmin(admin.ModelAdmin):
     list_display = ('series', 'date', 'value',)
@@ -375,6 +385,19 @@ class ChartAdmin(admin.ModelAdmin):
     inlines = [ChartSeriesInline,]
     exclude = ('user',)
     fields = ('name', 'description', 'title', ('percount', 'perunit',), ('start', 'stop',),)
+    search_fields = ['name','description', 'title']
+
+    #formfield_overrides = {models.TextField: {'widget': forms.Textarea(attrs={'class': 'htmleditor'})}}
+                
+    def save_model(self, request, obj, form, change):
+        obj.user = request.user
+        obj.save()
+
+class GridAdmin(admin.ModelAdmin):
+    list_display = ('name', 'title', 'tijdreeksen', )
+    inlines = [GridSeriesInline,]
+    exclude = ('user',)
+    fields = ('name', 'description', 'title', ('percount', 'perunit',), ('start', 'stop',),('colwidth', 'rowheight'))
     search_fields = ['name','description', 'title']
 
     #formfield_overrides = {models.TextField: {'widget': forms.Textarea(attrs={'class': 'htmleditor'})}}
@@ -464,7 +487,6 @@ class NotificationAdmin(admin.ModelAdmin):
         queryset.update(level=level)
     set_level.short_description='Niveau aanpassen'
         
-
 admin.site.register(Project, ProjectAdmin, Media = Media)
 admin.site.register(ProjectLocatie, ProjectLocatieAdmin, Media = Media)
 admin.site.register(MeetLocatie, MeetLocatieAdmin, Media = Media)
@@ -472,13 +494,10 @@ admin.site.register(Series, SeriesAdmin)
 admin.site.register(Parameter, ParameterAdmin)
 admin.site.register(Generator, GeneratorAdmin)
 admin.site.register(Datasource, DatasourceAdmin)
-#admin.site.register(SourceFile, SourceFileAdmin)
 admin.site.register(Chart, ChartAdmin, Media = Media)
 admin.site.register(Dashboard, DashAdmin)
 admin.site.register(TabGroup, TabGroupAdmin)
-#admin.site.register(TabPage, TabPageAdmin)
-#admin.site.register(Formula, FormulaAdmin)
 admin.site.register(Variable, VariableAdmin)
 admin.site.register(Webcam, WebcamAdmin)
 admin.site.register(Notification, NotificationAdmin)
-#admin.site.register(ManualSeries, ManualSeriesAdmin)
+admin.site.register(Grid, GridAdmin)
