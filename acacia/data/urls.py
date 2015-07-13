@@ -1,10 +1,9 @@
 from django.conf.urls import patterns, url
-from django.views.generic import DetailView
 from django.views.generic.list import ListView
-from acacia.data.models import Project, ProjectLocatie, MeetLocatie
+from acacia.data.models import Project
 from acacia.data.views import DatasourceDetailView, DatasourceAsZip, DatasourceAsCsv, ProjectDetailView, ProjectLocatieDetailView, \
-    MeetLocatieDetailView, MeetlocatieAsZip, SeriesAsCsv, SeriesToJson, ChartToJson, ChartAsCsv, UpdateMeetlocatie, ChartView, ChartBaseView, \
-    DashView, TabGroupView, SeriesView, UpdateDatasource,\
+    MeetLocatieDetailView, MeetlocatieAsZip, SeriesAsCsv, SeriesToJson, ChartToJson, GridToJson, ChartAsCsv, UpdateMeetlocatie, ChartView, ChartBaseView, \
+    DashView, TabGroupView, SeriesView, MapView, UpdateDatasource,\
     StartUpdateDatasource, poll_state
 
 
@@ -27,6 +26,7 @@ urlpatterns = patterns('',
         
     url(r'^get/series/(?P<pk>\d+)/$', SeriesToJson),
     url(r'^get/chart/(?P<pk>\d+)/$', ChartToJson),
+    url(r'^get/grid/(?P<pk>\d+)/$', GridToJson),
     
     url(r'^reeks/(?P<pk>\d+)/$', SeriesView.as_view(), name='series-detail'),
     url(r'^chart/(?P<pk>\d+)/$', ChartBaseView.as_view(), name='chart-detail'),
@@ -36,5 +36,6 @@ urlpatterns = patterns('',
     url(r'^project/(?P<pk>\d+)/$', ProjectDetailView.as_view(), name='project-detail'),
     url(r'^locatie/(?P<pk>\d+)$', ProjectLocatieDetailView.as_view(), name='projectlocatie-detail'),
     url(r'^meetlocatie/(?P<pk>\d+)$', MeetLocatieDetailView.as_view(), name='meetlocatie-detail'),
+    url(r'^map/(?P<pk>\d+)$', MapView.as_view(), name='map-view'),
     
 )
