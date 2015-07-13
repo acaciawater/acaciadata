@@ -3,14 +3,14 @@
 {% block script %}
 {{ block.super }}
 <script src="http://code.highcharts.com/highcharts.js"></script>
+{% if map %}
+<script src="http://code.highcharts.com/maps/modules/heatmap.js"></script>
+{% endif %}
 {% if theme %}
 <script src="{% static theme %}"></script>
 {% else %}
 <script src="{% static 'themes/gray.js' %}"></script>
 {% endif %}
-<!--
-<script src="{% static "highcharts/js/highcharts.js" %}"></script>
-<script src="{% static "highcharts/js/themes/gray.js" %}"></script> -->
 <script>
 Highcharts.setOptions({
   global: {
@@ -26,7 +26,11 @@ Highcharts.setOptions({
 {% block chartloader %}
 <script>
 $(function () {
-  $('#container').highcharts({{ options|safe }});
+	{% if map %}
+	$('#container').highcharts('Map', {{ options|safe }});
+    {% else %}
+    $('#container').highcharts({{ options|safe }});
+	{% endif %}
 });
 </script>
 {% endblock %}

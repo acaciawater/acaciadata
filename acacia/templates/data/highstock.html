@@ -2,7 +2,12 @@
 {% load staticfiles %}
 {% block script %}
 {{ block.super }}
+{% if map %}
+<script src="http://code.highcharts.com/highcharts.js"></script>
+<script src="http://code.highcharts.com/maps/modules/map.js"></script>
+{% else %}
 <script src="http://code.highcharts.com/stock/highstock.js"></script>
+{% endif %}
 {% if theme %}
 <script src="{% static theme %}"></script>
 {% else %}
@@ -23,7 +28,11 @@ Highcharts.setOptions({
 {% block chartloader %}
 <script>
 $(function () {
-  $('#container').highcharts({{ options|safe }});
+	{% if map %}
+	$('#container').highcharts('Map', {{ options|safe }});
+    {% else %}
+    $('#container').highcharts({{ options|safe }});
+	{% endif %}
 });
 </script>
 {% endblock %}

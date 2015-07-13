@@ -3,7 +3,9 @@
 {% block script %}
 {{ block.super }}
 <script src="http://code.highcharts.com/highcharts.js"></script>
-<script src="http://code.highcharts.com/maps/modules/map.js"></script>
+<script src="http://code.highcharts.com/modules/heatmap.js"></script>
+<script src="/static/acacia/js/canvas.js"></script>
+<script src="/static/acacia/js/fetch.js"></script>
 {% if theme %}
 <script src="{% static theme %}"></script>
 {% else %}
@@ -24,13 +26,31 @@ Highcharts.setOptions({
 {% block chartloader %}
 <script>
 $(function () {
-  $('#container').highcharts('Map',{{ options|safe }});
+	var opt = {{options|safe}};
+	opt.chart.events.load = function(){fetchSeries('/data/get/grid/{{grid.id}}');};
+	chart = $('#container').highcharts(opt);
 });
 </script>
-{% endblock %}
-{% endblock %}
+{% endblock chartloader %}
+{% endblock script %}
+{% block extrastyle %}
+<style>
+body, html {
+  height: 100%;
+  margin: 0px;
+}
+.fill {
+  height: 100%;
+}
+.wrapper {
+  height: 100%;
+}
+#container {
+  width: 100%;
+  height: 90%;
+}
+</style>
+{% endblock extrastyle %}
 {% block content %}
-<div class="container-fluid">
-<div id="container" style="width:100%;height:400px;"></div>
-</div>
-{% endblock %}
+<div id="container"></div>
+{% endblock content %}
