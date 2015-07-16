@@ -19,7 +19,7 @@ def locatie_upload(instance, filename):
 
 def meetlocatie_upload(instance, filename):
     return '/'.join(['images',
-                     slugify(instance.project.name), 
+                     slugify(instance.project().name), 
                      slugify(instance.projectlocatie.name), 
                      slugify(instance.name), 
                      filename])

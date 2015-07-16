@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from django.views.generic.list import ListView
 from django.views.generic import DetailView
 from django.views.generic.base import TemplateView
@@ -5,7 +6,7 @@ from django.template import RequestContext
 from django.template.loader import render_to_string
 from django.shortcuts import get_object_or_404, redirect, render, render_to_response
 from django.http import HttpResponse
-from .models import Project, ProjectLocatie, MeetLocatie, Datasource, Series, Chart, Dashboard, TabGroup
+from .models import Project, ProjectLocatie, MeetLocatie, Datasource, Series, Chart, Grid, Dashboard, TabGroup
 from .util import datasource_as_zip, datasource_as_csv, meetlocatie_as_zip, series_as_csv, chart_as_csv
 import json
 import datetime,time
@@ -57,6 +58,27 @@ def ChartToJson(request, pk):
         else:
             data['series_%d' % s.id] = [[p.date,p.value] for p in s.datapoints.filter(date__gt=start, date__lt=c.stop).order_by('date')]
     return HttpResponse(json.dumps(data, default=lambda x: time.mktime(x.timetuple())*1000.0), content_type='application/json')
+
+def GridToJson(request, pk):
+    c = get_object_or_404(Grid,pk=pk)
+    start = c.auto_start()
+    rowdata = []
+    y = 0
+    for cs in c.series.all():
+        s = cs.series
+#         if c.stop is None:
+#             row = [[x,y,p.value] for x,p in enumerate(s.datapoints.filter(date__gt=start).order_by('date'))]
+#         else:
+#             row = [[x,y,p.value] for x,p in enumerate(s.datapoints.filter(date__gt=start, date__lt=c.stop).order_by('date'))]
+        if c.stop is None:
+            row = [[p.date,y,p.value] for _,p in enumerate(s.datapoints.filter(date__gt=start).order_by('date'))]
+        else:
+            row = [[p.date,y,p.value] for _,p in enumerate(s.datapoints.filter(date__gt=start, date__lt=c.stop).order_by('date'))]
+
+        y += 1
+        rowdata.extend(row)
+    data = {'grid': rowdata, 'min': min(rowdata), 'max': max(rowdata) }
+    return HttpResponse(json.dumps(data,default=lambda x: time.mktime(x.timetuple())*1000.0), content_type='application/json')
     
 def ChartAsCsv(request,pk):
     c = get_object_or_404(Chart,pk=pk)
@@ -66,7 +88,7 @@ def tojs(d):
     return 'Date.UTC(%d,%d,%d,%d,%d,%d)' % (d.year, d.month-1, d.day, d.hour, d.minute, d.second)
 
 def date_handler(obj):
-    return tojs(obj) if isinstance(obj, datetime.date) or isinstance(obj, datetime.datetime) else obj
+    return tojs(obj) if isinstance(obj, (datetime.date, datetime.datetime,)) else obj
 
 from .tasks import update_meetlocatie, update_datasource, longjob
 
@@ -283,7 +305,8 @@ class ChartBaseView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super(ChartBaseView, self).get_context_data(**kwargs)
         pk = context.get('pk',1)
-        chart = Chart.objects.get(pk=pk)
+        chart = Chart.objects.get(pk=pk)                
+
         jop = self.get_json(chart)
         context['options'] = jop
         context['chart'] = chart
@@ -327,3 +350,88 @@ class TabGroupView(TemplateView):
             context['page'] = int(page)
             context['dashboard'] = dashboards[page-1]
         return context    
+
+class MapView(TemplateView):
+    template_name = 'data/map.html'
+
+    def get_json(self, grid):
+        x1,y1,z1,x2,y2,z2 = grid.get_extent()
+        options = {
+            'chart': {
+                'type': 'heatmap',
+                'zoomType': 'x',
+                'events': {'load': None},
+            },
+            'title': {
+                'text': grid.title,
+            },
+            'subtitle': {
+                'text': grid.description,
+            },
+            'xAxis': {
+                'type': 'datetime',
+                'min': x1, #datetime.datetime(2015,6,1,10,0,0),
+                'max': x2  #datetime.datetime(2015,6,2,19,0,0),
+            },
+            'yAxis': {
+                'title': {
+                    'text': None
+                },
+                'min': y1,
+                'max': y2,
+                'startOnTick': False,
+                'endOnTick': False,
+                'reversed': True
+            },
+    
+            'colorAxis': {
+                'stops': [
+                    [0, '#3060cf'],
+                    [0.5, '#fffbbc'],
+                    [0.9, '#c4463a'],
+                    [1, '#c4463a']
+                ],
+                'min': z1,
+                'max': z2,
+                'startOnTick': False,
+                'endOnTick': False,
+            },
+    
+            'legend': {
+                        'align': 'right',
+                        'layout': 'vertical',
+                        'margin': 0,
+                        'verticalAlign': 'bottom',
+                        'y': -8,
+                        'symbolHeight': 600
+            },
+            
+            'series': [{
+                'id': 'grid',
+                'data' : [],
+                'borderWidth': 0,
+                'nullColor': '#EFEFEF',
+                'colsize': 6e5, # 30 minutes
+#                'rowsize': 1,
+                'tooltip': {
+                    'headerFormat': '<b>Weerstand</b><br/>',
+                    'pointFormat': 'Datum: {point.x: %e %B %Y %H:%M:%S}<br/>Diepte:{point.y}m<br/>Weerstand: {point.value}',
+                },
+            }]
+        }
+
+        return json.dumps(options,default=lambda x: time.mktime(x.timetuple())*1000.0)
+    
+    def get_context_data(self, **kwargs):
+        context = super(MapView, self).get_context_data(**kwargs)
+        pk = context.get('pk',0)
+        try:
+            grid = Grid.objects.get(pk=pk)
+        except:
+            grid=None
+        jop = self.get_json(grid)
+        context['options'] = jop
+        context['grid'] = grid
+        context['map'] = True
+        return context
+    

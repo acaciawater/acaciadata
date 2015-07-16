@@ -23,7 +23,7 @@ THEME_CHOICES = (('dark-blue','blauw'),
 def aware(d,tz=None):
     ''' utility function to ensure datetime object is offset-aware '''
     if d is not None:
-        if isinstance(d, datetime.datetime):
+        if isinstance(d, (datetime.datetime, datetime.date,)):
             if timezone.is_naive(d):
                 if tz is None or tz == '':
                     tz = settings.TIME_ZONE
@@ -348,7 +348,9 @@ class Datasource(models.Model, DatasourceMixin):
             if limit != 0:
                 limit = abs(limit)
                 # take only last few entries
-                files = list(files)[-limit];
+                files = list(files);
+                if len(files) > limit:
+                    files = files[-limit];
         for sourcefile in files:
             try:
                 try:
@@ -616,7 +618,7 @@ class SourceFile(models.Model,DatasourceMixin):
             self.start = data.index.min()
             self.stop = data.index.max()
 
-from django.db.models.signals import pre_delete, pre_save
+from django.db.models.signals import pre_delete, pre_save, post_save
 from django.dispatch.dispatcher import receiver
 
 @receiver(pre_delete, sender=SourceFile)
@@ -964,7 +966,6 @@ class Series(PolymorphicModel,DatasourceMixin):
                     continue
                 if not timezone.is_aware(date):
                     date = timezone.make_aware(date,tz)
-                #self.datapoints.create(date=adate, value=value)
                 datapoints.append(DataPoint(series=self, date=date, value=value))
                 num_created += 1
             except Exception as e:
@@ -975,7 +976,7 @@ class Series(PolymorphicModel,DatasourceMixin):
         if thumbnail:
             self.make_thumbnail()
         self.save()
-        #self.getproperties()#.update()
+        #self.getproperties().update()
         
     def replace(self):
         logger = self.getLogger()
@@ -1019,78 +1020,79 @@ class Series(PolymorphicModel,DatasourceMixin):
         #self.getproperties().update()
 
 # start properties
-    def aantal(self):
-        return self.datapoints.count()
-     
-    def van(self):
-        van = datetime.datetime.now()
-        agg = self.datapoints.aggregate(van=Min('date'))
-        return agg.get('van', van)
- 
-    def tot(self):
-        tot = datetime.datetime.now()
-        agg = self.datapoints.aggregate(tot=Max('date'))
-        return agg.get('tot', tot)
-     
-    def minimum(self):
-        agg = self.datapoints.aggregate(min=Min('value'))
-        return agg.get('min', 0)
- 
-    def maximum(self):
-        agg = self.datapoints.aggregate(max=Max('value'))
-        return agg.get('max', 0)
- 
-    def gemiddelde(self):
-        agg = self.datapoints.aggregate(avg=Avg('value'))
-        return agg.get('avg', 0)
- 
-    def laatste(self):
-        return self.datapoints.order_by('-date')[0]
- 
-    def beforelast(self):
-        if self.aantal() < 1:
-            return None
-        if self.aantal() == 1:
-            return self.eerste()
-        return self.datapoints.order_by('-date')[1]
-         
-    def eerste(self):
-        return self.datapoints.order_by('date')[0]
-        
+#     def aantal(self):
+#         return self.datapoints.count()
+#      
+#     def van(self):
+#         van = datetime.datetime.now()
+#         agg = self.datapoints.aggregate(van=Min('date'))
+#         return agg.get('van', van)
+#  
+#     def tot(self):
+#         tot = datetime.datetime.now()
+#         agg = self.datapoints.aggregate(tot=Max('date'))
+#         return agg.get('tot', tot)
+#      
+#     def minimum(self):
+#         agg = self.datapoints.aggregate(min=Min('value'))
+#         return agg.get('min', 0)
+#  
+#     def maximum(self):
+#         agg = self.datapoints.aggregate(max=Max('value'))
+#         return agg.get('max', 0)
+#  
+#     def gemiddelde(self):
+#         agg = self.datapoints.aggregate(avg=Avg('value'))
+#         return agg.get('avg', 0)
+#  
+#     def laatste(self):
+#         return self.datapoints.order_by('-date')[0]
+#  
+#     def beforelast(self):
+#         if self.aantal() < 1:
+#             return None
+#         if self.aantal() == 1:
+#             return self.eerste()
+#         return self.datapoints.order_by('-date')[1]
+#          
+#     def eerste(self):
+#         return self.datapoints.order_by('date')[0]        
 # end properties
 
-#     def getproperties(self):
-#         if not hasattr(self,'properties'):
-#             props = SeriesProperties.objects.create(series = self)
-#             props.update()
-#         return self.properties
-#     
-#     def aantal(self):
-#         return self.getproperties().aantal
-#     
-#     def van(self):
-#         return self.getproperties().van
-# 
-#     def tot(self):
-#         return self.getproperties().tot
-#    
-#     def minimum(self):
-#         return self.getproperties().min
-# 
-#     def maximum(self):
-#         return self.getproperties().max
-# 
-#     def gemiddelde(self):
-#         return self.getproperties().gemiddelde
-# 
-#     def laatste(self):
-#         return self.getproperties().laatste
-# 
-#     def beforelast(self):
-#         return self.getproperties().beforelast
-#         
-#     def eerste(self):
-#         return self.getproperties().eerste
+    def getproperties(self):
+        try:
+            props = self.properties
+        except SeriesProperties.DoesNotExist:
+            props = SeriesProperties.objects.create(series = self)
+            props.update()
+        return props
+     
+    def aantal(self):
+        return self.getproperties().aantal
+     
+    def van(self):
+        return self.getproperties().van
+ 
+    def tot(self):
+        return self.getproperties().tot
+    
+    def minimum(self):
+        return self.getproperties().min
+ 
+    def maximum(self):
+        return self.getproperties().max
+ 
+    def gemiddelde(self):
+        return self.getproperties().gemiddelde
+ 
+    def laatste(self):
+        return self.getproperties().laatste
+ 
+    def beforelast(self):
+        return self.getproperties().beforelast
+         
+    def eerste(self):
+        return self.getproperties().eerste
          
     def thumbpath(self):
         return self.thumbnail.path
@@ -1173,14 +1175,20 @@ class SeriesProperties(models.Model):
             self.eerste = self.series.datapoints.order_by('date')[0]
             if self.aantal == 1:
                 self.laaste = self.eerste
-                self.beforelast =  self.laatste
+                self.beforelast = self.eerste
             else:
                 points = self.series.datapoints.order_by('-date')
                 self.laatste = points[0]
                 self.beforelast = points[1]
         if save:
             self.save()
-            
+
+@receiver(pre_save, sender=Series)
+def series_save(sender, instance, **kwargs):
+    try:
+        instance.get_properties().update()
+    except:
+        pass
     
 class Variable(models.Model):
     locatie = models.ForeignKey(MeetLocatie)
@@ -1365,13 +1373,47 @@ class Chart(models.Model):
         df = self.to_pandas()
         df.to_csv(io,index_label='Datum/tijd')
         return io.getvalue()
+
+    def add_series(self, series):
+        order = self.series.count()
+        for s in series:
+            order += 1
+            self.series.create(order=order,series=s,name=s.name)
         
     class Meta:
         ordering = ['name',]
         verbose_name = 'Grafiek'
         verbose_name_plural = 'Grafieken'
 
-        
+class Grid(Chart):    
+    colwidth = models.FloatField(default=1,verbose_name='kolombreedte',help_text='kolombreedte in dagen')
+    rowheight = models.FloatField(default=1,verbose_name='rijhoogte')
+
+    def get_absolute_url(self):
+        return reverse('acacia:map-view', args=[self.id])
+
+    def get_extent(self):
+        x1 = None
+        x2 = None
+        y1 = 0
+        y2 = max(0,self.series.count()-1)
+        z1 = None
+        z2 = None
+        for cs in self.series.all():
+            s = cs.series
+            if x1 is None:
+                x1 = s.van()
+                x2 = s.tot()
+                z1 = s.minimum()
+                z2 = s.maximum()
+            else:
+                x1 = min(x1,s.van())
+                x2 = max(x2,s.tot())
+                z1 = min(z1,s.minimum())
+                z2 = max(z2,s.maximum())
+        return (x1,y1,z1,x2,y2,z2)
+                
+            
 AXIS_CHOICES = (
                 ('l', 'links'),
                 ('r', 'rechts'),
