@@ -1,7 +1,7 @@
 import os
 from .models import Project, ProjectLocatie, MeetLocatie, Datasource, SourceFile, Generator
 from .models import Parameter, Series, DataPoint, Chart, ChartSeries, Dashboard, DashboardChart, TabGroup, TabPage
-from .models import Variable, Formula, Webcam, Notification, ManualSeries
+from .models import Variable, Formula, Webcam, Notification, ManualSeries, Grid
 
 from django.shortcuts import render, redirect
 from django.contrib import admin
