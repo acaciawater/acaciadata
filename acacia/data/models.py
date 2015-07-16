@@ -1437,7 +1437,7 @@ class ChartSeries(models.Model):
     t1 = models.DateTimeField(null=True,blank=True,verbose_name='stop')
     
     def __unicode__(self):
-        return self.series
+        return unicode(self.series)
     
     def theme(self):
         s = self.series

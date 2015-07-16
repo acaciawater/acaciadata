@@ -1,7 +1,7 @@
 import os
 from .models import Project, ProjectLocatie, MeetLocatie, Datasource, SourceFile, Generator
 from .models import Parameter, Series, DataPoint, Chart, ChartSeries, Dashboard, DashboardChart, TabGroup, TabPage
-from .models import Variable, Formula, Webcam, Notification, ManualSeries, Grid
+from .models import Variable, Formula, Webcam, Notification, ManualSeries
 
 from django.shortcuts import render, redirect
 from django.contrib import admin
@@ -492,6 +492,7 @@ admin.site.register(Series, SeriesAdmin)
 admin.site.register(Parameter, ParameterAdmin)
 admin.site.register(Generator, GeneratorAdmin)
 admin.site.register(Datasource, DatasourceAdmin)
+#admin.site.register(ChartSeries)
 admin.site.register(Chart, ChartAdmin, Media = Media)
 admin.site.register(Dashboard, DashAdmin)
 admin.site.register(TabGroup, TabGroupAdmin)

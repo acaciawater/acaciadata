@@ -38,9 +38,10 @@ def trans(p, srid):
     psrid = p.srid
     if not psrid:
         psrid = WGS84
-    if (psrid != srid): 
-        tr = CoordTransform(SpatialReference(p.srid), SpatialReference(srid))
-        p.transform(tr)
+    p.transform(srid)
+#     if (psrid != srid): 
+#         tr = CoordTransform(SpatialReference(p.srid), SpatialReference(srid))
+#         p.transform(tr)
     return p
 
 def save_thumbnail(series,imagefile,kind='line'):
@@ -103,7 +104,7 @@ def datasources_as_zip(datasources, zipname):
             zippath = os.path.join(folder, f.filename())
             zf.write(filepath,zippath)
     zf.close()
-    resp = HttpResponse(io.getvalue(), mimetype = "application/x-zip-compressed")
+    resp = HttpResponse(io.getvalue(), content_type = "application/x-zip-compressed")
     resp['Content-Disposition'] = 'attachment; filename=%s' % zipname
     return resp
 
@@ -112,7 +113,7 @@ def datasource_as_csv(d):
     filename = slugify(d.name) + '.csv'
     csv = d.to_csv()
     logger.debug('csv file created, size = %d bytes' % len(csv))
-    resp = HttpResponse(csv, mimetype='text/csv')
+    resp = HttpResponse(csv, content_type='text/csv')
     resp['Content-Disposition'] = 'attachment; filename=%s' % filename
     return resp
 
@@ -125,14 +126,14 @@ def meetlocatie_as_zip(loc):
 def series_as_csv(series):
     filename = slugify(series.name) + '.csv'
     csv = series.to_csv()
-    resp = HttpResponse(csv, mimetype='text/csv')
+    resp = HttpResponse(csv, content_type='text/csv')
     resp['Content-Disposition'] = 'attachment; filename=%s' % filename
     return resp
 
 def chart_as_csv(chart):
     filename = slugify(chart.name) + '.csv'
     csv = chart.to_csv()
-    resp = HttpResponse(csv, mimetype='text/csv')
+    resp = HttpResponse(csv, content_type='text/csv')
     resp['Content-Disposition'] = 'attachment; filename=%s' % filename
     return resp
 
