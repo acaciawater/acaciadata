@@ -54,22 +54,17 @@ def ChartToJson(request, pk):
     return HttpResponse(json.dumps(data, default=lambda x: time.mktime(x.timetuple())*1000.0), content_type='application/json')
 
 def GridToJson(request, pk):
-    c = get_object_or_404(Grid,pk=pk)
-    start = c.auto_start()
+    g = get_object_or_404(Grid,pk=pk)
+    start = g.auto_start()
     rowdata = []
-    y = 0
-    for cs in c.series.all():
+    y = g.ymin
+    for cs in g.series.all():
         s = cs.series
-#         if c.stop is None:
-#             row = [[x,y,p.value] for x,p in enumerate(s.datapoints.filter(date__gt=start).order_by('date'))]
-#         else:
-#             row = [[x,y,p.value] for x,p in enumerate(s.datapoints.filter(date__gt=start, date__lt=c.stop).order_by('date'))]
-        if c.stop is None:
-            row = [[p.date,y,p.value] for _,p in enumerate(s.datapoints.filter(date__gt=start).order_by('date'))]
+        if g.stop is None:
+            row = [[p.date,y,p.value] for p in s.datapoints.filter(date__gt=start).order_by('date')]
         else:
-            row = [[p.date,y,p.value] for _,p in enumerate(s.datapoints.filter(date__gt=start, date__lt=c.stop).order_by('date'))]
-
-        y += 1
+            row = [[p.date,y,p.value] for p in s.datapoints.filter(date__gt=start, date__lt=g.stop).order_by('date')]
+        y += g.rowheight
         rowdata.extend(row)
     data = {'grid': rowdata, 'min': min(rowdata), 'max': max(rowdata) }
     return HttpResponse(json.dumps(data,default=lambda x: time.mktime(x.timetuple())*1000.0), content_type='application/json')
@@ -345,7 +340,7 @@ class TabGroupView(TemplateView):
             context['dashboard'] = dashboards[page-1]
         return context    
 
-class MapView(TemplateView):
+class GridView(TemplateView):
     template_name = 'data/map.html'
 
     def get_json(self, grid):
@@ -364,8 +359,8 @@ class MapView(TemplateView):
             },
             'xAxis': {
                 'type': 'datetime',
-                'min': x1, #datetime.datetime(2015,6,1,10,0,0),
-                'max': x2  #datetime.datetime(2015,6,2,19,0,0),
+                'min': x1,
+                'max': x2 
             },
             'yAxis': {
                 'title': {
@@ -402,14 +397,17 @@ class MapView(TemplateView):
             
             'series': [{
                 'id': 'grid',
-                'data' : [],
+                'data' : [], # load using ajax
                 'borderWidth': 0,
                 'nullColor': '#EFEFEF',
-                'colsize': 6e5, # 30 minutes
-#                'rowsize': 1,
+                'colsize': grid.colwidth * 3600000.0, # hours to milliseconds
+                'rowsize': grid.rowheight,
                 'tooltip': {
-                    'headerFormat': '<b>Weerstand</b><br/>',
-                    'pointFormat': 'Datum: {point.x: %e %B %Y %H:%M:%S}<br/>Diepte:{point.y}m<br/>Weerstand: {point.value}',
+                    'useHTML': True,
+                    'headerFormat': '',
+                    'pointFormat': '{point.x: %e %B %Y %H:%M:%S}<br/>Diepte: {point.y}m<br/>Weerstand: <b>{point.value} Ωm</b>',
+                    'footerFormat': '',
+                    'valueDecimals': 2
                 },
             }]
         }
@@ -417,7 +415,7 @@ class MapView(TemplateView):
         return json.dumps(options,default=lambda x: time.mktime(x.timetuple())*1000.0)
     
     def get_context_data(self, **kwargs):
-        context = super(MapView, self).get_context_data(**kwargs)
+        context = super(GridView, self).get_context_data(**kwargs)
         pk = context.get('pk',0)
         try:
             grid = Grid.objects.get(pk=pk)

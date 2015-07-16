@@ -3,7 +3,7 @@ from django.views.generic.list import ListView
 from acacia.data.models import Project
 from acacia.data.views import DatasourceDetailView, DatasourceAsZip, DatasourceAsCsv, ProjectDetailView, ProjectLocatieDetailView, \
     MeetLocatieDetailView, MeetlocatieAsZip, SeriesAsCsv, SeriesToJson, ChartToJson, GridToJson, ChartAsCsv, UpdateMeetlocatie, ChartView, ChartBaseView, \
-    DashView, TabGroupView, SeriesView, MapView, UpdateDatasource,\
+    DashView, TabGroupView, SeriesView, GridView, UpdateDatasource,\
     StartUpdateDatasource, poll_state
 
 
@@ -36,6 +36,6 @@ urlpatterns = patterns('',
     url(r'^project/(?P<pk>\d+)/$', ProjectDetailView.as_view(), name='project-detail'),
     url(r'^locatie/(?P<pk>\d+)$', ProjectLocatieDetailView.as_view(), name='projectlocatie-detail'),
     url(r'^meetlocatie/(?P<pk>\d+)$', MeetLocatieDetailView.as_view(), name='meetlocatie-detail'),
-    url(r'^map/(?P<pk>\d+)$', MapView.as_view(), name='map-view'),
+    url(r'^grid/(?P<pk>\d+)$', GridView.as_view(), name='grid-view'),
     
 )

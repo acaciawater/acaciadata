@@ -1186,9 +1186,11 @@ class SeriesProperties(models.Model):
 @receiver(pre_save, sender=Series)
 def series_save(sender, instance, **kwargs):
     try:
-        instance.get_properties().update()
-    except:
-        pass
+        props = instance.getproperties()
+        props.update()
+    except Exception as e:
+        logger = instance.getLogger()
+        logger.exception('Error updating properties of %s: %s' % (instance, e))
     
 class Variable(models.Model):
     locatie = models.ForeignKey(MeetLocatie)
@@ -1373,12 +1375,6 @@ class Chart(models.Model):
         df = self.to_pandas()
         df.to_csv(io,index_label='Datum/tijd')
         return io.getvalue()
-
-    def add_series(self, series):
-        order = self.series.count()
-        for s in series:
-            order += 1
-            self.series.create(order=order,series=s,name=s.name)
         
     class Meta:
         ordering = ['name',]
@@ -1386,11 +1382,12 @@ class Chart(models.Model):
         verbose_name_plural = 'Grafieken'
 
 class Grid(Chart):    
-    colwidth = models.FloatField(default=1,verbose_name='kolombreedte',help_text='kolombreedte in dagen')
+    colwidth = models.FloatField(default=1,verbose_name='tijdstap',help_text='tijdstap in uren')
     rowheight = models.FloatField(default=1,verbose_name='rijhoogte')
-
+    ymin = models.FloatField(default=0,verbose_name='y-minimum')
+    
     def get_absolute_url(self):
-        return reverse('acacia:map-view', args=[self.id])
+        return reverse('acacia:grid-view', args=[self.id])
 
     def get_extent(self):
         x1 = None
@@ -1411,6 +1408,10 @@ class Grid(Chart):
                 x2 = max(x2,s.tot())
                 z1 = min(z1,s.minimum())
                 z2 = max(z2,s.maximum())
+        if self.start is not None:
+            x1 = self.start
+        if self.stop is not None:
+            x2 = self.stop
         return (x1,y1,z1,x2,y2,z2)
                 
             
