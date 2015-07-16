@@ -61,7 +61,7 @@ class ProjectLocatieAdmin(admin.ModelAdmin):
     #form = ProjectLocatieForm
     list_display = ('name','project','location_count',)
     list_filter = ('project',)
-    formfield_overrides = {models.PointField:{'widget': forms.TextInput(attrs={'width': '40px'})},
+    formfield_overrides = {models.PointField:{'widget': forms.Textarea},
                            models.TextField: {'widget': forms.Textarea(attrs={'class': 'htmleditor'})}}
 
 class MeetLocatieForm(ModelForm):
@@ -82,7 +82,7 @@ class MeetLocatieAdmin(admin.ModelAdmin):
     form = MeetLocatieForm
     list_display = ('name','projectlocatie','project','datasourcecount',)
     list_filter = ('projectlocatie','projectlocatie__project',)
-    formfield_overrides = {models.PointField:{'widget': forms.TextInput, 'required': False},
+    formfield_overrides = {models.PointField:{'widget': forms.Textarea},
                            models.TextField: {'widget': forms.Textarea(attrs={'class': 'htmleditor'})}}
     actions = [actions.meteo_toevoegen, 'add_notifications']
 
@@ -360,7 +360,6 @@ class ChartSeriesInline(admin.StackedInline):
     autocomplete_lookup_fields = {
         'fk': ['series'],
     }
-    extra = 0
     fields = (('series', 'order', 'name'), ('axis', 'axislr', 'label'), ('color', 'type', 'stack'), ('t0', 't1'), ('y0', 'y1'))
     ordering = ('order',)
     
@@ -473,6 +472,7 @@ admin.site.register(Parameter, ParameterAdmin)
 admin.site.register(Generator, GeneratorAdmin)
 admin.site.register(Datasource, DatasourceAdmin)
 #admin.site.register(SourceFile, SourceFileAdmin)
+#admin.site.register(ChartSeries)
 admin.site.register(Chart, ChartAdmin, Media = Media)
 admin.site.register(Dashboard, DashAdmin)
 admin.site.register(TabGroup, TabGroupAdmin)

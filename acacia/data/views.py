@@ -40,6 +40,12 @@ def SeriesToJson(request, pk):
     j = json.dumps(points, default=lambda x: time.mktime(x.timetuple())*1000.0)
     return HttpResponse(j, content_type='application/json')
 
+def SeriesToDict(request, pk):
+    s = get_object_or_404(Series,pk=pk)
+    points = [{'date':p.date.date(),'time': p.date.time(), 'value':p.value} for p in s.datapoints.order_by('date')]
+    j = json.dumps(points, default=lambda x: str(x))
+    return HttpResponse(j, content_type='application/json')
+
 def ChartToJson(request, pk):
     c = get_object_or_404(Chart,pk=pk)
     start = c.auto_start()
