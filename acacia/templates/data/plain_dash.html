@@ -9,6 +9,10 @@
     <link href="{% static "acacia/css/bootstrap.min.css" %}" rel="stylesheet">
 	<style>
 	body {margin: 0; padding: 0;}
+	iframe {
+	 	padding-top: 16px;
+	 	padding-left: 16px;
+	}
 	</style>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
     <script src="{% static "acacia/js/bootstrap.min.js" %}"></script>
@@ -17,7 +21,7 @@
 <div class="container-fluid">
 <div class="row row-fluid">
 {% for chart in dashboard.sorted_charts.all %}
-<div class=col-md-6><a href = "{% url 'chart-detail' chart.id %}"><iframe src="{% url 'chart-detail' chart.id %}" height="300px" width="600px" marginwidth="0" seamless="seamless" frameborder="0"></iframe></a></div>
+<div class=col-md-6><a href = "{% url 'chart-detail' chart.id %}"><iframe src="{% url 'chart-detail' chart.id %}" height="340px" width="640px" marginwidth="0" seamless="seamless" frameborder="0"></iframe></a></div>
 {% if forloop.counter|divisibleby:2 %}
 </div><div class="row row-fluid">
 {% endif %}

@@ -308,7 +308,7 @@ class FormulaSeriesAdmin(PolymorphicChildModelAdmin, SaveUserMixin):
         
 #class SeriesAdmin(admin.ModelAdmin):
 class SeriesAdmin(PolymorphicParentModelAdmin):
-    actions = [actions.copy_series, actions.download_series, actions.refresh_series, actions.replace_series, actions.series_thumbnails, actions.update_series_properties, actions.empty_series]
+    actions = [actions.create_grid, actions.copy_series, actions.download_series, actions.refresh_series, actions.replace_series, actions.series_thumbnails, actions.update_series_properties, actions.empty_series]
     list_display = ('name', 'thumbtag', 'typename', 'parameter', 'datasource', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
     base_model = Series
     #base_form = SeriesForm
@@ -400,8 +400,6 @@ class GridAdmin(admin.ModelAdmin):
     fields = ('name', 'description', 'title', ('percount', 'perunit',), ('start', 'stop',),('colwidth', 'rowheight'))
     search_fields = ['name','description', 'title']
 
-    #formfield_overrides = {models.TextField: {'widget': forms.Textarea(attrs={'class': 'htmleditor'})}}
-                
     def save_model(self, request, obj, form, change):
         obj.user = request.user
         obj.save()

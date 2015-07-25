@@ -1,7 +1,7 @@
 from .shortcuts import meteo2locatie
-from .models import Chart, Series
+from .models import Chart, Series, Grid
 
-import logging
+import logging, re
 logger = logging.getLogger(__name__)
 
 def meteo_toevoegen(modeladmin, request, queryset):
@@ -114,3 +114,22 @@ def copy_charts(modeladmin, request, queryset):
         c.user = request.user
         c.save()
 copy_charts.short_description = "Geselecteerde grafieken dupliceren"
+
+def create_grid(modeladmin, request, queryset):
+    ''' create grid from selected timeseries '''
+    name='Naamloos'
+    index=0
+    while Grid.objects.filter(name=name).count()>0:
+        index += 1
+        name = 'Naamloos%d' % index
+    grid = Grid.objects.create(name=name,title=name,description=name,user=request.user,percount=0)
+    order = 1
+    for s in queryset:
+        name = s.name
+        # use the last  number in the grid name as index: R1VV(13) -> 13
+        match = re.findall(r'\d+',name)
+        if match:
+            order = int(match[-1])
+        grid.series.create(series=s, order=order)
+        order += 1
+create_grid.short_description = "Grid maken met geselecteerde tijdreeksen"
