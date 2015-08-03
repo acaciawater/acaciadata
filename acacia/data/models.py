@@ -170,6 +170,9 @@ class MeetLocatie(geo.Model):
     
     def series(self):
         ser = []
+#         for s in Series.objects.all():
+#             if s.meetlocatie() == self:
+#                 ser.append(s)
         for f in self.datasources.all():
             for p in f.parameter_set.all():
                 for s in p.series_set.all():
@@ -177,6 +180,10 @@ class MeetLocatie(geo.Model):
         # Ook berekende reeksen!
         for f in self.formula_set.all():
             ser.append(f)
+        # ook handmatige reeksen
+        for m in self.manualseries_set.all():
+            ser.append(m)
+            
         return ser
 
     def charts(self):
@@ -1018,46 +1025,6 @@ class Series(PolymorphicModel,DatasourceMixin):
             self.make_thumbnail()
         self.save()
         #self.getproperties().update()
-
-# start properties
-#     def aantal(self):
-#         return self.datapoints.count()
-#      
-#     def van(self):
-#         van = datetime.datetime.now()
-#         agg = self.datapoints.aggregate(van=Min('date'))
-#         return agg.get('van', van)
-#  
-#     def tot(self):
-#         tot = datetime.datetime.now()
-#         agg = self.datapoints.aggregate(tot=Max('date'))
-#         return agg.get('tot', tot)
-#      
-#     def minimum(self):
-#         agg = self.datapoints.aggregate(min=Min('value'))
-#         return agg.get('min', 0)
-#  
-#     def maximum(self):
-#         agg = self.datapoints.aggregate(max=Max('value'))
-#         return agg.get('max', 0)
-#  
-#     def gemiddelde(self):
-#         agg = self.datapoints.aggregate(avg=Avg('value'))
-#         return agg.get('avg', 0)
-#  
-#     def laatste(self):
-#         return self.datapoints.order_by('-date')[0]
-#  
-#     def beforelast(self):
-#         if self.aantal() < 1:
-#             return None
-#         if self.aantal() == 1:
-#             return self.eerste()
-#         return self.datapoints.order_by('-date')[1]
-#          
-#     def eerste(self):
-#         return self.datapoints.order_by('date')[0]        
-# end properties
 
     def getproperties(self):
         try:
