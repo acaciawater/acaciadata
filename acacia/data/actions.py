@@ -133,3 +133,21 @@ def create_grid(modeladmin, request, queryset):
         grid.series.create(series=s, order=order)
         order += 1
 create_grid.short_description = "Grid maken met geselecteerde tijdreeksen"
+
+def update_grid(modeladmin, request, queryset):
+    ''' update time series for selected grids '''
+    group = []
+    for g in queryset:
+        for cs in g.series.all():
+            s = cs.series
+            ds = s.datasource
+            if ds is not None:
+                if not ds in group:
+                    ds.download()
+                    group.append(ds)
+    for g in queryset:
+        for cs in g.series.all():
+            s = cs.series
+            s.update()
+            
+update_grid.short_description = "Grid bijwerken"
