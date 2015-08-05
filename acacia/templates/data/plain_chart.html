@@ -52,7 +52,6 @@
 				  	var chart = $('#container').highcharts();
 				  	$.each(data,function(id,data) {
 				  		var series = chart.get(id);
-//	 			    	chart.showLoading("Gegevens verversen van " + series.name);
 						series.setData(data);
 				  	});
 			    },
@@ -74,8 +73,7 @@
 			  posy = 8;
 			  this.renderer.image('/static/acacia/img/fullscreen3.png',posx,posy,16,16)
 	 		    .on('click', function() {
-		        	window.open('/data/grafiek/{{chart.id}}');
-			        //location.href = '/data/grafiek/{{chart.id}}'
+		        	window.open('{{chart.get_absolute_url}}');
 			    })
 			    .attr({
 			        zIndex: 100,

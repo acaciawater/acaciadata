@@ -346,8 +346,8 @@ class TabGroupView(TemplateView):
             context['dashboard'] = dashboards[page-1]
         return context    
 
-class GridView(TemplateView):
-    template_name = 'data/map.html'
+class GridBaseView(TemplateView):
+    template_name = 'data/plain_map.html'
 
     def get_json(self, grid):
         x1,y1,z1,x2,y2,z2 = grid.get_extent()
@@ -421,7 +421,7 @@ class GridView(TemplateView):
         return json.dumps(options,default=lambda x: time.mktime(x.timetuple())*1000.0)
     
     def get_context_data(self, **kwargs):
-        context = super(GridView, self).get_context_data(**kwargs)
+        context = super(GridBaseView, self).get_context_data(**kwargs)
         pk = context.get('pk',0)
         try:
             grid = Grid.objects.get(pk=pk)
@@ -433,3 +433,6 @@ class GridView(TemplateView):
         context['map'] = True
         return context
     
+class GridView(GridBaseView):
+    template_name = 'data/map.html'
+

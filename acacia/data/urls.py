@@ -2,10 +2,8 @@ from django.conf.urls import patterns, url
 from django.views.generic.list import ListView
 from acacia.data.models import Project
 from acacia.data.views import DatasourceDetailView, DatasourceAsZip, DatasourceAsCsv, ProjectDetailView, ProjectLocatieDetailView, \
-    MeetLocatieDetailView, MeetlocatieAsZip, SeriesAsCsv, SeriesToJson, ChartToJson, GridToJson, ChartAsCsv, UpdateMeetlocatie, ChartView, ChartBaseView, \
-    DashView, TabGroupView, SeriesView, GridView, UpdateDatasource,\
-    StartUpdateDatasource, poll_state
-
+    MeetLocatieDetailView, MeetlocatieAsZip, SeriesAsCsv, SeriesToJson, ChartToJson, GridToJson, ChartAsCsv, UpdateMeetlocatie, ChartView, \
+    ChartBaseView, DashView, TabGroupView, SeriesView, GridBaseView, GridView, UpdateDatasource, StartUpdateDatasource, poll_state
 
 urlpatterns = patterns('',
     url(r'^$', ListView.as_view(model=Project), name='project-list'),
@@ -28,14 +26,15 @@ urlpatterns = patterns('',
     url(r'^get/chart/(?P<pk>\d+)/$', ChartToJson),
     url(r'^get/grid/(?P<pk>\d+)/$', GridToJson),
     
-    url(r'^reeks/(?P<pk>\d+)/$', SeriesView.as_view(), name='series-detail'),
+    url(r'^series/(?P<pk>\d+)/$', SeriesView.as_view(), name='series-detail'),
     url(r'^chart/(?P<pk>\d+)/$', ChartBaseView.as_view(), name='chart-detail'),
+    url(r'^grid/(?P<pk>\d+)$', GridBaseView.as_view(), name='grid-detail'),
     url(r'^grafiek/(?P<pk>\d+)/$', ChartView.as_view(), name='chart-view'),
+    url(r'^profiel/(?P<pk>\d+)$', GridView.as_view(), name='grid-view'),
     url(r'^dashboard/(?P<pk>\d+)/$', DashView.as_view(), name='dash-view'),
     url(r'^tabs/(?P<pk>\d+)/$', TabGroupView.as_view(), name='tabgroup'),
     url(r'^project/(?P<pk>\d+)/$', ProjectDetailView.as_view(), name='project-detail'),
     url(r'^locatie/(?P<pk>\d+)$', ProjectLocatieDetailView.as_view(), name='projectlocatie-detail'),
     url(r'^meetlocatie/(?P<pk>\d+)$', MeetLocatieDetailView.as_view(), name='meetlocatie-detail'),
-    url(r'^grid/(?P<pk>\d+)$', GridView.as_view(), name='grid-view'),
     
 )
