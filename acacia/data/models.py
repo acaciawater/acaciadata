@@ -1294,7 +1294,8 @@ PERIOD_CHOICES = (
 
 import dateutil
     
-class Chart(models.Model):
+#class Chart(models.Model):
+class Chart(PolymorphicModel):
     name = models.CharField(max_length = 50, verbose_name = 'naam')
     description = models.TextField(blank=True,null=True,verbose_name='toelichting',help_text='Toelichting bij grafiek op het dashboard')
     title = models.CharField(max_length = 50, verbose_name = 'titel')
@@ -1311,7 +1312,10 @@ class Chart(models.Model):
         return self.name
     
     def get_absolute_url(self):
-        return reverse('acacia:chart-view', args=[self.id])
+        return reverse('acacia:chart-view', args=[self.pk])
+
+    def get_dash_url(self):
+        return reverse('acacia:chart-detail', args=[self.pk])
 
     def auto_start(self):
         if self.start is None:
@@ -1354,7 +1358,10 @@ class Grid(Chart):
     ymin = models.FloatField(default=0,verbose_name='y-minimum')
     
     def get_absolute_url(self):
-        return reverse('acacia:grid-view', args=[self.id])
+        return reverse('acacia:grid-view', args=[self.pk])
+
+    def get_dash_url(self):
+        return reverse('acacia:grid-detail', args=[self.pk])
 
     def get_extent(self):
         x1 = None
