@@ -6,7 +6,7 @@ Created on Feb 13, 2014
 import os
 from django.core.management.base import BaseCommand, CommandError
 from acacia.data.models import Project, ProjectLocatie, MeetLocatie, Datasource, Parameter, Series
-from acacia import settings
+from django.conf import settings
 
 class Command(BaseCommand):
     args = ''
@@ -30,6 +30,7 @@ class Command(BaseCommand):
                     os.remove(name)
                     count = count+1 
                 else:
-                    self.stdout.write('Keeping %s\n' % name)
+                    #self.stdout.write('Keeping %s\n' % name)
+                    pass
                     
         self.stdout.write('%d files deleted\n' % count)
