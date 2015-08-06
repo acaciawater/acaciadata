@@ -1356,7 +1356,10 @@ class Grid(Chart):
     colwidth = models.FloatField(default=1,verbose_name='tijdstap',help_text='tijdstap in uren')
     rowheight = models.FloatField(default=1,verbose_name='rijhoogte')
     ymin = models.FloatField(default=0,verbose_name='y-minimum')
-    
+    unit = models.CharField(max_length=20,default='Ωm',blank=True,verbose_name='eenheid')
+    zmin = models.FloatField(null=True,blank=True,verbose_name='z-minimum')
+    zmax = models.FloatField(null=True,blank=True,verbose_name='z-maximum')
+
     def get_absolute_url(self):
         return reverse('acacia:grid-view', args=[self.pk])
 
@@ -1366,8 +1369,8 @@ class Grid(Chart):
     def get_extent(self):
         x1 = None
         x2 = None
-        y1 = 0
-        y2 = max(0,self.series.count()-1)
+        y1 = self.ymin
+        y2 = y1 + max(0,self.series.count()-1) * self.rowheight
         z1 = None
         z2 = None
         for cs in self.series.all():
@@ -1386,6 +1389,10 @@ class Grid(Chart):
             x1 = self.start
         if self.stop is not None:
             x2 = self.stop
+        if self.zmin is not None:
+            z1 = self.zmin
+        if self.zmax is not None:
+            z2 = self.zmax
         return (x1,y1,z1,x2,y2,z2)
                 
             

@@ -411,7 +411,7 @@ class GridBaseView(TemplateView):
                 'tooltip': {
                     'useHTML': True,
                     'headerFormat': '',
-                    'pointFormat': '{point.x: %e %B %Y %H:%M:%S}<br/>Diepte: {point.y}m<br/>Weerstand: <b>{point.value} Ωm</b>',
+                    'pointFormat': '{point.x: %e %B %Y %H:%M:%S}<br/>Diepte: {point.y}m<br/>Weerstand: <b>{point.value} '+grid.unit+'</b>',
                     'footerFormat': '',
                     'valueDecimals': 2
                 },
