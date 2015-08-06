@@ -1,0 +1,71 @@
+{% load staticfiles %}
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta name="keywords" content="" />
+	<meta name="description" content="" />
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<link href="{% static "acacia/img/database_24.ico" %}" rel="icon" type="image/x-ico" />
+	<title>Grid</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+	<script src="http://code.highcharts.com/highcharts.js"></script>
+	<script src="http://code.highcharts.com/modules/heatmap.js"></script>
+	<script src="/static/acacia/js/canvas.js"></script>
+	<script src="/static/acacia/js/fetch.js"></script>
+	{% if theme %}
+	<script src="{% static theme %}"></script>
+	{% else %}
+	<script src="{% static 'themes/gray.js' %}"></script>
+	{% endif %}
+	<style>
+	body, html {
+	  height: 100%;
+	  margin: 0px;
+	}
+	#container {
+	  width: 100%;
+	  height: 100%;
+	}
+	</style>
+	<script>
+	Highcharts.setOptions({
+	  global: {
+		useUTC: false
+	  },
+	  lang: {
+	  	shortMonths : ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dec"],
+		months: ["Januari", "Februari", "Maart", "April", "Mei", "Juni",  "Juli", "Augustus", "September", "Oktober", "November", "December"],
+		weekdays: ["Zondag", "Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag", "Zaterdag"],
+	  }
+	});
+	
+	$(function () {
+		var opt = {{options|safe}};
+		opt.chart.events.load = function() { 
+			fetchSeries('/data/get/grid/{{grid.id}}');
+			posx = this.chartWidth - 32;
+			posy = 8;
+			this.renderer.image('/static/acacia/img/fullscreen3.png',posx,posy,16,16)
+			   .on('click', function() {
+			     	window.open('{{grid.get_absolute_url}}');
+			  })
+			  .attr({
+			      zIndex: 100,
+			      title: 'Openen in apart venster'
+			 	})
+			 	.css({
+			     	cursor: 'pointer'
+			 	})
+			    .add();
+		};
+		opt.legend.symbolHeight=$('#container').height()-100;
+		chart = $('#container').highcharts(opt);
+	});
+	</script>
+
+</head>
+<body>
+<div id="container"></div>
+</body>
+</html>
