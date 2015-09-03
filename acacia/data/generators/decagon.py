@@ -482,8 +482,11 @@ class Dataservice(Generator):
                 series = pd.Series(data,index=df.index)
                 df[p['name']] = series
                 logger.debug('Finished adding data for %s' % pname)
-        # drop rows where index = NaT
-        df.drop([pd.NaT],inplace=True)
+        try:
+            # drop rows where index = NaT
+            df.drop([pd.NaT],inplace=True)
+        except:
+            pass
         # drop rows if all values are na
         df.dropna(how='all',inplace=True)
         return df
