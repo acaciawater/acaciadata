@@ -397,7 +397,7 @@ class GridAdmin(admin.ModelAdmin):
     list_display = ('name', 'title', 'tijdreeksen', )
     inlines = [GridSeriesInline,]
     exclude = ('user',)
-    fields = ('name', 'description', 'title', ('percount', 'perunit',), ('start', 'stop',),('ymin', 'rowheight'),('zmin','zmax','unit'))
+    fields = ('name', 'description', 'title', ('entity', 'unit'),('percount', 'perunit',), ('start', 'stop',),('ymin', 'rowheight'),('zmin','zmax'))
     search_fields = ['name','description', 'title']
 
     def save_model(self, request, obj, form, change):
