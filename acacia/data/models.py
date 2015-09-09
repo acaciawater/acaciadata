@@ -1141,7 +1141,7 @@ class SeriesProperties(models.Model):
         else:
             self.eerste = self.series.datapoints.order_by('date')[0]
             if self.aantal == 1:
-                self.laaste = self.eerste
+                self.laatste = self.eerste
                 self.beforelast = self.eerste
             else:
                 points = self.series.datapoints.order_by('-date')
