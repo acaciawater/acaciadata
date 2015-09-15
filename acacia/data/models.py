@@ -412,11 +412,11 @@ class Datasource(models.Model, DatasourceMixin):
 #                 continue
             if start is not None:
                 sstop = aware(sourcefile.stop,self.timezone)
-                if sstop is None or sstop < start:
+                if sstop is not None and sstop < start:
                     continue
             if stop is not None:
                 sstart = aware(sourcefile.start,self.timezone)
-                if sstart is None or sstart > stop:
+                if sstart is not None and sstart > stop:
                     continue
             d = sourcefile.get_data(**kwargs)
             if d is not None:
