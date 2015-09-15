@@ -59,11 +59,11 @@ class ProjectLocatieForm(ModelForm):
         
 class ProjectLocatieAdmin(admin.ModelAdmin):
     #form = ProjectLocatieForm
+    actions = [actions.meetlocatie_aanmaken,]
     list_display = ('name','project','location_count',)
     list_filter = ('project',)
     formfield_overrides = {models.PointField:{'widget': forms.TextInput(attrs={'width': '40px'})},
                            models.TextField: {'widget': forms.Textarea(attrs={'class': 'htmleditor'})}}
-
 class MeetLocatieForm(ModelForm):
     
     def clean_location(self):
@@ -492,6 +492,7 @@ admin.site.register(Series, SeriesAdmin)
 admin.site.register(Parameter, ParameterAdmin)
 admin.site.register(Generator, GeneratorAdmin)
 admin.site.register(Datasource, DatasourceAdmin)
+admin.site.register(SourceFile, SourceFileAdmin)
 #admin.site.register(ChartSeries)
 admin.site.register(Chart, ChartAdmin, Media = Media)
 admin.site.register(Dashboard, DashAdmin)
