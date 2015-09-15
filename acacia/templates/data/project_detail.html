@@ -50,8 +50,7 @@ function initialize() {
 	      })(marker));
 		bounds.extend(marker.position);
 	});
-// 	if (bounds.northeast != bounds.southwest)
-// 		map.fitBounds(bounds);
+	map.fitBounds(bounds);
 }
 
 $(function(){initialize();});
