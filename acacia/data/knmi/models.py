@@ -5,6 +5,7 @@ class Station(models.Model):
     nummer = models.IntegerField()
     naam = models.CharField(max_length=50)
     location = models.PointField(srid=RDNEW)
+    #zipfilename = models.CharField(max_length=50,null=True,blank=True)
     objects = models.GeoManager()
     
     def coords(self):
@@ -21,6 +22,7 @@ class NeerslagStation(models.Model):
     nummer = models.IntegerField()
     naam = models.CharField(max_length=50)
     location = models.PointField(srid=RDNEW)
+    #zipfilename = models.CharField(max_length=50,null=True,blank=True)
     objects = models.GeoManager()
             
     def coords(self):
