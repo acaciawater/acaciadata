@@ -4,6 +4,12 @@ from .models import Chart, Series, Grid
 import logging, re
 logger = logging.getLogger(__name__)
 
+def meetlocatie_aanmaken(modeladmin, request, queryset):
+    '''standaard meetlocatie aanmaken op zelfde locatie als projectlocatie '''
+    for p in queryset:
+        p.meetlocatie_set.create(name=p.name,location=p.location, description=p.description)
+meetlocatie_aanmaken.short_description = 'Standaard meetlocatie aanmaken voor geselecteerde projectlocaties'
+        
 def meteo_toevoegen(modeladmin, request, queryset):
     for loc in queryset:
         meteo2locatie(loc,user=request.user)
