@@ -27,8 +27,11 @@ class Command(BaseCommand):
                 name = os.path.join(path,f)
                 if not name in inuse:
                     self.stdout.write('Deleting %s\n' % name)
-                    os.remove(name)
-                    count = count+1 
+                    try:
+                        os.remove(name)
+                        count = count+1 
+                    except Exception as e:
+                        self.stdout.write('Error deleting %s: %s\n' % (name,e))
                 else:
                     #self.stdout.write('Keeping %s\n' % name)
                     pass
