@@ -51,8 +51,8 @@ class Regenradar(Generator):
         self.init(**kwargs)
         
         callback = kwargs.get('callback', None)
-
-        dataset = open_url(self.url)
+        url = kwargs.get('url',None) or self.url
+        dataset = open_url(url)
         grid = dataset.precipitation
         data = grid.precipitation
         x0 = dataset.east[0][0]
@@ -99,3 +99,86 @@ class Regenradar(Generator):
 
     def get_parameters(self, fil):
         return  dict({'Neerslag': {'description' : 'dagelijkse neerslag', 'unit': 'mm/d'}})  
+
+''' from lizard neerslagradar
+def values(self, identifier, start_date, end_date):
+        # get coordinates for rasterstorequery
+        cell_x, cell_y = identifier['google_coords']
+        # transform datetimes for rasterstorequery
+        format_ = "%Y-%m-%dT%H:%M:%SZ"
+        end_date_str = datetime.datetime.strftime(end_date, format_)
+        start_date_str = datetime.datetime.strftime(start_date, format_)
+        # rasterstore query
+        url_template = ('https://raster.lizard.net/data?request=getdata&geom='
+               'POINT({x}+{y})&layer=radar:5min&sr=EPSG:3857&start={start}&'
+               'stop={stop}&time=1&indent=2')
+        url = url_template.format(x=cell_x, y=cell_y, start=start_date_str,
+                   stop=end_date_str)
+        url_file = urllib2.urlopen(url)
+        rasterstore_values = json.load(url_file)
+
+        # transform rasterstore values into required datastructure with dicts
+        # in some cases rasterstore contains None values, these are set to 0
+        rain_data = rasterstore_values['values']
+        rain_datetimes = rasterstore_values['time']
+        values = [self._rain_dict(rain_datetimes[i], val if val else 0)
+                  for i, val in enumerate(rain_data)]
+        return values
+'''
+
+import urllib2,json 
+
+def lizard_radar(cell_x, cell_y, start_date, end_date):
+        # transform datetimes for rasterstorequery
+        format_ = "%Y-%m-%dT%H:%M:%SZ"
+        end_date_str = datetime.datetime.strftime(end_date, format_)
+        start_date_str = datetime.datetime.strftime(start_date, format_)
+
+        # rasterstore query
+        url_template = ('https://raster.lizard.net/data?request=getdata&geom='
+               'POINT({x}+{y})&layer=radar:5min&sr=EPSG:3857&start={start}&'
+               'stop={stop}&time=1&indent=2')
+        url = url_template.format(x=cell_x, y=cell_y, start=start_date_str,
+                   stop=end_date_str)
+        url_file = urllib2.urlopen(url)
+        rasterstore_values = json.load(url_file)
+
+        # transform rasterstore values into required datastructure with dicts
+        # in some cases rasterstore contains None values, these are set to 0
+        rain_data = rasterstore_values['values']
+        rain_datetimes = rasterstore_values['time']
+        return zip(rain_datetimes, rain_data)
+
+DEBILT1 = (5.27542,52.13371)
+DEBILT = (587257.028,6824338.265) # google
+    
+# Lizard neerslagradar
+if __name__ == '__main__':
+    result = lizard_radar(DEBILT[0],DEBILT[1],datetime.datetime(2015,1,1),datetime.datetime(2015,2,1))
+    
+# KNMI neerslagradar
+# if __name__ == '__main__':
+#     url = 'http://opendap.knmi.nl/knmi/thredds/dodsC/radarprecipclim/RAD_NL25_RAC_MFBS_24H_NC/RAD_NL25_RAC_MFBS_24H_8UT_2015_NETCDF.zip'
+#     dataset = open_url(url)
+#     print dataset.keys()
+#     grid = dataset.image1_image_data
+#     print grid.dimensions, grid.shape
+#     data = grid
+#     x0 = dataset.x[0][0]
+#     y0 = dataset.y[0][0]
+#         
+#     col = 350
+#     row = 350
+#     
+#     time = dataset.time[:]
+#     t = [UTC2000 + datetime.timedelta(seconds=float(s)) for s in time]
+#     t1 = 0
+#     t2 = 100
+#     z = data[row,col,t1:t2].flatten()
+#     z = ma.masked_where(z == -9999.0, z)
+#     data = pd.Series(z,index=t)
+#     data.index.name = 'Datum'
+#     data.name = 'Neerslag'
+#     io = StringIO.StringIO()
+#     data.to_csv(io,header=True)
+#     response = io.getvalue()
