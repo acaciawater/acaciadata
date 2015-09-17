@@ -49,16 +49,6 @@ class DatasourceMixin:
     def getLogger(self,name=__name__): 
         logger = logging.getLogger(name)  
         return logging.LoggerAdapter(logger,extra={'datasource': self.getDatasource()})
-
-class FollowMixin:
-    ''' Mixin that provides a logging adapter that adds source context to log records
-    Used to send emails to users that follow an object ''' 
-
-    def getSource(self):
-        return self
-    
-    def getLogger(self,name=__name__): 
-        return logging.LoggerAdapter(logging.getLogger(name),extra={'source': self.getSource()})
        
 class Project(models.Model):
     name = models.CharField(max_length=50, unique=True)
