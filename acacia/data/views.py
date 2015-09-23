@@ -67,9 +67,9 @@ def GridToJson(request, pk):
     for cs in g.series.all():
         s = cs.series
         if g.stop is None:
-            row = [[p.date,y,p.value] for p in s.datapoints.filter(date__gt=start).order_by('date')]
+            row = [[p.date,y,p.value*g.scale] for p in s.datapoints.filter(date__gt=start).order_by('date')]
         else:
-            row = [[p.date,y,p.value] for p in s.datapoints.filter(date__gt=start, date__lt=g.stop).order_by('date')]
+            row = [[p.date,y,p.value*g.scale] for p in s.datapoints.filter(date__gt=start, date__lt=g.stop).order_by('date')]
         y += g.rowheight
         rowdata.extend(row)
     data = {'grid': rowdata, 'min': min(rowdata), 'max': max(rowdata) }
@@ -96,8 +96,6 @@ def UpdateDatasource(request,pk):
     update_datasource(pk)
     return redirect(next)
 
-from django.http import HttpResponseRedirect
-from django.core.urlresolvers import reverse
 from celery.result import AsyncResult
 
 def poll_state(request):
@@ -257,9 +255,10 @@ class ChartBaseView(TemplateView):
 
         start = chart.auto_start()
         options['xAxis']['min'] = tojs(start)
-#         if not chart.stop is None:
-#             options['xAxis']['max'] = tojs(chart.stop)
+        if not chart.stop is None:
+            options['xAxis']['max'] = tojs(chart.stop)
         allseries = []
+        # TODO: geen nieuwe y-as aanmaken voor elke tijdreeks! 
         for _,s in enumerate(chart.series.all()):
             ser = s.series
             title = s.label #ser.name if len(ser.unit)==0 else '%s [%s]' % (ser.name, ser.unit) if chart.series.count()>1 else ser.unit
@@ -406,7 +405,7 @@ class GridBaseView(TemplateView):
                 'data' : [], # load using ajax
                 'borderWidth': 0,
                 'nullColor': '#EFEFEF',
-                'colsize': grid.colwidth * 3600000.0, # hours to milliseconds
+                'colsize': grid.colwidth * 3600000.0, # hours to milliseconds. TODO: geeft dit verticale zwarte strepen (afronding)
                 'rowsize': grid.rowheight,
                 'tooltip': {
                     'useHTML': True,
