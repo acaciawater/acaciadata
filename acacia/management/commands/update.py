@@ -107,7 +107,12 @@ class Command(BaseCommand):
                     else:
                         newfilecount = 0
                         newfiles = None
-        
+
+                    if down and newfiles is None:
+                        # we tried to download but there is nothing new
+                        logger.debug('Update of timeseries related to datasource skipped')
+                        continue
+                    
                     count = count + 1
                     logger.info('Reading datasource')
                     try:
