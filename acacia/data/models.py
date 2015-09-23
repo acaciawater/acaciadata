@@ -356,7 +356,7 @@ class Datasource(models.Model, DatasourceMixin):
                     logger.exception('Cannot update parameters for sourcefile %s: %s' % (sourcefile, e))
             except Exception as e:
                 logger.exception('Cannot open sourcefile %s: %s' % (sourcefile, e))
-        logger.info('Update completed, got %d parameters from %d files', len(params),len(files))
+        logger.debug('Update completed, got %d parameters from %d files', len(params),len(files))
         num_created = 0
         num_updated = 0
         for name,defaults in params.iteritems():
@@ -367,7 +367,7 @@ class Datasource(models.Model, DatasourceMixin):
                 param = self.parameter_set.get(name=name)
                 num_updated = num_updated+1
             except Parameter.DoesNotExist:
-                logger.warning('parameter %s created' % name)
+                logger.info('parameter %s created' % name)
                 param = Parameter(name=name,**defaults)
                 param.datasource = self
                 num_created = num_created+1
@@ -1173,7 +1173,7 @@ class Variable(models.Model):
 
 # Series that can be edited manually
 class ManualSeries(Series):
-    ''' Series that can be edited manually '''
+    ''' Series that can be edited manually (no datasource, nor parameter)'''
     locatie = models.ForeignKey(MeetLocatie)
      
     def meetlocatie(self):
@@ -1244,17 +1244,6 @@ class Formula(Series):
                 pass
             deps.append(s)
         return deps
-    
-#     def clean(self):
-#         try:
-#             variables = {var.name: var.series.to_pandas() for var in self.formula_variables.all()}
-#         except Exception as e:
-#             raise ValidationError('Probleem met definitie van de variabelen: %s' % e)
-#         try:
-#             eval(self.formula_text, globals(), variables)
-#         except Exception as e:
-#             raise ValidationError('Fout bij berekening van de formule: %s' % e)
-            
     
     class Meta:
         verbose_name = 'Berekende reeks'
@@ -1350,7 +1339,8 @@ class Grid(Chart):
     unit = models.CharField(max_length=20,default='Ωm',blank=True,verbose_name='eenheid')
     zmin = models.FloatField(null=True,blank=True,verbose_name='z-minimum')
     zmax = models.FloatField(null=True,blank=True,verbose_name='z-maximum')
-
+    scale = models.FloatField(default=1.0,verbose_name='verschalingsfactor')
+    
     def get_absolute_url(self):
         return reverse('acacia:grid-view', args=[self.pk])
 
@@ -1382,8 +1372,12 @@ class Grid(Chart):
             x2 = self.stop
         if self.zmin is not None:
             z1 = self.zmin
+        else:
+            z1 *= self.scale
         if self.zmax is not None:
             z2 = self.zmax
+        else:
+            z2 *= self.scale
         return (x1,y1,z1,x2,y2,z2)
                 
             
