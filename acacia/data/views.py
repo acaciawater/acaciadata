@@ -1,17 +1,14 @@
 # -*- coding: utf-8 -*-
+import datetime,time,json,sys,re,logging
 from django.views.generic.list import ListView
 from django.views.generic import DetailView
 from django.views.generic.base import TemplateView
 from django.template import RequestContext
 from django.template.loader import render_to_string
-from django.shortcuts import get_object_or_404, redirect, render, render_to_response
+from django.shortcuts import get_object_or_404, redirect, render_to_response
 from django.http import HttpResponse
 from .models import Project, ProjectLocatie, MeetLocatie, Datasource, Series, Chart, Grid, Dashboard, TabGroup
 from .util import datasource_as_zip, datasource_as_csv, meetlocatie_as_zip, series_as_csv, chart_as_csv
-import json
-import datetime,time
-import re
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -92,9 +89,9 @@ def UpdateMeetlocatie(request,pk):
     return redirect(request.GET['next'])
 
 def UpdateDatasource(request,pk):
-    next = request.GET['next']
+    nxt = request.GET['next']
     update_datasource(pk)
-    return redirect(next)
+    return redirect(nxt)
 
 from celery.result import AsyncResult
 
@@ -405,7 +402,7 @@ class GridBaseView(TemplateView):
                 'data' : [], # load using ajax
                 'borderWidth': 0,
                 'nullColor': '#EFEFEF',
-                'colsize': grid.colwidth * 3600000.0, # hours to milliseconds. TODO: geeft dit verticale zwarte strepen (afronding)
+                'colsize': grid.colwidth * 36e5, # hours to milliseconds.
                 'rowsize': grid.rowheight,
                 'tooltip': {
                     'useHTML': True,
