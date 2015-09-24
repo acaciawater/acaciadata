@@ -62,6 +62,9 @@ class Command(BaseCommand):
             if replace:
                 logger.info('Recreating series')
             
+            # remember which series have changed during update
+            changed_series = []
+            
             for d in datasources:
                 if not d.autoupdate and pk is None:
                     continue
@@ -108,14 +111,15 @@ class Command(BaseCommand):
                         newfilecount = 0
                         newfiles = None
 
-                    if down and newfiles is None:
-                        # we tried to download but there is nothing new
+                    if down and newfilecount == 0:
+                        # we tried to download but there is no new data
                         logger.debug('Update of timeseries related to datasource skipped')
                         continue
                     
                     count = count + 1
                     logger.info('Reading datasource')
                     try:
+                        #TODO: read only new data
                         data = d.get_data(start=start)
                     except Exception as e:
                         logger.exception('Error reading datasource: %s', e)
@@ -123,20 +127,22 @@ class Command(BaseCommand):
                     if data is None:
                         # don't bother to continue: no data
                         continue
-                    logger.info('Updating parameters')
-                    try:
-                        d.update_parameters(data=data,files=newfiles,limit=10)
-                        if replace:
-                            d.make_thumbnails(data=data)
-                    except Exception as e:
-                        logger.exception('ERROR updating parameters for datasource: %s' % e)
+                    if replace:
+                        logger.info('Updating parameters')
+                        try:
+                            d.update_parameters(data=data,files=newfiles,limit=10)
+                            if replace:
+                                d.make_thumbnails(data=data)
+                        except Exception as e:
+                            logger.exception('ERROR updating parameters for datasource: %s' % e)
+
                     for s in series:
                         logger.info('Updating timeseries %s' % s.name)
                         try:
-                            if replace:
-                                s.replace()
-                            else:
-                                s.update(data,start=start)
+                            changes = s.replace() if replace else s.update(data,start=start) 
+                            if changes > 0:
+                                changed_series.append(s)
+                                
                         except Exception as e:
                             logger.exception('ERROR updating timeseries %s: %s' % (s.name, e))
                 
@@ -147,21 +153,41 @@ class Command(BaseCommand):
                 
             logger.datasource = ''
             logger.info('%d datasources were updated' % count)
-            
-            if Formula.objects.count() > 0:
-                calc = options.get('calc',True)
-                if calc:
-                    logger.info('Updating calculated time series')
+
+            calc = options.get('calc',True)
+            if calc:
+
+                def update_formula(f):
+                    
                     count = 0
-                    # TODO: sort formulas by dependency
-                    for f in Formula.objects.all():
-                        logger.info('Updating time series %s' % f.name)
-                        try:
-                            f.update()
-                            count = count + 1
-                        except Exception as e:
-                            logger.exception('ERROR updating calculated time series %s: %s' % (f.name, e))
-                    logger.info('%d calculated time series were updated' % count)
+                    
+                    # update dependent formulas first
+                    for d in f.get_dependencies():
+                        if d in formulas:
+                            count += update_formula(d)
+                    try:
+                        logger.info('Updating calculated time series %s' % f.name)
+                        f.update()
+                        count += 1
+                    except Exception as e:
+                        logger.exception('ERROR updating calculated time series %s: %s' % (f.name, e))
+                    formulas.remove(f)
+                    return count
+                
+                # get all unique formulas to update
+                formulas = set()
+                for f in Formula.objects.all():
+                    for d in f.get_dependencies():
+                        if d in changed_series:
+                            formulas.add(f)
+                            break
+                        
+                formulas = list(formulas)
+                count = 0
+                while formulas:
+                    count += update_formula(formulas[0])
+                    
+                logger.info('%d calculated time series were updated' % count)
 
             #email_handler.flush()
             #logging.getLogger('acacia.data.update').removeHandler(email_handler)
