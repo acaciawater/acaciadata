@@ -373,7 +373,8 @@ class GridSeriesInline(admin.TabularInline):
     extra = 1
     fields = ('series', 'order',)
     ordering = ('order',)
-    
+    classes = ('grp-collapse grp-closed',)
+
 class DataPointAdmin(admin.ModelAdmin):
     list_display = ('series', 'date', 'value',)
     list_filter = ('series', )
@@ -397,7 +398,7 @@ class GridAdmin(admin.ModelAdmin):
     list_display = ('name', 'title', 'tijdreeksen', )
     inlines = [GridSeriesInline,]
     exclude = ('user',)
-    fields = ('name', 'description', 'title', ('entity', 'unit', 'scale'),('percount', 'perunit',), ('start', 'stop',),('ymin', 'rowheight'),('zmin','zmax'))
+    fields =('name', 'description', 'title', ('entity', 'unit', 'scale'),('percount', 'perunit',), ('start', 'stop',),('ymin', 'rowheight'),('zmin','zmax'))
     search_fields = ['name','description', 'title']
 
     def save_model(self, request, obj, form, change):
