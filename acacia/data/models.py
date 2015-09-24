@@ -954,7 +954,7 @@ class Series(PolymorphicModel,DatasourceMixin):
         series = self.get_series_data(data)
         if series is None:
             logger.error('Creation of series %s failed' % self.name)
-            return
+            return 0
 
         for date,value in series.iteritems():
             try:
@@ -973,13 +973,13 @@ class Series(PolymorphicModel,DatasourceMixin):
         if thumbnail:
             self.make_thumbnail()
         self.save()
-        #self.getproperties().update()
-        
+        return num_created
+    
     def replace(self):
         logger = self.getLogger()
         logger.debug('Deleting all %d datapoints from series %s' % (self.datapoints.count(), self.name))
         self.datapoints.all().delete()
-        self.create()
+        return self.create()
 
     def update(self, data=None, start=None):
         logger = self.getLogger()
@@ -991,7 +991,7 @@ class Series(PolymorphicModel,DatasourceMixin):
         series = self.get_series_data(data, start)
         if series is None:
             logger.error('Update of series %s failed' % self.name)
-            return
+            return 0
         
         for date,value in series.iteritems():
             try:
@@ -1014,8 +1014,8 @@ class Series(PolymorphicModel,DatasourceMixin):
         if (num_created + num_updated) > 0:
             self.make_thumbnail()
         self.save()
-        #self.getproperties().update()
-
+        return num_created + num_updated
+    
     def getproperties(self):
         try:
             props = self.properties
