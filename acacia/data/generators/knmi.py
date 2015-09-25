@@ -43,6 +43,7 @@ class Meteo(Generator):
         header = {}
         descr = {}
         header['DESCRIPTION'] = descr
+        header['COLUMNS'] = []
         line = f.readline()
         self.skiprows = 0
         while line != '':
@@ -69,7 +70,7 @@ class Meteo(Generator):
     
     def get_data(self, f, **kwargs):
         header = self.get_header(f)
-        columns = header['COLUMNS']
+        columns = header.get('COLUMNS',[])
         skiprows = self.skiprows if self.engine == 'python' else 0
         data = self.read_csv(f, header=None, names=columns, skiprows = skiprows, skipinitialspace=True, comment = '#', index_col = 1, parse_dates = True)
         return data
@@ -83,8 +84,9 @@ class Meteo(Generator):
             return None
 
     def get_columns(self, hdr):
-        return hdr['COLUMNS'][2:] # eerste 2 zijn station en datum
-                
+        columns = hdr.get('COLUMNS',[])
+        return columns[2:] if len(columns)>2 else columns
+    
     def get_parameters(self, fil):
         header = self.get_header(fil)
         names = self.get_columns(header)
@@ -114,7 +116,7 @@ class UurGegevens(Meteo):
 
     def get_data(self, f, **kwargs):
         header = self.get_header(f)
-        columns = header['COLUMNS']
+        columns = header.get('COLUMNS',[])
         skiprows = self.skiprows # if self.engine == 'python' else 0
         # Bij uurgegevens kan er een carriage return (\r) tussen de kolommen zitten
         with open(f.path,'rb') as f:
@@ -156,6 +158,7 @@ class Neerslag(Meteo):
         header = {}
         descr = {}
         header['DESCRIPTION'] = descr
+        header['COLUMNS'] = []
         self.skiprows = 0
         for i in range(0,9):
             line = f.readline()
@@ -188,7 +191,7 @@ class Neerslag(Meteo):
 
     def get_data(self, f, **kwargs):
         header = self.get_header(f)
-        names = header['COLUMNS']
+        names = header.get('COLUMNS',[])
         names.append('NAME')
         skiprows = self.skiprows if self.engine == 'python' else 0
         data = self.read_csv(f, header=None, skiprows = skiprows, names=names, skipinitialspace=True, comment = '#', index_col = 1, parse_dates = True)
@@ -225,6 +228,7 @@ class ZipMeteo(Meteo,ZipMixin):
         header = {}
         descr = {}
         header['DESCRIPTION'] = descr
+        header['COLUMNS'] = []
         line = f.readline()
         self.skiprows = 0
         while line != '':
@@ -282,12 +286,13 @@ class ZipNeerslag(Neerslag, ZipMixin):
 class ZipUurGegevens(ZipMeteo):
 
     def get_columns(self, hdr):
-        return hdr['COLUMNS'][3:] # eerste 3 zijn station, datum en uur
+        columns = hdr.get('COLUMNS',[])
+        return columns[3:] if len(columns)>3 else columns  # eerste 3 zijn station, datum en uur
 
     def get_data(self, f, **kwargs):
         f=self.unzip(f)
         header = self.get_header(f)
-        columns = header['COLUMNS']
+        columns = header.get('COLUMNS',[])
         skiprows = self.skiprows # if self.engine == 'python' else 0
         text = f.read().translate(None,'\r')
         io = StringIO.StringIO(text)
