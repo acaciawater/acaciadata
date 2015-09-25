@@ -113,14 +113,13 @@ class Command(BaseCommand):
 
                     if down and newfilecount == 0:
                         # we tried to download but there is no new data
-                        logger.debug('Update of timeseries related to datasource skipped')
+                        logger.debug('Update of timeseries skipped')
                         continue
                     
                     count = count + 1
                     logger.info('Reading datasource')
                     try:
-                        #TODO: read only new data
-                        data = d.get_data(start=start)
+                        data = d.get_data(files=newfiles,start=start)
                     except Exception as e:
                         logger.exception('Error reading datasource: %s', e)
                         continue
