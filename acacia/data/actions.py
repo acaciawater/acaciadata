@@ -71,7 +71,7 @@ download_series.short_description = 'Bronbestanden van geselecteerde tijdreeksen
     
 def refresh_series(modeladmin, request, queryset):
     for s in Series.objects.get_real_instances(queryset):
-        s.update()
+        s.update(start=s.tot())
 refresh_series.short_description = 'Geselecteerde tijdreeksen actualiseren'
 
 def replace_series(modeladmin, request, queryset):
