@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os,datetime,math,binascii
+from django.db import connection
 from django.db import models
 from django.db.models import Avg, Max, Min, Sum
 from django.contrib.auth.models import User
@@ -304,24 +305,26 @@ class Datasource(models.Model, DatasourceMixin):
             files = []
             crcs = {f.crc:f.file for f in self.sourcefiles.all()}
 
-            def callback(filename, contents):
-                crc = abs(binascii.crc32(contents))
-                if crc in crcs:
-                    logger.warning('Downloaded file %s ignored: identical to local file %s' % (filename, crcs[crc].file.name))
-                    return
-                try:
-                    sourcefile = self.sourcefiles.get(name=filename)
-                except:
-                    sourcefile = SourceFile(name=filename,datasource=self,user=self.user)
-                sourcefile.crc = crc
-                contentfile = ContentFile(contents)
-                try:
-                    sourcefile.file.save(name=filename, content=contentfile)
-                    logger.debug('File %s saved to %s' % (filename, sourcefile.filepath()))
-                    crcs[crc] = sourcefile.file
-                    files.append(sourcefile)
-                except Exception as e:
-                    logger.exception('Problem saving file %s: %s', (filename,e))
+            def callback(result):
+                for filename, contents in result.iteritems():
+                    crc = abs(binascii.crc32(contents))
+                    if crc in crcs:
+                        logger.warning('Downloaded file %s ignored: identical to local file %s' % (filename, crcs[crc].file.name))
+                        continue
+                    try:
+                        sourcefile = self.sourcefiles.get(name=filename)
+                    except:
+                        sourcefile = SourceFile(name=filename,datasource=self,user=self.user)
+                    sourcefile.crc = crc
+                    contentfile = ContentFile(contents)
+                    try:
+                        sourcefile.file.save(name=filename, content=contentfile)
+                        logger.debug('File %s saved to %s' % (filename, sourcefile.filepath()))
+                        crcs[crc] = sourcefile.file
+                        files.append(sourcefile)
+                    except Exception as e:
+                        logger.exception('Problem saving file %s: %s', (filename,e))
+
             options['callback'] = callback
             results = gen.download(**options)
 
@@ -575,6 +578,7 @@ class SourceFile(models.Model,DatasourceMixin):
     filetag.allow_tags=True
     filetag.short_description='bestand'
            
+    # TODO: use caching framework to cache the data
     def get_data(self,gen=None,**kwargs):
         logger = self.getLogger()
         if gen is None:
@@ -610,12 +614,13 @@ class SourceFile(models.Model,DatasourceMixin):
             self.start = None
             self.stop = None
         else:
+            tz = timezone.get_current_timezone()
             self.rows = data.shape[0]
             self.cols = data.shape[1]
-            self.start = data.index.min()
-            self.stop = data.index.max()
+            self.start = aware(data.index.min(),tz)
+            self.stop = aware(data.index.max(),tz)
 
-from django.db.models.signals import pre_delete, pre_save, post_save
+from django.db.models.signals import pre_delete, pre_save
 from django.dispatch.dispatcher import receiver
 
 @receiver(pre_delete, sender=SourceFile)
@@ -932,9 +937,7 @@ class Series(PolymorphicModel,DatasourceMixin):
         if not self.parameter.name in dataframe:
             # maybe datasource has stopped reporting about this parameter?
             msg = 'series %s: parameter %s not found' % (self.name, self.parameter.name)
-#             msg = msg + ". Available parameters are: %s" % ','.join(dataframe.columns.values.tolist())
             logger.warning(msg)
-#             raise Exception(msg)
             return None
         
         series = dataframe[self.parameter.name]
@@ -944,32 +947,40 @@ class Series(PolymorphicModel,DatasourceMixin):
         series = self.do_postprocess(series, start, stop)
         return series
     
-    def create(self, data=None, thumbnail=True):
-        logger = self.getLogger()
-        tz = timezone.get_current_timezone()
-        num_created = 0
-        num_skipped = 0
-        datapoints = []
-        logger.debug('Creating series %s' % self.name)
-        series = self.get_series_data(data)
-        if series is None:
-            logger.error('Creation of series %s failed' % self.name)
-            return 0
-
+    def prepare_points(self, series, tz):
+        ''' return array of datapoints in given timezone from pandas series'''
+        pts = []
         for date,value in series.iteritems():
             try:
                 value = float(value)
                 if math.isnan(value) or date is None:
                     continue
                 if not timezone.is_aware(date):
-                    date = timezone.make_aware(date,tz)
-                datapoints.append(DataPoint(series=self, date=date, value=value))
-                num_created += 1
+                    # set timezone for naive datetime
+                    date = date.replace(tzinfo=tz)
+                else:
+                    # convert datetime to given timezone
+                    date = date.astimezone(tz)
+                pts.append(DataPoint(series=self, date=date, value=value))
             except Exception as e:
-                logger.debug('Datapoint %s,%g: %s' % (str(date), value, e))
-                num_skipped += 1
-        self.datapoints.bulk_create(datapoints)
-        logger.info('Series %s updated: %d points created, %d points skipped' % (self.name, num_created, num_skipped))
+                self.getlogger().debug('Datapoint %s,%g: %s' % (str(date), value, e))
+        return pts
+    
+    def create_points(self, series, tz):
+        return self.datapoints.bulk_create(self.prepare_points(series, tz))
+    
+    def create(self, data=None, thumbnail=True):
+        logger = self.getLogger()
+        tz = timezone.get_current_timezone()
+        logger.debug('Creating series %s' % self.name)
+        series = self.get_series_data(data)
+        if series is None:
+            logger.error('Creation of series %s failed' % self.name)
+            return 0
+        
+        created = self.create_points(series, tz)
+        num_created = len(created)
+        logger.info('Series %s updated: %d points created, %d points skipped' % (self.name, num_created, series.count() - num_created))
         if thumbnail:
             self.make_thumbnail()
         self.save()
@@ -984,33 +995,35 @@ class Series(PolymorphicModel,DatasourceMixin):
     def update(self, data=None, start=None):
         logger = self.getLogger()
         tz = timezone.get_current_timezone()
-        num_bad = 0
-        num_created = 0
-        num_updated = 0
+
         logger.debug('Updating series %s' % self.name)
         series = self.get_series_data(data, start)
         if series is None:
             logger.error('Update of series %s failed' % self.name)
             return 0
         
-        for date,value in series.iteritems():
-            try:
-                value = float(value)
-                if math.isnan(value) or date is None:
-                    continue
-                if not timezone.is_aware(date):
-                    date = timezone.make_aware(date,tz)
-                point, created = self.datapoints.get_or_create(date=date, defaults={'value': value})
-                if created:
-                    num_created = num_created+1
-                elif point.value != value:
-                    point.value=value
-                    point.save(update_fields=['value'])
-                    num_updated = num_updated+1
-            except Exception as e:
-                logger.debug('Datapoint %s,%g: %s' % (str(date), value, e))
-                num_bad = num_bad+1
-        logger.info('Series %s updated: %d points created, %d updated, %d skipped' % (self.name, num_created, num_updated, num_bad))
+        if series.count() == 0:
+            logger.warning('No datapoints found in series %s' % self.name)
+            return 0;
+        
+        pts = self.prepare_points(series, tz)
+        if pts == []:
+            logger.warning('No valid datapoints found in series %s' % self.name)
+            return 0;
+        
+        #MySQL syntax: DELETE FROM table WHERE (col1,col2) IN ((1,2),(3,4),(5,6))
+        values = ["(%d,'%s')" % (self.id, datetime.datetime.strftime(p.date, '%Y-%m-%d %H:%M:%S')) for p in pts]
+        values = '(' + ','.join(values) + ')'
+        sql = 'DELETE from {table} WHERE (`series_id`,`date`) IN {values}'.format(table=DataPoint._meta.db_table, values=values)
+        count = self.datapoints.count()
+
+        cursor = connection.cursor()
+        cursor.execute(sql)
+
+        created = self.datapoints.bulk_create(pts)
+        num_created = len(created)
+        num_updated = count - num_created
+        logger.info('Series %s updated: %d points created' % (self.name, num_created))
         if (num_created + num_updated) > 0:
             self.make_thumbnail()
         self.save()
