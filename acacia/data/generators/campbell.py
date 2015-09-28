@@ -14,7 +14,8 @@ class CR1000(Generator):
         
         def rd(f):
             return [n.strip('"\r\n') for n in f.readline().split(',')]
-        
+
+        f.seek(0)
         sections = {}
         sections['HEADER'] = rd(f) 
         sections['COLUMNS'] = rd(f)
