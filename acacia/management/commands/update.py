@@ -117,6 +117,7 @@ class Command(BaseCommand):
                         continue
                     
                     count = count + 1
+                    # TODO: Avoid reading the data twice: d.download() has called sourcefile.save() which reads the data and updates dimensions
                     logger.info('Reading datasource')
                     try:
                         data = d.get_data(files=newfiles,start=start)

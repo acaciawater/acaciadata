@@ -994,7 +994,6 @@ class Series(PolymorphicModel,DatasourceMixin):
 
     def update(self, data=None, start=None):
         logger = self.getLogger()
-        tz = timezone.get_current_timezone()
 
         logger.debug('Updating series %s' % self.name)
         series = self.get_series_data(data, start)
@@ -1005,18 +1004,17 @@ class Series(PolymorphicModel,DatasourceMixin):
         if series.count() == 0:
             logger.warning('No datapoints found in series %s' % self.name)
             return 0;
-        
-        pts = self.prepare_points(series, tz)
+
+        # timezone as to be utc for mysql bulk delete
+        pts = self.prepare_points(series, timezone.utc)
         if pts == []:
             logger.warning('No valid datapoints found in series %s' % self.name)
             return 0;
         
-        #MySQL syntax: DELETE FROM table WHERE (col1,col2) IN ((1,2),(3,4),(5,6))
         values = ["(%d,'%s')" % (self.id, datetime.datetime.strftime(p.date, '%Y-%m-%d %H:%M:%S')) for p in pts]
         values = '(' + ','.join(values) + ')'
         sql = 'DELETE from {table} WHERE (`series_id`,`date`) IN {values}'.format(table=DataPoint._meta.db_table, values=values)
         count = self.datapoints.count()
-
         cursor = connection.cursor()
         cursor.execute(sql)
 
