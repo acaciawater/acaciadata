@@ -87,11 +87,11 @@ class Regenradar(Generator):
             filename = 'p%d-%d-%s.csv' % (self.x,self.y,t.strftime('%y%m%d%H%M'))
         else:
             filename = 'rad_tf2400.csv'
-            
+        result = [{filename: response},]
         if callback is not None:
-            callback(filename, response)
+            callback(result)
         
-        return {filename: response}
+        return result
 
     def get_data(self,fil,**kwargs):
         data = self.read_csv(fil, index_col = 0, parse_dates = True)

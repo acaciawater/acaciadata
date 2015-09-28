@@ -389,7 +389,7 @@ class Dataservice(Generator):
 
         result[filename] = response.read()
         if callback is not None:
-            callback(filename, result[filename])
+            callback(result)
         
         return result
 
