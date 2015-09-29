@@ -17,6 +17,7 @@ class NMCPro(Generator):
         self.dayfirst = kwargs.get('dayfirst', False)
 
     def get_header(self, f):
+        f.seek(0)
         sections = {}
         self.skiprows = 1
         line = f.readline()
