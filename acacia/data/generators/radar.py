@@ -9,6 +9,7 @@ import numpy.ma as ma
 import pandas as  pd
 import StringIO
 from pydap.client import open_url
+from pydap.exceptions import DapError
 
 import logging
 logger = logging.getLogger(__name__)
@@ -52,7 +53,11 @@ class Regenradar(Generator):
         
         callback = kwargs.get('callback', None)
         url = kwargs.get('url',None) or self.url
-        dataset = open_url(url)
+        try:
+            dataset = open_url(url)
+        except Exception as e:
+            logger.Exception('ERROR opening OpenDAP dataset %s: %s' % (url, e))
+            return []
         grid = dataset.precipitation
         data = grid.precipitation
         x0 = dataset.east[0][0]
