@@ -56,7 +56,7 @@ class Regenradar(Generator):
         try:
             dataset = open_url(url)
         except Exception as e:
-            logger.Exception('ERROR opening OpenDAP dataset %s: %s' % (url, e))
+            logger.exception('ERROR opening OpenDAP dataset %s: %s' % (url, e))
             return []
         grid = dataset.precipitation
         data = grid.precipitation
