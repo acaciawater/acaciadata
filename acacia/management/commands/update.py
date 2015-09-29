@@ -43,7 +43,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        with DatasourceAdapter(logging.getLogger('acacia.data')) as logger:
+        with DatasourceAdapter(logging.getLogger('update')) as logger:
             #logging.getLogger('acacia.data').addHandler(email_handler)
             logger.datasource = ''
             logger.info('***UPDATE STARTED***')
@@ -70,7 +70,7 @@ class Command(BaseCommand):
                 if not d.autoupdate and pk is None:
                     continue
                 logger.datasource = d
-                logger.info('Updating datasource')
+                logger.info('Updating datasource %s' % d.name)
                 try:
                     series = d.getseries()
                     if replace:
@@ -126,6 +126,7 @@ class Command(BaseCommand):
                         logger.exception('Error reading datasource: %s', e)
                         continue
                     if data is None:
+                        logger.error('No data found for %s. Update of timeseries skipped' % d.name)
                         # don't bother to continue: no data
                         continue
                     if replace:
@@ -143,11 +144,12 @@ class Command(BaseCommand):
                             changes = s.replace() if replace else s.update(data,start=start) 
                             if changes > 0:
                                 changed_series.append(s)
-                                
+                            else:
+                                logger.warning('No new data for %s' % s.name)    
                         except Exception as e:
                             logger.exception('ERROR updating timeseries %s: %s' % (s.name, e))
                 
-                    logger.info('Datasource updated.')
+                    logger.info('Datasource %s updated' % d.name)
                 
                 except Exception as e:
                     logger.exception('ERROR updating datasource %s: %s' % (d.name, e))
@@ -168,7 +170,8 @@ class Command(BaseCommand):
                             count += update_formula(d)
                     try:
                         logger.info('Updating calculated time series %s' % f.name)
-                        f.update()
+                        if f.update() == 0:
+                            logger.warning('No new data for %s' % f.name)
                         count += 1
                     except Exception as e:
                         logger.exception('ERROR updating calculated time series %s: %s' % (f.name, e))
