@@ -11,7 +11,7 @@ from generator import Generator
 class CR1000(Generator):
 
     def get_header(self, f):
-        
+
         def rd(f):
             return [n.strip('"\r\n') for n in f.readline().split(',')]
 
