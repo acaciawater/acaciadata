@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import datetime,time,json,sys,re,logging
+import datetime,time,json,re,logging
 from django.views.generic.list import ListView
 from django.views.generic import DetailView
 from django.views.generic.base import TemplateView
@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render_to_response
 from django.http import HttpResponse
 from .models import Project, ProjectLocatie, MeetLocatie, Datasource, Series, Chart, Grid, Dashboard, TabGroup
 from .util import datasource_as_zip, datasource_as_csv, meetlocatie_as_zip, series_as_csv, chart_as_csv
+from django.views.decorators.gzip import gzip_page
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +31,7 @@ def SeriesAsCsv(request,pk):
     s = get_object_or_404(Series,pk=pk)
     return series_as_csv(s)
 
+@gzip_page
 def SeriesToJson(request, pk):
     s = get_object_or_404(Series,pk=pk)
     points = [[p.date,p.value] for p in s.datapoints.order_by('date')]
@@ -44,6 +46,7 @@ def SeriesToDict(request, pk):
     j = json.dumps(points, default=lambda x: str(x))
     return HttpResponse(j, content_type='application/json')
 
+@gzip_page
 def ChartToJson(request, pk):
     c = get_object_or_404(Chart,pk=pk)
     start = c.auto_start()
@@ -56,6 +59,7 @@ def ChartToJson(request, pk):
             data['series_%d' % s.id] = [[p.date,p.value] for p in s.datapoints.filter(date__gt=start, date__lt=c.stop).order_by('date')]
     return HttpResponse(json.dumps(data, default=lambda x: time.mktime(x.timetuple())*1000.0), content_type='application/json')
 
+@gzip_page
 def GridToJson(request, pk):
     g = get_object_or_404(Grid,pk=pk)
     start = g.auto_start()
