@@ -43,10 +43,11 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        down = options.get('down')
         with DatasourceAdapter(logging.getLogger('acacia.data')) as logger:
             #logging.getLogger('acacia.data').addHandler(email_handler)
             logger.datasource = ''
+            logger.info('***UPDATE STARTED***')
+            down = options.get('down')
             if down:
                 logger.info('Downloading data, updating parameters and related time series')
             else:
@@ -189,6 +190,7 @@ class Command(BaseCommand):
                     
                 logger.info('%d calculated time series were updated' % count)
 
+            logger.info('***UPDATE COMPLETED***')
             #email_handler.flush()
             #logging.getLogger('acacia.data.update').removeHandler(email_handler)
                     
