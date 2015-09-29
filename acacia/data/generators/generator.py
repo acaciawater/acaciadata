@@ -6,6 +6,9 @@ from django.utils import timezone
 from django.core.files.base import File
 import pandas as pd
 
+import logging
+logger = logging.getLogger(__name__)
+
 def spliturl(url):
     pattern = r'^(?P<scheme>ftp|https?)://(?:(?P<user>\w+)?(?::(?P<passwd>\S+))?@)?(?P<url>.+)'
     try:
@@ -66,9 +69,13 @@ class Generator(object):
                 opener = urllib2.build_opener(authhandler)
                 urllib2.install_opener(opener)
 
-            response = urllib2.urlopen(url)
+            try:
+                response = urllib2.urlopen(url)
+            except urllib2.URLError as e:
+                logger.exception('ERROR opening {url}: {reason}'.format(url=url,reason=e.reason))
+                return result
             if response is None:
-                return None
+                return result
             if ftp:
                 # check for directory listing
                 content = response.read()
@@ -84,8 +91,11 @@ class Generator(object):
                                 continue
                         filename = f['file']
                         urlfile = url + '/' + filename
-                        response = urllib2.urlopen(urlfile)
-                        result[filename] = response.read()
+                        try:
+                            response = urllib2.urlopen(urlfile)
+                            result[filename] = response.read()
+                        except urllib2.URLError as e:
+                            logger.exception('ERROR opening {url}: {reason}'.format(url=urlfile,reason=e.reason))
                 else:
                     filename = filename or os.path.basename(url)
                     result[filename] = content
