@@ -4,6 +4,8 @@ function fetchSeries(url) {
 
 	    datatype: "json",
 
+	    headers : {'Accept-Encoding' : 'gzip'},
+	    
 	    beforeSend: function(hdr) {
 		  	var chart = $('#container').highcharts();
 	    	chart.showLoading("Gegevens ophalen...");
