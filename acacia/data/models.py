@@ -580,24 +580,29 @@ class SourceFile(models.Model,DatasourceMixin):
            
     # TODO: use caching framework to cache the data
     def get_data(self,gen=None,**kwargs):
+        
         logger = self.getLogger()
-        if gen is None:
-            gen = self.datasource.get_generator_instance()
-        try:
-            filename = self.file.name
-            pathname = self.file.path
-        except:
-            logger.error('Sourcefile %s has no associated file' % self.name)
-            return None
-        logger.debug('Getting data for sourcefile %s', self.name)
-        try:
-#             if os.path.isfile(pathname):
-            data = gen.get_data(self.file,**kwargs)
-#             else:
-#                 raise Exception('Associated file not found: %s' % filename)
-        except Exception as e:
-            logger.exception('Error retrieving data from %s: %s' % (filename, e))
-            return None
+
+        data = None
+
+        if hasattr(self, 'cached_data') and isinstance(self.cached_data,pd.DataFrame):
+            data = self.cached_data
+            logger.debug('Data retrieved from cache')
+        else:
+            if gen is None:
+                gen = self.datasource.get_generator_instance()
+            try:
+                filename = self.file.name
+            except:
+                logger.error('Sourcefile %s has no associated file' % self.name)
+                return None
+            logger.debug('Getting data for sourcefile %s', self.name)
+            try:
+                data = gen.get_data(self.file,**kwargs)
+                self.cached_data = data
+            except Exception as e:
+                logger.exception('Error retrieving data from %s: %s' % (filename, e))
+                return None
         if data is None:
             logger.warning('No data retrieved from %s' % filename)
         else:
