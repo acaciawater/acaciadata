@@ -259,6 +259,10 @@ class ParameterSeriesAdmin(PolymorphicChildModelAdmin, SaveUserMixin):
                               }),
     )
 
+    def save_model(self, request, obj, form, change):
+        obj.user = request.user
+        obj.save()
+
 #class ManualSeriesAdmin(admin.ModelAdmin):
 class ManualSeriesAdmin(PolymorphicChildModelAdmin, SaveUserMixin):
     base_model = Series
@@ -272,6 +276,10 @@ class ManualSeriesAdmin(PolymorphicChildModelAdmin, SaveUserMixin):
                                'classes': ('grp-collapse grp-open',),
                                }),
     )
+
+    def save_model(self, request, obj, form, change):
+        obj.user = request.user
+        obj.save()
 
 #class FormulaAdmin(SeriesAdmin):
 class FormulaSeriesAdmin(PolymorphicChildModelAdmin, SaveUserMixin):
@@ -294,6 +302,11 @@ class FormulaSeriesAdmin(PolymorphicChildModelAdmin, SaveUserMixin):
                               }),
     )
     filter_horizontal = ('formula_variables',)
+
+    def save_model(self, request, obj, form, change):
+        obj.user = request.user
+        obj.save()
+
     #exclude = ('parameter',)
     
 #     def clean_formula_text(self):
