@@ -1156,15 +1156,6 @@ class SeriesProperties(models.Model):
         if save:
             self.save()
 
-@receiver(pre_save, sender=Series)
-def series_save(sender, instance, **kwargs):
-    try:
-        props = instance.getproperties()
-        props.update()
-    except Exception as e:
-        logger = instance.getLogger()
-        logger.exception('Error updating properties of %s: %s' % (instance, e))
-    
 class Variable(models.Model):
     locatie = models.ForeignKey(MeetLocatie)
     name = models.CharField(max_length=10, verbose_name = 'variabele')
@@ -1264,6 +1255,17 @@ class Formula(Series):
     class Meta:
         verbose_name = 'Berekende reeks'
         verbose_name_plural = 'Berekende reeksen'
+
+@receiver(pre_save, sender=Series)
+@receiver(pre_save, sender=ManualSeries)
+@receiver(pre_save, sender=Formula)
+def series_save(sender, instance, **kwargs):
+    try:
+        props = instance.getproperties()
+        props.update()
+    except Exception as e:
+        logger = instance.getLogger()
+        logger.exception('Error updating properties of %s: %s' % (instance, e))
     
 class DataPoint(models.Model):
     series = models.ForeignKey(Series,related_name='datapoints')
