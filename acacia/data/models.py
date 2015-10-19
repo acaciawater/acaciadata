@@ -518,10 +518,6 @@ class SourceFile(models.Model,DatasourceMixin):
     created = models.DateTimeField(auto_now_add=True)
     uploaded = models.DateTimeField(auto_now=True)
     
-#     @property
-#     def logger(self):
-#         return defaultlogger if self.datasource is None else self.datasource.logger
-    
     def __unicode__(self):
         return self.name
      
@@ -578,7 +574,6 @@ class SourceFile(models.Model,DatasourceMixin):
     filetag.allow_tags=True
     filetag.short_description='bestand'
            
-    # TODO: use caching framework to cache the data
     def get_data(self,gen=None,**kwargs):
         
         logger = self.getLogger()
@@ -836,19 +831,23 @@ class Series(PolymorphicModel,DatasourceMixin):
     def do_align(self, s1, s2):
         ''' align series s2 with s1 and fill missing values by padding'''
         # align series and forward fill the missing data
+        try:
+            s1 = s1.tz_localize(s2.index.tz)
+        except TypeError:
+            s1 = s1.tz_convert(s2.index.tz)
         a,b = s1.align(s2,method='pad')
         # back fill na values (in case s2 starts after s1)
         s2 = b.fillna(method='bfill')
-        return s2
+        return (s1,s2)
     
     def do_offset(self, s1, s2):
         ''' apply offset to series '''
-        s2 = self.do_align(s1, s2)
+        s1,s2 = self.do_align(s1, s2)
         return s1 + s2
 
     def do_scale(self, s1, s2):
         ''' scale series s1 with s2 '''
-        s2 = self.do_align(s1, s2)
+        s1,s2 = self.do_align(s1, s2)
         return s1 * s2
     
     def do_postprocess(self, series, start=None, stop=None):
@@ -899,7 +898,7 @@ class Series(PolymorphicModel,DatasourceMixin):
         # apply scaling
         if self.scale != 1.0:
             series = series * self.scale
-        elif self.scale_series is not None:
+        if self.scale_series is not None:
             series = self.do_scale(series, self.scale_series.to_pandas())
 
         #  apply offset
@@ -907,10 +906,11 @@ class Series(PolymorphicModel,DatasourceMixin):
             # this is a cumulative series with a partial interval
             # add sum from previous interval instead of series.offset
             series = series + add_value
-        elif self.offset != 0.0:
-            series = series + self.offset
-        elif self.offset_series is not None:
-            series = self.do_offset(series, self.offset_series.to_pandas())
+        else:
+            if self.offset != 0.0:
+                series = series + self.offset
+            if self.offset_series is not None:
+                series = self.do_offset(series, self.offset_series.to_pandas())
 
         # clip on time
         if start is None:
