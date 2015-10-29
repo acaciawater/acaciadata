@@ -4,6 +4,12 @@ from .models import Chart, Series, Grid
 import logging, re
 logger = logging.getLogger(__name__)
 
+def sourcefile_dimensions(modeladmin, request, queryset):
+    '''sourcefile doorlezen en eigenschappen updaten (start, stop, rows etc)'''
+    for sf in queryset:
+        sf.get_dimensions()
+sourcefile_dimensions.short_description='Geselecteerde bronbestanden doorlezen en eigenschappen actualiseren'
+
 def meetlocatie_aanmaken(modeladmin, request, queryset):
     '''standaard meetlocatie aanmaken op zelfde locatie als projectlocatie '''
     for p in queryset:

@@ -170,6 +170,7 @@ class GeneratorAdmin(admin.ModelAdmin):
     list_display = ('name', 'classname', 'description')
 
 class SourceFileAdmin(admin.ModelAdmin):
+    actions = [actions.sourcefile_dimensions,]
     fields = ('name', 'datasource', 'file',)
     list_display = ('name','datasource', 'meetlocatie', 'filetag', 'rows', 'cols', 'start', 'stop', 'uploaded',)
     list_filter = ('datasource', 'datasource__meetlocatie', 'datasource__meetlocatie__projectlocatie__project', 'uploaded',)
@@ -234,7 +235,7 @@ class SaveUserMixin:
         obj.user = request.user
         obj.save()
 
-class ParameterSeriesAdmin(PolymorphicChildModelAdmin, SaveUserMixin):
+class ParameterSeriesAdmin(PolymorphicChildModelAdmin):
     actions = [actions.copy_series, actions.download_series, actions.refresh_series, actions.replace_series, actions.series_thumbnails, actions.update_series_properties, actions.empty_series]
     #list_display = ('name', 'thumbtag', 'parameter', 'datasource', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
     base_model = Series
@@ -258,13 +259,13 @@ class ParameterSeriesAdmin(PolymorphicChildModelAdmin, SaveUserMixin):
                                'classes': ('grp-collapse grp-closed',),
                               }),
     )
-
+    
     def save_model(self, request, obj, form, change):
         obj.user = request.user
         obj.save()
-
+        
 #class ManualSeriesAdmin(admin.ModelAdmin):
-class ManualSeriesAdmin(PolymorphicChildModelAdmin, SaveUserMixin):
+class ManualSeriesAdmin(PolymorphicChildModelAdmin):
     base_model = Series
     actions = [actions.copy_series, actions.series_thumbnails]
     #list_display = ('name', 'locatie', 'thumbtag', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
@@ -282,7 +283,7 @@ class ManualSeriesAdmin(PolymorphicChildModelAdmin, SaveUserMixin):
         obj.save()
 
 #class FormulaAdmin(SeriesAdmin):
-class FormulaSeriesAdmin(PolymorphicChildModelAdmin, SaveUserMixin):
+class FormulaSeriesAdmin(PolymorphicChildModelAdmin):
     base_model = Series
     #list_display = ('name', 'thumbtag', 'locatie', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
     #search_fields = ['name','locatie']
