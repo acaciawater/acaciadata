@@ -751,6 +751,7 @@ AGGREGATION_METHOD = (
 from polymorphic import PolymorphicManager, PolymorphicModel
 
 class Series(PolymorphicModel,DatasourceMixin):
+    mlocatie = models.ForeignKey(MeetLocatie,null=True,verbose_name='meetlocatie')
     name = models.CharField(max_length=50,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     unit = models.CharField(max_length=10, blank=True, null=True, verbose_name='eenheid')
@@ -806,9 +807,14 @@ class Series(PolymorphicModel,DatasourceMixin):
         return None if p is None else p.datasource
 
     def meetlocatie(self):
-        d = self.datasource()
-        return None if d is None else d.meetlocatie
+        return self.mlocatie
+#         d = self.datasource()
+#         return None if d is None else d.meetlocatie
 
+    def set_locatie(self):
+        d = self.datasource()
+        self.mlocatie = None if d is None else d.meetlocatie
+        
     def projectlocatie(self):
         l = self.meetlocatie()
         return None if l is None else l.projectlocatie
@@ -1181,11 +1187,6 @@ class Variable(models.Model):
 # Series that can be edited manually
 class ManualSeries(Series):
     ''' Series that can be edited manually (no datasource, nor parameter)'''
-    locatie = models.ForeignKey(MeetLocatie)
-     
-    def meetlocatie(self):
-        return self.locatie
-
     def __unicode__(self):
         return self.name
  
@@ -1198,13 +1199,9 @@ class ManualSeries(Series):
          
 class Formula(Series):
     ''' Calculated series '''
-    locatie = models.ForeignKey(MeetLocatie)
     formula_text = models.TextField(blank=True,null=True,verbose_name='berekening')
     formula_variables = models.ManyToManyField(Variable,verbose_name = 'variabelen')
     intersect = models.BooleanField(default=True,verbose_name = 'bereken alleen voor overlappend tijdsinterval')
-        
-    def meetlocatie(self):
-        return self.locatie
         
     def __unicode__(self):
         return self.name
@@ -1261,6 +1258,9 @@ class Formula(Series):
 @receiver(pre_save, sender=Formula)
 def series_save(sender, instance, **kwargs):
     try:
+        if not instance.mlocatie:
+            # for parameter series only, others should have mlocatie set
+            instance.set_locatie()
         props = instance.getproperties()
         props.update()
     except Exception as e:

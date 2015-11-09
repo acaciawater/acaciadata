@@ -268,12 +268,12 @@ class ParameterSeriesAdmin(PolymorphicChildModelAdmin):
 class ManualSeriesAdmin(PolymorphicChildModelAdmin):
     base_model = Series
     actions = [actions.copy_series, actions.series_thumbnails]
-    #list_display = ('name', 'locatie', 'thumbtag', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
+    #list_display = ('name', 'mlocatie', 'thumbtag', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
     exclude = ('user','parameter')
     inlines = [DataPointInline,]
     search_fields = ['name','locatie']
     fieldsets = (
-                 ('Algemeen', {'fields': ('locatie', 'name', ('unit', 'type'), 'description',),
+                 ('Algemeen', {'fields': ('mlocatie', 'name', ('unit', 'type'), 'description',),
                                'classes': ('grp-collapse grp-open',),
                                }),
     )
@@ -289,7 +289,7 @@ class FormulaSeriesAdmin(PolymorphicChildModelAdmin):
     #search_fields = ['name','locatie']
     
     fieldsets = (
-                  ('Algemeen', {'fields': ('locatie', 'name', ('unit', 'type'), 'description',),
+                  ('Algemeen', {'fields': ('mlocatie', 'name', ('unit', 'type'), 'description',),
                                 'classes': ('grp-collapse grp-open',),
                                 }),
                  ('Tijdsinterval', {'fields': ('from_limit','to_limit'),
@@ -347,8 +347,10 @@ class SeriesAdmin(PolymorphicParentModelAdmin):
             if self.value() is not None:
                 return queryset.filter(polymorphic_ctype_id = self.value())
             return queryset
-        
-    list_filter = ('parameter__datasource__meetlocatie', 'parameter__datasource', 'parameter__datasource__meetlocatie__projectlocatie__project', ContentTypeFilter)
+       
+
+#    list_filter = ('parameter__datasource__meetlocatie', 'parameter__datasource', 'parameter__datasource__meetlocatie__projectlocatie__project', ContentTypeFilter)
+    list_filter = ('mlocatie', 'parameter__datasource', 'parameter__datasource__meetlocatie__projectlocatie__project', ContentTypeFilter)
     search_fields = ['name','parameter__name','parameter__datasource__name']
 
     base_fieldsets = (
