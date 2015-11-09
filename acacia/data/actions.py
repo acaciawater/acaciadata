@@ -1,5 +1,5 @@
 from .shortcuts import meteo2locatie
-from .models import Chart, Series, Grid
+from .models import Chart, Series, Grid, ManualSeries
 
 import logging, re
 logger = logging.getLogger(__name__)
@@ -83,6 +83,8 @@ refresh_series.short_description = 'Geselecteerde tijdreeksen actualiseren'
 
 def replace_series(modeladmin, request, queryset):
     for s in Series.objects.get_real_instances(queryset):
+        if isinstance(s,ManualSeries): # Skip manual series (all points will be deleted!)
+            continue
         s.replace()
 replace_series.short_description = 'Geselecteerde tijdreeksen opnieuw aanmaken'
 
