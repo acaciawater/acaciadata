@@ -9,12 +9,15 @@ class Migration(DataMigration):
 
     def forwards(self, orm):
         for s in orm.Series.objects.all():
-            p = s.parameter
-            if p:
-                ds = p.datasource
-                if ds:
-                    s.mlocatie = ds.meetlocatie
-                    s.save() 
+            try:
+                p = s.parameter
+                if p:
+                    ds = p.datasource
+                    if ds:
+                        s.mlocatie = ds.meetlocatie
+                        s.save() 
+            except:
+                pass
         for m in orm.ManualSeries.objects.all():
             m.mlocatie = m.locatie
             m.save()
