@@ -26,7 +26,7 @@ def upload_datasource(modeladmin, request, queryset):
     for df in queryset:
         if df.url != '':
             df.download()
-upload_datasource.short_description = "Upload de geselecteerde datasources naar de server"
+upload_datasource.short_description = "Upload de geselecteerde gegevensbronnen naar de server"
 
 def update_parameters(modeladmin, request, queryset):
     for df in queryset:
@@ -34,7 +34,7 @@ def update_parameters(modeladmin, request, queryset):
 #         n = min(10,files.count())
 #         files = files.reverse()[:n] # take last 10 files only
         df.update_parameters(files=files)
-update_parameters.short_description = "Update de parameterlijst van de geselecteerde datasources"
+update_parameters.short_description = "Update de parameterlijst van de geselecteerde gegevensbronnen"
 
 def replace_parameters(modeladmin, request, queryset):
     for df in queryset:
@@ -43,7 +43,7 @@ def replace_parameters(modeladmin, request, queryset):
         logger.info('%d parameters deleted for datasource %s' % (count or 0, df))
     update_parameters(modeladmin, request, queryset)
             
-replace_parameters.short_description = "Vervang de parameterlijst van de geselecteerde datasources"
+replace_parameters.short_description = "Vervang de parameterlijst van de geselecteerde gegevensbronnen"
 
 def update_thumbnails(modeladmin, request, queryset):
     # group queryset by datasource
