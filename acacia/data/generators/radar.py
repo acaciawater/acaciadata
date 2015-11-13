@@ -26,7 +26,7 @@ class Regenradar(Generator):
         self.url = 'http://opendap.nationaleregenradar.nl/thredds/dodsC/radar/TF2400_A/2000/01/01/RAD_TF2400_A_20000101000000.h5'
         self.x = 0.0
         self.y = 0.0
-        self.start = datetime.date(2014,1,1)
+        self.start = datetime.date(2015,1,1)
         self.stop = datetime.date.today()
         self.init(**kwargs)
 
