@@ -21,7 +21,7 @@ class Meteo(Generator):
     ''' Dag waarden van meteostation(s) ophalen '''
     
     #url = 'http://www.knmi.nl/klimatologie/daggegevens/getdata_uur.cgi'
-    url = 'http://www.knmi.nl/klimatologie/daggegevens/getdata_dag.cgi'
+    url = 'http://projects.knmi.nl/klimatologie/daggegevens/getdata_dag.cgi'
     def download(self, **kwargs):
         if not 'filename' in kwargs:
             # need unique filename for incremental downloads
@@ -112,7 +112,7 @@ def datehour_parser(ymd,hours):
 
 class UurGegevens(Meteo):
     
-    url = 'http://www.knmi.nl/klimatologie/uurgegevens/getdata_uur.cgi'
+    url = 'http://projects.knmi.nl/klimatologie/uurgegevens/getdata_uur.cgi'
 
     def get_data(self, f, **kwargs):
         header = self.get_header(f)
@@ -139,7 +139,7 @@ class UurGegevens(Meteo):
 class Neerslag(Meteo):
     '''Dagwaarden van neerslagstations ophalen'''
     
-    url = 'http://www.knmi.nl/klimatologie/monv/reeksen/getdata_rr.cgi'
+    url = 'http://projects.knmi.nl/klimatologie/monv/reeksen/getdata_rr.cgi'
 
     def download(self, **kwargs):
         if not 'filename' in kwargs:
