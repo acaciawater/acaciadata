@@ -169,11 +169,13 @@ class MeetLocatie(geo.Model):
                 for s in p.series_set.all():
                     ser.append(s)
         # Ook berekende reeksen!
-        for f in self.formula_set.all():
-            ser.append(f)
-        # ook handmatige reeksen
-        for m in self.manualseries_set.all():
-            ser.append(m)
+        if hasattr(self, 'formula_set'):
+            for f in self.formula_set.all():
+                ser.append(f)
+        # en handmatige reeksen
+        if hasattr(self, 'manualseries_set'):
+            for m in self.manualseries_set.all():
+                ser.append(m)
             
         return ser
 
@@ -620,7 +622,7 @@ class SourceFile(models.Model,DatasourceMixin):
             self.start = aware(data.index.min(),tz)
             self.stop = aware(data.index.max(),tz)
 
-from django.db.models.signals import pre_delete, pre_save
+from django.db.models.signals import pre_delete, pre_save, post_save
 from django.dispatch.dispatcher import receiver
 
 @receiver(pre_delete, sender=SourceFile)
@@ -1256,11 +1258,17 @@ class Formula(Series):
 @receiver(pre_save, sender=Series)
 @receiver(pre_save, sender=ManualSeries)
 @receiver(pre_save, sender=Formula)
-def series_save(sender, instance, **kwargs):
+def series_pre_save(sender, instance, **kwargs):
+    if not instance.mlocatie:
+        # for parameter series only, others should have mlocatie set
+        instance.set_locatie()
+
+@receiver(post_save, sender=Series)
+@receiver(post_save, sender=ManualSeries)
+@receiver(post_save, sender=Formula)
+def series_post_save(sender, instance, **kwargs):
     try:
-        if not instance.mlocatie:
-            # for parameter series only, others should have mlocatie set
-            instance.set_locatie()
+        # update (or create) properties should be in post save, because foreignkey to series needs to be valid
         props = instance.getproperties()
         props.update()
     except Exception as e:
