@@ -22,7 +22,7 @@ def meteo2locatie(loc,user):
             df = Datasource(name = name, meetlocatie = loc)
         df.generator = Generator.objects.get(name='KNMI Meteostation')
         generator = df.get_generator_instance()
-        df.url = generator.url + '?stns=%d&start=20140101' % stn.nummer
+        df.url = generator.url + '?stns=%d&start=20150101' % stn.nummer
         df.user=user
         df.save()
         df.download()
@@ -39,7 +39,7 @@ def meteo2locatie(loc,user):
             df = Datasource(name = name, meetlocatie = loc)
         df.generator = Generator.objects.get(name='KNMI Neerslagstation')
         generator = df.get_generator_instance()
-        df.url = generator.url + '?stns=%d&start=20140101' % stn.nummer
+        df.url = generator.url + '?stns=%d&start=20150101' % stn.nummer
         df.user=user
         df.save()
         df.download()
