@@ -976,7 +976,7 @@ class Series(PolymorphicModel,DatasourceMixin):
                     date = date.astimezone(tz)
                 pts.append(DataPoint(series=self, date=date, value=value))
             except Exception as e:
-                self.getlogger().debug('Datapoint %s,%g: %s' % (str(date), value, e))
+                self.getLogger().debug('Datapoint %s,%g: %s' % (str(date), value, e))
         return pts
     
     def create_points(self, series, tz):
