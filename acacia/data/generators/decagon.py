@@ -114,7 +114,8 @@ def conv119(x):
     raw = np.uint32(x)
     Re = raw & m12
     Ea = Re / 50.0
-    vwc = 5.89e-6 * Ea**3 - 7.62e-4 * Ea**2 + 3.67e-2 * Ea -7.53e-2
+    vwcp = 0.118 * math.sqrt(Ea) - 0.117 if Ea > 0 else np.nan# peat
+    vwc = 5.89e-6 * Ea**3 - 7.62e-4 * Ea**2 + 3.67e-2 * Ea -7.53e-2 # mineral soil
     if vwc < 0:
         vwc = np.nan
     RT = (raw >> 22) & m10
@@ -130,7 +131,7 @@ def conv119(x):
         EC = np.nan
     else:
         EC = 10**(Rec/215.0)/1000
-    return [vwc, temp, EC]
+    return [vwc, temp, EC, vwcp]
 
 def conv116(x):
     '''
@@ -279,9 +280,10 @@ SENSORDATA = {
                         ]
           },
     119: {'converter': conv119,
-          'parameters':[{'name': 'VWC', 'description': 'Volumetric water content', 'unit': 'm3/m3'},
+          'parameters':[{'name': 'VWC', 'description': 'Volumetric water content for mineral soil', 'unit': 'm3/m3'},
                         {'name': 'Temp', 'description': 'Temperature', 'unit': 'oC'},
-                        {'name': 'EC', 'description': 'Bulk Electrical Conductivity', 'unit': 'mS/cm'}
+                        {'name': 'EC', 'description': 'Bulk Electrical Conductivity', 'unit': 'mS/cm'},
+                        {'name': 'VWC2', 'description': 'Volumetric water content for peaty soil', 'unit': 'm3/m3'},
                         ]
           },
     121: {'converter': conv121,
