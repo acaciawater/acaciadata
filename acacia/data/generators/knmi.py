@@ -20,7 +20,6 @@ INCREMENTAL_DOWNLOAD = False
 class Meteo(Generator):
     ''' Dag waarden van meteostation(s) ophalen '''
     
-    #url = 'http://www.knmi.nl/klimatologie/daggegevens/getdata_uur.cgi'
     url = 'http://projects.knmi.nl/klimatologie/daggegevens/getdata_dag.cgi'
     def download(self, **kwargs):
         if not 'filename' in kwargs:
