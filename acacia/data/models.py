@@ -284,9 +284,12 @@ class Datasource(models.Model, DatasourceMixin):
         if gen is None:
             logger.error('Cannot download datasource %s: could not create instance of generator %s' % (self.name, self.generator))
             return None
-        
+
         options = {'url': self.url}
-        if self.username is not None and self.username != '':
+        if self.meetlocatie:
+            lonlat = self.meetlocatie.latlon()
+            options['lonlat'] = (lonlat.x,lonlat.y)
+        if self.username:
             options['username'] = self.username
             options['password'] = self.password
         try:
