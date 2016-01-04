@@ -1,5 +1,4 @@
 from .shortcuts import meteo2locatie
-<<<<<<< HEAD
 from .models import Chart, Series, Grid, ManualSeries
 
 import logging, re
@@ -19,14 +18,6 @@ def meetlocatie_aanmaken(modeladmin, request, queryset):
 meetlocatie_aanmaken.short_description = 'Standaard meetlocatie aanmaken voor geselecteerde projectlocaties'
         
 def meteo_toevoegen(modeladmin, request, queryset):
-=======
-from .models import Chart, Series
-import logging
-logger = logging.getLogger(__name__)
-
-def meteo_toevoegen(modeladmin, request, queryset):
-    pass
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     for loc in queryset:
         meteo2locatie(loc,user=request.user)
 meteo_toevoegen.short_description = "Meteostation, neerslagstation en regenradar toevoegen"
@@ -35,11 +26,7 @@ def upload_datasource(modeladmin, request, queryset):
     for df in queryset:
         if df.url != '':
             df.download()
-<<<<<<< HEAD
 upload_datasource.short_description = "Upload de geselecteerde gegevensbronnen naar de server"
-=======
-upload_datasource.short_description = "Upload de geselecteerde datasources naar de server"
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 
 def update_parameters(modeladmin, request, queryset):
     for df in queryset:
@@ -47,11 +34,7 @@ def update_parameters(modeladmin, request, queryset):
 #         n = min(10,files.count())
 #         files = files.reverse()[:n] # take last 10 files only
         df.update_parameters(files=files)
-<<<<<<< HEAD
 update_parameters.short_description = "Update de parameterlijst van de geselecteerde gegevensbronnen"
-=======
-update_parameters.short_description = "Update de parameterlijst van de geselecteerde datasources"
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 
 def replace_parameters(modeladmin, request, queryset):
     for df in queryset:
@@ -60,11 +43,7 @@ def replace_parameters(modeladmin, request, queryset):
         logger.info('%d parameters deleted for datasource %s' % (count or 0, df))
     update_parameters(modeladmin, request, queryset)
             
-<<<<<<< HEAD
 replace_parameters.short_description = "Vervang de parameterlijst van de geselecteerde gegevensbronnen"
-=======
-replace_parameters.short_description = "Vervang de parameterlijst van de geselecteerde datasources"
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 
 def update_thumbnails(modeladmin, request, queryset):
     # group queryset by datasource
@@ -85,11 +64,7 @@ update_thumbnails.short_description = "Thumbnails vernieuwen van geselecteerde p
 def generate_series(modeladmin, request, queryset):
     for p in queryset:
         try:
-<<<<<<< HEAD
             series, created = p.series_set.get_or_create(name = p.name, description = p.description, unit = p.unit, user = request.user)
-=======
-            series = p.series_set.get_or_create(name = p.name, description = p.description, unit = p.unit, user = request.user)
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
             series.replace()
         except Exception as e:
             logger.error('ERROR creating series %s: %s' % (p.name, e))
@@ -102,7 +77,6 @@ def download_series(modeladmin, request, queryset):
 download_series.short_description = 'Bronbestanden van geselecteerde tijdreeksen downloaden'
     
 def refresh_series(modeladmin, request, queryset):
-<<<<<<< HEAD
     for s in Series.objects.get_real_instances(queryset):
         s.update(start=s.tot())
 refresh_series.short_description = 'Geselecteerde tijdreeksen actualiseren'
@@ -111,34 +85,16 @@ def replace_series(modeladmin, request, queryset):
     for s in Series.objects.get_real_instances(queryset):
         if isinstance(s,ManualSeries): # Skip manual series (all points will be deleted!)
             continue
-=======
-    #download_series(modeladmin, request, queryset)
-    for s in queryset:
-        s.update()
-refresh_series.short_description = 'Geselecteerde tijdreeksen actualiseren'
-
-def replace_series(modeladmin, request, queryset):
-    #download_series(modeladmin, request, queryset)
-    for s in queryset:
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         s.replace()
 replace_series.short_description = 'Geselecteerde tijdreeksen opnieuw aanmaken'
 
 def empty_series(modeladmin, request, queryset):
-<<<<<<< HEAD
     for s in Series.objects.get_real_instances(queryset):
-=======
-    for s in queryset:
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         s.datapoints.all().delete()
 empty_series.short_description = 'Data van geselecteerde tijdreeksen verwijderen'
 
 def series_thumbnails(modeladmin, request, queryset):
-<<<<<<< HEAD
     for s in Series.objects.get_real_instances(queryset):
-=======
-    for s in queryset:
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         s.make_thumbnail()
         s.save()
 series_thumbnails.short_description = "Thumbnails van tijdreeksen vernieuwen"
@@ -173,7 +129,6 @@ def copy_charts(modeladmin, request, queryset):
         c.user = request.user
         c.save()
 copy_charts.short_description = "Geselecteerde grafieken dupliceren"
-<<<<<<< HEAD
 
 def create_grid(modeladmin, request, queryset):
     ''' create grid from selected timeseries '''
@@ -211,5 +166,3 @@ def update_grid(modeladmin, request, queryset):
             s.update()
             
 update_grid.short_description = "Grid bijwerken"
-=======
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb

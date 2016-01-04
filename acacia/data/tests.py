@@ -17,8 +17,5 @@ class TestProvider(TestCase):
 def testmail():
     from django.core.mail import send_mail
     send_mail('Onderwerp', 'Dit is het bericht', 'webmaster@acaciadata.com', ['theo.kleinendorst@acaciawater.com'])
-<<<<<<< HEAD
 
     
-=======
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb

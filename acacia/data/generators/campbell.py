@@ -11,18 +11,11 @@ from generator import Generator
 class CR1000(Generator):
 
     def get_header(self, f):
-<<<<<<< HEAD
 
         def rd(f):
             return [n.strip('"\r\n') for n in f.readline().split(',')]
 
         f.seek(0)
-=======
-        
-        def rd(f):
-            return [n.strip('"\r\n') for n in f.readline().split(',')]
-        
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         sections = {}
         sections['HEADER'] = rd(f) 
         sections['COLUMNS'] = rd(f)

@@ -19,11 +19,7 @@ def locatie_upload(instance, filename):
 
 def meetlocatie_upload(instance, filename):
     return '/'.join(['images',
-<<<<<<< HEAD
                      slugify(instance.project().name), 
-=======
-                     slugify(instance.project.name), 
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
                      slugify(instance.projectlocatie.name), 
                      slugify(instance.name), 
                      filename])
@@ -42,11 +38,7 @@ def sourcefile_upload(instance, filename):
                          slugify(datasource.name), 
                          filename])
     except:
-<<<<<<< HEAD
         return '/'.join([settings.UPLOAD_DATAFILES, 'files', str(instance.pk), filename])
-=======
-        return '/'.join([settings.UPLOAD_THUMBNAILS, 'files', str(instance.pk), filename])
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         
 def param_thumb_upload(instance, filename):
     try:

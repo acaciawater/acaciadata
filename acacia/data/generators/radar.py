@@ -9,10 +9,7 @@ import numpy.ma as ma
 import pandas as  pd
 import StringIO
 from pydap.client import open_url
-<<<<<<< HEAD
 from pydap.exceptions import DapError
-=======
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 
 import logging
 logger = logging.getLogger(__name__)
@@ -29,11 +26,7 @@ class Regenradar(Generator):
         self.url = 'http://opendap.nationaleregenradar.nl/thredds/dodsC/radar/TF2400_A/2000/01/01/RAD_TF2400_A_20000101000000.h5'
         self.x = 0.0
         self.y = 0.0
-<<<<<<< HEAD
         self.start = datetime.date(2015,1,1)
-=======
-        self.start = datetime.date(2014,1,1)
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         self.stop = datetime.date.today()
         self.init(**kwargs)
 
@@ -59,17 +52,12 @@ class Regenradar(Generator):
         self.init(**kwargs)
         
         callback = kwargs.get('callback', None)
-<<<<<<< HEAD
         url = kwargs.get('url',None) or self.url
         try:
             dataset = open_url(url)
         except Exception as e:
             logger.exception('ERROR opening OpenDAP dataset %s: %s' % (url, e))
             return []
-=======
-
-        dataset = open_url(self.url)
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         grid = dataset.precipitation
         data = grid.precipitation
         x0 = dataset.east[0][0]
@@ -104,19 +92,11 @@ class Regenradar(Generator):
             filename = 'p%d-%d-%s.csv' % (self.x,self.y,t.strftime('%y%m%d%H%M'))
         else:
             filename = 'rad_tf2400.csv'
-<<<<<<< HEAD
         result = [{filename: response},]
         if callback is not None:
             callback(result)
         
         return result
-=======
-            
-        if callback is not None:
-            callback(filename, response)
-        
-        return {filename: response}
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 
     def get_data(self,fil,**kwargs):
         data = self.read_csv(fil, index_col = 0, parse_dates = True)
@@ -124,7 +104,6 @@ class Regenradar(Generator):
 
     def get_parameters(self, fil):
         return  dict({'Neerslag': {'description' : 'dagelijkse neerslag', 'unit': 'mm/d'}})  
-<<<<<<< HEAD
 
 ''' from lizard neerslagradar
 def values(self, identifier, start_date, end_date):
@@ -208,5 +187,3 @@ if __name__ == '__main__':
 #     io = StringIO.StringIO()
 #     data.to_csv(io,header=True)
 #     response = io.getvalue()
-=======
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb

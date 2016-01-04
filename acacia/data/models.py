@@ -1,35 +1,19 @@
 # -*- coding: utf-8 -*-
 import os,datetime,math,binascii
-<<<<<<< HEAD
 from django.db import connection
-=======
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 from django.db import models
 from django.db.models import Avg, Max, Min, Sum
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.utils import timezone
 from django.core.urlresolvers import reverse
-<<<<<<< HEAD
-=======
-from django.core.exceptions import ValidationError
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 from django.contrib.gis.db import models as geo
 from django.utils.text import slugify
 from acacia import settings
 import upload as up
 import numpy as np
 import pandas as pd
-<<<<<<< HEAD
 import json,util,StringIO,pytz,logging
-=======
-import json,util
-import StringIO
-import pytz
-import logging
-logger = logging.getLogger(__name__)
-
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 
 THEME_CHOICES = (('dark-blue','blauw'),
                  ('darkgreen','groen'),
@@ -40,7 +24,6 @@ THEME_CHOICES = (('dark-blue','blauw'),
 def aware(d,tz=None):
     ''' utility function to ensure datetime object is offset-aware '''
     if d is not None:
-<<<<<<< HEAD
         if isinstance(d, (datetime.datetime, datetime.date,)):
             if timezone.is_naive(d):
                 if tz is None or tz == '':
@@ -68,20 +51,6 @@ class DatasourceMixin:
         logger = logging.getLogger(name)  
         return logging.LoggerAdapter(logger,extra={'datasource': self.getDatasource()})
        
-=======
-        if timezone.is_naive(d):
-            if tz is None or tz == '':
-                tz = settings.TIME_ZONE
-            if not isinstance(tz, timezone.tzinfo):
-                tz = pytz.timezone(tz)
-            try:
-                return timezone.make_aware(d, tz)            
-            except:
-#                 pytz.NonExistentTimeError, pytz.AmbiguousTimeError: # CET/CEST transition?
-                return timezone.make_aware(d, pytz.utc)            
-    return d
-
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 class Project(models.Model):
     name = models.CharField(max_length=50, unique=True)
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
@@ -163,11 +132,7 @@ class MeetLocatie(geo.Model):
 
     def project(self):
         return self.projectlocatie.project
-<<<<<<< HEAD
         
-=======
-
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     def latlon(self):
         return util.toWGS84(self.location)
 
@@ -179,14 +144,10 @@ class MeetLocatie(geo.Model):
         return reverse('acacia:meetlocatie-detail',args=[self.id])
     
     def __unicode__(self):
-<<<<<<< HEAD
         try:
             return '%s %s' % (self.projectlocatie, self.name)
         except ProjectLocatie.DoesNotExist:
             return self.name
-=======
-        return '%s %s' % (self.projectlocatie, self.name)
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 
     class Meta:
         ordering = ['name',]
@@ -200,18 +161,14 @@ class MeetLocatie(geo.Model):
     
     def series(self):
         ser = []
-<<<<<<< HEAD
 #         for s in Series.objects.all():
 #             if s.meetlocatie() == self:
 #                 ser.append(s)
-=======
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         for f in self.datasources.all():
             for p in f.parameter_set.all():
                 for s in p.series_set.all():
                     ser.append(s)
         # Ook berekende reeksen!
-<<<<<<< HEAD
         if hasattr(self, 'formula_set'):
             for f in self.formula_set.all():
                 ser.append(f)
@@ -220,10 +177,6 @@ class MeetLocatie(geo.Model):
             for m in self.manualseries_set.all():
                 ser.append(m)
             
-=======
-        for f in self.formula_set.all():
-            ser.append(f)
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         return ser
 
     def charts(self):
@@ -260,10 +213,6 @@ class Generator(models.Model):
         ordering = ['name',]
 
 LOGGING_CHOICES = (
-<<<<<<< HEAD
-=======
-                  ('OFF', 'Geen'),
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
                   ('DEBUG', 'Debug'),
                   ('INFO', 'Informatie'),
                   ('WARNING', 'Waarschuwingen'),
@@ -271,11 +220,7 @@ LOGGING_CHOICES = (
 #                  ('CRITICAL', 'Alleen kritieke fouten'),
                   )
 
-<<<<<<< HEAD
 class Datasource(models.Model, DatasourceMixin):
-=======
-class Datasource(models.Model):
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     name = models.CharField(max_length=50,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     meetlocatie=models.ForeignKey(MeetLocatie,related_name='datasources',help_text='Meetlocatie van deze gegevensbron')
@@ -288,11 +233,7 @@ class Datasource(models.Model):
     config=models.TextField(blank=True,null=True,default='{}',verbose_name = 'Additionele configuraties',help_text='Geldige JSON dictionary')
     username=models.CharField(max_length=50, blank=True, null=True, default='anonymous', verbose_name='Gebuikersnaam',help_text='Gebruikersnaam voor downloads')
     password=models.CharField(max_length=50, blank=True, null=True, verbose_name='Wachtwoord',help_text='Wachtwoord voor downloads')
-<<<<<<< HEAD
     timezone=models.CharField(max_length=50, blank=True, verbose_name = 'Tijzone', default=settings.TIME_ZONE)
-=======
-    timezone=models.CharField(max_length=50, blank=True, default=settings.TIME_ZONE)
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 
     class Meta:
         ordering = ['name',]
@@ -314,10 +255,7 @@ class Datasource(models.Model):
         return None if loc is None else loc.project
 
     def get_generator_instance(self):
-<<<<<<< HEAD
         logger = self.getLogger()
-=======
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         if self.generator is None:
             raise Exception('Generator not defined for datasource %s' % self.name)
         gen = self.generator.get_class()
@@ -332,10 +270,7 @@ class Datasource(models.Model):
                 return None
     
     def download(self, start=None):
-<<<<<<< HEAD
         logger = self.getLogger()
-=======
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         if self.url is None or len(self.url) == 0:
             logger.error('Cannot download datasource %s: no url supplied' % (self.name))
             return None
@@ -349,18 +284,12 @@ class Datasource(models.Model):
         if gen is None:
             logger.error('Cannot download datasource %s: could not create instance of generator %s' % (self.name, self.generator))
             return None
-<<<<<<< HEAD
 
         options = {'url': self.url}
         if self.meetlocatie:
             lonlat = self.meetlocatie.latlon()
             options['lonlat'] = (lonlat.x,lonlat.y)
         if self.username:
-=======
-        
-        options = {'url': self.url}
-        if self.username is not None and self.username != '':
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
             options['username'] = self.username
             options['password'] = self.password
         try:
@@ -381,7 +310,6 @@ class Datasource(models.Model):
             files = []
             crcs = {f.crc:f.file for f in self.sourcefiles.all()}
 
-<<<<<<< HEAD
             def callback(result):
                 for filename, contents in result.iteritems():
                     crc = abs(binascii.crc32(contents))
@@ -402,26 +330,6 @@ class Datasource(models.Model):
                     except Exception as e:
                         logger.exception('Problem saving file %s: %s', (filename,e))
 
-=======
-            def callback(filename, contents):
-                crc = abs(binascii.crc32(contents))
-                if crc in crcs:
-                    logger.warning('Downloaded file %s ignored: identical to local file %s' % (filename, crcs[crc].file.name))
-                    return
-                try:
-                    sourcefile = self.sourcefiles.get(name=filename)
-                except:
-                    sourcefile = SourceFile(name=filename,datasource=self,user=self.user)
-                sourcefile.crc = crc
-                contentfile = ContentFile(contents)
-                try:
-                    sourcefile.file.save(name=filename, content=contentfile)
-                    logger.info('File %s saved to %s' % (filename, sourcefile.filepath()))
-                    crcs[crc] = sourcefile.file
-                    files.append(sourcefile)
-                except Exception as e:
-                    logger.exception('Problem saving file %s: %s', (filename,e))
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
             options['callback'] = callback
             results = gen.download(**options)
 
@@ -433,7 +341,6 @@ class Datasource(models.Model):
         self.save(update_fields=['last_download'])
         return files
         
-<<<<<<< HEAD
     def update_parameters(self,data=None,files=None,limit=0):
         logger = self.getLogger()
         gen = self.get_generator_instance()
@@ -449,18 +356,6 @@ class Datasource(models.Model):
                 files = list(files);
                 if len(files) > limit:
                     files = files[-limit];
-=======
-    def update_parameters(self,data=None,files=None,limit=-1):
-        gen = self.get_generator_instance()
-        if gen is None:
-            return
-        logger.info('Updating parameters for datasource %s' % self.name)
-        params = {}
-        if files is None:
-            files = self.sourcefiles.all();
-            if limit > 0:
-                files = files[:limit];
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         for sourcefile in files:
             try:
                 try:
@@ -469,11 +364,7 @@ class Datasource(models.Model):
                     logger.exception('Cannot update parameters for sourcefile %s: %s' % (sourcefile, e))
             except Exception as e:
                 logger.exception('Cannot open sourcefile %s: %s' % (sourcefile, e))
-<<<<<<< HEAD
         logger.debug('Update completed, got %d parameters from %d files', len(params),len(files))
-=======
-        logger.info('Update completed, got %d parameters from %d files', len(params),files.count())
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         num_created = 0
         num_updated = 0
         for name,defaults in params.iteritems():
@@ -484,7 +375,6 @@ class Datasource(models.Model):
                 param = self.parameter_set.get(name=name)
                 num_updated = num_updated+1
             except Parameter.DoesNotExist:
-<<<<<<< HEAD
                 logger.info('parameter %s created' % name)
                 param = Parameter(name=name,**defaults)
                 param.datasource = self
@@ -492,15 +382,6 @@ class Datasource(models.Model):
             param.save()
         logger.debug('%d parameters created, %d updated' % (num_created, num_updated))
         return num_created+num_updated
-=======
-                logger.warning('parameter %s created' % name)
-                param = Parameter(name=name,**defaults)
-                param.datasource = self
-                num_created = num_created+1
-            #param.make_thumbnail(data)
-            param.save()
-        logger.info('%d parameters created, %d updated' % (num_created, num_updated))
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 
     def replace_parameters(self,data=None):
         self.parameter_set.all().delete()
@@ -513,18 +394,11 @@ class Datasource(models.Model):
             p.make_thumbnail(data)
     
     def get_data(self,**kwargs):
-<<<<<<< HEAD
         logger = self.getLogger()
         gen = self.get_generator_instance()
         if gen is None:
             return
         logger.debug('Getting data for datasource %s', self.name)
-=======
-        gen = self.get_generator_instance()
-        if gen is None:
-            return
-        logger.info('Getting data for datasource %s', self.name)
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         data = None
         start = aware(kwargs.get('start', None))
         stop = aware(kwargs.get('stop', None))
@@ -536,19 +410,11 @@ class Datasource(models.Model):
 #                 continue
             if start is not None:
                 sstop = aware(sourcefile.stop,self.timezone)
-<<<<<<< HEAD
                 if sstop is not None and sstop < start:
                     continue
             if stop is not None:
                 sstart = aware(sourcefile.start,self.timezone)
                 if sstart is not None and sstart > stop:
-=======
-                if sstop is None or sstop < start:
-                    continue
-            if stop is not None:
-                sstart = aware(sourcefile.start,self.timezone)
-                if sstart is None or sstart > stop:
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
                     continue
             d = sourcefile.get_data(**kwargs)
             if d is not None:
@@ -557,7 +423,6 @@ class Datasource(models.Model):
                 else:
                     data = data.append(d)
         if data is not None:
-<<<<<<< HEAD
             date = np.array([aware(d, self.timezone) for d in data.index.to_pydatetime()])
             slicer = None
             if start is not None:
@@ -570,25 +435,6 @@ class Datasource(models.Model):
             if slicer is not None:
                 data = data[slicer]
             return data.sort()
-=======
-            #try:
-                date = np.array([aware(d, self.timezone) for d in data.index.to_pydatetime()])
-                slicer = None
-                if start is not None:
-                    if stop is not None:
-                        slicer = (date >= start) & (date <= stop) 
-                    else:
-                        slicer = (date >= start)
-                elif stop is not None:
-                    slicer = (date <= stop)
-                if slicer is not None:
-                    data = data[slicer]
-                # Don't remove duplicates
-                # data = data.groupby(level=0).last()
-                return data.sort()
-            #except:
-                pass
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         return data
 
     def to_csv(self):
@@ -639,10 +485,7 @@ class Datasource(models.Model):
         return agg.get('rows', None)
 
 class Notification(models.Model):
-<<<<<<< HEAD
     # TODO: ook meetlocatie of projectlocatie volgen (ivm berekende reeksen)
-=======
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     datasource = models.ForeignKey(Datasource,help_text='Gegevensbron welke gevolgd wordt')
     user = models.ForeignKey(User,blank=True,null=True,verbose_name='Gebruiker',help_text='Gebruiker die berichtgeving ontvangt over updates')
     email = models.EmailField(max_length=254,blank=True)
@@ -667,11 +510,7 @@ class Notification(models.Model):
 #     dayofweek = models.CharField(max_length=1,default='*')
 #     active = models.BooleanField(default=True)
     
-<<<<<<< HEAD
 class SourceFile(models.Model,DatasourceMixin):
-=======
-class SourceFile(models.Model):
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     name=models.CharField(max_length=50,blank=True)
     datasource = models.ForeignKey('Datasource',related_name='sourcefiles', verbose_name = 'gegevensbron')
     file=models.FileField(max_length=200,upload_to=up.sourcefile_upload,blank=True,null=True)
@@ -683,20 +522,12 @@ class SourceFile(models.Model):
     user=models.ForeignKey(User,default=User)
     created = models.DateTimeField(auto_now_add=True)
     uploaded = models.DateTimeField(auto_now=True)
-<<<<<<< HEAD
     
-=======
-
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     def __unicode__(self):
         return self.name
      
     class Meta:
-<<<<<<< HEAD
 #        unique_together = ('name', 'datasource',)
-=======
-        unique_together = ('name', 'datasource',)
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         verbose_name = 'bronbestand'
         verbose_name_plural = 'bronbestanden'
      
@@ -741,11 +572,7 @@ class SourceFile(models.Model):
             #return os.path.join(settings.MEDIA_ROOT,self.file.name)
         except:
             return ''
-<<<<<<< HEAD
     filepath.short_description = 'bestandslocatie'
-=======
-    filedate.short_description = 'bestandslocatie'
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 
     def filetag(self):
         return '<a href="%s">%s</a>' % (os.path.join(settings.MEDIA_URL,self.file.name),self.filename())
@@ -753,7 +580,6 @@ class SourceFile(models.Model):
     filetag.short_description='bestand'
            
     def get_data(self,gen=None,**kwargs):
-<<<<<<< HEAD
         
         logger = self.getLogger()
 
@@ -782,21 +608,6 @@ class SourceFile(models.Model):
         else:
             shape = data.shape
             logger.debug('Got %d rows, %d columns', shape[0], shape[1])
-=======
-        if gen is None:
-            gen = self.datasource.get_generator_instance()
-        logger.info('Getting data for sourcefile %s', self.name)
-        try:
-            data = gen.get_data(self.file,**kwargs)
-        except Exception as e:
-            logger.exception('Error retrieving data from %s: %s' % (self.file.name, e))
-            return None
-        if data is None:
-            logger.warning('No data retrieved from %s' % self.file.name)
-        else:
-            shape = data.shape
-            logger.info('Got %d rows, %d columns', shape[0], shape[1])
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         return data
 
     def get_dimensions(self, data=None):
@@ -808,7 +619,6 @@ class SourceFile(models.Model):
             self.start = None
             self.stop = None
         else:
-<<<<<<< HEAD
             tz = timezone.get_current_timezone()
             self.rows = data.shape[0]
             self.cols = data.shape[1]
@@ -816,19 +626,10 @@ class SourceFile(models.Model):
             self.stop = aware(data.index.max(),tz)
 
 from django.db.models.signals import pre_delete, pre_save, post_save
-=======
-            self.rows = data.shape[0]
-            self.cols = data.shape[1]
-            self.start = data.index.min()
-            self.stop = data.index.max()
-
-from django.db.models.signals import pre_delete, pre_save
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 from django.dispatch.dispatcher import receiver
 
 @receiver(pre_delete, sender=SourceFile)
 def sourcefile_delete(sender, instance, **kwargs):
-<<<<<<< HEAD
     logger = instance.getLogger()
     filename = instance.file.name
     logger.debug('Deleting file %s for datafile %s' % (filename, instance.name))
@@ -838,15 +639,6 @@ def sourcefile_delete(sender, instance, **kwargs):
 @receiver(pre_save, sender=SourceFile)
 def sourcefile_save(sender, instance, **kwargs):
     logger = instance.getLogger()
-=======
-    filename = instance.file.name
-    logger.info('Deleting file %s for datafile %s' % (filename, instance.name))
-    instance.file.delete(False)
-    logger.info('File %s deleted' % filename)
-
-@receiver(pre_save, sender=SourceFile)
-def sourcefile_save(sender, instance, **kwargs):
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     date = instance.filedate()
     if date != '':
         if instance.uploaded is None or date > instance.uploaded:
@@ -871,22 +663,14 @@ SERIES_CHOICES = (('line', 'lijn'),
                   ('spline', 'spline')
                   )
         
-<<<<<<< HEAD
 class Parameter(models.Model, DatasourceMixin):
-=======
-class Parameter(models.Model):
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     datasource = models.ForeignKey(Datasource)
     name = models.CharField(max_length=50,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     unit = models.CharField(max_length=10, default='m',verbose_name='eenheid')
     type = models.CharField(max_length=20, default='line', choices = SERIES_CHOICES)
     thumbnail = models.ImageField(upload_to=up.param_thumb_upload, max_length=200, blank=True, null=True)
-<<<<<<< HEAD
     
-=======
-
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     def __unicode__(self):
         return '%s - %s' % (self.datasource.name, self.name)
 
@@ -920,10 +704,7 @@ class Parameter(models.Model):
     thumbtag.short_description='thumbnail'
     
     def make_thumbnail(self,data=None):
-<<<<<<< HEAD
         logger = self.getLogger()
-=======
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         if data is None:
             data = self.get_data()
         logger.debug('Generating thumbnail for parameter %s' % self.name)
@@ -936,11 +717,7 @@ class Parameter(models.Model):
         try:
             series = data[self.name]
             util.save_thumbnail(series,imagefile,self.type)
-<<<<<<< HEAD
             logger.debug('Generated thumbnail %s' % dest)
-=======
-            logger.info('Generated thumbnail %s' % dest)
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
             self.save()
         except Exception as e:
             logger.exception('Error generating thumbnail for parameter %s: %s' % (self.name, e))
@@ -949,18 +726,11 @@ class Parameter(models.Model):
     
 @receiver(pre_delete, sender=Parameter)
 def parameter_delete(sender, instance, **kwargs):
-<<<<<<< HEAD
     logger=instance.getLogger()
     logger.debug('Deleting thumbnail %s for parameter %s' % (instance.thumbnail.name, instance.name))
     instance.thumbnail.delete(False)
     logger.debug('Thumbnail deleted')
 
-=======
-    logger.info('Deleting thumbnail %s for parameter %s' % (instance.thumbnail.name, instance.name))
-    instance.thumbnail.delete(False)
-
-        
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 RESAMPLE_METHOD = (
               ('T', 'minuut'),
               ('15T', 'kwartier'),
@@ -982,12 +752,11 @@ AGGREGATION_METHOD = (
 # set  default series type from parameter type in sqlite database: 
 # update data_series set type = (select p.type from data_parameter p where id = data_series.parameter_id) 
 
-<<<<<<< HEAD
 #class Series(models.Model,DatasourceMixin):
 from polymorphic import PolymorphicManager, PolymorphicModel
 
 class Series(PolymorphicModel,DatasourceMixin):
-    mlocatie = models.ForeignKey(MeetLocatie,null=True,verbose_name='meetlocatie')
+    #mlocatie = models.ForeignKey(MeetLocatie,null=True,verbose_name='meetlocatie')
     name = models.CharField(max_length=50,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     unit = models.CharField(max_length=10, blank=True, null=True, verbose_name='eenheid')
@@ -1001,45 +770,24 @@ class Series(PolymorphicModel,DatasourceMixin):
     limit_time = models.BooleanField(default = False,verbose_name='tijdsrestrictie',help_text='Beperk tijdreeks tot gegeven tijdsinterval')
     from_limit = models.DateTimeField(blank=True,null=True,verbose_name='Begintijd')
     to_limit = models.DateTimeField(blank=True,null=True,verbose_name='Eindtijd')
-=======
-class Series(models.Model):
-    name = models.CharField(max_length=50,verbose_name='naam')
-    description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
-    unit = models.CharField(max_length=10, blank=True, null=True, verbose_name='eenheid')
-    type = models.CharField(max_length=20, blank = True, default='line', choices = SERIES_CHOICES)
-    parameter = models.ForeignKey(Parameter, null=True, blank=True)
-    thumbnail = models.ImageField(upload_to=up.series_thumb_upload, max_length=200, blank=True, null=True)
-    user=models.ForeignKey(User,default=User)
-    
-    # tijdslimiet
-#     limit_time = models.BooleanField(default = False)
-#     from_limit = models.DateTimeField(blank=True,null=True)
-#     to_limit = models.DateTimeField(blank=True,null=True)
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     
     # Nabewerkingen
     resample = models.CharField(max_length=10,choices=RESAMPLE_METHOD,blank=True, null=True, 
                                 verbose_name='frequentie',help_text='Frequentie voor resampling van tijdreeks')
     aggregate = models.CharField(max_length=10,choices=AGGREGATION_METHOD,blank=True, null=True, 
                                  verbose_name='aggregatie', help_text = 'Aggregatiemethode bij resampling van tijdreeks')
-<<<<<<< HEAD
     scale = models.FloatField(default = 1.0,verbose_name = 'verschalingsfactor', help_text = 'constante factor voor verschaling van de meetwaarden (vóór compensatie)')
     scale_series = models.ForeignKey('Series',null=True,blank=True,verbose_name='verschalingsreeks', related_name='scaling_set', help_text='tijdreeks voor verschaling van de meetwaarden (vóór compensatie')
 
     offset = models.FloatField(default = 0.0, verbose_name = 'compensatieconstante', help_text = 'constante voor compensatie van de meetwaarden (ná verschaling)')
     offset_series = models.ForeignKey('Series',null=True, blank=True, verbose_name='compensatiereeks',related_name='offset_set', help_text = 'tijdreeks voor compensatie van de meetwaarden (ná verschaling)' )
     
-=======
-    scale = models.FloatField(default = 1.0,verbose_name = 'verschaling', help_text = 'constante factor voor verschaling van de meetwaarden (vóór compensatie)')
-    offset = models.FloatField(default = 0.0, verbose_name = 'compensatie', help_text = 'constante compensatie van meetwaarden (ná verschaling)')
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     cumsum = models.BooleanField(default = False, verbose_name='accumuleren', help_text = 'reeks transformeren naar accumulatie')
     cumstart = models.DateTimeField(blank = True, null = True, verbose_name='start accumulatie')
     
     class Meta:
         ordering = ['name',]
         unique_together = ('parameter', 'name',)
-<<<<<<< HEAD
         verbose_name = 'Tijdreeks'
         verbose_name_plural = 'Tijdreeksen'
         
@@ -1055,14 +803,6 @@ class Series(models.Model):
     def autocomplete_search_fields():
         return ("id__iexact", "name__icontains",)
     
-=======
-        verbose_name = 'Reeks'
-        verbose_name_plural = 'Reeksen'
-        
-    def get_absolute_url(self):
-        return reverse('acacia:series-detail', args=[self.id]) 
-
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     def datasource(self):
         try:
             p = self.parameter
@@ -1072,20 +812,14 @@ class Series(models.Model):
         return None if p is None else p.datasource
 
     def meetlocatie(self):
-<<<<<<< HEAD
-        return self.mlocatie
-#         d = self.datasource()
-#         return None if d is None else d.meetlocatie
-
-    def set_locatie(self):
-        d = self.datasource()
-        self.mlocatie = None if d is None else d.meetlocatie
-        
-=======
+#         return self.mlocatie
         d = self.datasource()
         return None if d is None else d.meetlocatie
 
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
+#     def set_locatie(self):
+#         d = self.datasource()
+#         self.mlocatie = None if d is None else d.meetlocatie
+        
     def projectlocatie(self):
         l = self.meetlocatie()
         return None if l is None else l.projectlocatie
@@ -1105,7 +839,6 @@ class Series(models.Model):
     def __unicode__(self):
         return '%s - %s' % (self.datasource() or '(berekend)', self.name)
     
-<<<<<<< HEAD
     def do_align(self, s1, s2):
         ''' align series s2 with s1 and fill missing values by padding'''
         # align series and forward fill the missing data
@@ -1143,17 +876,6 @@ class Series(models.Model):
         if series.empty:
             return series
         
-=======
-    def do_postprocess(self, series, start, stop):
-        ''' perform postprocessing of series data like resampling, scaling etc'''
-        # remove n/a values and duplicates
-        series = series.dropna()
-        if series.empty:
-            return series
-        series = series.groupby(level=0).last()
-        if series.empty:
-            return series
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         if self.resample is not None and self.resample != '':
             try:
                 series = series.resample(how=self.aggregate, rule=self.resample)
@@ -1183,7 +905,6 @@ class Series(models.Model):
                         add_value = before[0].value
                 except Exception as e:
                     logger.exception('Accumulation of series %s failed: %s' % (self.name, e))
-<<<<<<< HEAD
 
         # apply scaling
         if self.scale != 1.0:
@@ -1207,16 +928,6 @@ class Series(models.Model):
             start = self.from_limit
         if stop is None:
             stop = self.to_limit
-=======
-        if self.scale != 1.0:
-            series = series * self.scale
-        if self.offset != 0.0:
-            series = series + self.offset
-        if add_value != 0:
-            series = series + add_value
-            
-        # clip on time
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         if start is None and stop is None:
             return series
         elif start is None:
@@ -1227,7 +938,6 @@ class Series(models.Model):
             return series[start:stop]
          
     def get_series_data(self, dataframe, start=None, stop=None):
-<<<<<<< HEAD
         logger = self.getLogger()
        
         if self.parameter is None:
@@ -1235,13 +945,6 @@ class Series(models.Model):
             return None
         start = start or self.from_limit
         stop = stop or self.to_limit
-=======
-        
-        if self.parameter is None:
-            #raise Exception('Parameter is None for series %s' % self.name)
-            return None
-
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         if dataframe is None:
             dataframe = self.parameter.get_data(start=start,stop=stop)
             if dataframe is None:
@@ -1250,7 +953,6 @@ class Series(models.Model):
         if not self.parameter.name in dataframe:
             # maybe datasource has stopped reporting about this parameter?
             msg = 'series %s: parameter %s not found' % (self.name, self.parameter.name)
-<<<<<<< HEAD
             logger.warning(msg)
             return None
         
@@ -1264,35 +966,12 @@ class Series(models.Model):
     def prepare_points(self, series, tz):
         ''' return array of datapoints in given timezone from pandas series'''
         pts = []
-=======
-#             msg = msg + ". Available parameters are: %s" % ','.join(dataframe.columns.values.tolist())
-            logger.warning(msg)
-#             raise Exception(msg)
-            return None
-        
-        series = dataframe[self.parameter.name]
-        series = self.do_postprocess(series, start, stop)
-        return series
-    
-    def create(self, data=None, thumbnail=True):
-        tz = timezone.get_current_timezone()
-        num_created = 0
-        num_skipped = 0
-        datapoints = []
-        logger.info('Creating series %s' % self.name)
-        series = self.get_series_data(data)
-        if series is None:
-            logger.error('Creation of series %s failed' % self.name)
-            return
-
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         for date,value in series.iteritems():
             try:
                 value = float(value)
                 if math.isnan(value) or date is None:
                     continue
                 if not timezone.is_aware(date):
-<<<<<<< HEAD
                     # set timezone for naive datetime
                     date = date.replace(tzinfo=tz)
                 else:
@@ -1398,133 +1077,6 @@ class Series(models.Model):
          
     def eerste(self):
         return self.getproperties().eerste
-=======
-                    date = timezone.make_aware(date,tz)
-                #self.datapoints.create(date=adate, value=value)
-                datapoints.append(DataPoint(series=self, date=date, value=value))
-                num_created += 1
-            except Exception as e:
-                logger.debug('Datapoint %s,%g: %s' % (str(date), value, e))
-                num_skipped += 1
-        self.datapoints.bulk_create(datapoints)
-        logger.info('Series %s updated: %d points created, %d points skipped' % (self.name, num_created, num_skipped))
-        if thumbnail:
-            self.make_thumbnail()
-        self.save()
-        #self.getproperties()#.update()
-        
-    def replace(self):
-        logger.info('Deleting all %d datapoints from series %s' % (self.datapoints.count(), self.name))
-        self.datapoints.all().delete()
-        self.create()
-
-    def update(self, data=None, start=None):
-        tz = timezone.get_current_timezone()
-        num_bad = 0
-        num_created = 0
-        num_updated = 0
-        logger.info('Updating series %s' % self.name)
-        series = self.get_series_data(data, start)
-        if series is None:
-            logger.error('Update of series %s failed' % self.name)
-            return
-        
-        for date,value in series.iteritems():
-            try:
-                value = float(value)
-                if math.isnan(value) or date is None:
-                    continue
-                if not timezone.is_aware(date):
-                    date = timezone.make_aware(date,tz)
-                point, created = self.datapoints.get_or_create(date=date, defaults={'value': value})
-                if created:
-                    num_created = num_created+1
-                elif point.value != value:
-                    point.value=value
-                    point.save(update_fields=['value'])
-                    num_updated = num_updated+1
-            except Exception as e:
-                logger.debug('Datapoint %s,%g: %s' % (str(date), value, e))
-                num_bad = num_bad+1
-        logger.info('Series %s updated: %d points created, %d updated, %d skipped' % (self.name, num_created, num_updated, num_bad))
-        self.make_thumbnail()
-        self.save()
-        #self.getproperties().update()
-
-# start properties
-    def aantal(self):
-        return self.datapoints.count()
-     
-    def van(self):
-        van = datetime.datetime.now()
-        agg = self.datapoints.aggregate(van=Min('date'))
-        return agg.get('van', van)
- 
-    def tot(self):
-        tot = datetime.datetime.now()
-        agg = self.datapoints.aggregate(tot=Max('date'))
-        return agg.get('tot', tot)
-     
-    def minimum(self):
-        agg = self.datapoints.aggregate(min=Min('value'))
-        return agg.get('min', 0)
- 
-    def maximum(self):
-        agg = self.datapoints.aggregate(max=Max('value'))
-        return agg.get('max', 0)
- 
-    def gemiddelde(self):
-        agg = self.datapoints.aggregate(avg=Avg('value'))
-        return agg.get('avg', 0)
- 
-    def laatste(self):
-        return self.datapoints.order_by('-date')[0]
- 
-    def beforelast(self):
-        if self.aantal() < 1:
-            return None
-        if self.aantal() == 1:
-            return self.eerste()
-        return self.datapoints.order_by('-date')[1]
-         
-    def eerste(self):
-        return self.datapoints.order_by('date')[0]
-        
-# end properties
-
-#     def getproperties(self):
-#         if not hasattr(self,'properties'):
-#             props = SeriesProperties.objects.create(series = self)
-#             props.update()
-#         return self.properties
-#     
-#     def aantal(self):
-#         return self.getproperties().aantal
-#     
-#     def van(self):
-#         return self.getproperties().van
-# 
-#     def tot(self):
-#         return self.getproperties().tot
-#    
-#     def minimum(self):
-#         return self.getproperties().min
-# 
-#     def maximum(self):
-#         return self.getproperties().max
-# 
-#     def gemiddelde(self):
-#         return self.getproperties().gemiddelde
-# 
-#     def laatste(self):
-#         return self.getproperties().laatste
-# 
-#     def beforelast(self):
-#         return self.getproperties().beforelast
-#         
-#     def eerste(self):
-#         return self.getproperties().eerste
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
          
     def thumbpath(self):
         return self.thumbnail.path
@@ -1559,10 +1111,7 @@ class Series(models.Model):
         return io.getvalue()
     
     def make_thumbnail(self):
-<<<<<<< HEAD
         logger = self.getLogger()
-=======
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         logger.debug('Generating thumbnail for series %s' % self.name)
         try:
             if self.datapoints.count() == 0:
@@ -1575,11 +1124,7 @@ class Series(models.Model):
             if not os.path.exists(imagedir):
                 os.makedirs(imagedir)
             util.save_thumbnail(series, imagefile, self.type)
-<<<<<<< HEAD
             logger.debug('Generated thumbnail %s' % dest)
-=======
-            logger.info('Generated thumbnail %s' % dest)
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 
         except Exception as e:
             logger.exception('Error generating thumbnail: %s' % e)
@@ -1613,25 +1158,15 @@ class SeriesProperties(models.Model):
         else:
             self.eerste = self.series.datapoints.order_by('date')[0]
             if self.aantal == 1:
-<<<<<<< HEAD
                 self.laatste = self.eerste
                 self.beforelast = self.eerste
-=======
-                self.laaste = self.eerste
-                self.beforelast =  self.laatste
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
             else:
                 points = self.series.datapoints.order_by('-date')
                 self.laatste = points[0]
                 self.beforelast = points[1]
         if save:
             self.save()
-<<<<<<< HEAD
 
-=======
-            
-    
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 class Variable(models.Model):
     locatie = models.ForeignKey(MeetLocatie)
     name = models.CharField(max_length=10, verbose_name = 'variabele')
@@ -1648,18 +1183,13 @@ class Variable(models.Model):
 
     def __unicode__(self):
         return '%s = %s' % (self.name, self.series)
-<<<<<<< HEAD
         
-=======
-
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     class Meta:
         verbose_name='variabele'
         verbose_name_plural='variabelen'
         unique_together = ('locatie', 'name', )
 
 # Series that can be edited manually
-<<<<<<< HEAD
 class ManualSeries(Series):
     ''' Series that can be edited manually (no datasource, nor parameter)'''
     def __unicode__(self):
@@ -1674,36 +1204,10 @@ class ManualSeries(Series):
          
 class Formula(Series):
     ''' Calculated series '''
-=======
-# class ManualSeries(Series):
-#     locatie = models.ForeignKey(MeetLocatie)
-#     
-#     def meetlocatie(self):
-#         return self.locatie
-#         
-#     def __unicode__(self):
-#         return self.name
-# 
-#     def get_series_data(self,data,start=None):
-#         return self.to_pandas(start=start)
-#     
-#     class Meta:
-#         verbose_name = 'Handmatige reeks'
-#         verbose_name_plural = 'Handmatige reeksen'
-#         
-class Formula(Series):
-    locatie = models.ForeignKey(MeetLocatie)
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     formula_text = models.TextField(blank=True,null=True,verbose_name='berekening')
     formula_variables = models.ManyToManyField(Variable,verbose_name = 'variabelen')
     intersect = models.BooleanField(default=True,verbose_name = 'bereken alleen voor overlappend tijdsinterval')
         
-<<<<<<< HEAD
-=======
-    def meetlocatie(self):
-        return self.locatie
-        
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     def __unicode__(self):
         return self.name
 
@@ -1750,7 +1254,6 @@ class Formula(Series):
             deps.append(s)
         return deps
     
-<<<<<<< HEAD
     class Meta:
         verbose_name = 'Berekende reeks'
         verbose_name_plural = 'Berekende reeksen'
@@ -1783,29 +1286,6 @@ class DataPoint(models.Model):
     class Meta:
         verbose_name = 'Meetwaarde'
         verbose_name_plural = 'Meetwaarden'
-=======
-#     def clean(self):
-#         try:
-#             variables = {var.name: var.series.to_pandas() for var in self.formula_variables.all()}
-#         except Exception as e:
-#             raise ValidationError('Probleem met definitie van de variabelen: %s' % e)
-#         try:
-#             eval(self.formula_text, globals(), variables)
-#         except Exception as e:
-#             raise ValidationError('Fout bij berekening van de formule: %s' % e)
-            
-    
-    class Meta:
-        verbose_name = 'Berekende reeks'
-        verbose_name_plural = 'Berekende reeksen'
-    
-class DataPoint(models.Model):
-    series = models.ForeignKey(Series,related_name='datapoints')
-    date = models.DateTimeField()
-    value = models.FloatField()
-    
-    class Meta:
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         unique_together=('series','date')
         #ordering = ['date']
         
@@ -1822,12 +1302,8 @@ PERIOD_CHOICES = (
 
 import dateutil
     
-<<<<<<< HEAD
 #class Chart(models.Model):
 class Chart(PolymorphicModel):
-=======
-class Chart(models.Model):
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     name = models.CharField(max_length = 50, verbose_name = 'naam')
     description = models.TextField(blank=True,null=True,verbose_name='toelichting',help_text='Toelichting bij grafiek op het dashboard')
     title = models.CharField(max_length = 50, verbose_name = 'titel')
@@ -1844,14 +1320,10 @@ class Chart(models.Model):
         return self.name
     
     def get_absolute_url(self):
-<<<<<<< HEAD
         return reverse('acacia:chart-view', args=[self.pk])
 
     def get_dash_url(self):
         return reverse('acacia:chart-detail', args=[self.pk])
-=======
-        return reverse('acacia:chart-view', args=[self.id])
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 
     def auto_start(self):
         if self.start is None:
@@ -1874,11 +1346,7 @@ class Chart(models.Model):
         return self.start
 
     def to_pandas(self):
-<<<<<<< HEAD
         s = { unicode(cd.series): cd.series.to_pandas() for cd in self.series.all() }
-=======
-        s = { cd.series.name: cd.series.to_pandas() for cd in self.series.all() }
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         return pd.DataFrame(s)
     
     def to_csv(self):
@@ -1892,7 +1360,6 @@ class Chart(models.Model):
         verbose_name = 'Grafiek'
         verbose_name_plural = 'Grafieken'
 
-<<<<<<< HEAD
 class Grid(Chart):    
     colwidth = models.FloatField(default=1,verbose_name='tijdstap',help_text='tijdstap in uren')
     rowheight = models.FloatField(default=1,verbose_name='rijhoogte')
@@ -1943,9 +1410,6 @@ class Grid(Chart):
         return (x1,y1,z1,x2,y2,z2)
                 
             
-=======
-        
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 AXIS_CHOICES = (
                 ('l', 'links'),
                 ('r', 'rechts'),
@@ -1968,11 +1432,7 @@ class ChartSeries(models.Model):
     t1 = models.DateTimeField(null=True,blank=True,verbose_name='stop')
     
     def __unicode__(self):
-<<<<<<< HEAD
         return unicode(self.series)
-=======
-        return self.series
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     
     def theme(self):
         s = self.series
@@ -1983,11 +1443,6 @@ class ChartSeries(models.Model):
         verbose_name = 'tijdreeks'
         verbose_name_plural = 'tijdreeksen'
 
-<<<<<<< HEAD
-=======
-from django.template.loader import render_to_string
-
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 class Dashboard(models.Model):
     name = models.CharField(max_length=50, verbose_name= 'naam')
     description = models.TextField(blank=True, null=True,verbose_name = 'omschrijving')
@@ -2021,11 +1476,7 @@ class DashboardChart(models.Model):
     
 class TabGroup(models.Model):
     location = models.ForeignKey(ProjectLocatie,verbose_name='projectlocatie')
-<<<<<<< HEAD
     name = models.CharField(max_length = 40, verbose_name='naam', help_text='naam van dashboard groep')
-=======
-    name = models.CharField(max_length = 40, verbose_name='naam', help_text='naam van dashboard tabgroep')
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 
     def pagecount(self):
         return self.tabpage_set.count()
@@ -2039,7 +1490,6 @@ class TabGroup(models.Model):
 
     def get_absolute_url(self):
         return reverse('acacia:tabgroup', args=[self.id]) 
-<<<<<<< HEAD
 
     class Meta:
         verbose_name = 'Dashboardgroep'
@@ -2049,27 +1499,12 @@ class TabPage(models.Model):
     tabgroup = models.ForeignKey(TabGroup)
     name = models.CharField(max_length=40,default='basis',verbose_name='naam')
     order = models.IntegerField(default=1,verbose_name='volgorde', help_text='volgorde van tabblad')
-=======
-    
-class TabPage(models.Model):
-    tabgroup = models.ForeignKey(TabGroup)
-    name = models.CharField(max_length=40,default='basis',verbose_name='naam', help_text='naam van tabpage')
-    order = models.IntegerField(default=1,verbose_name='volgorde', help_text='volgorde van tabpage')
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     dashboard = models.ForeignKey(Dashboard)
 
     def __unicode__(self):
         return self.name
 
-<<<<<<< HEAD
     class Meta:
         verbose_name = 'Tabblad'
         verbose_name_plural = 'Tabbladen'
         
-=======
-# 
-# class EmailLog(models.Model):
-#     user = models.ForeignKey(User)
-#     level = models.CharField(max_length=10, choices = LOGGING_CHOICES, default = 'INFO')
-#     datasource = models.ForeignKey(Datasource)
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb

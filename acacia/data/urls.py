@@ -1,20 +1,9 @@
 from django.conf.urls import patterns, url
-<<<<<<< HEAD
 from django.views.generic.list import ListView
 from acacia.data.models import Project
 from acacia.data.views import DatasourceDetailView, DatasourceAsZip, DatasourceAsCsv, ProjectDetailView, ProjectLocatieDetailView, \
     MeetLocatieDetailView, MeetlocatieAsZip, SeriesAsCsv, SeriesToJson, ChartToJson, GridToJson, ChartAsCsv, UpdateMeetlocatie, ChartView, \
     ChartBaseView, DashView, TabGroupView, SeriesView, GridBaseView, GridView, UpdateDatasource, StartUpdateDatasource, poll_state
-=======
-from django.views.generic import DetailView
-from django.views.generic.list import ListView
-from acacia.data.models import Project, ProjectLocatie, MeetLocatie
-from acacia.data.views import DatasourceDetailView, DatasourceAsZip, DatasourceAsCsv, ProjectDetailView, ProjectLocatieDetailView, \
-    MeetLocatieDetailView, MeetlocatieAsZip, SeriesAsCsv, SeriesToJson, ChartToJson, ChartAsCsv, UpdateMeetlocatie, ChartView, ChartBaseView, \
-    DashView, TabGroupView, SeriesView, UpdateDatasource,\
-    StartUpdateDatasource, poll_state
-
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 
 urlpatterns = patterns('',
     url(r'^$', ListView.as_view(model=Project), name='project-list'),
@@ -35,7 +24,6 @@ urlpatterns = patterns('',
         
     url(r'^get/series/(?P<pk>\d+)/$', SeriesToJson),
     url(r'^get/chart/(?P<pk>\d+)/$', ChartToJson),
-<<<<<<< HEAD
     url(r'^get/grid/(?P<pk>\d+)/$', GridToJson),
     
     url(r'^series/(?P<pk>\d+)/$', SeriesView.as_view(), name='series-detail'),
@@ -43,12 +31,6 @@ urlpatterns = patterns('',
     url(r'^grid/(?P<pk>\d+)$', GridBaseView.as_view(), name='grid-detail'),
     url(r'^grafiek/(?P<pk>\d+)/$', ChartView.as_view(), name='chart-view'),
     url(r'^profiel/(?P<pk>\d+)$', GridView.as_view(), name='grid-view'),
-=======
-    
-    url(r'^reeks/(?P<pk>\d+)/$', SeriesView.as_view(), name='series-detail'),
-    url(r'^chart/(?P<pk>\d+)/$', ChartBaseView.as_view(), name='chart-detail'),
-    url(r'^grafiek/(?P<pk>\d+)/$', ChartView.as_view(), name='chart-view'),
->>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     url(r'^dashboard/(?P<pk>\d+)/$', DashView.as_view(), name='dash-view'),
     url(r'^tabs/(?P<pk>\d+)/$', TabGroupView.as_view(), name='tabgroup'),
     url(r'^project/(?P<pk>\d+)/$', ProjectDetailView.as_view(), name='project-detail'),
