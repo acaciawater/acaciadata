@@ -1262,9 +1262,10 @@ class Formula(Series):
 @receiver(pre_save, sender=ManualSeries)
 @receiver(pre_save, sender=Formula)
 def series_pre_save(sender, instance, **kwargs):
-    if not instance.mlocatie:
-        # for parameter series only, others should have mlocatie set
-        instance.set_locatie()
+    pass
+#     if not instance.mlocatie:
+#         # for parameter series only, others should have mlocatie set
+#         instance.set_locatie()
 
 @receiver(post_save, sender=Series)
 @receiver(post_save, sender=ManualSeries)
