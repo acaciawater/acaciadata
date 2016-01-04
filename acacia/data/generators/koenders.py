@@ -31,8 +31,12 @@ class Koenders(Generator):
     def get_data(self, f, **kwargs):
         header = self.get_header(f)
         names = header['COLUMNS']
+<<<<<<< HEAD
         data = self.read_csv(f, header=None, names=names, index_col=[0], usecols = [0,2,3,7],  
                              parse_dates = True, skip_blank_lines = True, date_parser = date_parser)
+=======
+        data = self.read_csv(f, header=None, names=names, index_col=[0], usecols = [0,2,3,7],  parse_dates = True, date_parser = date_parser)
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         data.dropna(inplace=True)
         return data
 

@@ -8,7 +8,10 @@ import urlparse
 import StringIO
 import datetime
 import numpy as np
+<<<<<<< HEAD
 import zipfile
+=======
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +23,13 @@ INCREMENTAL_DOWNLOAD = False
 class Meteo(Generator):
     ''' Dag waarden van meteostation(s) ophalen '''
     
+<<<<<<< HEAD
     url = 'http://projects.knmi.nl/klimatologie/daggegevens/getdata_dag.cgi'
+=======
+    #url = 'http://www.knmi.nl/klimatologie/daggegevens/getdata_uur.cgi'
+    url = 'http://www.knmi.nl/klimatologie/daggegevens/getdata_dag.cgi'
+        
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     def download(self, **kwargs):
         if not 'filename' in kwargs:
             # need unique filename for incremental downloads
@@ -42,7 +51,10 @@ class Meteo(Generator):
         header = {}
         descr = {}
         header['DESCRIPTION'] = descr
+<<<<<<< HEAD
         header['COLUMNS'] = []
+=======
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         line = f.readline()
         self.skiprows = 0
         while line != '':
@@ -69,7 +81,11 @@ class Meteo(Generator):
     
     def get_data(self, f, **kwargs):
         header = self.get_header(f)
+<<<<<<< HEAD
         columns = header.get('COLUMNS',[])
+=======
+        columns = header['COLUMNS']
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         skiprows = self.skiprows if self.engine == 'python' else 0
         data = self.read_csv(f, header=None, names=columns, skiprows = skiprows, skipinitialspace=True, comment = '#', index_col = 1, parse_dates = True)
         return data
@@ -83,9 +99,14 @@ class Meteo(Generator):
             return None
 
     def get_columns(self, hdr):
+<<<<<<< HEAD
         columns = hdr.get('COLUMNS',[])
         return columns[2:] if len(columns)>2 else columns
     
+=======
+        return hdr['COLUMNS'][2:] # eerste 2 zijn station en datum
+                
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     def get_parameters(self, fil):
         header = self.get_header(fil)
         names = self.get_columns(header)
@@ -111,11 +132,17 @@ def datehour_parser(ymd,hours):
 
 class UurGegevens(Meteo):
     
+<<<<<<< HEAD
     url = 'http://projects.knmi.nl/klimatologie/uurgegevens/getdata_uur.cgi'
 
     def get_data(self, f, **kwargs):
         header = self.get_header(f)
         columns = header.get('COLUMNS',[])
+=======
+    def get_data(self, f, **kwargs):
+        header = self.get_header(f)
+        columns = header['COLUMNS']
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         skiprows = self.skiprows # if self.engine == 'python' else 0
         # Bij uurgegevens kan er een carriage return (\r) tussen de kolommen zitten
         with open(f.path,'rb') as f:
@@ -138,7 +165,11 @@ class UurGegevens(Meteo):
 class Neerslag(Meteo):
     '''Dagwaarden van neerslagstations ophalen'''
     
+<<<<<<< HEAD
     url = 'http://projects.knmi.nl/klimatologie/monv/reeksen/getdata_rr.cgi'
+=======
+    url = 'http://www.knmi.nl/klimatologie/monv/reeksen/getdata_rr.cgi'
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 
     def download(self, **kwargs):
         if not 'filename' in kwargs:
@@ -157,7 +188,10 @@ class Neerslag(Meteo):
         header = {}
         descr = {}
         header['DESCRIPTION'] = descr
+<<<<<<< HEAD
         header['COLUMNS'] = []
+=======
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         self.skiprows = 0
         for i in range(0,9):
             line = f.readline()
@@ -190,11 +224,16 @@ class Neerslag(Meteo):
 
     def get_data(self, f, **kwargs):
         header = self.get_header(f)
+<<<<<<< HEAD
         names = header.get('COLUMNS',[])
+=======
+        names = header['COLUMNS']
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         names.append('NAME')
         skiprows = self.skiprows if self.engine == 'python' else 0
         data = self.read_csv(f, header=None, skiprows = skiprows, names=names, skipinitialspace=True, comment = '#', index_col = 1, parse_dates = True)
         return data
+<<<<<<< HEAD
 
 class ZipMixin(object):
     
@@ -305,3 +344,5 @@ class ZipUurGegevens(ZipMeteo):
                              parse_dates={'Datum': [1,2]}, 
                              date_parser = datehour_parser)
         return data
+=======
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb

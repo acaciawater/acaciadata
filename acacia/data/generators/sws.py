@@ -7,8 +7,11 @@ import logging
 from generator import Generator
 from StringIO import StringIO
 logger = logging.getLogger(__name__)
+<<<<<<< HEAD
 import numpy as np
 import pytz
+=======
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 
 class MonFileException(Exception):
 
@@ -75,11 +78,20 @@ class Diver(Generator):
         for i in range(1,num+1):
             name = sections['Channel %d' % i].get('Identification')
             names.append(name)
+<<<<<<< HEAD
         if self.engine == 'python':
             io = StringIO(f.read())
             data = self.read_csv(io, header=None, index_col=0, names = names, sep='\s+', parse_dates = {'date': [0,1]}, skipfooter=1)
         else:
             num=int(sections['HEADER'].get('Number of points','0'))
+=======
+        num=int(f.readline())
+        if self.engine == 'python':
+            #skiprows = self.skiprows+1
+            io = StringIO(f.read())
+            data = self.read_csv(io, header=None, index_col=0, names = names, sep='\s+', parse_dates = {'date': [0,1]}, skipfooter=1)
+        else:
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
             data = self.read_csv(f, header=None, index_col=0, names = names, delim_whitespace=True, parse_dates = {'date': [0,1]}, nrows=num-2, error_bad_lines=False)
         return data
 

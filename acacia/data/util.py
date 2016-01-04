@@ -38,6 +38,7 @@ def trans(p, srid):
     psrid = p.srid
     if not psrid:
         psrid = WGS84
+<<<<<<< HEAD
     p.transform(srid)
 #     if (psrid != srid): 
 #         tr = CoordTransform(SpatialReference(p.srid), SpatialReference(srid))
@@ -51,6 +52,18 @@ def save_thumbnail(series,imagefile,kind='line'):
         options = {'grid': False, 'legend': False}
         if kind == 'column':
             options['xticks'] = []
+=======
+    if (psrid != srid): 
+        tr = CoordTransform(SpatialReference(p.srid), SpatialReference(srid))
+        p.transform(tr)
+    return p
+
+def save_thumbnail(series,imagefile,kind='line'):
+    plt.figure()
+    try:
+        options = {'figsize': (9,3), 'grid': False, 'xticks': [], 'legend': False}
+        if kind == 'column':
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
             series.plot(kind='bar', **options)
         elif kind == 'area':
             x = series.index
@@ -104,7 +117,11 @@ def datasources_as_zip(datasources, zipname):
             zippath = os.path.join(folder, f.filename())
             zf.write(filepath,zippath)
     zf.close()
+<<<<<<< HEAD
     resp = HttpResponse(io.getvalue(), content_type = "application/x-zip-compressed")
+=======
+    resp = HttpResponse(io.getvalue(), mimetype = "application/x-zip-compressed")
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     resp['Content-Disposition'] = 'attachment; filename=%s' % zipname
     return resp
 
@@ -113,7 +130,11 @@ def datasource_as_csv(d):
     filename = slugify(d.name) + '.csv'
     csv = d.to_csv()
     logger.debug('csv file created, size = %d bytes' % len(csv))
+<<<<<<< HEAD
     resp = HttpResponse(csv, content_type='text/csv')
+=======
+    resp = HttpResponse(csv, mimetype='text/csv')
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     resp['Content-Disposition'] = 'attachment; filename=%s' % filename
     return resp
 
@@ -126,14 +147,26 @@ def meetlocatie_as_zip(loc):
 def series_as_csv(series):
     filename = slugify(series.name) + '.csv'
     csv = series.to_csv()
+<<<<<<< HEAD
     resp = HttpResponse(csv, content_type='text/csv')
+=======
+    resp = HttpResponse(csv, mimetype='text/csv')
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     resp['Content-Disposition'] = 'attachment; filename=%s' % filename
     return resp
 
 def chart_as_csv(chart):
     filename = slugify(chart.name) + '.csv'
     csv = chart.to_csv()
+<<<<<<< HEAD
     resp = HttpResponse(csv, content_type='text/csv')
     resp['Content-Disposition'] = 'attachment; filename=%s' % filename
     return resp
 
+=======
+    resp = HttpResponse(csv, mimetype='text/csv')
+    resp['Content-Disposition'] = 'attachment; filename=%s' % filename
+    return resp
+
+
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb

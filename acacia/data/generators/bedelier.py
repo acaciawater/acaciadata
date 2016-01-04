@@ -9,7 +9,10 @@ COL_LOOKUP = {'L': 'Watermeter Bron1 Uit 1 [0.1 m3]', 'M': 'Watermeter Bron1 Uit
 class OWB(Generator):
         
     def get_header(self, f):
+<<<<<<< HEAD
         f.seek(0)
+=======
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         cols = [col.strip() for col in f.readline().split(';')]
         for i,col in enumerate(cols):
             if col == '':
@@ -39,7 +42,11 @@ class OWB(Generator):
         return params
     
 if __name__ == '__main__':
+<<<<<<< HEAD
     with open('/home/theo/acaciadata.com/spaarwater/media/spaarwater/breezand/perceel-1/datafiles/bedelier-breezand/LogFile150408.csv') as f:
+=======
+    with open('/home/theo/acacia/data/Breezand/LogFile140221.csv') as f:
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         o = OWB()
         data = o.get_data(f)
         print data

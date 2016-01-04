@@ -1,5 +1,8 @@
+<<<<<<< HEAD
 # -*- coding: utf-8 -*-
 import math
+=======
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 import numpy as np
 import pandas as pd
 import cgi, urllib, urllib2
@@ -15,6 +18,10 @@ from acacia import settings
 logger = logging.getLogger(__name__)
 
 from generator import Generator
+<<<<<<< HEAD
+=======
+from acacia.data import __version__
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 
 class DecagonException(Exception):
     
@@ -114,8 +121,12 @@ def conv119(x):
     raw = np.uint32(x)
     Re = raw & m12
     Ea = Re / 50.0
+<<<<<<< HEAD
     vwcp = 0.118 * math.sqrt(Ea) - 0.117 if Ea > 0 else np.nan# peat
     vwc = 5.89e-6 * Ea**3 - 7.62e-4 * Ea**2 + 3.67e-2 * Ea -7.53e-2 # mineral soil
+=======
+    vwc = 5.89e-6 * Ea**3 - 7.62e-4 * Ea**2 + 3.67e-2 * Ea -7.53e-2
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     if vwc < 0:
         vwc = np.nan
     RT = (raw >> 22) & m10
@@ -131,7 +142,11 @@ def conv119(x):
         EC = np.nan
     else:
         EC = 10**(Rec/215.0)/1000
+<<<<<<< HEAD
     return [vwc, temp, EC, vwcp]
+=======
+    return [vwc, temp, EC]
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 
 def conv116(x):
     '''
@@ -162,7 +177,11 @@ def conv116(x):
 
 def conv106(x):
     '''
+<<<<<<< HEAD
     conversion for CTD-5 and CTD-10 Depth/Temp/EC
+=======
+    conversion for CTD-5 Depth/Temp/EC
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     Water level in bits 0-12
     Temperature in bits 23-31
     EC in bits 13-22
@@ -187,7 +206,11 @@ def conv106(x):
 
     RT = (raw >> 23) & m9
     if RT == 0:
+<<<<<<< HEAD
         temp = np.nan
+=======
+        level = np.nan
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     elif RT <= 10:
         temp = RT-11
     elif RT <= 510:
@@ -228,6 +251,7 @@ def conv189(x):
     p = pulses * 1.0 # every pulse = 1 mm
     return [p]
 
+<<<<<<< HEAD
 def conv251(x):
     ''' converter for ECT Temperature (A.K.A. RT-1 Temperature)
         Typical output range for which the calibration is valid: -40.0 – 60.0 °C
@@ -250,6 +274,8 @@ def dummy(x):
     ''' dummy converter '''
     return [x]
 
+=======
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 def post189(a):
     ''' postprocessor for ECRN-50: calculate precipitation per interval from cumulative values ''' 
     # TODO: remove postprocessor, use cumulative option in series: no access to previous data -> first value is always None
@@ -261,6 +287,7 @@ def post189(a):
     return b
         
 SENSORDATA = {
+<<<<<<< HEAD
     105: {'converter': conv106,
           'parameters':[{'name': 'Level', 'description': 'Water level', 'unit': 'mm'},
                         {'name': 'Temp', 'description': 'Temperature', 'unit': 'oC'},
@@ -271,6 +298,21 @@ SENSORDATA = {
           'parameters':[{'name': 'Level', 'description': 'Water level', 'unit': 'mm'},
                         {'name': 'Temp', 'description': 'Temperature', 'unit': 'oC'},
                         {'name': 'EC', 'description': 'Electrical Conductivity', 'unit': 'mS/cm'}
+=======
+    252: {'converter': conv252,
+          'parameters':[{'name': 'VWC', 'description': 'Volumetric water content', 'unit': 'm3/m3'},
+                        ]
+          },
+    121: {'converter': conv121,
+          'parameters':[{'name': 'Potential', 'description': 'Water Potential', 'unit': 'kPa'},
+                        {'name': 'Temp', 'description': 'Temperature', 'unit': 'oC'}
+                        ]
+          },
+    119: {'converter': conv119,
+          'parameters':[{'name': 'VWC', 'description': 'Volumetric water content', 'unit': 'm3/m3'},
+                        {'name': 'Temp', 'description': 'Temperature', 'unit': 'oC'},
+                        {'name': 'EC', 'description': 'Bulk Electrical Conductivity', 'unit': 'mS/cm'}
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
                         ]
           },
     116: {'converter': conv116,
@@ -279,6 +321,7 @@ SENSORDATA = {
                         {'name': 'EC', 'description': 'Electrical Conductivity', 'unit': 'mS/cm'}
                         ]
           },
+<<<<<<< HEAD
     119: {'converter': conv119,
           'parameters':[{'name': 'VWC', 'description': 'Volumetric water content for mineral soil', 'unit': 'm3/m3'},
                         {'name': 'Temp', 'description': 'Temperature', 'unit': 'oC'},
@@ -289,6 +332,12 @@ SENSORDATA = {
     121: {'converter': conv121,
           'parameters':[{'name': 'Potential', 'description': 'Water Potential', 'unit': 'kPa'},
                         {'name': 'Temp', 'description': 'Temperature', 'unit': 'oC'}
+=======
+    106: {'converter': conv106,
+          'parameters':[{'name': 'Level', 'description': 'Water level', 'unit': 'mm'},
+                        {'name': 'Temp', 'description': 'Temperature', 'unit': 'oC'},
+                        {'name': 'EC', 'description': 'Electrical Conductivity', 'unit': 'mS/cm'}
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
                         ]
           },
     187: { 'converter': conv187,
@@ -300,6 +349,7 @@ SENSORDATA = {
           'postprocessor': post189,
           'parameters': [{'name': 'Precipitation', 'description': 'Precipitation', 'unit': 'mm'},
                          ]
+<<<<<<< HEAD
           },
     251: { 'converter': conv251,
           'parameters': [{'name': 'Temp', 'description': 'Temperature', 'unit': 'oC'},
@@ -314,6 +364,11 @@ SENSORDATA = {
 def DUMMYSENSOR(name='Sensor', description=''):
     return {'converter': dummy, 'postprocessor': None, 'parameters': [{'name': name, 'description': description, 'unit': ''},]}
 
+=======
+          }
+}
+
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 # seconds between 1/1/2000 and 1/1/1970
 DECATIME_OFFSET = 946684800.0
 tz = pytz.timezone(settings.TIME_ZONE)
@@ -391,7 +446,11 @@ class Dataservice(Generator):
 
         result[filename] = response.read()
         if callback is not None:
+<<<<<<< HEAD
             callback(result)
+=======
+            callback(filename, result[filename])
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         
         return result
 
@@ -403,11 +462,20 @@ class Dataservice(Generator):
         value = int(port['value'])
         if value == 255:
             return [] # not connected
+<<<<<<< HEAD
+=======
+        if not value in SENSORDATA:
+            raise DecagonException('Sensor wordt niet ondersteund: %s' % port['sensor'])
+        data = SENSORDATA[value]
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         sensor = port['sensor'].split()[0] # short sensor name
         portno = port['number'] # port number
         postfix = ' P%s (%s)' % (portno, sensor)
         params = [] # use array instead of dict to keep params in correct order
+<<<<<<< HEAD
         data = SENSORDATA.get(value,DUMMYSENSOR())
+=======
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         for p in data['parameters']:
             name = p['name'] + postfix
             params.append({'name': name, 'description': p['description'], 'unit': p['unit']})
@@ -423,7 +491,10 @@ class Dataservice(Generator):
         return params
 
     def get_parameters(self, f):
+<<<<<<< HEAD
         f.seek(0)
+=======
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         tree = ET.ElementTree()
         tree.parse(f)
         params = self._get_parameters(tree)
@@ -434,7 +505,10 @@ class Dataservice(Generator):
         return result
     
     def get_data(self, f, **kwargs):
+<<<<<<< HEAD
         f.seek(0)
+=======
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         tree = ET.ElementTree()
         tree.parse(f)
         device = tree.find('Device')
@@ -460,7 +534,11 @@ class Dataservice(Generator):
             if value == 255:
                 continue
             params = self.port2params(port)
+<<<<<<< HEAD
             data = SENSORDATA.get(value,DUMMYSENSOR())
+=======
+            data = SENSORDATA[value]
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
             convert = data['converter']
             label = 'port%s' % port['number']
             raw = df[label]
@@ -484,11 +562,16 @@ class Dataservice(Generator):
                 series = pd.Series(data,index=df.index)
                 df[p['name']] = series
                 logger.debug('Finished adding data for %s' % pname)
+<<<<<<< HEAD
         try:
             # drop rows where index = NaT
             df.drop([pd.NaT],inplace=True)
         except:
             pass
+=======
+        # drop rows where index = NaT
+        df.drop([pd.NaT],inplace=True)
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         # drop rows if all values are na
         df.dropna(how='all',inplace=True)
         return df
@@ -533,8 +616,11 @@ if __name__ == '__main__':
         
     api = Dataservice()
 
+<<<<<<< HEAD
     print conv106(270)
     
+=======
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     print conv119(2149036430)
 
 #     params = {

@@ -1,15 +1,29 @@
+<<<<<<< HEAD
 # -*- coding: utf-8 -*-
 import datetime,time,json,re,logging
+=======
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 from django.views.generic.list import ListView
 from django.views.generic import DetailView
 from django.views.generic.base import TemplateView
 from django.template import RequestContext
 from django.template.loader import render_to_string
+<<<<<<< HEAD
 from django.shortcuts import get_object_or_404, redirect, render_to_response
 from django.http import HttpResponse
 from .models import Project, ProjectLocatie, MeetLocatie, Datasource, Series, Chart, Grid, Dashboard, TabGroup
 from .util import datasource_as_zip, datasource_as_csv, meetlocatie_as_zip, series_as_csv, chart_as_csv
 from django.views.decorators.gzip import gzip_page
+=======
+from django.shortcuts import get_object_or_404, redirect, render, render_to_response
+from django.http import HttpResponse
+from .models import Project, ProjectLocatie, MeetLocatie, Datasource, Series, Chart, Dashboard, TabGroup
+from .util import datasource_as_zip, datasource_as_csv, meetlocatie_as_zip, series_as_csv, chart_as_csv
+import json
+import datetime,time
+import re
+import logging
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +45,10 @@ def SeriesAsCsv(request,pk):
     s = get_object_or_404(Series,pk=pk)
     return series_as_csv(s)
 
+<<<<<<< HEAD
 @gzip_page
+=======
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 def SeriesToJson(request, pk):
     s = get_object_or_404(Series,pk=pk)
     points = [[p.date,p.value] for p in s.datapoints.order_by('date')]
@@ -40,6 +57,7 @@ def SeriesToJson(request, pk):
     j = json.dumps(points, default=lambda x: time.mktime(x.timetuple())*1000.0)
     return HttpResponse(j, content_type='application/json')
 
+<<<<<<< HEAD
 def SeriesToDict(request, pk):
     s = get_object_or_404(Series,pk=pk)
     points = [{'date':p.date.date(),'time': p.date.time(), 'value':p.value} for p in s.datapoints.order_by('date')]
@@ -47,12 +65,15 @@ def SeriesToDict(request, pk):
     return HttpResponse(j, content_type='application/json')
 
 @gzip_page
+=======
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 def ChartToJson(request, pk):
     c = get_object_or_404(Chart,pk=pk)
     start = c.auto_start()
     data = {}
     for cs in c.series.all():
         s = cs.series
+<<<<<<< HEAD
         if c.stop is None:
             data['series_%d' % s.id] = [[p.date,p.value] for p in s.datapoints.filter(date__gt=start).order_by('date')]
         else:
@@ -75,6 +96,10 @@ def GridToJson(request, pk):
         rowdata.extend(row)
     data = {'grid': rowdata, 'min': min(rowdata), 'max': max(rowdata) }
     return HttpResponse(json.dumps(data,default=lambda x: time.mktime(x.timetuple())*1000.0), content_type='application/json')
+=======
+        data['series_%d' % s.id] = [[p.date,p.value] for p in s.datapoints.filter(date__gt=start).order_by('date')]
+    return HttpResponse(json.dumps(data, default=lambda x: time.mktime(x.timetuple())*1000.0), content_type='application/json')
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     
 def ChartAsCsv(request,pk):
     c = get_object_or_404(Chart,pk=pk)
@@ -84,7 +109,11 @@ def tojs(d):
     return 'Date.UTC(%d,%d,%d,%d,%d,%d)' % (d.year, d.month-1, d.day, d.hour, d.minute, d.second)
 
 def date_handler(obj):
+<<<<<<< HEAD
     return tojs(obj) if isinstance(obj, (datetime.date, datetime.datetime,)) else obj
+=======
+    return tojs(obj) if isinstance(obj, datetime.date) or isinstance(obj, datetime.datetime) else obj
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 
 from .tasks import update_meetlocatie, update_datasource, longjob
 
@@ -93,10 +122,19 @@ def UpdateMeetlocatie(request,pk):
     return redirect(request.GET['next'])
 
 def UpdateDatasource(request,pk):
+<<<<<<< HEAD
     nxt = request.GET['next']
     update_datasource(pk)
     return redirect(nxt)
 
+=======
+    next = request.GET['next']
+    update_datasource(pk)
+    return redirect(next)
+
+from django.http import HttpResponseRedirect
+from django.core.urlresolvers import reverse
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 from celery.result import AsyncResult
 
 def poll_state(request):
@@ -188,7 +226,11 @@ class SeriesView(DetailView):
             'title': {'text': ser.name},
             'xAxis': {'type': 'datetime'},
             'yAxis': [],
+<<<<<<< HEAD
             'tooltip': {'valueSuffix': ' '+(unit or ''),
+=======
+            'tooltip': {'valueSuffix': ' '+unit,
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
                         'valueDecimals': 2
                        }, 
             'legend': {'enabled': False},
@@ -247,7 +289,11 @@ class ChartBaseView(TemplateView):
                        }, 
             'legend': {'enabled': chart.series.count() > 1},
             'plotOptions': {'line': {'marker': {'enabled': False}},
+<<<<<<< HEAD
                             'column': {'allowpointSelect': True, 'pointPadding': 0.01, 'groupPadding': 0.01}},            
+=======
+                            'column': {'allowpointSelect': True, 'pointPadding': 0.01, 'groupPadding': 0.01, 'pointPlacement': 'between'}},            
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
             'credits': {'enabled': True, 
                         'text': 'acaciawater.com', 
                         'href': 'http://www.acaciawater.com',
@@ -256,10 +302,16 @@ class ChartBaseView(TemplateView):
 
         start = chart.auto_start()
         options['xAxis']['min'] = tojs(start)
+<<<<<<< HEAD
         if not chart.stop is None:
             options['xAxis']['max'] = tojs(chart.stop)
         allseries = []
         # TODO: geen nieuwe y-as aanmaken voor elke tijdreeks! 
+=======
+#         if not chart.stop is None:
+#             options['xAxis']['max'] = tojs(chart.stop)
+        allseries = []
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         for _,s in enumerate(chart.series.all()):
             ser = s.series
             title = s.label #ser.name if len(ser.unit)==0 else '%s [%s]' % (ser.name, ser.unit) if chart.series.count()>1 else ser.unit
@@ -300,8 +352,12 @@ class ChartBaseView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super(ChartBaseView, self).get_context_data(**kwargs)
         pk = context.get('pk',1)
+<<<<<<< HEAD
         chart = Chart.objects.get(pk=pk)                
 
+=======
+        chart = Chart.objects.get(pk=pk)
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         jop = self.get_json(chart)
         context['options'] = jop
         context['chart'] = chart
@@ -345,6 +401,7 @@ class TabGroupView(TemplateView):
             context['page'] = int(page)
             context['dashboard'] = dashboards[page-1]
         return context    
+<<<<<<< HEAD
 
 class GridBaseView(TemplateView):
     template_name = 'data/plain_map.html'
@@ -436,3 +493,5 @@ class GridBaseView(TemplateView):
 class GridView(GridBaseView):
     template_name = 'data/map.html'
 
+=======
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb

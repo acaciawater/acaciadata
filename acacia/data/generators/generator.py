@@ -6,9 +6,12 @@ from django.utils import timezone
 from django.core.files.base import File
 import pandas as pd
 
+<<<<<<< HEAD
 import logging
 logger = logging.getLogger(__name__)
 
+=======
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 def spliturl(url):
     pattern = r'^(?P<scheme>ftp|https?)://(?:(?P<user>\w+)?(?::(?P<passwd>\S+))?@)?(?P<url>.+)'
     try:
@@ -69,6 +72,7 @@ class Generator(object):
                 opener = urllib2.build_opener(authhandler)
                 urllib2.install_opener(opener)
 
+<<<<<<< HEAD
             try:
                 response = urllib2.urlopen(url)
             except urllib2.URLError as e:
@@ -76,6 +80,11 @@ class Generator(object):
                 return result
             if response is None:
                 return result
+=======
+            response = urllib2.urlopen(url)
+            if response is None:
+                return None
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
             if ftp:
                 # check for directory listing
                 content = response.read()
@@ -91,11 +100,16 @@ class Generator(object):
                                 continue
                         filename = f['file']
                         urlfile = url + '/' + filename
+<<<<<<< HEAD
                         try:
                             response = urllib2.urlopen(urlfile)
                             result[filename] = response.read()
                         except urllib2.URLError as e:
                             logger.exception('ERROR opening {url}: {reason}'.format(url=urlfile,reason=e.reason))
+=======
+                        response = urllib2.urlopen(urlfile)
+                        result[filename] = response.read()
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
                 else:
                     filename = filename or os.path.basename(url)
                     result[filename] = content
@@ -105,7 +119,11 @@ class Generator(object):
                 result[filename] = response.read()
 
             if callback is not None:
+<<<<<<< HEAD
                 callback(result)
+=======
+                callback(filename, result[filename])
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
                 
         return result
 

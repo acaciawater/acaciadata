@@ -1,18 +1,32 @@
 import os
+<<<<<<< HEAD
 from .models import Project, ProjectLocatie, MeetLocatie, Datasource, SourceFile, Generator
 from .models import Parameter, Series, DataPoint, Chart, ChartSeries, Dashboard, DashboardChart, TabGroup, TabPage
 from .models import Variable, Formula, Webcam, Notification, ManualSeries, Grid
 
 from django.shortcuts import render, redirect
+=======
+from acacia.data.models import Project, ProjectLocatie, MeetLocatie, Datasource, SourceFile, Generator
+from acacia.data.models import Parameter, Series, DataPoint, Chart, ChartSeries, Dashboard, DashboardChart, TabGroup, TabPage
+from acacia.data.models import Variable, Formula, Webcam, Notification
+
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 from django.contrib import admin
 from django import forms
 from django.forms import PasswordInput, ModelForm
 from django.contrib.gis.db import models
+<<<<<<< HEAD
 from django.contrib.contenttypes.models import ContentType
 
 import django.contrib.gis.forms as geoforms
 import json
 import actions
+=======
+import django.contrib.gis.forms as geoforms
+import json
+import actions
+from django.contrib.auth.models import User
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 
 class Media:
     js = [
@@ -50,7 +64,10 @@ class ParameterInline(admin.TabularInline):
 
 class ProjectAdmin(admin.ModelAdmin):
     list_display = ('name', 'location_count', )
+<<<<<<< HEAD
     formfield_overrides = {models.TextField: {'widget': forms.Textarea(attrs={'class': 'htmleditor'})}}
+=======
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 
 class ProjectLocatieForm(ModelForm):
     model = ProjectLocatie
@@ -59,11 +76,18 @@ class ProjectLocatieForm(ModelForm):
         
 class ProjectLocatieAdmin(admin.ModelAdmin):
     #form = ProjectLocatieForm
+<<<<<<< HEAD
     actions = [actions.meetlocatie_aanmaken,]
     list_display = ('name','project','location_count',)
     list_filter = ('project',)
     formfield_overrides = {models.PointField:{'widget': forms.TextInput(attrs={'width': '40px'})},
                            models.TextField: {'widget': forms.Textarea(attrs={'class': 'htmleditor'})}}
+=======
+    list_display = ('name','project','location_count',)
+    list_filter = ('project',)
+    formfield_overrides = {models.PointField:{'widget': forms.TextInput(attrs={'size': '40'})}}
+
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 class MeetLocatieForm(ModelForm):
     
     def clean_location(self):
@@ -77,11 +101,16 @@ class MeetLocatieForm(ModelForm):
     def clean_name(self):
         # trim whitespace from name
         return self.cleaned_data['name'].strip()
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 class MeetLocatieAdmin(admin.ModelAdmin):
     form = MeetLocatieForm
     list_display = ('name','projectlocatie','project','datasourcecount',)
     list_filter = ('projectlocatie','projectlocatie__project',)
+<<<<<<< HEAD
     formfield_overrides = {models.PointField:{'widget': forms.TextInput, 'required': False},
                            models.TextField: {'widget': forms.Textarea(attrs={'class': 'htmleditor'})}}
     actions = [actions.meteo_toevoegen, 'add_notifications']
@@ -111,6 +140,10 @@ class MeetLocatieAdmin(admin.ModelAdmin):
         return render(request,'data/notify.html',{'form': form, 'locaties': queryset, 'check': admin.helpers.ACTION_CHECKBOX_NAME})
     
     add_notifications.short_description='Berichtgeving toevoegen aan geselecteerde meetlocaties'
+=======
+    formfield_overrides = {models.PointField:{'widget': forms.TextInput, 'required': False}}
+    actions = [actions.meteo_toevoegen]
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     
 class DatasourceForm(ModelForm):
     model = Datasource
@@ -170,11 +203,18 @@ class GeneratorAdmin(admin.ModelAdmin):
     list_display = ('name', 'classname', 'description')
 
 class SourceFileAdmin(admin.ModelAdmin):
+<<<<<<< HEAD
     actions = [actions.sourcefile_dimensions,]
     fields = ('name', 'datasource', 'file',)
     list_display = ('name','datasource', 'meetlocatie', 'filetag', 'rows', 'cols', 'start', 'stop', 'uploaded',)
     list_filter = ('datasource', 'datasource__meetlocatie', 'datasource__meetlocatie__projectlocatie__project', 'uploaded',)
     search_fields = ['name',]
+=======
+    fields = ('name', 'datasource', 'file',)
+    list_display = ('name','datasource', 'meetlocatie', 'filetag', 'rows', 'cols', 'start', 'stop', 'uploaded',)
+    list_filter = ('datasource', 'datasource__meetlocatie', 'datasource__meetlocatie__projectlocatie__project', 'uploaded',)
+    search_fields = ['name','file__name',]
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 
     def save_model(self, request, obj, form, change):
         obj.user = request.user
@@ -207,6 +247,7 @@ class ReadonlyTabularInline(admin.TabularInline):
     
 class DataPointInline(admin.TabularInline):
     model = DataPoint
+<<<<<<< HEAD
     classes = ('grp-collapse grp-closed',)
 
 class SeriesForm(forms.ModelForm):
@@ -246,12 +287,22 @@ class ParameterSeriesAdmin(PolymorphicChildModelAdmin):
     autocomplete_lookup_fields = {
         'fk': ['scale_series', 'offset_series'],
     }
+=======
+    
+class SeriesAdmin(admin.ModelAdmin):
+    actions = [actions.copy_series, actions.download_series, actions.refresh_series, actions.replace_series, actions.series_thumbnails, actions.update_series_properties, actions.empty_series]
+    list_display = ('name', 'thumbtag', 'parameter', 'datasource', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
+    exclude = ('user',)
+#    inlines = [DataPointInline,]
+    list_filter = ('parameter__datasource__meetlocatie', 'parameter__datasource', 'parameter__datasource__meetlocatie__projectlocatie__project')
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     search_fields = ['name','parameter__name','parameter__datasource__name']
 
     fieldsets = (
                  ('Algemeen', {'fields': ('parameter', 'name', ('unit', 'type'), 'description',),
                                'classes': ('grp-collapse grp-open',),
                                }),
+<<<<<<< HEAD
                  ('Tijdsinterval', {'fields': ('from_limit','to_limit'),
                                'classes': ('grp-collapse grp-closed',)
                                }),
@@ -278,10 +329,24 @@ class ManualSeriesAdmin(PolymorphicChildModelAdmin):
                                }),
     )
 
+=======
+                 ('Bewerkingen', {'fields': (('resample', 'aggregate',),('scale', 'offset',), ('cumsum', 'cumstart' ),),
+                               'classes': ('grp-collapse grp-closed',),
+                              }),
+    )
+
+#     def get_readonly_fields(self, request, obj=None):#         if obj and obj.parameter: 
+#             self.inlines = []
+#             return self.readonly_fields
+#         else:
+#             return self.readonly_fields  
+          
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     def save_model(self, request, obj, form, change):
         obj.user = request.user
         obj.save()
 
+<<<<<<< HEAD
 #class FormulaAdmin(SeriesAdmin):
 class FormulaSeriesAdmin(PolymorphicChildModelAdmin):
     base_model = Series
@@ -296,6 +361,17 @@ class FormulaSeriesAdmin(PolymorphicChildModelAdmin):
                                'classes': ('grp-collapse grp-closed',)
                                }),
                  ('Bewerkingen', {'fields': (('resample', 'aggregate',),('scale', 'scale_series'), ('offset','offset_series'), ('cumsum', 'cumstart' ),),
+=======
+class FormulaAdmin(SeriesAdmin):
+    list_display = ('name', 'thumbtag', 'locatie', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
+    search_fields = ['name',]
+    
+    fieldsets = (
+                 ('Algemeen', {'fields': ('locatie', 'name', ('unit', 'type'), 'description',),
+                               'classes': ('grp-collapse grp-open',),
+                               }),
+                 ('Bewerkingen', {'fields': (('resample', 'aggregate',),('scale', 'offset',), ('cumsum', 'cumstart' ),),
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
                                'classes': ('grp-collapse grp-closed',),
                               }),
                  ('Berekening', {'fields': ('formula_variables', 'intersect', 'formula_text'),
@@ -303,12 +379,16 @@ class FormulaSeriesAdmin(PolymorphicChildModelAdmin):
                               }),
     )
     filter_horizontal = ('formula_variables',)
+<<<<<<< HEAD
 
     def save_model(self, request, obj, form, change):
         obj.user = request.user
         obj.save()
 
     #exclude = ('parameter',)
+=======
+    exclude = ('parameter',)
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     
 #     def clean_formula_text(self):
 #         # try to evaluate the expression
@@ -319,6 +399,7 @@ class FormulaSeriesAdmin(PolymorphicChildModelAdmin):
 #         except Exception as e:
 #             raise forms.ValidationError('Fout bij berekening formule: %s' % e)
 #         return data
+<<<<<<< HEAD
         
 #class SeriesAdmin(admin.ModelAdmin):
 class SeriesAdmin(PolymorphicParentModelAdmin):
@@ -391,6 +472,20 @@ class GridSeriesInline(admin.TabularInline):
     ordering = ('order',)
     classes = ('grp-collapse grp-closed',)
 
+=======
+    
+#     def save_model(self, request, obj, form, change):
+#         # TODO: allow null value for parameter
+#         obj.parameter = Parameter.objects.first()
+#         return super(FormulaAdmin, self).save_model(request, obj, form, change)
+    
+class ChartSeriesInline(admin.StackedInline):
+    model = ChartSeries
+    extra = 0
+    fields = (('series', 'order', 'name'), ('axis', 'axislr', 'label'), ('color', 'type', 'stack'), ('t0', 't1'), ('y0', 'y1'))
+    ordering = ('order',)
+    
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 class DataPointAdmin(admin.ModelAdmin):
     list_display = ('series', 'date', 'value',)
     list_filter = ('series', )
@@ -404,11 +499,16 @@ class ChartAdmin(admin.ModelAdmin):
     fields = ('name', 'description', 'title', ('percount', 'perunit',), ('start', 'stop',),)
     search_fields = ['name','description', 'title']
 
+<<<<<<< HEAD
     #formfield_overrides = {models.TextField: {'widget': forms.Textarea(attrs={'class': 'htmleditor'})}}
+=======
+    formfield_overrides = {models.TextField: {'widget': forms.Textarea(attrs={'class': 'htmleditor'})}}
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
                 
     def save_model(self, request, obj, form, change):
         obj.user = request.user
         obj.save()
+<<<<<<< HEAD
 
 class GridAdmin(admin.ModelAdmin):
     list_display = ('name', 'title', 'tijdreeksen', )
@@ -420,6 +520,8 @@ class GridAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         obj.user = request.user
         obj.save()
+=======
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
         
 class ChartInline(admin.TabularInline):
     model = DashboardChart
@@ -479,9 +581,12 @@ class NotificationAdmin(admin.ModelAdmin):
     list_display = ('datasource', 'user', 'email', 'level', 'active')
     list_filter = ('datasource', 'user', 'email', 'level', 'active')
     search_fields = ('datasource', 'user')
+<<<<<<< HEAD
     #action_form = LevelActionForm
     #actions = ['set_level']
     
+=======
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
     def get_form(self, request, obj=None, **kwargs):
         if obj is None:
             self.exclude = ('user', 'email')
@@ -497,6 +602,7 @@ class NotificationAdmin(admin.ModelAdmin):
         obj.subject = obj.subject.replace('%(datasource)', obj.datasource.name)
         obj.save()
         
+<<<<<<< HEAD
     def set_level(self, request, queryset):
         level = request.POST.get('level')
         queryset.update(level=level)
@@ -505,11 +611,17 @@ class NotificationAdmin(admin.ModelAdmin):
 admin.site.register(Project, ProjectAdmin, Media = Media)
 admin.site.register(ProjectLocatie, ProjectLocatieAdmin, Media = Media)
 admin.site.register(MeetLocatie, MeetLocatieAdmin, Media = Media)
+=======
+admin.site.register(Project, ProjectAdmin, Media = Media)
+admin.site.register(ProjectLocatie, ProjectLocatieAdmin, Media = Media)
+admin.site.register(MeetLocatie, MeetLocatieAdmin)
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
 admin.site.register(Series, SeriesAdmin)
 admin.site.register(Parameter, ParameterAdmin)
 admin.site.register(Generator, GeneratorAdmin)
 admin.site.register(Datasource, DatasourceAdmin)
 admin.site.register(SourceFile, SourceFileAdmin)
+<<<<<<< HEAD
 #admin.site.register(ChartSeries)
 admin.site.register(Chart, ChartAdmin, Media = Media)
 admin.site.register(Dashboard, DashAdmin)
@@ -518,3 +630,14 @@ admin.site.register(Variable, VariableAdmin)
 admin.site.register(Webcam, WebcamAdmin)
 admin.site.register(Notification, NotificationAdmin)
 admin.site.register(Grid, GridAdmin)
+=======
+#admin.site.register(DataPoint, DataPointAdmin)
+admin.site.register(Chart, ChartAdmin, Media = Media)
+admin.site.register(Dashboard, DashAdmin)
+admin.site.register(TabGroup, TabGroupAdmin)
+admin.site.register(TabPage, TabPageAdmin)
+admin.site.register(Formula, FormulaAdmin)
+admin.site.register(Variable, VariableAdmin)
+admin.site.register(Webcam, WebcamAdmin)
+admin.site.register(Notification, NotificationAdmin)
+>>>>>>> 718e891383a24c6d165fd054868963cb38509fdb
