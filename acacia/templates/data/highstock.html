@@ -3,10 +3,12 @@
 {% block script %}
 {{ block.super }}
 {% if map %}
-<script src="http://code.highcharts.com/highcharts.js"></script>
-<script src="http://code.highcharts.com/maps/modules/map.js"></script>
+<script src="http://code.highcharts.com/4.2.0/highcharts.js"></script>
+<script src="http://code.highcharts.com/4.2.0/highcharts-more.js"></script>
+<script src="http://code.highcharts.com/maps/4.2.0/modules/map.js"></script>
 {% else %}
-<script src="http://code.highcharts.com/stock/highstock.js"></script>
+<script src="http://code.highcharts.com/stock/4.2.0/highstock.js"></script>
+<script src="http://code.highcharts.com/4.2.0/highcharts-more.js"></script>
 {% endif %}
 {% if theme %}
 <script src="{% static theme %}"></script>

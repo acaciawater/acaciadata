@@ -52,11 +52,25 @@ def ChartToJson(request, pk):
     start = c.auto_start()
     data = {}
     for cs in c.series.all():
-        s = cs.series
-        if c.stop is None:
-            data['series_%d' % s.id] = [[p.date,p.value] for p in s.datapoints.filter(date__gt=start).order_by('date')]
-        else:
-            data['series_%d' % s.id] = [[p.date,p.value] for p in s.datapoints.filter(date__gt=start, date__lt=c.stop).order_by('date')]
+        
+        def getseriesdata(s):
+            if c.stop is None:
+                pts = [[p.date,p.value] for p in s.datapoints.filter(date__gt=start).order_by('date')]
+            else:
+                pts = [[p.date,p.value] for p in s.datapoints.filter(date__gt=start, date__lt=c.stop).order_by('date')]
+            return pts
+
+        pts = getseriesdata(cs.series)
+        if cs.type == 'area' and cs.series2:
+            try:
+                pts2 = getseriesdata(cs.series2)
+                pts = [[p1[0],p1[1],p2[1]] for p1,p2 in zip(pts,pts2)]
+            except:
+                logger.exception('Cannot align series {a} and {b} for area fill in chart {c}'.format(a=str(cs.series), b=str(cs.series2), c=str(c)))
+                # series need to be aligned
+                pass
+        data['series_%d' % cs.series.id] = pts
+        
     return HttpResponse(json.dumps(data, default=lambda x: time.mktime(x.timetuple())*1000.0), content_type='application/json')
 
 @gzip_page
@@ -290,6 +304,9 @@ class ChartBaseView(TemplateView):
                 sop['tooltip'] = {'valueSuffix': ' ' + ser.unit}                           
             if s.type == 'column' and s.stack is not None:
                 sop['stacking'] = s.stack
+            if s.type == 'area' and s.series2:
+                sop['type'] = 'arearange'
+                sop['fillOpacity'] = 0.3
             allseries.append(sop)
         options['series'] = allseries
         jop = json.dumps(options,default=date_handler)

@@ -22,6 +22,7 @@ class Generic(Generator):
         return data.columns
 
     def get_data(self, f, **kwargs):
+        f.seek(0)
         data = self.read_csv(f, parse_dates = True, index_col = 0, header = self.header, dayfirst = self.dayfirst)
         self.set_labels(data)
         if not isinstance(data.index,pd.DatetimeIndex):
@@ -32,6 +33,7 @@ class Generic(Generator):
         return data
 
     def get_parameters(self, f):
+        f.seek(0)
         data = self.read_csv(f, parse_dates = [0], nrows=1, index_col = 0, header = self.header, dayfirst = self.dayfirst)
         self.set_labels(data)
         params = {}

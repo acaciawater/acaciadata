@@ -50,7 +50,9 @@ class Generator(object):
         callback = kwargs.get('callback', None)
         
         result = {}
-        if 'url' in kwargs:
+        if not 'url' in kwargs:
+            logger.error('url for download is undefined')
+        else:
             url = kwargs['url']
             scheme, username, passwd, path = spliturl(url)
             username = kwargs.get('username',None) or username

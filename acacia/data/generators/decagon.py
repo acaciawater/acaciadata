@@ -422,6 +422,16 @@ class Dataservice(Generator):
                 params.extend(p)
         return params
 
+    def battery_status(self, tree):
+        try:
+            status = tree.find('Device/Status')
+            timestamp = status.get('timestamp')
+            time = datetime.datetime.fromtimestamp(int(timestamp),tz)
+            level = float(status.get('batt'))
+            return (time,level)
+        except Exception:
+            return None
+        
     def get_parameters(self, f):
         f.seek(0)
         tree = ET.ElementTree()
@@ -431,6 +441,11 @@ class Dataservice(Generator):
         # convert array of params to dict with key param.name
         for p in params:
             result[p['name']] = {'description': p['description'], 'unit': p['unit']}
+
+        batt = self.battery_status(tree)
+        if batt:
+            result['batt'] = {'description': 'battery status', 'unit': '%'}
+
         return result
     
     def get_data(self, f, **kwargs):
@@ -491,6 +506,12 @@ class Dataservice(Generator):
             pass
         # drop rows if all values are na
         df.dropna(how='all',inplace=True)
+
+        batt = self.battery_status(tree)
+        if batt:
+            # add battery status to dataframe
+            # TODO: add battery status to corresponding datetime index only
+            df['batt'] = batt[1]
         return df
     
 try:
@@ -533,9 +554,9 @@ if __name__ == '__main__':
         
     api = Dataservice()
 
-    print conv106(270)
+#    print conv106(270)
     
-    print conv119(2149036430)
+#    print conv119(2149036430)
 
 #     params = {
 #               'url':        'http://api.ech2odata.com/spaarwater/dxd.cgi',
@@ -551,7 +572,7 @@ if __name__ == '__main__':
 #         with open(filename, 'w') as f:
 #             f.write(content)
     
-    filename = '/home/theo/acaciadata.com/acacia/media/spaarwater/breezand/perceel-1/datafiles/535-nori/5G0E2931_1404080404.dxd'
+    filename = '/home/theo/acaciadata.com/spaarwater/media/spaarwater/borgsweer/perceel-1/datafiles/borgsweer-drip1/5G0E2934_1509282056.dxd'
     #filename = '/home/theo/git/acacia-data/acacia/acacia/data/generators/5G0E2933.dxd'
     
     with open(filename) as f:

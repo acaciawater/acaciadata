@@ -50,6 +50,7 @@ class ParameterInline(admin.TabularInline):
 
 class ProjectAdmin(admin.ModelAdmin):
     list_display = ('name', 'location_count', )
+    exclude = ['image']
     formfield_overrides = {models.TextField: {'widget': forms.Textarea(attrs={'class': 'htmleditor'})}}
 
 class ProjectLocatieForm(ModelForm):
@@ -62,6 +63,7 @@ class ProjectLocatieAdmin(admin.ModelAdmin):
     actions = [actions.meetlocatie_aanmaken,]
     list_display = ('name','project','location_count',)
     list_filter = ('project',)
+    exclude = ['image']
     formfield_overrides = {models.PointField:{'widget': forms.TextInput(attrs={'width': '40px'})},
                            models.TextField: {'widget': forms.Textarea(attrs={'class': 'htmleditor'})}}
 class MeetLocatieForm(ModelForm):
@@ -82,6 +84,7 @@ class MeetLocatieAdmin(admin.ModelAdmin):
     form = MeetLocatieForm
     list_display = ('name','projectlocatie','project','datasourcecount',)
     list_filter = ('projectlocatie','projectlocatie__project',)
+    exclude = ['image']
     formfield_overrides = {models.PointField:{'widget': forms.TextInput, 'required': False},
                            models.TextField: {'widget': forms.Textarea(attrs={'class': 'htmleditor'})}}
     actions = [actions.meteo_toevoegen, 'add_notifications']
@@ -268,14 +271,14 @@ class ParameterSeriesAdmin(PolymorphicChildModelAdmin):
 class ManualSeriesAdmin(PolymorphicChildModelAdmin):
     base_model = Series
     actions = [actions.copy_series, actions.series_thumbnails]
-#     list_display = ('name', 'thumbtag', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
+    #list_display = ('name', 'mlocatie', 'thumbtag', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
     exclude = ('user','parameter')
     inlines = [DataPointInline,]
     search_fields = ['name','locatie']
     fieldsets = (
-                  ('Algemeen', {'fields': ('name', ('unit', 'type'), 'description',),
-                                'classes': ('grp-collapse grp-open',),
-                                }),
+                 ('Algemeen', {'fields': ('mlocatie', 'name', ('unit', 'type'), 'description',),
+                               'classes': ('grp-collapse grp-open',),
+                               }),
     )
 
     def save_model(self, request, obj, form, change):
@@ -289,7 +292,7 @@ class FormulaSeriesAdmin(PolymorphicChildModelAdmin):
     #search_fields = ['name','locatie']
     
     fieldsets = (
-                  ('Algemeen', {'fields': ('name', ('unit', 'type'), 'description',),
+                  ('Algemeen', {'fields': ('mlocatie', 'name', ('unit', 'type'), 'description',),
                                 'classes': ('grp-collapse grp-open',),
                                 }),
                  ('Tijdsinterval', {'fields': ('from_limit','to_limit'),
@@ -350,7 +353,7 @@ class SeriesAdmin(PolymorphicParentModelAdmin):
        
 
 #    list_filter = ('parameter__datasource__meetlocatie', 'parameter__datasource', 'parameter__datasource__meetlocatie__projectlocatie__project', ContentTypeFilter)
-    list_filter = ('parameter__datasource', 'parameter__datasource__meetlocatie__projectlocatie__project', ContentTypeFilter)
+    list_filter = ('mlocatie', 'parameter__datasource', 'parameter__datasource__meetlocatie__projectlocatie__project', ContentTypeFilter)
     search_fields = ['name','parameter__name','parameter__datasource__name']
 
     base_fieldsets = (
@@ -372,12 +375,12 @@ class SeriesAdmin(PolymorphicParentModelAdmin):
 
 class ChartSeriesInline(admin.StackedInline):
     model = ChartSeries
-    raw_id_fields = ('series',)
+    raw_id_fields = ('series','series2')
     autocomplete_lookup_fields = {
-        'fk': ['series'],
+        'fk': ['series','series2'],
     }
     extra = 0
-    fields = (('series', 'order', 'name'), ('axis', 'axislr', 'label'), ('color', 'type', 'stack'), ('t0', 't1'), ('y0', 'y1'))
+    fields = (('series', 'order', 'name'), ('axis', 'axislr', 'label'), ('color', 'type', 'series2', 'stack'), ('t0', 't1'), ('y0', 'y1'))
     ordering = ('order',)
 
 class GridSeriesInline(admin.TabularInline):
@@ -401,7 +404,15 @@ class ChartAdmin(admin.ModelAdmin):
     list_display = ('name', 'title', 'tijdreeksen', )
     inlines = [ChartSeriesInline,]
     exclude = ('user',)
-    fields = ('name', 'description', 'title', ('percount', 'perunit',), ('start', 'stop',),)
+    fieldsets = (
+                 ('Algemeen', {'fields': ('name', 'description', 'title'),
+                               'classes': ('grp-collapse grp-open',),
+                               }),
+                 ('Tijdas', {'fields': (('percount', 'perunit',), ('start', 'stop',)),
+                               'classes': ('grp-collapse grp-closed',),
+                              })
+                )
+
     search_fields = ['name','description', 'title']
 
     #formfield_overrides = {models.TextField: {'widget': forms.Textarea(attrs={'class': 'htmleditor'})}}

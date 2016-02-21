@@ -14,12 +14,18 @@
 		#footer > .navbar {padding-top: 10px; min-height:32px !important;}
 		body > .wrapper {padding-bottom: 42px; padding-top: 70px;}
 		.nav > .breadcrumb {float: left; margin-top: 8px; padding-bottom: 0px;}
+	    .logo {
+	      clear: both;
+	      float: right;
+	      height: 48px;
+	    }
     </style>
 	{% endblock %}
 	{% block extrastyle %}{% endblock extrastyle %}
 	{% block meta %}{% endblock %}
 	{% block script %}
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+<!--     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script> -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
     <script src="{% static "acacia/js/bootstrap.min.js" %}"></script>
 	{% endblock %}
   </head>
@@ -36,7 +42,9 @@
 	        <span class="icon-bar"></span>
 	        <span class="icon-bar"></span>
 	      </button>
-	      {% block brandname %}{% endblock brandname %}
+		{% block brandname %}
+		{% if object.logo %}<a href=""><img class="logo" src="{{MEDIA_URL}}{{object.logo}}"/></a>{% endif %}
+		{% endblock %}
 	    </div>
 	    {% endblock navbar-header %}
 	    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">

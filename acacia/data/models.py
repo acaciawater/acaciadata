@@ -55,7 +55,7 @@ class Project(models.Model):
     name = models.CharField(max_length=50, unique=True)
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     image = models.ImageField(upload_to=up.project_upload, blank = True, null=True)
-    logo = models.ImageField(upload_to=up.project_upload, blank=True, null=True,help_text='Mini-logo voor grafieken')
+    logo = models.ImageField(upload_to=up.project_upload, blank=True, null=True)
     theme = models.CharField(max_length=50,verbose_name='thema', default='dark-blue',choices=THEME_CHOICES,help_text='Thema voor grafieken')
         
     def location_count(self):
@@ -287,7 +287,9 @@ class Datasource(models.Model, DatasourceMixin):
 
         options = {'url': self.url}
         if self.meetlocatie:
-            lonlat = self.meetlocatie.latlon()
+            #lonlat = self.meetlocatie.latlon() # does not initialize geo object manager
+            loc = MeetLocatie.objects.get(pk=self.meetlocatie.pk)
+            lonlat = loc.latlon()
             options['lonlat'] = (lonlat.x,lonlat.y)
         if self.username:
             options['username'] = self.username
@@ -659,7 +661,7 @@ def sourcefile_save(sender, instance, **kwargs):
 SERIES_CHOICES = (('line', 'lijn'),
                   ('column', 'staaf'),
                   ('scatter', 'punt'),
-                  ('area', 'vlak'),
+                  ('area', 'area'),
                   ('spline', 'spline')
                   )
         
@@ -756,7 +758,7 @@ AGGREGATION_METHOD = (
 from polymorphic import PolymorphicManager, PolymorphicModel
 
 class Series(PolymorphicModel,DatasourceMixin):
-    #mlocatie = models.ForeignKey(MeetLocatie,null=True,verbose_name='meetlocatie')
+    mlocatie = models.ForeignKey(MeetLocatie,null=True,verbose_name='meetlocatie')
     name = models.CharField(max_length=50,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     unit = models.CharField(max_length=10, blank=True, null=True, verbose_name='eenheid')
@@ -812,13 +814,13 @@ class Series(PolymorphicModel,DatasourceMixin):
         return None if p is None else p.datasource
 
     def meetlocatie(self):
-#         return self.mlocatie
-        d = self.datasource()
-        return None if d is None else d.meetlocatie
-
-#     def set_locatie(self):
+        return self.mlocatie
 #         d = self.datasource()
-#         self.mlocatie = None if d is None else d.meetlocatie
+#         return None if d is None else d.meetlocatie
+
+    def set_locatie(self):
+        d = self.datasource()
+        self.mlocatie = None if d is None else d.meetlocatie
         
     def projectlocatie(self):
         l = self.meetlocatie()
@@ -1027,18 +1029,20 @@ class Series(PolymorphicModel,DatasourceMixin):
             logger.warning('No valid datapoints found in series %s' % self.name)
             return 0;
         
-        values = ["(%d,'%s')" % (self.id, datetime.datetime.strftime(p.date, '%Y-%m-%d %H:%M:%S')) for p in pts]
-        values = '(' + ','.join(values) + ')'
-        sql = 'DELETE from {table} WHERE (`series_id`,`date`) IN {values}'.format(table=DataPoint._meta.db_table, values=values)
         count = self.datapoints.count()
-        cursor = connection.cursor()
-        cursor.execute(sql)
-
+        if count>0:
+            values = ["(%d,'%s')" % (self.id, datetime.datetime.strftime(p.date, '%Y-%m-%d %H:%M:%S')) for p in pts]
+            values = '(' + ','.join(values) + ')'
+            sql = 'DELETE from {table} WHERE (`series_id`,`date`) IN {values}'.format(table=DataPoint._meta.db_table, values=values)
+            cursor = connection.cursor()
+            num_deleted = cursor.execute(sql)
+        else:
+            num_deleted = 0    
         created = self.datapoints.bulk_create(pts)
-        num_created = len(created)
-        num_updated = count - num_created
-        logger.info('Series %s updated: %d points created' % (self.name, num_created))
-        if (num_created + num_updated) > 0:
+        num_created = len(created) - num_deleted
+        num_updated = num_deleted
+        logger.info('Series %s updated: %d points created, %d updated' % (self.name, num_created, num_updated))
+        if num_created > 0 or num_updated > 0:
             self.make_thumbnail()
         self.save()
         return num_created + num_updated
@@ -1262,10 +1266,9 @@ class Formula(Series):
 @receiver(pre_save, sender=ManualSeries)
 @receiver(pre_save, sender=Formula)
 def series_pre_save(sender, instance, **kwargs):
-    pass
-#     if not instance.mlocatie:
-#         # for parameter series only, others should have mlocatie set
-#         instance.set_locatie()
+    if not instance.mlocatie:
+        # for parameter series only, others should have mlocatie set
+        instance.set_locatie()
 
 @receiver(post_save, sender=Series)
 @receiver(post_save, sender=ManualSeries)
@@ -1310,8 +1313,9 @@ class Chart(PolymorphicModel):
     title = models.CharField(max_length = 50, verbose_name = 'titel')
     user=models.ForeignKey(User,default=User)
     start = models.DateTimeField(blank=True,null=True)
+    #start_today = models.BooleanField(default=False,verbose_name='vanaf vandaag')
     stop = models.DateTimeField(blank=True,null=True)
-    percount = models.IntegerField(default=2,verbose_name='aantal perioden',help_text='maximaal aantal periodes die getoond worden (0 = alle perioden)')
+    percount = models.IntegerField(default=2,verbose_name='aantal perioden',help_text='maximaal aantal periodes terug in de tijd (0 = alle perioden)')
     perunit = models.CharField(max_length=10,choices = PERIOD_CHOICES, default = 'months', verbose_name='periodelengte')
 
     def tijdreeksen(self):
@@ -1327,8 +1331,14 @@ class Chart(PolymorphicModel):
         return reverse('acacia:chart-detail', args=[self.pk])
 
     def auto_start(self):
+        tz = timezone.get_current_timezone()
+#         if self.start_today:
+#             # start at today 00:00 UTC
+#             # can be accomplished using percount=1, perunit=day
+#             today = datetime.datetime.utcnow()
+#             today.replace(hour=0,minute=0,second=0)
+#             return today
         if self.start is None:
-            tz = timezone.get_current_timezone()
             start = timezone.make_aware(datetime.datetime.now(),tz)
             for cs in self.series.all():
                 t0 = cs.t0
@@ -1420,6 +1430,7 @@ class ChartSeries(models.Model):
     chart = models.ForeignKey(Chart,related_name='series', verbose_name='grafiek')
     order = models.IntegerField(default=1,verbose_name='volgorde')
     series = models.ForeignKey(Series, verbose_name = 'tijdreeks')
+    series2 = models.ForeignKey(Series, related_name='series2',blank=True, null=True, verbose_name = 'tweede tijdreeks', help_text='tijdreeks voor ondergrens bij area grafiek')
     name = models.CharField(max_length=50,blank=True,null=True,verbose_name='legendanaam')
     axis = models.IntegerField(default=1,verbose_name='Nummer y-as')
     axislr = models.CharField(max_length=2, choices=AXIS_CHOICES, default='l',verbose_name='Positie y-as')
