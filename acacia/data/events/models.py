@@ -20,14 +20,14 @@ HOW = (('mean', 'gemiddelde'),
 HILO = (('>', 'boven'), ('<', 'onder'))
 
 class Trigger(models.Model):
-    name = models.CharField(max_length=100)
-    series = models.ForeignKey(Series)
-    hilo = models.CharField(max_length=1,choices=HILO)
-    level = models.FloatField()
-    freq = models.CharField(max_length=8,choices=FREQ,blank=True, null=True, verbose_name='frequentie')
-    how = models.CharField(max_length=16,choices=HOW,blank=True, null=True, verbose_name='methode')
-    window = models.IntegerField(default=1)
-    count = models.IntegerField(default=1)
+    name = models.CharField(max_length=100,verbose_name='naam')
+    series = models.ForeignKey(Series,verbose_name='tijdreeks')
+    hilo = models.CharField(max_length=1,choices=HILO,default='>',verbose_name='grens',help_text='onder of bovengrens')
+    level = models.FloatField(verbose_name='grenswaarde')
+    freq = models.CharField(max_length=8,choices=FREQ,blank=True, null=True, verbose_name = 'frequentie', help_text='frequentie voor resampling')
+    how = models.CharField(max_length=16,choices=HOW,blank=True, null=True, verbose_name = 'methode', help_text='methode van aggregatie')
+    window = models.IntegerField(default=1,verbose_name='groep',help_text='grootte van de groep')
+    count = models.IntegerField(default=1,verbose_name='aantal',help_text='minimum aantal punten')
             
     def __unicode__(self):
         return self.name
@@ -66,7 +66,7 @@ class Event(models.Model):
     trigger = models.ForeignKey(Trigger)
     target = models.ForeignKey(Target)
     action = models.IntegerField(default = 0, choices=ACTIONS)
-    
+    message = models.TextField(blank=True,null = True)
     def __unicode__(self):
         return self.trigger.name
 

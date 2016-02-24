@@ -41,11 +41,14 @@ class Messenger():
 
     def send_messages(self):
         unsent = [h for h in self.history if h.sent == False]
+        message = self.event.message
         if self.event.action == 1:
-            message ='\r\n'.join([h.format_html() for h in unsent])
+            if not message:
+                message ='\r\n'.join([h.format_html() for h in unsent])
             success = self.send_email('Acaciadata Alarm', message, 'alarm@acaciadata.com', [self.event.target.email], html=True)
         elif self.event.action == 2:
-            message = 'Event {evt} was triggered {count} times'.format(evt=str(self.event.trigger), count=len(unsent))
+            if not message:
+                message = 'Event {evt} was triggered {count} times'.format(evt=str(self.event.trigger), count=len(unsent))
             success = self.send_sms('Acaciadata', message, self.event.target.cellphone)
         if success:
             for h in unsent:
