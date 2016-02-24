@@ -116,6 +116,18 @@ def update_series_properties(modeladmin, request, queryset):
     for s in queryset:
         s.getproperties().update()
 update_series_properties.short_description = "Eigenschappen van geselecteerde tijdreeksen bijwerken"
+
+def set_locatie(modeladmin, request, queryset):
+    for m in queryset:
+        series = list(m.series_set.all())
+        series = series.extend(m.series())
+        series = set(series)
+        if series:
+            for s in series:
+                if not s.mlocatie:
+                    s.mlocatie = m
+                    s.save()
+set_locatie.short_description = 'Update meetlocatie eigenschap van gerelateerde tijdreeksen'
         
 def copy_charts(modeladmin, request, queryset):
     for c in queryset:

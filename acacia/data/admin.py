@@ -87,7 +87,7 @@ class MeetLocatieAdmin(admin.ModelAdmin):
     exclude = ['image']
     formfield_overrides = {models.PointField:{'widget': forms.TextInput, 'required': False},
                            models.TextField: {'widget': forms.Textarea(attrs={'class': 'htmleditor'})}}
-    actions = [actions.meteo_toevoegen, 'add_notifications']
+    actions = [actions.meteo_toevoegen, 'add_notifications', actions.set_locatie]
 
     class NotificationActionForm(forms.Form):
         from .models import LOGGING_CHOICES
