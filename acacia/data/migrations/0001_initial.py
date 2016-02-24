@@ -1,558 +1,543 @@
 # -*- coding: utf-8 -*-
-from south.utils import datetime_utils as datetime
-from south.db import db
-from south.v2 import SchemaMigration
-from django.db import models
+from __future__ import unicode_literals
+
+from django.db import models, migrations
+import acacia.data.upload
+import django.contrib.auth.models
+import django.contrib.gis.db.models.fields
+from django.conf import settings
+import acacia.data.models
 
 
-class Migration(SchemaMigration):
+class Migration(migrations.Migration):
 
-    def forwards(self, orm):
-        # Adding model 'Project'
-        db.create_table(u'data_project', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('name', self.gf('django.db.models.fields.CharField')(unique=True, max_length=50)),
-            ('description', self.gf('django.db.models.fields.TextField')(null=True, blank=True)),
-            ('image', self.gf('django.db.models.fields.files.ImageField')(max_length=100, null=True, blank=True)),
-            ('logo', self.gf('django.db.models.fields.files.ImageField')(max_length=100, null=True, blank=True)),
-            ('theme', self.gf('django.db.models.fields.CharField')(default='dark-blue', max_length=50)),
-        ))
-        db.send_create_signal(u'data', ['Project'])
+    dependencies = [
+        ('contenttypes', '0002_remove_content_type_name'),
+        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+    ]
 
-        # Adding model 'Webcam'
-        db.create_table(u'data_webcam', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('name', self.gf('django.db.models.fields.CharField')(max_length=50)),
-            ('description', self.gf('django.db.models.fields.TextField')(null=True, blank=True)),
-            ('image', self.gf('django.db.models.fields.TextField')()),
-            ('video', self.gf('django.db.models.fields.TextField')()),
-            ('admin', self.gf('django.db.models.fields.TextField')()),
-        ))
-        db.send_create_signal(u'data', ['Webcam'])
-
-        # Adding model 'ProjectLocatie'
-        db.create_table(u'data_projectlocatie', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('project', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['data.Project'])),
-            ('name', self.gf('django.db.models.fields.CharField')(max_length=50)),
-            ('description', self.gf('django.db.models.fields.TextField')(null=True, blank=True)),
-            ('image', self.gf('django.db.models.fields.files.ImageField')(max_length=100, null=True, blank=True)),
-            ('location', self.gf('django.contrib.gis.db.models.fields.PointField')(srid=28992)),
-            ('webcam', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['data.Webcam'], null=True, blank=True)),
-        ))
-        db.send_create_signal(u'data', ['ProjectLocatie'])
-
-        # Adding unique constraint on 'ProjectLocatie', fields ['project', 'name']
-        db.create_unique(u'data_projectlocatie', ['project_id', 'name'])
-
-        # Adding model 'MeetLocatie'
-        db.create_table(u'data_meetlocatie', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('projectlocatie', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['data.ProjectLocatie'])),
-            ('name', self.gf('django.db.models.fields.CharField')(max_length=50)),
-            ('description', self.gf('django.db.models.fields.TextField')(null=True, blank=True)),
-            ('image', self.gf('django.db.models.fields.files.ImageField')(max_length=100, null=True, blank=True)),
-            ('location', self.gf('django.contrib.gis.db.models.fields.PointField')(srid=28992)),
-            ('webcam', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['data.Webcam'], null=True, blank=True)),
-        ))
-        db.send_create_signal(u'data', ['MeetLocatie'])
-
-        # Adding unique constraint on 'MeetLocatie', fields ['projectlocatie', 'name']
-        db.create_unique(u'data_meetlocatie', ['projectlocatie_id', 'name'])
-
-        # Adding model 'Generator'
-        db.create_table(u'data_generator', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('name', self.gf('django.db.models.fields.CharField')(unique=True, max_length=50)),
-            ('classname', self.gf('django.db.models.fields.CharField')(max_length=50)),
-            ('description', self.gf('django.db.models.fields.TextField')(null=True, blank=True)),
-        ))
-        db.send_create_signal(u'data', ['Generator'])
-
-        # Adding model 'Datasource'
-        db.create_table(u'data_datasource', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('name', self.gf('django.db.models.fields.CharField')(max_length=50)),
-            ('description', self.gf('django.db.models.fields.TextField')(null=True, blank=True)),
-            ('meetlocatie', self.gf('django.db.models.fields.related.ForeignKey')(related_name='datasources', to=orm['data.MeetLocatie'])),
-            ('url', self.gf('django.db.models.fields.CharField')(max_length=200, null=True, blank=True)),
-            ('generator', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['data.Generator'])),
-            ('created', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
-            ('last_download', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
-            ('autoupdate', self.gf('django.db.models.fields.BooleanField')(default=True)),
-            ('user', self.gf('django.db.models.fields.related.ForeignKey')(default=orm['auth.User'], to=orm['auth.User'])),
-            ('config', self.gf('django.db.models.fields.TextField')(default='{}', null=True, blank=True)),
-            ('username', self.gf('django.db.models.fields.CharField')(default='anonymous', max_length=50, null=True, blank=True)),
-            ('password', self.gf('django.db.models.fields.CharField')(max_length=50, null=True, blank=True)),
-        ))
-        db.send_create_signal(u'data', ['Datasource'])
-
-        # Adding unique constraint on 'Datasource', fields ['name', 'meetlocatie']
-        db.create_unique(u'data_datasource', ['name', 'meetlocatie_id'])
-
-        # Adding model 'SourceFile'
-        db.create_table(u'data_sourcefile', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('name', self.gf('django.db.models.fields.CharField')(max_length=50, blank=True)),
-            ('datasource', self.gf('django.db.models.fields.related.ForeignKey')(related_name='sourcefiles', to=orm['data.Datasource'])),
-            ('file', self.gf('django.db.models.fields.files.FileField')(max_length=200, null=True, blank=True)),
-            ('rows', self.gf('django.db.models.fields.IntegerField')(default=0)),
-            ('cols', self.gf('django.db.models.fields.IntegerField')(default=0)),
-            ('start', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
-            ('stop', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
-            ('crc', self.gf('django.db.models.fields.IntegerField')(default=0)),
-            ('user', self.gf('django.db.models.fields.related.ForeignKey')(default=orm['auth.User'], to=orm['auth.User'])),
-            ('created', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
-            ('uploaded', self.gf('django.db.models.fields.DateTimeField')(auto_now=True, blank=True)),
-        ))
-        db.send_create_signal(u'data', ['SourceFile'])
-
-        # Adding unique constraint on 'SourceFile', fields ['name', 'datasource']
-        db.create_unique(u'data_sourcefile', ['name', 'datasource_id'])
-
-        # Adding model 'Parameter'
-        db.create_table(u'data_parameter', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('datasource', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['data.Datasource'])),
-            ('name', self.gf('django.db.models.fields.CharField')(max_length=50)),
-            ('description', self.gf('django.db.models.fields.TextField')(null=True, blank=True)),
-            ('unit', self.gf('django.db.models.fields.CharField')(default='m', max_length=10)),
-            ('type', self.gf('django.db.models.fields.CharField')(default='line', max_length=20)),
-            ('thumbnail', self.gf('django.db.models.fields.files.ImageField')(max_length=200, null=True, blank=True)),
-        ))
-        db.send_create_signal(u'data', ['Parameter'])
-
-        # Adding unique constraint on 'Parameter', fields ['name', 'datasource']
-        db.create_unique(u'data_parameter', ['name', 'datasource_id'])
-
-        # Adding model 'Series'
-        db.create_table(u'data_series', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('name', self.gf('django.db.models.fields.CharField')(max_length=50)),
-            ('description', self.gf('django.db.models.fields.TextField')(null=True, blank=True)),
-            ('unit', self.gf('django.db.models.fields.CharField')(max_length=10, null=True, blank=True)),
-            ('type', self.gf('django.db.models.fields.CharField')(default='line', max_length=20, blank=True)),
-            ('parameter', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['data.Parameter'], null=True, blank=True)),
-            ('thumbnail', self.gf('django.db.models.fields.files.ImageField')(max_length=200, null=True, blank=True)),
-            ('user', self.gf('django.db.models.fields.related.ForeignKey')(default=orm['auth.User'], to=orm['auth.User'])),
-            ('resample', self.gf('django.db.models.fields.CharField')(max_length=10, null=True, blank=True)),
-            ('aggregate', self.gf('django.db.models.fields.CharField')(max_length=10, null=True, blank=True)),
-            ('scale', self.gf('django.db.models.fields.FloatField')(default=1.0)),
-            ('offset', self.gf('django.db.models.fields.FloatField')(default=0.0)),
-            ('cumsum', self.gf('django.db.models.fields.BooleanField')(default=False)),
-            ('cumstart', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
-        ))
-        db.send_create_signal(u'data', ['Series'])
-
-        # Adding unique constraint on 'Series', fields ['parameter', 'name']
-        db.create_unique(u'data_series', ['parameter_id', 'name'])
-
-        # Adding model 'Variable'
-        db.create_table(u'data_variable', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('locatie', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['data.MeetLocatie'])),
-            ('name', self.gf('django.db.models.fields.CharField')(max_length=10)),
-            ('series', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['data.Series'])),
-        ))
-        db.send_create_signal(u'data', ['Variable'])
-
-        # Adding unique constraint on 'Variable', fields ['locatie', 'name']
-        db.create_unique(u'data_variable', ['locatie_id', 'name'])
-
-        # Adding model 'Formula'
-        db.create_table(u'data_formula', (
-            (u'series_ptr', self.gf('django.db.models.fields.related.OneToOneField')(to=orm['data.Series'], unique=True, primary_key=True)),
-            ('locatie', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['data.MeetLocatie'])),
-            ('formula_text', self.gf('django.db.models.fields.TextField')(null=True, blank=True)),
-        ))
-        db.send_create_signal(u'data', ['Formula'])
-
-        # Adding M2M table for field formula_variables on 'Formula'
-        m2m_table_name = db.shorten_name(u'data_formula_formula_variables')
-        db.create_table(m2m_table_name, (
-            ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
-            ('formula', models.ForeignKey(orm[u'data.formula'], null=False)),
-            ('variable', models.ForeignKey(orm[u'data.variable'], null=False))
-        ))
-        db.create_unique(m2m_table_name, ['formula_id', 'variable_id'])
-
-        # Adding model 'DataPoint'
-        db.create_table(u'data_datapoint', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('series', self.gf('django.db.models.fields.related.ForeignKey')(related_name='datapoints', to=orm['data.Series'])),
-            ('date', self.gf('django.db.models.fields.DateTimeField')()),
-            ('value', self.gf('django.db.models.fields.FloatField')()),
-        ))
-        db.send_create_signal(u'data', ['DataPoint'])
-
-        # Adding unique constraint on 'DataPoint', fields ['series', 'date']
-        db.create_unique(u'data_datapoint', ['series_id', 'date'])
-
-        # Adding model 'Chart'
-        db.create_table(u'data_chart', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('name', self.gf('django.db.models.fields.CharField')(max_length=50)),
-            ('description', self.gf('django.db.models.fields.TextField')(null=True, blank=True)),
-            ('title', self.gf('django.db.models.fields.CharField')(max_length=50)),
-            ('user', self.gf('django.db.models.fields.related.ForeignKey')(default=orm['auth.User'], to=orm['auth.User'])),
-            ('start', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
-            ('stop', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
-            ('percount', self.gf('django.db.models.fields.IntegerField')(default=2)),
-            ('perunit', self.gf('django.db.models.fields.CharField')(default='months', max_length=10)),
-        ))
-        db.send_create_signal(u'data', ['Chart'])
-
-        # Adding model 'ChartSeries'
-        db.create_table(u'data_chartseries', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('chart', self.gf('django.db.models.fields.related.ForeignKey')(related_name='series', to=orm['data.Chart'])),
-            ('series', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['data.Series'])),
-            ('name', self.gf('django.db.models.fields.CharField')(max_length=50, null=True, blank=True)),
-            ('axis', self.gf('django.db.models.fields.IntegerField')(default=1)),
-            ('axislr', self.gf('django.db.models.fields.CharField')(default='l', max_length=2)),
-            ('color', self.gf('django.db.models.fields.CharField')(max_length=20, null=True, blank=True)),
-            ('type', self.gf('django.db.models.fields.CharField')(default='line', max_length=10)),
-            ('stack', self.gf('django.db.models.fields.CharField')(max_length=20, null=True, blank=True)),
-            ('label', self.gf('django.db.models.fields.CharField')(default='', max_length=20, null=True, blank=True)),
-            ('y0', self.gf('django.db.models.fields.FloatField')(null=True, blank=True)),
-            ('y1', self.gf('django.db.models.fields.FloatField')(null=True, blank=True)),
-            ('t0', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
-            ('t1', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
-        ))
-        db.send_create_signal(u'data', ['ChartSeries'])
-
-        # Adding model 'Dashboard'
-        db.create_table(u'data_dashboard', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('name', self.gf('django.db.models.fields.CharField')(max_length=50)),
-            ('description', self.gf('django.db.models.fields.TextField')(null=True, blank=True)),
-            ('user', self.gf('django.db.models.fields.related.ForeignKey')(default=orm['auth.User'], to=orm['auth.User'])),
-        ))
-        db.send_create_signal(u'data', ['Dashboard'])
-
-        # Adding M2M table for field charts on 'Dashboard'
-        m2m_table_name = db.shorten_name(u'data_dashboard_charts')
-        db.create_table(m2m_table_name, (
-            ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
-            ('dashboard', models.ForeignKey(orm[u'data.dashboard'], null=False)),
-            ('chart', models.ForeignKey(orm[u'data.chart'], null=False))
-        ))
-        db.create_unique(m2m_table_name, ['dashboard_id', 'chart_id'])
-
-        # Adding model 'TabGroup'
-        db.create_table(u'data_tabgroup', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('location', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['data.ProjectLocatie'])),
-            ('name', self.gf('django.db.models.fields.CharField')(max_length=40)),
-        ))
-        db.send_create_signal(u'data', ['TabGroup'])
-
-        # Adding model 'TabPage'
-        db.create_table(u'data_tabpage', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('tabgroup', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['data.TabGroup'])),
-            ('name', self.gf('django.db.models.fields.CharField')(default='basis', max_length=40)),
-            ('order', self.gf('django.db.models.fields.IntegerField')(default=1)),
-            ('dashboard', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['data.Dashboard'])),
-        ))
-        db.send_create_signal(u'data', ['TabPage'])
-
-
-    def backwards(self, orm):
-        # Removing unique constraint on 'DataPoint', fields ['series', 'date']
-        db.delete_unique(u'data_datapoint', ['series_id', 'date'])
-
-        # Removing unique constraint on 'Variable', fields ['locatie', 'name']
-        db.delete_unique(u'data_variable', ['locatie_id', 'name'])
-
-        # Removing unique constraint on 'Series', fields ['parameter', 'name']
-        db.delete_unique(u'data_series', ['parameter_id', 'name'])
-
-        # Removing unique constraint on 'Parameter', fields ['name', 'datasource']
-        db.delete_unique(u'data_parameter', ['name', 'datasource_id'])
-
-        # Removing unique constraint on 'SourceFile', fields ['name', 'datasource']
-        db.delete_unique(u'data_sourcefile', ['name', 'datasource_id'])
-
-        # Removing unique constraint on 'Datasource', fields ['name', 'meetlocatie']
-        db.delete_unique(u'data_datasource', ['name', 'meetlocatie_id'])
-
-        # Removing unique constraint on 'MeetLocatie', fields ['projectlocatie', 'name']
-        db.delete_unique(u'data_meetlocatie', ['projectlocatie_id', 'name'])
-
-        # Removing unique constraint on 'ProjectLocatie', fields ['project', 'name']
-        db.delete_unique(u'data_projectlocatie', ['project_id', 'name'])
-
-        # Deleting model 'Project'
-        db.delete_table(u'data_project')
-
-        # Deleting model 'Webcam'
-        db.delete_table(u'data_webcam')
-
-        # Deleting model 'ProjectLocatie'
-        db.delete_table(u'data_projectlocatie')
-
-        # Deleting model 'MeetLocatie'
-        db.delete_table(u'data_meetlocatie')
-
-        # Deleting model 'Generator'
-        db.delete_table(u'data_generator')
-
-        # Deleting model 'Datasource'
-        db.delete_table(u'data_datasource')
-
-        # Deleting model 'SourceFile'
-        db.delete_table(u'data_sourcefile')
-
-        # Deleting model 'Parameter'
-        db.delete_table(u'data_parameter')
-
-        # Deleting model 'Series'
-        db.delete_table(u'data_series')
-
-        # Deleting model 'Variable'
-        db.delete_table(u'data_variable')
-
-        # Deleting model 'Formula'
-        db.delete_table(u'data_formula')
-
-        # Removing M2M table for field formula_variables on 'Formula'
-        db.delete_table(db.shorten_name(u'data_formula_formula_variables'))
-
-        # Deleting model 'DataPoint'
-        db.delete_table(u'data_datapoint')
-
-        # Deleting model 'Chart'
-        db.delete_table(u'data_chart')
-
-        # Deleting model 'ChartSeries'
-        db.delete_table(u'data_chartseries')
-
-        # Deleting model 'Dashboard'
-        db.delete_table(u'data_dashboard')
-
-        # Removing M2M table for field charts on 'Dashboard'
-        db.delete_table(db.shorten_name(u'data_dashboard_charts'))
-
-        # Deleting model 'TabGroup'
-        db.delete_table(u'data_tabgroup')
-
-        # Deleting model 'TabPage'
-        db.delete_table(u'data_tabpage')
-
-
-    models = {
-        u'auth.group': {
-            'Meta': {'object_name': 'Group'},
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '80'}),
-            'permissions': ('django.db.models.fields.related.ManyToManyField', [], {'to': u"orm['auth.Permission']", 'symmetrical': 'False', 'blank': 'True'})
-        },
-        u'auth.permission': {
-            'Meta': {'ordering': "(u'content_type__app_label', u'content_type__model', u'codename')", 'unique_together': "((u'content_type', u'codename'),)", 'object_name': 'Permission'},
-            'codename': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
-            'content_type': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['contenttypes.ContentType']"}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '50'})
-        },
-        u'auth.user': {
-            'Meta': {'object_name': 'User'},
-            'date_joined': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'email': ('django.db.models.fields.EmailField', [], {'max_length': '75', 'blank': 'True'}),
-            'first_name': ('django.db.models.fields.CharField', [], {'max_length': '30', 'blank': 'True'}),
-            'groups': ('django.db.models.fields.related.ManyToManyField', [], {'symmetrical': 'False', 'related_name': "u'user_set'", 'blank': 'True', 'to': u"orm['auth.Group']"}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
-            'is_staff': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'is_superuser': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'last_login': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'last_name': ('django.db.models.fields.CharField', [], {'max_length': '30', 'blank': 'True'}),
-            'password': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
-            'user_permissions': ('django.db.models.fields.related.ManyToManyField', [], {'symmetrical': 'False', 'related_name': "u'user_set'", 'blank': 'True', 'to': u"orm['auth.Permission']"}),
-            'username': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '30'})
-        },
-        u'contenttypes.contenttype': {
-            'Meta': {'ordering': "('name',)", 'unique_together': "(('app_label', 'model'),)", 'object_name': 'ContentType', 'db_table': "'django_content_type'"},
-            'app_label': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'model': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '100'})
-        },
-        u'data.chart': {
-            'Meta': {'ordering': "['name']", 'object_name': 'Chart'},
-            'description': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '50'}),
-            'percount': ('django.db.models.fields.IntegerField', [], {'default': '2'}),
-            'perunit': ('django.db.models.fields.CharField', [], {'default': "'months'", 'max_length': '10'}),
-            'start': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
-            'stop': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
-            'title': ('django.db.models.fields.CharField', [], {'max_length': '50'}),
-            'user': ('django.db.models.fields.related.ForeignKey', [], {'default': u"orm['auth.User']", 'to': u"orm['auth.User']"})
-        },
-        u'data.chartseries': {
-            'Meta': {'ordering': "['name']", 'object_name': 'ChartSeries'},
-            'axis': ('django.db.models.fields.IntegerField', [], {'default': '1'}),
-            'axislr': ('django.db.models.fields.CharField', [], {'default': "'l'", 'max_length': '2'}),
-            'chart': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'series'", 'to': u"orm['data.Chart']"}),
-            'color': ('django.db.models.fields.CharField', [], {'max_length': '20', 'null': 'True', 'blank': 'True'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'label': ('django.db.models.fields.CharField', [], {'default': "''", 'max_length': '20', 'null': 'True', 'blank': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '50', 'null': 'True', 'blank': 'True'}),
-            'series': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['data.Series']"}),
-            'stack': ('django.db.models.fields.CharField', [], {'max_length': '20', 'null': 'True', 'blank': 'True'}),
-            't0': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
-            't1': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
-            'type': ('django.db.models.fields.CharField', [], {'default': "'line'", 'max_length': '10'}),
-            'y0': ('django.db.models.fields.FloatField', [], {'null': 'True', 'blank': 'True'}),
-            'y1': ('django.db.models.fields.FloatField', [], {'null': 'True', 'blank': 'True'})
-        },
-        u'data.dashboard': {
-            'Meta': {'ordering': "['name']", 'object_name': 'Dashboard'},
-            'charts': ('django.db.models.fields.related.ManyToManyField', [], {'to': u"orm['data.Chart']", 'symmetrical': 'False'}),
-            'description': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '50'}),
-            'user': ('django.db.models.fields.related.ForeignKey', [], {'default': u"orm['auth.User']", 'to': u"orm['auth.User']"})
-        },
-        u'data.datapoint': {
-            'Meta': {'unique_together': "(('series', 'date'),)", 'object_name': 'DataPoint'},
-            'date': ('django.db.models.fields.DateTimeField', [], {}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'series': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'datapoints'", 'to': u"orm['data.Series']"}),
-            'value': ('django.db.models.fields.FloatField', [], {})
-        },
-        u'data.datasource': {
-            'Meta': {'ordering': "['name']", 'unique_together': "(('name', 'meetlocatie'),)", 'object_name': 'Datasource'},
-            'autoupdate': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
-            'config': ('django.db.models.fields.TextField', [], {'default': "'{}'", 'null': 'True', 'blank': 'True'}),
-            'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
-            'description': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
-            'generator': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['data.Generator']"}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'last_download': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
-            'meetlocatie': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'datasources'", 'to': u"orm['data.MeetLocatie']"}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '50'}),
-            'password': ('django.db.models.fields.CharField', [], {'max_length': '50', 'null': 'True', 'blank': 'True'}),
-            'url': ('django.db.models.fields.CharField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
-            'user': ('django.db.models.fields.related.ForeignKey', [], {'default': u"orm['auth.User']", 'to': u"orm['auth.User']"}),
-            'username': ('django.db.models.fields.CharField', [], {'default': "'anonymous'", 'max_length': '50', 'null': 'True', 'blank': 'True'})
-        },
-        u'data.formula': {
-            'Meta': {'ordering': "['name']", 'object_name': 'Formula', '_ormbases': [u'data.Series']},
-            'formula_text': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
-            'formula_variables': ('django.db.models.fields.related.ManyToManyField', [], {'to': u"orm['data.Variable']", 'symmetrical': 'False'}),
-            'locatie': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['data.MeetLocatie']"}),
-            u'series_ptr': ('django.db.models.fields.related.OneToOneField', [], {'to': u"orm['data.Series']", 'unique': 'True', 'primary_key': 'True'})
-        },
-        u'data.generator': {
-            'Meta': {'ordering': "['name']", 'object_name': 'Generator'},
-            'classname': ('django.db.models.fields.CharField', [], {'max_length': '50'}),
-            'description': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '50'})
-        },
-        u'data.meetlocatie': {
-            'Meta': {'ordering': "['name']", 'unique_together': "(('projectlocatie', 'name'),)", 'object_name': 'MeetLocatie'},
-            'description': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'image': ('django.db.models.fields.files.ImageField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
-            'location': ('django.contrib.gis.db.models.fields.PointField', [], {'srid': '28992'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '50'}),
-            'projectlocatie': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['data.ProjectLocatie']"}),
-            'webcam': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['data.Webcam']", 'null': 'True', 'blank': 'True'})
-        },
-        u'data.parameter': {
-            'Meta': {'ordering': "['name']", 'unique_together': "(('name', 'datasource'),)", 'object_name': 'Parameter'},
-            'datasource': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['data.Datasource']"}),
-            'description': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '50'}),
-            'thumbnail': ('django.db.models.fields.files.ImageField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
-            'type': ('django.db.models.fields.CharField', [], {'default': "'line'", 'max_length': '20'}),
-            'unit': ('django.db.models.fields.CharField', [], {'default': "'m'", 'max_length': '10'})
-        },
-        u'data.project': {
-            'Meta': {'object_name': 'Project'},
-            'description': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'image': ('django.db.models.fields.files.ImageField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
-            'logo': ('django.db.models.fields.files.ImageField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '50'}),
-            'theme': ('django.db.models.fields.CharField', [], {'default': "'dark-blue'", 'max_length': '50'})
-        },
-        u'data.projectlocatie': {
-            'Meta': {'ordering': "['name']", 'unique_together': "(('project', 'name'),)", 'object_name': 'ProjectLocatie'},
-            'description': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'image': ('django.db.models.fields.files.ImageField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
-            'location': ('django.contrib.gis.db.models.fields.PointField', [], {'srid': '28992'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '50'}),
-            'project': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['data.Project']"}),
-            'webcam': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['data.Webcam']", 'null': 'True', 'blank': 'True'})
-        },
-        u'data.series': {
-            'Meta': {'ordering': "['name']", 'unique_together': "(('parameter', 'name'),)", 'object_name': 'Series'},
-            'aggregate': ('django.db.models.fields.CharField', [], {'max_length': '10', 'null': 'True', 'blank': 'True'}),
-            'cumstart': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
-            'cumsum': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'description': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '50'}),
-            'offset': ('django.db.models.fields.FloatField', [], {'default': '0.0'}),
-            'parameter': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['data.Parameter']", 'null': 'True', 'blank': 'True'}),
-            'resample': ('django.db.models.fields.CharField', [], {'max_length': '10', 'null': 'True', 'blank': 'True'}),
-            'scale': ('django.db.models.fields.FloatField', [], {'default': '1.0'}),
-            'thumbnail': ('django.db.models.fields.files.ImageField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
-            'type': ('django.db.models.fields.CharField', [], {'default': "'line'", 'max_length': '20', 'blank': 'True'}),
-            'unit': ('django.db.models.fields.CharField', [], {'max_length': '10', 'null': 'True', 'blank': 'True'}),
-            'user': ('django.db.models.fields.related.ForeignKey', [], {'default': u"orm['auth.User']", 'to': u"orm['auth.User']"})
-        },
-        u'data.sourcefile': {
-            'Meta': {'unique_together': "(('name', 'datasource'),)", 'object_name': 'SourceFile'},
-            'cols': ('django.db.models.fields.IntegerField', [], {'default': '0'}),
-            'crc': ('django.db.models.fields.IntegerField', [], {'default': '0'}),
-            'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
-            'datasource': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'sourcefiles'", 'to': u"orm['data.Datasource']"}),
-            'file': ('django.db.models.fields.files.FileField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '50', 'blank': 'True'}),
-            'rows': ('django.db.models.fields.IntegerField', [], {'default': '0'}),
-            'start': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
-            'stop': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
-            'uploaded': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
-            'user': ('django.db.models.fields.related.ForeignKey', [], {'default': u"orm['auth.User']", 'to': u"orm['auth.User']"})
-        },
-        u'data.tabgroup': {
-            'Meta': {'object_name': 'TabGroup'},
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'location': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['data.ProjectLocatie']"}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '40'})
-        },
-        u'data.tabpage': {
-            'Meta': {'object_name': 'TabPage'},
-            'dashboard': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['data.Dashboard']"}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'default': "'basis'", 'max_length': '40'}),
-            'order': ('django.db.models.fields.IntegerField', [], {'default': '1'}),
-            'tabgroup': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['data.TabGroup']"})
-        },
-        u'data.variable': {
-            'Meta': {'unique_together': "(('locatie', 'name'),)", 'object_name': 'Variable'},
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'locatie': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['data.MeetLocatie']"}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '10'}),
-            'series': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['data.Series']"})
-        },
-        u'data.webcam': {
-            'Meta': {'object_name': 'Webcam'},
-            'admin': ('django.db.models.fields.TextField', [], {}),
-            'description': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'image': ('django.db.models.fields.TextField', [], {}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '50'}),
-            'video': ('django.db.models.fields.TextField', [], {})
-        }
-    }
-
-    complete_apps = ['data']
+    operations = [
+        migrations.CreateModel(
+            name='Chart',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('name', models.CharField(max_length=50, verbose_name=b'naam')),
+                ('description', models.TextField(help_text=b'Toelichting bij grafiek op het dashboard', null=True, verbose_name=b'toelichting', blank=True)),
+                ('title', models.CharField(max_length=50, verbose_name=b'titel')),
+                ('start', models.DateTimeField(null=True, blank=True)),
+                ('stop', models.DateTimeField(null=True, blank=True)),
+                ('percount', models.IntegerField(default=2, help_text=b'maximaal aantal periodes terug in de tijd (0 = alle perioden)', verbose_name=b'aantal perioden')),
+                ('perunit', models.CharField(default=b'months', max_length=10, verbose_name=b'periodelengte', choices=[(b'hours', b'uur'), (b'days', b'dag'), (b'weeks', b'week'), (b'months', b'maand'), (b'years', b'jaar')])),
+            ],
+            options={
+                'ordering': ['name'],
+                'verbose_name': 'Grafiek',
+                'verbose_name_plural': 'Grafieken',
+            },
+        ),
+        migrations.CreateModel(
+            name='ChartSeries',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('order', models.IntegerField(default=1, verbose_name=b'volgorde')),
+                ('name', models.CharField(max_length=50, null=True, verbose_name=b'legendanaam', blank=True)),
+                ('axis', models.IntegerField(default=1, verbose_name=b'Nummer y-as')),
+                ('axislr', models.CharField(default=b'l', max_length=2, verbose_name=b'Positie y-as', choices=[(b'l', b'links'), (b'r', b'rechts')])),
+                ('color', models.CharField(help_text=b'Standaard kleur (bv Orange) of rgba waarde (bv rgba(128,128,0,1)) of hexadecimaal getal (bv #ffa500)', max_length=20, null=True, verbose_name=b'Kleur', blank=True)),
+                ('type', models.CharField(default=b'line', max_length=10, choices=[(b'line', b'lijn'), (b'column', b'staaf'), (b'scatter', b'punt'), (b'area', b'area'), (b'spline', b'spline')])),
+                ('stack', models.CharField(help_text=b'leeg laten of <i>normal</i> of <i>percent</i>', max_length=20, null=True, verbose_name=b'stapel', blank=True)),
+                ('label', models.CharField(default=b'', max_length=20, null=True, help_text=b'label op de y-as', blank=True)),
+                ('y0', models.FloatField(null=True, verbose_name=b'ymin', blank=True)),
+                ('y1', models.FloatField(null=True, verbose_name=b'ymax', blank=True)),
+                ('t0', models.DateTimeField(null=True, verbose_name=b'start', blank=True)),
+                ('t1', models.DateTimeField(null=True, verbose_name=b'stop', blank=True)),
+            ],
+            options={
+                'ordering': ['order', 'name'],
+                'verbose_name': 'tijdreeks',
+                'verbose_name_plural': 'tijdreeksen',
+            },
+        ),
+        migrations.CreateModel(
+            name='Dashboard',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('name', models.CharField(max_length=50, verbose_name=b'naam')),
+                ('description', models.TextField(null=True, verbose_name=b'omschrijving', blank=True)),
+            ],
+            options={
+                'ordering': ['name'],
+            },
+        ),
+        migrations.CreateModel(
+            name='DashboardChart',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('order', models.IntegerField(default=1, verbose_name=b'volgorde')),
+            ],
+            options={
+                'ordering': ['order'],
+                'verbose_name': 'Grafiek',
+                'verbose_name_plural': 'Grafieken',
+            },
+        ),
+        migrations.CreateModel(
+            name='DataPoint',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('date', models.DateTimeField(verbose_name=b'Tijdstip')),
+                ('value', models.FloatField(verbose_name=b'Waarde')),
+            ],
+            options={
+                'verbose_name': 'Meetwaarde',
+                'verbose_name_plural': 'Meetwaarden',
+            },
+        ),
+        migrations.CreateModel(
+            name='Datasource',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('name', models.CharField(max_length=50, verbose_name=b'naam')),
+                ('description', models.TextField(null=True, verbose_name=b'omschrijving', blank=True)),
+                ('url', models.CharField(help_text=b'volledige url van de gegevensbron. Leeg laten voor handmatige uploads', max_length=200, null=True, blank=True)),
+                ('created', models.DateTimeField(auto_now_add=True, verbose_name=b'Aangemaakt op')),
+                ('last_download', models.DateTimeField(null=True, verbose_name=b'geactualiseerd', blank=True)),
+                ('autoupdate', models.BooleanField(default=True)),
+                ('config', models.TextField(default=b'{}', help_text=b'Geldige JSON dictionary', null=True, verbose_name=b'Additionele configuraties', blank=True)),
+                ('username', models.CharField(default=b'anonymous', max_length=50, blank=True, help_text=b'Gebruikersnaam voor downloads', null=True, verbose_name=b'Gebuikersnaam')),
+                ('password', models.CharField(help_text=b'Wachtwoord voor downloads', max_length=50, null=True, verbose_name=b'Wachtwoord', blank=True)),
+                ('timezone', models.CharField(default=b'Europe/Amsterdam', max_length=50, verbose_name=b'Tijzone', blank=True)),
+            ],
+            options={
+                'ordering': ['name'],
+                'verbose_name': 'gegevensbron',
+                'verbose_name_plural': 'gegevensbronnen',
+            },
+            bases=(models.Model, acacia.data.models.DatasourceMixin),
+        ),
+        migrations.CreateModel(
+            name='Generator',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('name', models.CharField(unique=True, max_length=50, verbose_name=b'naam')),
+                ('classname', models.CharField(help_text=b'volledige naam van de generator klasse, bijvoorbeeld acacia.data.generators.knmi.Meteo', max_length=50, verbose_name=b'python klasse')),
+                ('description', models.TextField(null=True, verbose_name=b'omschrijving', blank=True)),
+            ],
+            options={
+                'ordering': ['name'],
+            },
+        ),
+        migrations.CreateModel(
+            name='MeetLocatie',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('name', models.CharField(max_length=50, verbose_name=b'naam')),
+                ('description', models.TextField(null=True, verbose_name=b'omschrijving', blank=True)),
+                ('image', models.ImageField(null=True, upload_to=acacia.data.upload.meetlocatie_upload, blank=True)),
+                ('location', django.contrib.gis.db.models.fields.PointField(help_text=b'Meetlocatie in Rijksdriehoekstelsel coordinaten', srid=28992, verbose_name=b'locatie')),
+            ],
+            options={
+                'ordering': ['name'],
+            },
+        ),
+        migrations.CreateModel(
+            name='NeerslagStation',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('nummer', models.IntegerField()),
+                ('naam', models.CharField(max_length=50)),
+                ('location', django.contrib.gis.db.models.fields.PointField(srid=28992)),
+            ],
+            options={
+                'ordering': ('naam',),
+            },
+        ),
+        migrations.CreateModel(
+            name='Notification',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('email', models.EmailField(max_length=254, blank=True)),
+                ('subject', models.TextField(default=b'acaciadata.com update rapport', blank=True)),
+                ('level', models.CharField(default=b'ERROR', help_text=b'Niveau van berichtgeving', max_length=10, verbose_name=b'Niveau', choices=[(b'DEBUG', b'Debug'), (b'INFO', b'Informatie'), (b'WARNING', b'Waarschuwingen'), (b'ERROR', b'Fouten')])),
+                ('active', models.BooleanField(default=True, verbose_name=b'activeren')),
+                ('datasource', models.ForeignKey(help_text=b'Gegevensbron welke gevolgd wordt', to='data.Datasource')),
+                ('user', models.ForeignKey(blank=True, to=settings.AUTH_USER_MODEL, help_text=b'Gebruiker die berichtgeving ontvangt over updates', null=True, verbose_name=b'Gebruiker')),
+            ],
+            options={
+                'verbose_name': 'Email berichten',
+                'verbose_name_plural': 'Email berichten',
+            },
+        ),
+        migrations.CreateModel(
+            name='Parameter',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('name', models.CharField(max_length=50, verbose_name=b'naam')),
+                ('description', models.TextField(null=True, verbose_name=b'omschrijving', blank=True)),
+                ('unit', models.CharField(default=b'm', max_length=10, verbose_name=b'eenheid')),
+                ('type', models.CharField(default=b'line', max_length=20, choices=[(b'line', b'lijn'), (b'column', b'staaf'), (b'scatter', b'punt'), (b'area', b'area'), (b'spline', b'spline')])),
+                ('thumbnail', models.ImageField(max_length=200, null=True, upload_to=acacia.data.upload.param_thumb_upload, blank=True)),
+                ('datasource', models.ForeignKey(to='data.Datasource')),
+            ],
+            options={
+                'ordering': ['name'],
+            },
+            bases=(models.Model, acacia.data.models.DatasourceMixin),
+        ),
+        migrations.CreateModel(
+            name='Project',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('name', models.CharField(unique=True, max_length=50)),
+                ('description', models.TextField(null=True, verbose_name=b'omschrijving', blank=True)),
+                ('image', models.ImageField(null=True, upload_to=acacia.data.upload.project_upload, blank=True)),
+                ('logo', models.ImageField(null=True, upload_to=acacia.data.upload.project_upload, blank=True)),
+                ('theme', models.CharField(default=b'dark-blue', help_text=b'Thema voor grafieken', max_length=50, verbose_name=b'thema', choices=[(b'dark-blue', b'blauw'), (b'darkgreen', b'groen'), (b'gray', b'grijs'), (b'grid', b'grid'), (b'skies', b'wolken')])),
+            ],
+            options={
+                'verbose_name_plural': 'projecten',
+            },
+        ),
+        migrations.CreateModel(
+            name='ProjectLocatie',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('name', models.CharField(max_length=50, verbose_name=b'naam')),
+                ('description', models.TextField(null=True, verbose_name=b'omschrijving', blank=True)),
+                ('image', models.ImageField(null=True, upload_to=acacia.data.upload.locatie_upload, blank=True)),
+                ('location', django.contrib.gis.db.models.fields.PointField(help_text=b'Projectlocatie in Rijksdriehoekstelsel coordinaten', srid=28992, verbose_name=b'locatie')),
+            ],
+            options={
+                'ordering': ['name'],
+            },
+        ),
+        migrations.CreateModel(
+            name='Series',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('name', models.CharField(max_length=50, verbose_name=b'naam')),
+                ('description', models.TextField(null=True, verbose_name=b'omschrijving', blank=True)),
+                ('unit', models.CharField(max_length=10, null=True, verbose_name=b'eenheid', blank=True)),
+                ('type', models.CharField(default=b'line', choices=[(b'line', b'lijn'), (b'column', b'staaf'), (b'scatter', b'punt'), (b'area', b'area'), (b'spline', b'spline')], max_length=20, blank=True, help_text=b'Standaard weeggave op grafieken', verbose_name=b'weergave')),
+                ('thumbnail', models.ImageField(max_length=200, null=True, upload_to=acacia.data.upload.series_thumb_upload, blank=True)),
+                ('limit_time', models.BooleanField(default=False, help_text=b'Beperk tijdreeks tot gegeven tijdsinterval', verbose_name=b'tijdsrestrictie')),
+                ('from_limit', models.DateTimeField(null=True, verbose_name=b'Begintijd', blank=True)),
+                ('to_limit', models.DateTimeField(null=True, verbose_name=b'Eindtijd', blank=True)),
+                ('resample', models.CharField(choices=[(b'T', b'minuut'), (b'15T', b'kwartier'), (b'H', b'uur'), (b'D', b'dag'), (b'W', b'week'), (b'M', b'maand'), (b'A', b'jaar')], max_length=10, blank=True, help_text=b'Frequentie voor resampling van tijdreeks', null=True, verbose_name=b'frequentie')),
+                ('aggregate', models.CharField(choices=[(b'mean', b'gemiddelde'), (b'max', b'maximum'), (b'min', b'minimum'), (b'sum', b'som'), (b'diff', b'verschil'), (b'first', b'eerste'), (b'last', b'laatste')], max_length=10, blank=True, help_text=b'Aggregatiemethode bij resampling van tijdreeks', null=True, verbose_name=b'aggregatie')),
+                ('scale', models.FloatField(default=1.0, help_text=b'constante factor voor verschaling van de meetwaarden (v\xc3\xb3\xc3\xb3r compensatie)', verbose_name=b'verschalingsfactor')),
+                ('offset', models.FloatField(default=0.0, help_text=b'constante voor compensatie van de meetwaarden (n\xc3\xa1 verschaling)', verbose_name=b'compensatieconstante')),
+                ('cumsum', models.BooleanField(default=False, help_text=b'reeks transformeren naar accumulatie', verbose_name=b'accumuleren')),
+                ('cumstart', models.DateTimeField(null=True, verbose_name=b'start accumulatie', blank=True)),
+            ],
+            options={
+                'ordering': ['name'],
+                'verbose_name': 'Tijdreeks',
+                'verbose_name_plural': 'Tijdreeksen',
+            },
+            bases=(models.Model, acacia.data.models.DatasourceMixin),
+        ),
+        migrations.CreateModel(
+            name='SeriesProperties',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('aantal', models.IntegerField(default=0)),
+                ('min', models.FloatField(default=0, null=True)),
+                ('max', models.FloatField(default=0, null=True)),
+                ('van', models.DateTimeField(null=True)),
+                ('tot', models.DateTimeField(null=True)),
+                ('gemiddelde', models.FloatField(default=0, null=True)),
+                ('beforelast', models.ForeignKey(related_name='beforelast', to='data.DataPoint', null=True)),
+                ('eerste', models.ForeignKey(related_name='first', to='data.DataPoint', null=True)),
+                ('laatste', models.ForeignKey(related_name='last', to='data.DataPoint', null=True)),
+            ],
+        ),
+        migrations.CreateModel(
+            name='SourceFile',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('name', models.CharField(max_length=50, blank=True)),
+                ('file', models.FileField(max_length=200, null=True, upload_to=acacia.data.upload.sourcefile_upload, blank=True)),
+                ('rows', models.IntegerField(default=0)),
+                ('cols', models.IntegerField(default=0)),
+                ('start', models.DateTimeField(null=True, blank=True)),
+                ('stop', models.DateTimeField(null=True, blank=True)),
+                ('crc', models.IntegerField(default=0)),
+                ('created', models.DateTimeField(auto_now_add=True)),
+                ('uploaded', models.DateTimeField(auto_now=True)),
+                ('datasource', models.ForeignKey(related_name='sourcefiles', verbose_name=b'gegevensbron', to='data.Datasource')),
+                ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
+            ],
+            options={
+                'verbose_name': 'bronbestand',
+                'verbose_name_plural': 'bronbestanden',
+            },
+            bases=(models.Model, acacia.data.models.DatasourceMixin),
+        ),
+        migrations.CreateModel(
+            name='Station',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('nummer', models.IntegerField()),
+                ('naam', models.CharField(max_length=50)),
+                ('location', django.contrib.gis.db.models.fields.PointField(srid=28992)),
+            ],
+            options={
+                'ordering': ('naam',),
+            },
+        ),
+        migrations.CreateModel(
+            name='TabGroup',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('name', models.CharField(help_text=b'naam van dashboard groep', max_length=40, verbose_name=b'naam')),
+                ('location', models.ForeignKey(verbose_name=b'projectlocatie', to='data.ProjectLocatie')),
+            ],
+            options={
+                'verbose_name': 'Dashboardgroep',
+                'verbose_name_plural': 'Dashboardgroepen',
+            },
+        ),
+        migrations.CreateModel(
+            name='TabPage',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('name', models.CharField(default=b'basis', max_length=40, verbose_name=b'naam')),
+                ('order', models.IntegerField(default=1, help_text=b'volgorde van tabblad', verbose_name=b'volgorde')),
+                ('dashboard', models.ForeignKey(to='data.Dashboard')),
+                ('tabgroup', models.ForeignKey(to='data.TabGroup')),
+            ],
+            options={
+                'verbose_name': 'Tabblad',
+                'verbose_name_plural': 'Tabbladen',
+            },
+        ),
+        migrations.CreateModel(
+            name='Variable',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('name', models.CharField(max_length=10, verbose_name=b'variabele')),
+                ('locatie', models.ForeignKey(to='data.MeetLocatie')),
+            ],
+            options={
+                'verbose_name': 'variabele',
+                'verbose_name_plural': 'variabelen',
+            },
+        ),
+        migrations.CreateModel(
+            name='Webcam',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('name', models.CharField(max_length=50, verbose_name=b'naam')),
+                ('description', models.TextField(null=True, verbose_name=b'omschrijving', blank=True)),
+                ('image', models.TextField(verbose_name=b'url voor snapshot')),
+                ('video', models.TextField(verbose_name=b'url voor streaming video')),
+                ('admin', models.TextField(verbose_name=b'url voor beheer')),
+            ],
+        ),
+        migrations.CreateModel(
+            name='Formula',
+            fields=[
+                ('series_ptr', models.OneToOneField(parent_link=True, auto_created=True, primary_key=True, serialize=False, to='data.Series')),
+                ('formula_text', models.TextField(null=True, verbose_name=b'berekening', blank=True)),
+                ('intersect', models.BooleanField(default=True, verbose_name=b'bereken alleen voor overlappend tijdsinterval')),
+            ],
+            options={
+                'verbose_name': 'Berekende reeks',
+                'verbose_name_plural': 'Berekende reeksen',
+            },
+            bases=('data.series',),
+        ),
+        migrations.CreateModel(
+            name='Grid',
+            fields=[
+                ('chart_ptr', models.OneToOneField(parent_link=True, auto_created=True, primary_key=True, serialize=False, to='data.Chart')),
+                ('colwidth', models.FloatField(default=1, help_text=b'tijdstap in uren', verbose_name=b'tijdstap')),
+                ('rowheight', models.FloatField(default=1, verbose_name=b'rijhoogte')),
+                ('ymin', models.FloatField(default=0, verbose_name=b'y-minimum')),
+                ('entity', models.CharField(default=b'Weerstand', max_length=50, verbose_name=b'grootheid')),
+                ('unit', models.CharField(default=b'\xce\xa9m', max_length=20, verbose_name=b'eenheid', blank=True)),
+                ('zmin', models.FloatField(null=True, verbose_name=b'z-minimum', blank=True)),
+                ('zmax', models.FloatField(null=True, verbose_name=b'z-maximum', blank=True)),
+                ('scale', models.FloatField(default=1.0, verbose_name=b'verschalingsfactor')),
+            ],
+            options={
+                'abstract': False,
+            },
+            bases=('data.chart',),
+        ),
+        migrations.CreateModel(
+            name='ManualSeries',
+            fields=[
+                ('series_ptr', models.OneToOneField(parent_link=True, auto_created=True, primary_key=True, serialize=False, to='data.Series')),
+            ],
+            options={
+                'verbose_name': 'Handmatige reeks',
+                'verbose_name_plural': 'Handmatige reeksen',
+            },
+            bases=('data.series',),
+        ),
+        migrations.AddField(
+            model_name='variable',
+            name='series',
+            field=models.ForeignKey(verbose_name=b'reeks', to='data.Series'),
+        ),
+        migrations.AddField(
+            model_name='seriesproperties',
+            name='series',
+            field=models.OneToOneField(related_name='properties', to='data.Series'),
+        ),
+        migrations.AddField(
+            model_name='series',
+            name='mlocatie',
+            field=models.ForeignKey(verbose_name=b'meetlocatie', to='data.MeetLocatie', null=True),
+        ),
+        migrations.AddField(
+            model_name='series',
+            name='offset_series',
+            field=models.ForeignKey(related_name='offset_set', blank=True, to='data.Series', help_text=b'tijdreeks voor compensatie van de meetwaarden (n\xc3\xa1 verschaling)', null=True, verbose_name=b'compensatiereeks'),
+        ),
+        migrations.AddField(
+            model_name='series',
+            name='parameter',
+            field=models.ForeignKey(blank=True, to='data.Parameter', null=True),
+        ),
+        migrations.AddField(
+            model_name='series',
+            name='polymorphic_ctype',
+            field=models.ForeignKey(related_name='polymorphic_data.series_set+', editable=False, to='contenttypes.ContentType', null=True),
+        ),
+        migrations.AddField(
+            model_name='series',
+            name='scale_series',
+            field=models.ForeignKey(related_name='scaling_set', blank=True, to='data.Series', help_text=b'tijdreeks voor verschaling van de meetwaarden (v\xc3\xb3\xc3\xb3r compensatie', null=True, verbose_name=b'verschalingsreeks'),
+        ),
+        migrations.AddField(
+            model_name='series',
+            name='user',
+            field=models.ForeignKey(to=settings.AUTH_USER_MODEL),
+        ),
+        migrations.AddField(
+            model_name='projectlocatie',
+            name='dashboard',
+            field=models.ForeignKey(verbose_name=b'Standaard dashboard', blank=True, to='data.TabGroup', null=True),
+        ),
+        migrations.AddField(
+            model_name='projectlocatie',
+            name='project',
+            field=models.ForeignKey(to='data.Project'),
+        ),
+        migrations.AddField(
+            model_name='projectlocatie',
+            name='webcam',
+            field=models.ForeignKey(blank=True, to='data.Webcam', null=True),
+        ),
+        migrations.AddField(
+            model_name='meetlocatie',
+            name='projectlocatie',
+            field=models.ForeignKey(to='data.ProjectLocatie'),
+        ),
+        migrations.AddField(
+            model_name='meetlocatie',
+            name='webcam',
+            field=models.ForeignKey(blank=True, to='data.Webcam', null=True),
+        ),
+        migrations.AddField(
+            model_name='datasource',
+            name='generator',
+            field=models.ForeignKey(help_text=b'Generator voor het maken van tijdreeksen uit de datafiles', to='data.Generator'),
+        ),
+        migrations.AddField(
+            model_name='datasource',
+            name='meetlocatie',
+            field=models.ForeignKey(related_name='datasources', to='data.MeetLocatie', help_text=b'Meetlocatie van deze gegevensbron'),
+        ),
+        migrations.AddField(
+            model_name='datasource',
+            name='user',
+            field=models.ForeignKey(verbose_name=b'Aangemaakt door', to=settings.AUTH_USER_MODEL),
+        ),
+        migrations.AddField(
+            model_name='datapoint',
+            name='series',
+            field=models.ForeignKey(related_name='datapoints', to='data.Series'),
+        ),
+        migrations.AddField(
+            model_name='dashboardchart',
+            name='chart',
+            field=models.ForeignKey(verbose_name=b'Grafiek', to='data.Chart'),
+        ),
+        migrations.AddField(
+            model_name='dashboardchart',
+            name='dashboard',
+            field=models.ForeignKey(to='data.Dashboard'),
+        ),
+        migrations.AddField(
+            model_name='dashboard',
+            name='charts',
+            field=models.ManyToManyField(to='data.Chart', verbose_name=b'grafieken', through='data.DashboardChart'),
+        ),
+        migrations.AddField(
+            model_name='dashboard',
+            name='user',
+            field=models.ForeignKey(to=settings.AUTH_USER_MODEL),
+        ),
+        migrations.AddField(
+            model_name='chartseries',
+            name='chart',
+            field=models.ForeignKey(related_name='series', verbose_name=b'grafiek', to='data.Chart'),
+        ),
+        migrations.AddField(
+            model_name='chartseries',
+            name='series',
+            field=models.ForeignKey(verbose_name=b'tijdreeks', to='data.Series'),
+        ),
+        migrations.AddField(
+            model_name='chartseries',
+            name='series2',
+            field=models.ForeignKey(related_name='series2', blank=True, to='data.Series', help_text=b'tijdreeks voor ondergrens bij area grafiek', null=True, verbose_name=b'tweede tijdreeks'),
+        ),
+        migrations.AddField(
+            model_name='chart',
+            name='polymorphic_ctype',
+            field=models.ForeignKey(related_name='polymorphic_data.chart_set+', editable=False, to='contenttypes.ContentType', null=True),
+        ),
+        migrations.AddField(
+            model_name='chart',
+            name='user',
+            field=models.ForeignKey(to=settings.AUTH_USER_MODEL),
+        ),
+        migrations.AlterUniqueTogether(
+            name='variable',
+            unique_together=set([('locatie', 'name')]),
+        ),
+        migrations.AlterUniqueTogether(
+            name='series',
+            unique_together=set([('parameter', 'name')]),
+        ),
+        migrations.AlterUniqueTogether(
+            name='projectlocatie',
+            unique_together=set([('project', 'name')]),
+        ),
+        migrations.AlterUniqueTogether(
+            name='parameter',
+            unique_together=set([('name', 'datasource')]),
+        ),
+        migrations.AlterUniqueTogether(
+            name='meetlocatie',
+            unique_together=set([('projectlocatie', 'name')]),
+        ),
+        migrations.AddField(
+            model_name='formula',
+            name='formula_variables',
+            field=models.ManyToManyField(to='data.Variable', verbose_name=b'variabelen'),
+        ),
+        migrations.AlterUniqueTogether(
+            name='datasource',
+            unique_together=set([('name', 'meetlocatie')]),
+        ),
+        migrations.AlterUniqueTogether(
+            name='datapoint',
+            unique_together=set([('series', 'date')]),
+        ),
+    ]
