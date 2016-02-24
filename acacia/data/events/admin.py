@@ -13,7 +13,7 @@ class TargetAdmin(admin.ModelAdmin):
 class TriggerAdmin(admin.ModelAdmin):
     model = Trigger
     list_display=('name', 'series')        
-
+    fields = ('name', 'series', ('hilo','level'), ('freq','how'),('window', 'count'))
 class HistoryAdmin(admin.ModelAdmin):
     model = History
     list_display=('__unicode__', 'user', 'date', 'sent')        
