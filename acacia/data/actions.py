@@ -121,8 +121,8 @@ def set_locatie(modeladmin, request, queryset):
     for m in queryset:
         series = list(m.series_set.all())
         series = series.extend(m.series())
-        series = set(series)
         if series:
+            series = set(series)
             for s in series:
                 if not s.mlocatie:
                     s.mlocatie = m
