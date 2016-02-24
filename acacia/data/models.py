@@ -37,7 +37,9 @@ def aware(d,tz=None):
                     return timezone.make_aware(d, pytz.utc)            
     return d
 
-class DatasourceMixin:
+from django.utils.deconstruct import deconstructible
+@deconstructible
+class DatasourceMixin(object):
     ''' Mixin that provides a logging adapter that adds datasource context to log records
     Used to send emails to users that follow a datasource ''' 
     def getDatasource(self):
@@ -226,7 +228,7 @@ class Datasource(models.Model, DatasourceMixin):
     meetlocatie=models.ForeignKey(MeetLocatie,related_name='datasources',help_text='Meetlocatie van deze gegevensbron')
     url=models.CharField(blank=True,null=True,max_length=200,help_text='volledige url van de gegevensbron. Leeg laten voor handmatige uploads')
     generator=models.ForeignKey(Generator,help_text='Generator voor het maken van tijdreeksen uit de datafiles')
-    user=models.ForeignKey(User,default=User,verbose_name='Aangemaakt door')
+    user=models.ForeignKey(User,verbose_name='Aangemaakt door')
     created = models.DateTimeField(auto_now_add=True,verbose_name='Aangemaakt op')
     last_download = models.DateTimeField(null=True, blank=True, verbose_name='geactualiseerd')
     autoupdate = models.BooleanField(default=True)
@@ -521,7 +523,7 @@ class SourceFile(models.Model,DatasourceMixin):
     start=models.DateTimeField(null=True,blank=True)
     stop=models.DateTimeField(null=True,blank=True)
     crc=models.IntegerField(default=0)
-    user=models.ForeignKey(User,default=User)
+    user=models.ForeignKey(User)
     created = models.DateTimeField(auto_now_add=True)
     uploaded = models.DateTimeField(auto_now=True)
     
@@ -629,8 +631,20 @@ class SourceFile(models.Model,DatasourceMixin):
 
 from django.db.models.signals import pre_delete, pre_save, post_save
 from django.dispatch.dispatcher import receiver
+from functools import wraps
+
+def loaddata(signal_handler):
+    @wraps(signal_handler)
+    def wrapper(*args, **kwargs):
+        if kwargs.get('raw', False):
+            #called from manage.py loaddata
+            print "Skipping signal for %s %s" % (args, kwargs)
+            return
+        signal_handler(*args, **kwargs)
+    return wrapper
 
 @receiver(pre_delete, sender=SourceFile)
+@loaddata
 def sourcefile_delete(sender, instance, **kwargs):
     logger = instance.getLogger()
     filename = instance.file.name
@@ -639,6 +653,7 @@ def sourcefile_delete(sender, instance, **kwargs):
     logger.debug('File %s deleted' % filename)
 
 @receiver(pre_save, sender=SourceFile)
+@loaddata
 def sourcefile_save(sender, instance, **kwargs):
     logger = instance.getLogger()
     date = instance.filedate()
@@ -727,6 +742,7 @@ class Parameter(models.Model, DatasourceMixin):
         return self.thumbnail
     
 @receiver(pre_delete, sender=Parameter)
+@loaddata
 def parameter_delete(sender, instance, **kwargs):
     logger=instance.getLogger()
     logger.debug('Deleting thumbnail %s for parameter %s' % (instance.thumbnail.name, instance.name))
@@ -755,7 +771,8 @@ AGGREGATION_METHOD = (
 # update data_series set type = (select p.type from data_parameter p where id = data_series.parameter_id) 
 
 #class Series(models.Model,DatasourceMixin):
-from polymorphic import PolymorphicManager, PolymorphicModel
+from polymorphic.manager import PolymorphicManager
+from polymorphic.models import PolymorphicModel
 
 class Series(PolymorphicModel,DatasourceMixin):
     mlocatie = models.ForeignKey(MeetLocatie,null=True,verbose_name='meetlocatie')
@@ -765,7 +782,7 @@ class Series(PolymorphicModel,DatasourceMixin):
     type = models.CharField(max_length=20, blank = True, verbose_name='weergave', help_text='Standaard weeggave op grafieken', default='line', choices = SERIES_CHOICES)
     parameter = models.ForeignKey(Parameter, null=True, blank=True)
     thumbnail = models.ImageField(upload_to=up.series_thumb_upload, max_length=200, blank=True, null=True)
-    user=models.ForeignKey(User,default=User)
+    user=models.ForeignKey(User)
     objects = PolymorphicManager()
     
     # tijdsinterval
@@ -814,9 +831,9 @@ class Series(PolymorphicModel,DatasourceMixin):
         return None if p is None else p.datasource
 
     def meetlocatie(self):
+        if not self.mlocatie:
+            self.set_locatie()
         return self.mlocatie
-#         d = self.datasource()
-#         return None if d is None else d.meetlocatie
 
     def set_locatie(self):
         d = self.datasource()
@@ -1265,6 +1282,7 @@ class Formula(Series):
 @receiver(pre_save, sender=Series)
 @receiver(pre_save, sender=ManualSeries)
 @receiver(pre_save, sender=Formula)
+@loaddata
 def series_pre_save(sender, instance, **kwargs):
     if not instance.mlocatie:
         # for parameter series only, others should have mlocatie set
@@ -1273,6 +1291,7 @@ def series_pre_save(sender, instance, **kwargs):
 @receiver(post_save, sender=Series)
 @receiver(post_save, sender=ManualSeries)
 @receiver(post_save, sender=Formula)
+@loaddata
 def series_post_save(sender, instance, **kwargs):
     try:
         # update (or create) properties should be in post save, because foreignkey to series needs to be valid
@@ -1311,7 +1330,7 @@ class Chart(PolymorphicModel):
     name = models.CharField(max_length = 50, verbose_name = 'naam')
     description = models.TextField(blank=True,null=True,verbose_name='toelichting',help_text='Toelichting bij grafiek op het dashboard')
     title = models.CharField(max_length = 50, verbose_name = 'titel')
-    user=models.ForeignKey(User,default=User)
+    user=models.ForeignKey(User)
     start = models.DateTimeField(blank=True,null=True)
     #start_today = models.BooleanField(default=False,verbose_name='vanaf vandaag')
     stop = models.DateTimeField(blank=True,null=True)
@@ -1459,7 +1478,7 @@ class Dashboard(models.Model):
     name = models.CharField(max_length=50, verbose_name= 'naam')
     description = models.TextField(blank=True, null=True,verbose_name = 'omschrijving')
     charts = models.ManyToManyField(Chart, verbose_name = 'grafieken', through='DashboardChart')
-    user=models.ForeignKey(User,default=User)
+    user=models.ForeignKey(User)
     
     def grafieken(self):
         return self.charts.count()
