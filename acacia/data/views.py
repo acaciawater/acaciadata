@@ -55,9 +55,9 @@ def ChartToJson(request, pk):
         
         def getseriesdata(s):
             if c.stop is None:
-                pts = [[p.date,p.value] for p in s.datapoints.filter(date__gt=start).order_by('date')]
+                pts = [[p.date,p.value] for p in s.datapoints.filter(date__gte=start).order_by('date')]
             else:
-                pts = [[p.date,p.value] for p in s.datapoints.filter(date__gt=start, date__lt=c.stop).order_by('date')]
+                pts = [[p.date,p.value] for p in s.datapoints.filter(date__gte=start, date__lte=c.stop).order_by('date')]
             return pts
 
         pts = getseriesdata(cs.series)
