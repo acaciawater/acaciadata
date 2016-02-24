@@ -170,6 +170,9 @@ class MeetLocatie(geo.Model):
             for p in f.parameter_set.all():
                 for s in p.series_set.all():
                     ser.append(s)
+        if hasattr(self, 'series_set'):
+            for f in self.series_set.all():
+                ser.append(f)
         # Ook berekende reeksen!
         if hasattr(self, 'formula_set'):
             for f in self.formula_set.all():
@@ -178,7 +181,10 @@ class MeetLocatie(geo.Model):
         if hasattr(self, 'manualseries_set'):
             for m in self.manualseries_set.all():
                 ser.append(m)
-            
+        if ser:
+            # dont know if formula_set occurs
+            # remove duplicates (if any)
+            ser = list(set(ser))    
         return ser
 
     def charts(self):
@@ -1349,6 +1355,11 @@ class Chart(PolymorphicModel):
     def get_dash_url(self):
         return reverse('acacia:chart-detail', args=[self.pk])
 
+    def get_theme(self):
+        for s in self.series.all():
+            return s.theme()
+        return None
+    
     def auto_start(self):
         tz = timezone.get_current_timezone()
 #         if self.start_today:

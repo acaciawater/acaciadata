@@ -322,6 +322,7 @@ class ChartBaseView(TemplateView):
         jop = self.get_json(chart)
         context['options'] = jop
         context['chart'] = chart
+        context['theme'] = chart.get_theme()
         return context
         
 class ChartView(ChartBaseView):
