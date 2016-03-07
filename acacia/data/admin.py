@@ -271,7 +271,7 @@ class ParameterSeriesAdmin(PolymorphicChildModelAdmin):
 class ManualSeriesAdmin(PolymorphicChildModelAdmin):
     base_model = Series
     actions = [actions.copy_series, actions.series_thumbnails]
-    #list_display = ('name', 'mlocatie', 'thumbtag', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
+    list_display = ('name', 'mlocatie', 'thumbtag', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
     exclude = ('user','parameter')
     inlines = [DataPointInline,]
     search_fields = ['name','locatie']
@@ -326,7 +326,7 @@ class FormulaSeriesAdmin(PolymorphicChildModelAdmin):
 #class SeriesAdmin(admin.ModelAdmin):
 class SeriesAdmin(PolymorphicParentModelAdmin):
     actions = [actions.create_grid, actions.copy_series, actions.download_series, actions.refresh_series, actions.replace_series, actions.series_thumbnails, actions.update_series_properties, actions.empty_series]
-    list_display = ('name', 'thumbtag', 'typename', 'parameter', 'datasource', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
+    list_display = ('name', 'thumbtag', 'typename', 'parameter', 'datasource', 'mlocatie', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
     base_model = Series
     #base_form = SeriesForm
     child_models = ((ManualSeries, ManualSeriesAdmin), (Formula, FormulaSeriesAdmin), (Series, ParameterSeriesAdmin))
