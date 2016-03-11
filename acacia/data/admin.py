@@ -228,7 +228,7 @@ class SeriesForm(forms.ModelForm):
         if series is not None:
             offset = self.cleaned_data['offset']
             if offset != 0:
-                raise forms.ValidationError('Als een compenmsatietijdreeks is opgegeven moet de compensatiefactor gelijk aan 0 zijn')
+                raise forms.ValidationError('Als een compensatietijdreeks is opgegeven moet de compensatiefactor gelijk aan 0 zijn')
         return series
 
 from polymorphic.admin import PolymorphicParentModelAdmin, PolymorphicChildModelAdmin
