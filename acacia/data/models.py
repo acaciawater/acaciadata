@@ -91,7 +91,7 @@ class Webcam(models.Model):
     
 class ProjectLocatie(geo.Model):
     project = models.ForeignKey(Project)
-    name = models.CharField(max_length=50,verbose_name='naam')
+    name = models.CharField(max_length=100,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     description.allow_tags=True
     image = models.ImageField(upload_to=up.locatie_upload, blank = True, null = True)
@@ -125,7 +125,7 @@ class ProjectLocatie(geo.Model):
 
 class MeetLocatie(geo.Model):
     projectlocatie = models.ForeignKey(ProjectLocatie)
-    name = models.CharField(max_length=50,verbose_name='naam')
+    name = models.CharField(max_length=100,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     image = models.ImageField(upload_to=up.meetlocatie_upload, blank = True, null = True)
     location = geo.PointField(srid=util.RDNEW,verbose_name='locatie', help_text='Meetlocatie in Rijksdriehoekstelsel coordinaten')
@@ -229,7 +229,7 @@ LOGGING_CHOICES = (
                   )
 
 class Datasource(models.Model, DatasourceMixin):
-    name = models.CharField(max_length=50,verbose_name='naam')
+    name = models.CharField(max_length=100,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     meetlocatie=models.ForeignKey(MeetLocatie,related_name='datasources',help_text='Meetlocatie van deze gegevensbron')
     url=models.CharField(blank=True,null=True,max_length=200,help_text='volledige url van de gegevensbron. Leeg laten voor handmatige uploads')
@@ -521,7 +521,7 @@ class Notification(models.Model):
 #     active = models.BooleanField(default=True)
     
 class SourceFile(models.Model,DatasourceMixin):
-    name=models.CharField(max_length=50,blank=True)
+    name=models.CharField(max_length=100,blank=True)
     datasource = models.ForeignKey('Datasource',related_name='sourcefiles', verbose_name = 'gegevensbron')
     file=models.FileField(max_length=200,upload_to=up.sourcefile_upload,blank=True,null=True)
     rows=models.IntegerField(default=0)
@@ -782,7 +782,7 @@ from polymorphic.models import PolymorphicModel
 
 class Series(PolymorphicModel,DatasourceMixin):
     mlocatie = models.ForeignKey(MeetLocatie,null=True,verbose_name='meetlocatie')
-    name = models.CharField(max_length=50,verbose_name='naam')
+    name = models.CharField(max_length=100,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     unit = models.CharField(max_length=10, blank=True, null=True, verbose_name='eenheid')
     type = models.CharField(max_length=20, blank = True, verbose_name='weergave', help_text='Standaard weeggave op grafieken', default='line', choices = SERIES_CHOICES)
@@ -1196,7 +1196,7 @@ class SeriesProperties(models.Model):
 
 class Variable(models.Model):
     locatie = models.ForeignKey(MeetLocatie)
-    name = models.CharField(max_length=10, verbose_name = 'variabele')
+    name = models.CharField(max_length=20, verbose_name = 'variabele')
     series = models.ForeignKey(Series, verbose_name = 'reeks')
 
     def thumbtag(self):
@@ -1333,9 +1333,9 @@ import dateutil
     
 #class Chart(models.Model):
 class Chart(PolymorphicModel):
-    name = models.CharField(max_length = 50, verbose_name = 'naam')
+    name = models.CharField(max_length = 100, verbose_name = 'naam')
     description = models.TextField(blank=True,null=True,verbose_name='toelichting',help_text='Toelichting bij grafiek op het dashboard')
-    title = models.CharField(max_length = 50, verbose_name = 'titel')
+    title = models.CharField(max_length = 100, verbose_name = 'titel')
     user=models.ForeignKey(User)
     start = models.DateTimeField(blank=True,null=True)
     #start_today = models.BooleanField(default=False,verbose_name='vanaf vandaag')
@@ -1461,7 +1461,7 @@ class ChartSeries(models.Model):
     order = models.IntegerField(default=1,verbose_name='volgorde')
     series = models.ForeignKey(Series, verbose_name = 'tijdreeks')
     series2 = models.ForeignKey(Series, related_name='series2',blank=True, null=True, verbose_name = 'tweede tijdreeks', help_text='tijdreeks voor ondergrens bij area grafiek')
-    name = models.CharField(max_length=50,blank=True,null=True,verbose_name='legendanaam')
+    name = models.CharField(max_length=100,blank=True,null=True,verbose_name='legendanaam')
     axis = models.IntegerField(default=1,verbose_name='Nummer y-as')
     axislr = models.CharField(max_length=2, choices=AXIS_CHOICES, default='l',verbose_name='Positie y-as')
     color = models.CharField(null=True,blank=True,max_length=20, verbose_name = 'Kleur', help_text='Standaard kleur (bv Orange) of rgba waarde (bv rgba(128,128,0,1)) of hexadecimaal getal (bv #ffa500)')
@@ -1486,7 +1486,7 @@ class ChartSeries(models.Model):
         verbose_name_plural = 'tijdreeksen'
 
 class Dashboard(models.Model):
-    name = models.CharField(max_length=50, verbose_name= 'naam')
+    name = models.CharField(max_length=100, verbose_name= 'naam')
     description = models.TextField(blank=True, null=True,verbose_name = 'omschrijving')
     charts = models.ManyToManyField(Chart, verbose_name = 'grafieken', through='DashboardChart')
     user=models.ForeignKey(User)
@@ -1518,7 +1518,7 @@ class DashboardChart(models.Model):
     
 class TabGroup(models.Model):
     location = models.ForeignKey(ProjectLocatie,verbose_name='projectlocatie')
-    name = models.CharField(max_length = 40, verbose_name='naam', help_text='naam van dashboard groep')
+    name = models.CharField(max_length = 50, verbose_name='naam', help_text='naam van dashboard groep')
 
     def pagecount(self):
         return self.tabpage_set.count()
@@ -1539,7 +1539,7 @@ class TabGroup(models.Model):
         
 class TabPage(models.Model):
     tabgroup = models.ForeignKey(TabGroup)
-    name = models.CharField(max_length=40,default='basis',verbose_name='naam')
+    name = models.CharField(max_length=50,default='basis',verbose_name='naam')
     order = models.IntegerField(default=1,verbose_name='volgorde', help_text='volgorde van tabblad')
     dashboard = models.ForeignKey(Dashboard)
 
