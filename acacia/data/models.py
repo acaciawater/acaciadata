@@ -862,7 +862,16 @@ class Series(PolymorphicModel,DatasourceMixin):
         return 'line' if p is None else p.type
 
     def __unicode__(self):
-        return '%s - %s' % (self.datasource() or '(berekend)', self.name)
+        ds = self.datasource()
+        if ds:
+            src = ds.name
+        else:
+            ml = self.meetlocatie()
+            if ml:
+                src  = ml.name
+            else:
+                src = '(berekend)'
+        return '%s - %s' % (src, self.name)
     
     def do_align(self, s1, s2):
         ''' align series s2 with s1 and fill missing values by padding'''
