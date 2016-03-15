@@ -13,7 +13,7 @@ class TargetAdmin(admin.ModelAdmin):
 class TriggerAdmin(admin.ModelAdmin):
     model = Trigger
     list_display=('name',)        
-    fields = ('name', ('hilo','level'), ('freq','how'),('window', 'count'))
+    fields = ('name', 'description', ('hilo','level'), ('freq','how'),('window', 'count'))
 
 class HistoryAdmin(admin.ModelAdmin):
     model = History
