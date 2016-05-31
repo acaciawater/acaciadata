@@ -7,7 +7,7 @@ from django.template import RequestContext
 from django.template.loader import render_to_string
 from django.shortcuts import get_object_or_404, redirect, render_to_response
 from django.http import HttpResponse
-from .models import Project, ProjectLocatie, MeetLocatie, Datasource, Series, Chart, Grid, Dashboard, TabGroup
+from .models import Project, ProjectLocatie, MeetLocatie, Datasource, Series, Chart, Grid, Dashboard, TabGroup, KeyFigure
 from .util import datasource_as_zip, datasource_as_csv, meetlocatie_as_zip, series_as_csv, chart_as_csv
 from django.views.decorators.gzip import gzip_page
 
@@ -90,6 +90,17 @@ def GridToJson(request, pk):
     data = {'grid': rowdata, 'min': min(rowdata), 'max': max(rowdata) }
     return HttpResponse(json.dumps(data,default=lambda x: time.mktime(x.timetuple())*1000.0), content_type='application/json')
     
+def get_key(request, pk):
+    key = get_object_or_404(KeyFigure, pk)
+    result = {'name': key.name, 'id': key.pk, 'value': key.get_value()}
+    return HttpResponse(json.dumps(result), content_type='application/json')
+
+def get_keys(request):
+    result = {}
+    for key in KeyFigure.objects.all():
+        result[key.name] = {'id': key.pk, 'value': key.get_value()}
+    return HttpResponse(json.dumps(result), content_type='application/json')
+
 def ChartAsCsv(request,pk):
     c = get_object_or_404(Chart,pk=pk)
     return chart_as_csv(c)

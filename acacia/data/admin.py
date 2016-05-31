@@ -1,7 +1,7 @@
 import os
 from .models import Project, ProjectLocatie, MeetLocatie, Datasource, SourceFile, Generator
 from .models import Parameter, Series, DataPoint, Chart, ChartSeries, Dashboard, DashboardChart, TabGroup, TabPage
-from .models import Variable, Formula, Webcam, Notification, ManualSeries, Grid
+from .models import Variable, Formula, Webcam, Notification, ManualSeries, Grid, CalibrationData, KeyFigure
 
 from django.shortcuts import render, redirect
 from django.contrib import admin
@@ -41,6 +41,7 @@ class SourceFileInline(admin.TabularInline):
     exclude = ('cols', 'crc', 'user')
     extra = 0
     ordering = ('-start', '-stop', 'name')
+    classes = ('grp-collapse grp-closed',)
     formset = SourceInlineFormSet
     
 class ParameterInline(admin.TabularInline):
@@ -114,7 +115,26 @@ class MeetLocatieAdmin(admin.ModelAdmin):
         return render(request,'data/notify.html',{'form': form, 'locaties': queryset, 'check': admin.helpers.ACTION_CHECKBOX_NAME})
     
     add_notifications.short_description='Berichtgeving toevoegen aan geselecteerde meetlocaties'
+
+class CalibrationAdmin(admin.ModelAdmin):
+    model = CalibrationData
+    list_display = ('parameter', 'sensor_value', 'calib_value')
+    list_filter = ('datasource', 'parameter')
     
+class CalibrationInline(admin.TabularInline):
+    model = CalibrationData
+    extra = 0
+    classes = ('grp-collapse grp-closed',)
+ 
+    def formfield_for_foreignkey(self, db_field, request=None, **kwargs):
+        field = super(CalibrationInline, self).formfield_for_foreignkey(db_field, request, **kwargs)
+        if db_field.name == 'parameter':
+            if request.datasource is not None:
+                field.queryset = field.queryset.filter(datasource__exact = request.datasource)  
+            else:
+                field.queryset = field.queryset.none()
+        return field 
+           
 class DatasourceForm(ModelForm):
     model = Datasource
     password = forms.CharField(label='Wachtwoord', help_text='Wachtwoord voor de webservice', widget=PasswordInput(render_value=True),required=False)
@@ -139,11 +159,11 @@ class DatasourceForm(ModelForm):
         
 class DatasourceAdmin(admin.ModelAdmin):
     form = DatasourceForm
-    inlines = [SourceFileInline,] # takes VERY long for decagon with more than 1000 files
+    inlines = [CalibrationInline, SourceFileInline,] # takes VERY long for decagon with more than 1000 files
     search_fields = ['name',]
     actions = [actions.upload_datasource, actions.update_parameters]
     list_filter = ('meetlocatie','meetlocatie__projectlocatie','meetlocatie__projectlocatie__project','generator')
-    list_display = ('name', 'description', 'meetlocatie', 'generator', 'last_download', 'filecount', 'parametercount', 'seriescount', 'start', 'stop', 'rows',)
+    list_display = ('name', 'description', 'meetlocatie', 'generator', 'last_download', 'filecount', 'parametercount', 'seriescount', 'calibcount','start', 'stop', 'rows',)
     fieldsets = (
                  ('Algemeen', {'fields': ('name', 'description', 'timezone', 'meetlocatie',),
                                'classes': ('grp-collapse grp-open',),
@@ -152,20 +172,27 @@ class DatasourceAdmin(admin.ModelAdmin):
                                'classes': ('grp-collapse grp-closed',),
                               }),
     )
+    
     def save_model(self, request, obj, form, change):
         obj.user = request.user
         obj.save()
         
+    def get_form(self, request, obj=None, **kwargs):
+        # just save obj reference for future processing in Inline
+        request.datasource = obj
+        return super(DatasourceAdmin, self).get_form(request, obj, **kwargs)
+     
     def save_formset(self, request, form, formset, change):
         instances = formset.save(commit=False)
         for instance in instances:
-            try:
-                if instance.user is None:
-                    instance.user = request.user
-            except:
-                    instance.user = request.user
-            if instance.name is None or len(instance.name) == 0:
-                instance.name,ext = os.path.splitext(os.path.basename(instance.file.name))
+            if isinstance(instance, SourceFile):
+                try:
+                    if instance.user is None:
+                        instance.user = request.user
+                except:
+                        instance.user = request.user
+                if instance.name is None or len(instance.name) == 0:
+                    instance.name,ext = os.path.splitext(os.path.basename(instance.file.name))
             instance.save()
         formset.save_m2m()
         
@@ -512,7 +539,16 @@ class NotificationAdmin(admin.ModelAdmin):
         level = request.POST.get('level')
         queryset.update(level=level)
     set_level.short_description='Niveau aanpassen'
-        
+
+from actions import update_kental
+class KeyFigureAdmin(admin.ModelAdmin):
+    actions = [update_kental]
+    model = KeyFigure
+    exclude = ('value', )
+    filter_horizontal = ('variables',)
+    list_filter = ('locatie', )
+    list_display = ('name','locatie', 'value', 'last_update')
+    
 admin.site.register(Project, ProjectAdmin, Media = Media)
 admin.site.register(ProjectLocatie, ProjectLocatieAdmin, Media = Media)
 admin.site.register(MeetLocatie, MeetLocatieAdmin, Media = Media)
@@ -529,3 +565,5 @@ admin.site.register(Variable, VariableAdmin)
 admin.site.register(Webcam, WebcamAdmin)
 admin.site.register(Notification, NotificationAdmin)
 admin.site.register(Grid, GridAdmin)
+admin.site.register(CalibrationData, CalibrationAdmin)
+admin.site.register(KeyFigure, KeyFigureAdmin)

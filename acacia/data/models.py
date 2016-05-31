@@ -34,7 +34,10 @@ def aware(d,tz=None):
                     return timezone.make_aware(d, tz)            
                 except:
     #                 pytz.NonExistentTimeError, pytz.AmbiguousTimeError: # CET/CEST transition?
-                    return timezone.make_aware(d, pytz.utc)            
+                    try:
+                        return timezone.make_aware(d, pytz.utc)
+                    except:
+                        pass            
     return d
 
 from django.utils.deconstruct import deconstructible
@@ -370,6 +373,7 @@ class Datasource(models.Model, DatasourceMixin):
             try:
                 try:
                     params.update(gen.get_parameters(sourcefile.file))
+                    sourcefile.file.close()
                 except Exception as e:
                     logger.exception('Cannot update parameters for sourcefile %s: %s' % (sourcefile, e))
             except Exception as e:
@@ -444,9 +448,42 @@ class Datasource(models.Model, DatasourceMixin):
                 slicer = (date <= stop)
             if slicer is not None:
                 data = data[slicer]
+            if self.calibrationdata_set:
+                data = self.calibrate(data)
             return data.sort()
         return data
 
+    def calibrate_value(self, value, sensor, calib):
+        ''' return calibrated sensor data 
+            sensor is iterable with sorted sensor values            
+            calib is iterable with corresponding calibration values            
+        '''
+        n = len(sensor) # number of calibration points
+        for i,d in enumerate(sensor):
+            if value < d:
+                break
+        i = max(1,min(i,n-1))
+        s1 = sensor[i-1]
+        s2 = sensor[i]
+        ds = s2-s1
+        c1 = calib[i-1]
+        c2 = calib[i]
+        dc = c2-c1
+        return c1 + (value - s1) * (dc / ds) 
+    
+    def calibrate(self,data):
+        for name in data.columns:
+            par = self.parameter_set.get(name=name)
+            caldata = self.calibrationdata_set.filter(parameter=par).order_by('sensor_value')
+            if caldata:
+                caldata = [(d.sensor_value, d.calib_value) for d in caldata]
+                x,y = zip(*caldata)
+                sensdata = data[name]
+                sensdata.is_copy = False
+                for index,value in sensdata.iteritems():
+                    sensdata[index] = self.calibrate_value(value, x, y)
+        return data
+                
     def to_csv(self):
         io = StringIO.StringIO()
         df = self.get_data()
@@ -464,6 +501,11 @@ class Datasource(models.Model, DatasourceMixin):
         count = self.sourcefiles.count()
         return count if count>0 else None
     filecount.short_description = 'files'
+
+    def calibcount(self):
+        count = self.calibrationdata_set.count()
+        return count if count>0 else None
+    calibcount.short_description = 'IJkpunten'
 
     def seriescount(self):
         count = sum([p.seriescount() for p in self.parameter_set.all()])
@@ -1138,7 +1180,7 @@ class Series(PolymorphicModel,DatasourceMixin):
         points = self.filter_points(**kwargs)
         dates = [dp.date for dp in points]
         values = [dp.value for dp in points]
-        return pd.Series(values,index=dates,name=self.name)
+        return pd.Series(values,index=dates,name=self.name).sort_index()
     
     def to_csv(self, **kwargs):
         ser = self.to_pandas(**kwargs)
@@ -1559,3 +1601,70 @@ class TabPage(models.Model):
         verbose_name = 'Tabblad'
         verbose_name_plural = 'Tabbladen'
         
+class CalibrationData(models.Model):
+    datasource = models.ForeignKey(Datasource)
+    parameter = models.ForeignKey(Parameter)
+    sensor_value = models.FloatField(verbose_name = 'meetwaarde')
+    calib_value = models.FloatField(verbose_name='ijkwaarde')
+    
+    class Meta:
+        verbose_name = 'IJkpunt'        
+        verbose_name_plural = 'IJkset'
+
+from smart_selects.db_fields import ChainedManyToManyField
+
+class KeyFigure(models.Model):
+    ''' Net zoiets als een Formula, maar dan met een scalar als resultaat'''
+    locatie = models.ForeignKey(MeetLocatie)
+    name = models.CharField(max_length=200, verbose_name = 'naam')
+    description = models.TextField(blank=True, null = True, verbose_name = 'omschrijving')
+    #variables = models.ManyToManyField(Variable,verbose_name = 'variabelen')
+    variables = ChainedManyToManyField(Variable,verbose_name = 'variabelen',
+            chained_field = locatie,
+            chained_model_field = 'locatie')
+    formula = models.TextField(blank=True,null=True,verbose_name = 'berekening')
+    last_update = models.DateTimeField(auto_now = True, verbose_name = 'bijgewerkt')
+    startDate = models.DateField(blank=True, null=True)
+    stopDate = models.DateField(blank=True, null=True)
+    value = models.FloatField(blank=True, null=True, verbose_name = 'waarde')
+    
+    def __unicode__(self):
+        return self.name
+
+    def get_variables(self):
+        variables = {var.name: var.series.to_pandas() for var in self.variables.all()}
+        df = pd.DataFrame(variables)
+        start = max([v.index.min() for v in variables.values()])
+        stop = min([v.index.max() for v in variables.values()])
+        if self.startDate:
+            start = self.startDate
+        if self.stopDate:
+            stop = self.stopDate
+        df = df[start:stop]
+        df = df.interpolate(method='time')
+        return df.to_dict('series')
+
+    def get_value(self):
+        variables = self.get_variables()
+        result = eval(self.formula, globals(), variables)
+        if isinstance(result, pd.DataFrame):
+            result = result[0]
+        elif isinstance(result, pd.Series):
+            result.name = self.name
+        return result
+    
+    def update(self):
+        self.value = self.get_value()
+        self.save(update_fields=['value'])
+        return self.value
+
+    class Meta:
+        verbose_name = 'Kental'        
+        verbose_name_plural = 'Kentallen'
+        unique_together = ('locatie', 'name')
+
+if __name__ == '__main__':
+    ds = Datasource.objects.get(pk=72)
+    data = ds.get_data()
+    print data['EC25']
+    

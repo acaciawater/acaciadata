@@ -1,15 +1,17 @@
-from django.conf.urls import patterns, url
+from django.conf.urls import patterns, url, include
 from django.views.generic.list import ListView
 from acacia.data.models import Project
 from acacia.data.views import DatasourceDetailView, DatasourceAsZip, DatasourceAsCsv, ProjectDetailView, ProjectLocatieDetailView, \
     MeetLocatieDetailView, MeetlocatieAsZip, SeriesAsCsv, SeriesToJson, ChartToJson, GridToJson, ChartAsCsv, UpdateMeetlocatie, ChartView, \
-    ChartBaseView, DashView, TabGroupView, SeriesView, GridBaseView, GridView, UpdateDatasource, StartUpdateDatasource, poll_state
+    ChartBaseView, DashView, TabGroupView, SeriesView, GridBaseView, GridView, UpdateDatasource, StartUpdateDatasource, poll_state, get_key, get_keys
 
 urlpatterns = patterns('',
     url(r'^$', ListView.as_view(model=Project), name='project-list'),
     url(r'^/$', ListView.as_view(model=Project), name='project-list'),
     url(r'^bron/(?P<pk>\d+)/$', DatasourceDetailView.as_view(), name='datasource-detail'),
 
+    url(r'^key/(?P<pk>\d+)/$', get_key, name='get_key'),
+    url(r'^keys/$', get_keys, name='get_keys'),
     url(r'^download/datasource/(?P<pk>\d+)', DatasourceAsZip,name='datasource-zip'),
     url(r'^download/tabel/(?P<pk>\d+)', DatasourceAsCsv,name='datasource-csv'),
     url(r'^download/meetlocatie/(?P<pk>\d+)', MeetlocatieAsZip,name='meetlocatie-zip'),
@@ -37,4 +39,5 @@ urlpatterns = patterns('',
     url(r'^locatie/(?P<pk>\d+)$', ProjectLocatieDetailView.as_view(), name='projectlocatie-detail'),
     url(r'^meetlocatie/(?P<pk>\d+)$', MeetLocatieDetailView.as_view(), name='meetlocatie-detail'),
     
+    url(r'^chaining/', include('smart_selects.urls'))
 )

@@ -178,3 +178,12 @@ def update_grid(modeladmin, request, queryset):
             s.update()
             
 update_grid.short_description = "Grid bijwerken"
+
+def test_kental(modeladmin, request, queryset):
+    for k in queryset:
+        print k.get_value()
+
+def update_kental(modeladmin, request, queryset):
+    for k in queryset:
+        k.update()
+                

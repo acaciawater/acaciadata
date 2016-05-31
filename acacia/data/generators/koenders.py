@@ -26,12 +26,12 @@ def date_parser(dt):
 class Koenders(Generator):
             
     def get_header(self, f):
-        return {'COLUMNS': ['Date', 'Puls1', 'Puls2', 'Batt'],}
+        return {'COLUMNS': ['Date', 'Puls1', 'Puls2', 'Puls3', 'Batt'],}
             
     def get_data(self, f, **kwargs):
         header = self.get_header(f)
         names = header['COLUMNS']
-        data = self.read_csv(f, header=None, names=names, index_col=[0], usecols = [0,2,3,7],  
+        data = self.read_csv(f, header=None, names=names, index_col=[0], usecols = [0,2,3,4,7],  
                              parse_dates = True, skip_blank_lines = True, date_parser = date_parser)
         data.dropna(inplace=True)
         return data
