@@ -90,12 +90,12 @@ def conv121(x):
         return [np.nan, np.nan]
     raw = np.uint32(x)
     Rw = raw & m16
-    if Rw == 0:
+    if Rw == 0 or Rw == 65535:
         psi = np.nan
     else:
         psi = 10**(0.0001*Rw)/-10.20408
     RT = (raw >> 16) & m10
-    if RT == 0:
+    if RT == 0 or RT == 1023:
         temp = np.nan
     elif RT <= 900:
         temp = (RT-400) / 10.0
@@ -202,6 +202,12 @@ def conv106(x):
         EC = 10**(Rec/190.0)/1000
     return [level, temp, EC]
 
+def conv108(x):
+    '''
+    MPS-6 Water Potential/Temp (sensor #108)
+    '''
+    return conv121(x)
+
 def conv187(x):
     ''' conversion for ECRN-100 Precipitation '''
     if np.isnan(x):
@@ -271,6 +277,11 @@ SENSORDATA = {
           'parameters':[{'name': 'Level', 'description': 'Water level', 'unit': 'mm'},
                         {'name': 'Temp', 'description': 'Temperature', 'unit': 'oC'},
                         {'name': 'EC', 'description': 'Electrical Conductivity', 'unit': 'mS/cm'}
+                        ]
+          },
+    108: {'converter': conv108,
+          'parameters':[{'name': 'Potential', 'description': 'Water Potential', 'unit': 'kPa'},
+                        {'name': 'Temp', 'description': 'Temperature', 'unit': 'oC'}
                         ]
           },
     116: {'converter': conv116,
