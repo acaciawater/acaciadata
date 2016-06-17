@@ -341,7 +341,7 @@ class Datasource(models.Model, DatasourceMixin):
                         crcs[crc] = sourcefile.file
                         files.append(sourcefile)
                     except Exception as e:
-                        logger.exception('Problem saving file %s: %s', (filename,e))
+                        logger.exception('Problem saving file %s: %s' % (filename,e))
 
             options['callback'] = callback
             results = gen.download(**options)
