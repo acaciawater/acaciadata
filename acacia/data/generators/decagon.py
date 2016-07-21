@@ -58,7 +58,7 @@ def conv125(x):
         Temp in highest 10 bits (22-31)
      '''
     if np.isnan(x):
-        return [np.nan, np.nan]
+        return [np.nan] * 2
     raw = np.uint32(x)
     R0 = raw & m12
     vwc = 1.09e-3 * R0 - 0.629
@@ -87,7 +87,7 @@ def conv121(x):
         Temp in middle 10 bits (16-25)
      '''
     if np.isnan(x):
-        return [np.nan, np.nan]
+        return [np.nan] * 2
     raw = np.uint32(x)
     Rw = raw & m16
     if Rw == 0 or Rw == 65535:
@@ -110,14 +110,20 @@ def conv119(x):
     EC in middle 10 bits 
     '''
     if np.isnan(x):
-        return [np.nan,np.nan,np.nan]
+        return [np.nan] * 5
     raw = np.uint32(x)
+
+    ''' Calculate theta from dielectric permittivity Ea according to
+    the equations provided in the GS3 manual for peat (vwcp) and
+    mineral soil (vwc)'''
     Re = raw & m12
-    Ea = Re / 50.0
-    vwcp = 0.118 * math.sqrt(Ea) - 0.117 if Ea > 0 else np.nan# peat
+    Ea = Re / 50.0 # Dielectric permittivity of bulk soil
+    vwcp = 0.118 * math.sqrt(Ea) - 0.117 if Ea > 0 else np.nan # peat
     vwc = 5.89e-6 * Ea**3 - 7.62e-4 * Ea**2 + 3.67e-2 * Ea -7.53e-2 # mineral soil
     if vwc < 0:
         vwc = np.nan
+
+    '''Calculate soil temperature [Celsius]'''
     RT = (raw >> 22) & m10
     if RT == 0:
         temp = np.nan
@@ -126,12 +132,22 @@ def conv119(x):
     else:
         temp = ((900 + 5 * (RT-900)) - 400) / 10.0
 
+    '''Calculate bulk EC (EC) and pore solution EC (ECp) [mS cm-1]'''
     Rec = (raw >> 12) & m10
     if Rec == 0:
         EC = np.nan
+        ECp = np.nan
     else:
         EC = 10**(Rec/215.0)/1000
-    return [vwc, temp, EC, vwcp]
+        '''Calculate dielectric permittivity of soil pore water (Decagon)'''
+        Ep = 80.3 - 0.37 * (temp - 20.0)
+        ''' Dielectric permittivity (Eb0) dry soil (Hilhorst, 2000)'''
+        Eb0 = 4.1
+        if Ea == Eb0:
+            ECp = np.nan
+        else:
+            ECp = (Ep * EC)/(Ea - Eb0)
+    return [vwc, temp, EC, vwcp, ECp]
 
 def conv116(x):
     '''
@@ -141,7 +157,7 @@ def conv116(x):
     EC in bits 12-21
     '''
     if np.isnan(x):
-        return [np.nan,np.nan,np.nan]
+        return [np.nan] * 3
     raw = np.uint32(x)
     level = raw & m12
     if level == 0:
@@ -168,12 +184,12 @@ def conv106(x):
     EC in bits 13-22
     '''
     if np.isnan(x):
-        return [np.nan,np.nan,np.nan]
+        return [np.nan] * 3
     raw = np.uint32(x)
     
     if raw == 0:
         # unplugged
-        return [np.nan,np.nan,np.nan]
+        return [np.nan] * 3
     
     RL = raw & m13
     if RL == 0:
@@ -203,9 +219,7 @@ def conv106(x):
     return [level, temp, EC]
 
 def conv108(x):
-    '''
-    MPS-6 Water Potential/Temp (sensor #108)
-    '''
+    '''MPS-6 sensor, hetzelfde als de MPS-2 sensor (conv121)'''
     return conv121(x)
 
 def conv187(x):
@@ -295,6 +309,7 @@ SENSORDATA = {
                         {'name': 'Temp', 'description': 'Temperature', 'unit': 'oC'},
                         {'name': 'EC', 'description': 'Bulk Electrical Conductivity', 'unit': 'mS/cm'},
                         {'name': 'VWC2', 'description': 'Volumetric water content for peaty soil', 'unit': 'm3/m3'},
+                        {'name': 'ECp', 'description': 'EC porienwater', 'unit': 'mS/cm'}
                         ]
           },
     121: {'converter': conv121,
