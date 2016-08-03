@@ -1,0 +1,32 @@
+{% extends 'bootbase.html' %}
+{% block title %}{%if title %} {{title}} {%else%} Dashboard {{group.name}}{%endif%}{% endblock title %}
+{% block breadcrumbs %}
+<ol class="breadcrumb">
+	<li><a href="{% url 'home' %}">Home</a></li>
+	<li class="active"><a href="{% url 'dashboard-view' group.name %}">{{group.name}}</a></li>
+</ol>
+{% endblock breadcrumbs %}
+{% block admin_url %}tabgroup/{{group.id}}{% endblock %}
+{% block content %}
+<div class="container-fluid">
+<ul class="nav nav-tabs">
+  {% for p in group.pages %}
+  {% if forloop.counter == page %}
+  <li class="active"><a href="{{request.path}}?page={{forloop.counter}}">{{p.name}}</a></li>
+  {% else %}
+  <li><a href="{{request.path}}?page={{forloop.counter}}">{{p.name}}</a></li>
+  {% endif %}
+  {% endfor %}
+</ul>
+<div class="row row-fluid">
+{% for chart in dashboard.sorted_charts.all %}
+<div class="col-md-6">
+<iframe src="{% url 'acacia:chart-detail' chart.id %}" height="400px" width="100%" marginwidth="0" seamless="seamless" frameborder="0"></iframe>
+</div>
+{% if forloop.counter|divisibleby:2 %}
+</div><div class="row row-fluid">
+{% endif %}
+{% endfor %}
+</div>
+</div>
+{% endblock %}
