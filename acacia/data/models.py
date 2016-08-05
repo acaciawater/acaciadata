@@ -1109,6 +1109,11 @@ class Series(PolymorphicModel,DatasourceMixin):
         
         count = self.datapoints.count()
         if count>0:
+            # delete properties first to avoid foreignkey constraint failure
+            try:
+                self.properties.delete()
+            except:
+                pass
             values = ["(%d,'%s')" % (self.id, datetime.datetime.strftime(p.date, '%Y-%m-%d %H:%M:%S')) for p in pts]
             values = '(' + ','.join(values) + ')'
             sql = 'DELETE from {table} WHERE (`series_id`,`date`) IN {values}'.format(table=DataPoint._meta.db_table, values=values)
