@@ -35,6 +35,11 @@ def on_message(client, userdata, msg):
 clients = {}
 
 class Host(models.Model):
+    
+    class Meta:
+        app_label = 'mqtt'
+        db_table = 'mqtt_host'
+         
     host = models.CharField(max_length=256)
     description = models.CharField(max_length=128,null=True,blank=True)
     port = models.IntegerField(default=1883)
@@ -70,6 +75,11 @@ def QoSValidator(value):
         raise ValidationError('Quality of Service must be 0, 1 or 2')
     
 class Topic(models.Model):
+    
+    class Meta:
+        app_label = 'mqtt'
+        db_table = 'mqtt_topic'
+    
     host = models.ForeignKey(Host)
     topic = models.CharField(max_length=512)
     description = models.CharField(max_length=128,null=True,blank=True)
@@ -102,6 +112,11 @@ def topic_save(sender, instance, **kwargs):
     instance.subscribe()
 
 class Message(models.Model):
+    
+    class Meta:
+        app_label = 'mqtt'
+        db_table = 'mqtt_message'
+
     date = models.DateTimeField(auto_now_add = True)
     topic = models.ForeignKey(Topic)
     payload = models.CharField(max_length=512)
@@ -113,7 +128,17 @@ def subscribe_all():
     for topic in Topic.objects.all():
         topic.subscribe()
 
+def unsubscribe_all():
+    for topic in Topic.objects.all():
+        topic.unsubscribe()
+
 def start():
     subscribe_all()
     for host in Host.objects.all():
         host.client().loop_start()
+
+def stop():
+    unsubscribe_all()
+    for host in Host.objects.all():
+        host.client().loop_stop()
+    
