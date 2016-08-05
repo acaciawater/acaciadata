@@ -473,7 +473,11 @@ class Datasource(models.Model, DatasourceMixin):
     
     def calibrate(self,data):
         for name in data.columns:
-            par = self.parameter_set.get(name=name)
+            try:
+                par = self.parameter_set.get(name=name)
+            except:
+                # no such parameter
+                continue
             caldata = self.calibrationdata_set.filter(parameter=par).order_by('sensor_value')
             if caldata:
                 caldata = [(d.sensor_value, d.calib_value) for d in caldata]
