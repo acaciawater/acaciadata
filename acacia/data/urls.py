@@ -3,7 +3,7 @@ from django.views.generic.list import ListView
 from acacia.data.models import Project
 from acacia.data.views import DatasourceDetailView, DatasourceAsZip, DatasourceAsCsv, ProjectDetailView, ProjectLocatieDetailView, \
     MeetLocatieDetailView, MeetlocatieAsZip, SeriesAsCsv, SeriesToJson, ChartToJson, GridToJson, ChartAsCsv, UpdateMeetlocatie, ChartView, \
-    ChartBaseView, DashView, TabGroupView, SeriesView, GridBaseView, GridView, UpdateDatasource, StartUpdateDatasource, poll_state, get_key, get_keys
+    ChartBaseView, DashView, TabGroupView, SeriesView, GridBaseView, GridView, UpdateDatasource, StartUpdateDatasource, poll_state, get_key, get_keys, AllSeriesAsZip
 
 urlpatterns = patterns('',
     url(r'^$', ListView.as_view(model=Project), name='project-list'),

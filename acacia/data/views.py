@@ -15,7 +15,8 @@ logger = logging.getLogger(__name__)
 
 def AllSeriesAsZip(request, pk):
     ''' Alle tijdreeksen van projectlocatie downloaden als zip file '''
-    return 'test return'
+    c = get_object_or_404(Chart,pk=pk)
+    return chart_as_csv(c)
 
 def DatasourceAsZip(request,pk):
     ''' Alle bestanden in datasource downloaden als zip file '''
@@ -32,6 +33,7 @@ def MeetlocatieAsZip(request,pk):
     return meetlocatie_as_zip(loc)
 
 def SeriesAsCsv(request,pk):
+    print ' request = ' , request
     s = get_object_or_404(Series,pk=pk)
     return series_as_csv(s)
 
