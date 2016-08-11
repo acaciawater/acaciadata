@@ -13,6 +13,10 @@ from django.views.decorators.gzip import gzip_page
 
 logger = logging.getLogger(__name__)
 
+def AllSeriesAsZip(request, pk):
+    ''' Alle tijdreeksen van projectlocatie downloaden als zip file '''
+    return 'test return'
+
 def DatasourceAsZip(request,pk):
     ''' Alle bestanden in datasource downloaden als zip file '''
     ds = get_object_or_404(Datasource,pk=pk)
