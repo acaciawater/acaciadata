@@ -108,6 +108,16 @@ def datasources_as_zip(datasources, zipname):
     resp['Content-Disposition'] = 'attachment; filename=%s' % zipname
     return resp
 
+def series_as_zip(series, zipname):
+    ''' 
+    expects a query object with series and strings as zipname 
+    returns a zip file with series as csv files
+    '''
+    testlist = []
+    for s in series:
+        testlist.append(series_as_csv(s))
+    return testlist[0]
+
 def datasource_as_csv(d):
     logger.debug('creating csv file for datasource %s' % d.name)
     filename = slugify(d.name) + '.csv'

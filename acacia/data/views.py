@@ -10,13 +10,15 @@ from django.http import HttpResponse
 from .models import Project, ProjectLocatie, MeetLocatie, Datasource, Series, Chart, Grid, Dashboard, TabGroup, KeyFigure
 from .util import datasource_as_zip, datasource_as_csv, meetlocatie_as_zip, series_as_csv, chart_as_csv
 from django.views.decorators.gzip import gzip_page
+from acacia.data.util import datasources_as_zip, series_as_zip
 
 logger = logging.getLogger(__name__)
 
 def AllSeriesAsZip(request, pk):
     ''' Alle tijdreeksen van projectlocatie downloaden als zip file '''
-    c = get_object_or_404(Chart,pk=pk)
-    return chart_as_csv(c)
+    series = Series.objects.all()
+    name = str(pk)
+    return series_as_zip(series, name)
 
 def DatasourceAsZip(request,pk):
     ''' Alle bestanden in datasource downloaden als zip file '''
