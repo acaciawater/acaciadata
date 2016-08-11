@@ -108,15 +108,29 @@ def datasources_as_zip(datasources, zipname):
     resp['Content-Disposition'] = 'attachment; filename=%s' % zipname
     return resp
 
-def series_as_zip(series, zipname):
+def all_series_as_zip(series, zipname):
     ''' 
     expects a query object with series and strings as zipname 
     returns a zip file with series as csv files
     '''
-    testlist = []
-    for s in series:
-        testlist.append(series_as_csv(s))
-    return testlist[0]
+    io = StringIO.StringIO()
+    zf = ZipFile(io,'w') 
+    
+    
+    for s in series[0:15]:
+        folder = 'Tijdreeksen'
+        csv_string = s.to_csv()
+        series_name = csv_string[11:21]
+#         zippath = os.path.join(folder, s.filename())
+        zf.writestr(series_name, csv_string)
+    zf.close()
+    resp = HttpResponse(io.getvalue(), content_type = "application/x-zip-compressed")
+    resp['Content-Disposition'] = 'attachment; filename=%s' % zipname
+    return resp
+#         all_series.append(series_as_csv(s))    
+
+
+
 
 def datasource_as_csv(d):
     logger.debug('creating csv file for datasource %s' % d.name)
