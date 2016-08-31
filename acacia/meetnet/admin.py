@@ -3,9 +3,8 @@ Created on Jun 1, 2014
 
 @author: theo
 '''
-from .models import Network, Well, Photo, Screen, Datalogger, LoggerPos, LoggerDatasource, MonFile, Channel, ManualSeries
-from acacia.data.admin import DatasourceAdmin, SourceFileAdmin, SeriesAdmin
-from acacia.data.models import DataPoint
+from .models import Network, Well, Photo, Screen, Datalogger, LoggerPos, LoggerDatasource, MonFile, Channel
+from acacia.data.admin import DatasourceAdmin, SourceFileAdmin
 from django.conf import settings
 from django.contrib import admin
 
@@ -76,13 +75,6 @@ class LoggerDatasourceAdmin(DatasourceAdmin):
 #         fields = ('name', 'logger') + dic['fields'][1:]
 #         self.fieldsets[0][1]['fields'] = fields
 
-class DataPointInline(admin.TabularInline):
-    model = DataPoint
-    
-class ManualSeriesAdmin(SeriesAdmin):
-    model = ManualSeries
-    inlines = [DataPointInline,]
-    
 class ChannelInline(admin.TabularInline):
     model = Channel
 
@@ -186,5 +178,3 @@ admin.site.register(LoggerPos, LoggerPosAdmin)
 admin.site.register(LoggerDatasource, LoggerDatasourceAdmin)
 admin.site.register(MonFile,MonFileAdmin)
 admin.site.register(Channel, ChannelAdmin)
-admin.site.register(ManualSeries,ManualSeriesAdmin)
-
