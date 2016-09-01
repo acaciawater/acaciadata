@@ -10,6 +10,7 @@ from django.http import HttpResponse
 from .models import Project, ProjectLocatie, MeetLocatie, Datasource, Series, Chart, Grid, Dashboard, TabGroup, KeyFigure
 from .util import datasource_as_zip, datasource_as_csv, meetlocatie_as_zip, series_as_csv, chart_as_csv
 from django.views.decorators.gzip import gzip_page
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -166,6 +167,7 @@ class ProjectDetailView(DetailView):
                             })
         context['content'] = json.dumps(content)
         context['maptype'] = 'TERRAIN'
+        context['apikey'] = settings.GOOGLE_MAPS_API_KEY
         return context
 
 class ProjectLocatieDetailView(DetailView):
@@ -177,6 +179,7 @@ class ProjectLocatieDetailView(DetailView):
         context['content'] = json.dumps(content)
         context['maptype'] = 'SATELLITE'
         context['zoom'] = 14
+        context['apikey'] = settings.GOOGLE_MAPS_API_KEY
         return context
 
 class MeetLocatieDetailView(DetailView):
@@ -188,6 +191,7 @@ class MeetLocatieDetailView(DetailView):
         context['content'] = json.dumps(content)
         context['maptype'] = 'SATELLITE'
         context['zoom'] = 16
+        context['apikey'] = settings.GOOGLE_MAPS_API_KEY
         return context
         
 class SeriesView(DetailView):

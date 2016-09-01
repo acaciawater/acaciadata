@@ -101,14 +101,19 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
         if logpos.baro in baros:
             baro = baros[logpos.baro]
         else:
-            baro = logpos.baro.to_pandas() / 9.80638 # 0.1 hPa naar cm H2O
+            #baro = logpos.baro.to_pandas() / 9.80638 # 0.1 hPa naar cm H2O
+            baro = logpos.baro.to_pandas() #in cm H2O !!
             baro = baro.tz_convert(tz)
             baros[logpos.baro] = baro
         for mon in logpos.monfile_set.all().order_by('start_date'):
             print ' ', logpos.logger, mon
             data = mon.get_data()['PRESSURE']
             data = series.do_postprocess(data).tz_localize(tz)
-            data = data - baro
+            
+            adata, abaro = data.align(baro)
+            abaro = abaro.interpolate(method='time')
+            abaro = abaro.reindex(data.index)
+            data = data - abaro
             data.dropna(inplace=True)
             data = data / 100 + (logpos.refpnt - logpos.depth)
             if seriesdata is None:

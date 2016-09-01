@@ -8,6 +8,7 @@ from django.template.loader import render_to_string
 from django.http import HttpResponse
 from django.core.urlresolvers import reverse
 from models import Network, Well, Screen
+from django.conf import settings
 import json, logging, datetime, time
 import pandas as pd
 
@@ -58,6 +59,7 @@ class NetworkView(DetailView):
         if not network.bound is None:
             context['boundary'] = network.bound
         context['maptype'] = 'ROADMAP'
+        context['apikey'] = settings.GOOGLE_MAPS_API_KEY
         return context
         
 class ScreenChartView(TemplateView):
