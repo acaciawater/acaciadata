@@ -127,11 +127,12 @@ class WellChartView(TemplateView):
             }
         series = []
         xydata = []
-        start = datetime.datetime(2014,1,1)
-        stop = datetime.datetime(2015,1,1)
+#         start = datetime.datetime(2014,1,1)
+#         stop = datetime.datetime(2015,1,1)
         for screen in well.screen_set.all():
             name = unicode(screen)
-            data = screen.to_pandas(ref='nap')[start:stop]
+            #data = screen.to_pandas(ref='nap')[start:stop]
+            data = screen.to_pandas(ref='nap')
             if data.size > 0:
                 xydata = zip(data.index.to_pydatetime(), data.values)
                 series.append({'name': name,
@@ -158,7 +159,8 @@ class WellChartView(TemplateView):
                             'linkedTo' : ':previous',
                             'zIndex': 0,
                             })
-            data = screen.to_pandas(ref='nap',kind='HAND')[start:stop]
+#             data = screen.to_pandas(ref='nap',kind='HAND')[start:stop]
+            data = screen.to_pandas(ref='nap',kind='HAND')
             if data.size > 0:
                 hand = zip(data.index.to_pydatetime(), data.values)
                 series.append({'name': 'handpeiling',

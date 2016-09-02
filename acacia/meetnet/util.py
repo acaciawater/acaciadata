@@ -41,9 +41,6 @@ def chart_for_screen(screen):
 def chart_for_well(well):
     fig=plt.figure(figsize=(15,5))
     ax=fig.gca()
-    datemin=datetime.datetime(2014,1,1)
-    datemax=datetime.datetime(2015,1,1)
-    ax.set_xlim(datemin, datemax)
     plt.grid(linestyle='-', color='0.9')
     count = 0
     y = []

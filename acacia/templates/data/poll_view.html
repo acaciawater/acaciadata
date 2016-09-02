@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Celery result</title>
+<script
+	src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+</script>
+<script>
+	function GetJobState(jobid) {
+		$.getJSON('poll_state', {
+			job : jobid
+		}, function(data) {
+			$('#state').html(data.state);
+			if (data.result)
+				if (data.result.progress)
+					$('#result').html(data.result.progress);
+			if (data.state != 'SUCCESS')
+				GetJobState(jobid);
+				//setTimeout(function(){GetJobState(jobid);},1000);
+		});
+	}
+
+	$(document).ready(function() {
+		GetJobState('{{job}}');
+	});
+</script>
+</head>
+<body>
+	<div id="job">Job: {{job}}</div>
+	<span>State: <div id="state">[Status]</div></span>
+	<span>Result: <div id="result"></div></span>
+</body>
+</html>

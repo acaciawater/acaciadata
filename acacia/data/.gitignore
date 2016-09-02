@@ -1,0 +1,11 @@
+/__init__.pyc
+/actions.pyc
+/admin.pyc
+/models.pyc
+/shortcuts.pyc
+/tasks.pyc
+/upload.pyc
+/urls.pyc
+/util.pyc
+/version.pyc
+/views.pyc

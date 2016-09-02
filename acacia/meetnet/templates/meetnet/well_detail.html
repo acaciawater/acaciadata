@@ -2,7 +2,8 @@
 {% block title %}Grondwaterput {{object.name}} {% endblock title %}
 {% block breadcrumbs %}
 <ol class="breadcrumb">
-  <li><a href="{% url 'network-detail' object.network.id %}">Netwerk</a></li>
+<!--   <li><a href="{% url 'network-detail' object.network.id %}">Netwerk</a></li> -->
+  <li><a href="/">Home</a></li>
 </ol>
 {% endblock breadcrumbs %}
 {% block brandname %}<div class="navbar-brand"><img style="margin-top: -7px;max-width: 100px;" src="/media/{{object.network.logo}}"/></div>{% endblock %}

@@ -37,8 +37,8 @@ class Command(BaseCommand):
                             'title': unicode(screen),
                             'user': user, 
                             'percount': 0, 
-                            'start':datetime.datetime(2013,1,1), 
-                            'stop': datetime.datetime(2015,12,31),
+#                             'start':datetime.datetime(2013,1,1), 
+#                             'stop': datetime.datetime(2015,12,31),
                             })
                 chart.series.get_or_create(series=series, defaults={'label' : 'm tov NAP'})
                 # handpeilingen toevoegen (als beschikbaar)
