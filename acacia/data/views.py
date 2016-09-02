@@ -14,10 +14,11 @@ from acacia.data.util import datasources_as_zip, all_series_as_zip
 
 logger = logging.getLogger(__name__)
 
-def AllSeriesAsZip(request, pk):
+def AllSeriesAsZip(request):
     ''' Alle tijdreeksen van projectlocatie downloaden als zip file '''
     series = Series.objects.all()
-    name = str(pk)
+    project = Project.objects.first()
+    name = project.name + '.zip'
     return all_series_as_zip(series, name)
 
 def DatasourceAsZip(request,pk):

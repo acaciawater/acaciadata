@@ -14,6 +14,6 @@ class Command(BaseCommand):
         subject = '[Django] Email test (2)'
         message = 'Hallo,\nDeze mail komt van een acaciadata.com server en is bedoeld om de email te testen.\nGroeten, Theo'
         fromaddr = 'webmaster@acaciadata.com'
-        recipients = ['theo.kleinendorst@acaciawater.com',]
+        recipients = ['stephane.moquette@acaciawater.com',]
         send_mail(subject, message, fromaddr, recipients)
     

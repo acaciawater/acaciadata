@@ -18,7 +18,7 @@ urlpatterns = patterns('',
     url(r'^download/reeks/(?P<pk>\d+)', SeriesAsCsv,name='series-csv'),
     url(r'^download/grafiek/(?P<pk>\d+)', ChartAsCsv,name='chart-csv'),
     
-    url(r'^download/allereeksen/(?P<pk>\d+)', AllSeriesAsZip, name='all-series-zip'),
+    url(r'^download/allereeksen', AllSeriesAsZip, name='all-series-zip'),
     
     url(r'^update/(?P<pk>\d+)',UpdateDatasource,name='datasource-update'),
     url(r'^update/meetlocatie/(?P<pk>\d+)', UpdateMeetlocatie,name='meetlocatie-update'),
