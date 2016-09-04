@@ -7,9 +7,8 @@ import os, pandas as pd, numpy as np
 from django.db import models
 from django.contrib.gis.db import models as geo
 from django.core.urlresolvers import reverse
-from acacia.data.models import MeetLocatie, Datasource, Series, SourceFile
+from acacia.data.models import Datasource, Series, SourceFile
 from acacia.data import util
-from django.template.defaultfilters import last
 
 class Network(models.Model):
     name = models.CharField(max_length=50, unique=True, verbose_name = 'naam')
@@ -312,21 +311,3 @@ class Channel(models.Model):
     class Meta:
         verbose_name = 'Kanaal'
         verbose_name_plural = 'Kanalen'
-
-# Series that can be edited manually
-# class ManualSeries(Series):
-#     locatie = models.ForeignKey(MeetLocatie)
-#      
-#     def meetlocatie(self):
-#         return self.locatie
-# 
-#     def __unicode__(self):
-#         return self.name
-#  
-#     def get_series_data(self,data,start=None):
-#         return self.to_pandas(start=start)
-#      
-#     class Meta:
-#         verbose_name = 'Handmatige reeks'
-#         verbose_name_plural = 'Handmatige reeksen'
-#          
