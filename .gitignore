@@ -50,6 +50,9 @@ coverage.xml
 # Django stuff:
 *.log
 
+#eclipse:
+.settings/
+
 # Sphinx documentation
 docs/_build/
 
