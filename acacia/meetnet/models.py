@@ -9,6 +9,7 @@ from django.contrib.gis.db import models as geo
 from django.core.urlresolvers import reverse
 from acacia.data.models import MeetLocatie, Datasource, Series, SourceFile
 from acacia.data import util
+from django.template.defaultfilters import last
 
 class Network(models.Model):
     name = models.CharField(max_length=50, unique=True, verbose_name = 'naam')
@@ -85,6 +86,17 @@ class Well(geo.Model):
             if s.has_data():
                 return True
         return False
+    
+    def last_measurement_date(self):
+        last = None
+        for s in self.screen_set.all():
+            if s.has_data():
+                stop = s.stop()
+                if last is None:
+                    last = stop
+                else:
+                    last = max(last,stop)
+        return last.date() if last else None
     
     class Meta:
         verbose_name = 'put'
@@ -190,8 +202,9 @@ class Screen(models.Model):
         
     def last_logger(self):
         last = self.loggerpos_set.all().order_by('start_date').last()
-        return None if last is None else last.logger
-        
+        #return None if last is None else last.logger
+        return last
+    
     def __unicode__(self):
         #return '%s/%03d' % (self.well.nitg, self.nr)
         return '%s/%03d' % (self.well, self.nr)

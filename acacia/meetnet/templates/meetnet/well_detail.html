@@ -53,7 +53,7 @@ a img {
 <tr><td>Constructiedatum</div></td><td>{% if object.date %}{{object.date}}{%else%}<i>onbekend</i>{%endif%}</td></tr>
 <tr><td>Maaiveld</div></td><td>{%if object.maaiveld %}{{object.maaiveld|floatformat:2}} m NAP{%else%}<i>onbekend</i>{%endif%}</td></tr>
 <tr><td>Filters</td><td>{{object.num_filters}}</td></tr>
-<tr><td>Laatste uitleesronde</td><td>{{object.network.last_round|default:'<i>onbekend</i>'}}</td></tr>
+<tr><td>Laatste uitleesronde</td><td>{{object.last_measurement_date|default:'<i>onbekend</i>'}}</td></tr>
 <tr>
 <td>{%for f in object.photo_set.all %}<a href="/media/{{f.photo.name}}"><img src="/media/{{f.photo.name}}"/></a>{%endfor%}</td>
 <td>
@@ -90,7 +90,7 @@ a img {
 	<tr>
     {% with s.stats as stats %}
 		<td>{{s.nr}}</td>
-		<td>{{s.last_logger|default:''}}</td>
+		<td>{{s.last_logger.logger|default:''}}</td>
 		<td>{{s.last_logger.depth}}</td>
 		<td>{{s.top}}</td>
 		<td>{{s.bottom}}</td>
