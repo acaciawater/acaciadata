@@ -10,6 +10,7 @@ from matplotlib import rcParams
 from StringIO import StringIO
 from acacia.data.models import DataPoint
 import math, pytz
+import numpy as np
 
 rcParams['font.family'] = 'sans-serif'
 rcParams['font.size'] = '8'
@@ -112,6 +113,10 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
             abaro = abaro.reindex(data.index)
             data = data - abaro
             data.dropna(inplace=True)
+
+            #clear datapoints with less than 10 cm of water
+            data[data<10] = np.nan
+            
             data = data / 100 + (logpos.refpnt - logpos.depth)
             if seriesdata is None:
                 seriesdata = data
