@@ -1,0 +1,7 @@
+Beste {{name}},
+
+De export van de geselecteerde tijdreeksen van {{domain}} is gereed. Je kan het zip bestand met de resultaten downloaden van {{link}}.
+De download link verloopt op {{expire}}. Na deze datum wordt het bestand van onze server verwijderd.
+
+Met vriendelijke groet,
+Acacia Water    
