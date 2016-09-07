@@ -469,7 +469,10 @@ class Datasource(models.Model, DatasourceMixin):
         c1 = calib[i-1]
         c2 = calib[i]
         dc = c2-c1
-        return c1 + (value - s1) * (dc / ds) 
+        if value < s1 or value > s2:
+            return None
+        calval = c1 + (value - s1) * (dc / ds) 
+        return calval
     
     def calibrate(self,data):
         for name in data.columns:
@@ -483,9 +486,7 @@ class Datasource(models.Model, DatasourceMixin):
                 caldata = [(d.sensor_value, d.calib_value) for d in caldata]
                 x,y = zip(*caldata)
                 sensdata = data[name]
-                sensdata.is_copy = False
-                for index,value in sensdata.iteritems():
-                    sensdata[index] = self.calibrate_value(value, x, y)
+                data[name] = [self.calibrate_value(value,x,y) for value in sensdata]
         return data
                 
     def to_csv(self):
