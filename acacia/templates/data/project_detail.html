@@ -14,9 +14,8 @@
 {% block script %}
 {{ block.super }}
 {% localize off %}
-<script src="http://maps.google.com/maps/api/js?sensor=false"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key={{apikey}}"></script>
 <script>
-
 // function getcam(id,url) {
 // 	$.ajax({
 // 		url: url, 
@@ -25,7 +24,6 @@
 // 		complete: function() {$("loading_"+id).fadeOut();}
 // 		});
 // }
-
 var map;
 function initialize() {
     map = new google.maps.Map(document.getElementById('map'), {
@@ -52,7 +50,6 @@ function initialize() {
 	});
 	map.fitBounds(bounds);
 }
-
 $(function(){initialize();});
 </script>
 {% endlocalize %}
@@ -89,5 +86,8 @@ $(function(){initialize();});
 {% endfor %}
 </tbody>
 </table>
+<div class="text-center">
+<a href="{% url 'acacia:all-series-zip' %}" class="btn btn-primary active" data-toggle="tooltip" title="Alle tijdreeksen downloaden als zip bestand" id="download">Downloaden</a>
+</div>
 </div>
 {% endblock content %}

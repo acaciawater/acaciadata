@@ -12,6 +12,7 @@ urlpatterns = patterns('',
 
     url(r'^key/(?P<pk>\d+)/$', get_key, name='get_key'),
     url(r'^keys/$', get_keys, name='get_keys'),
+
     url(r'^download/datasource/(?P<pk>\d+)', DatasourceAsZip,name='datasource-zip'),
     url(r'^download/tabel/(?P<pk>\d+)', DatasourceAsCsv,name='datasource-csv'),
     url(r'^download/meetlocatie/(?P<pk>\d+)', MeetlocatieAsZip,name='meetlocatie-zip'),
@@ -40,6 +41,6 @@ urlpatterns = patterns('',
     url(r'^project/(?P<pk>\d+)/$', ProjectDetailView.as_view(), name='project-detail'),
     url(r'^locatie/(?P<pk>\d+)$', ProjectLocatieDetailView.as_view(), name='projectlocatie-detail'),
     url(r'^meetlocatie/(?P<pk>\d+)$', MeetLocatieDetailView.as_view(), name='meetlocatie-detail'),
-    
+
     url(r'^chaining/', include('smart_selects.urls'))
 )

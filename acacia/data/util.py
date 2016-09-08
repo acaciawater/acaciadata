@@ -108,23 +108,6 @@ def datasources_as_zip(datasources, zipname):
     resp['Content-Disposition'] = 'attachment; filename=%s' % zipname
     return resp
 
-def all_series_as_zip(series, zipname):
-    ''' 
-    expects a query object with series and string as zipname 
-    returns a zip file with series as csv files
-    '''
-    io = StringIO.StringIO()
-    zf = ZipFile(io,'w') 
-    for s in series:
-        csv_string = s.to_csv()
-        series_name = slugify(s) + '.csv'
-        zf.writestr(series_name, csv_string)
-    zf.close()
-    resp = HttpResponse(io.getvalue(), content_type = "application/x-zip-compressed")
-    resp['Content-Disposition'] = 'attachment; filename=%s' % zipname
-    return resp
-
-
 def datasource_as_csv(d):
     logger.debug('creating csv file for datasource %s' % d.name)
     filename = slugify(d.name) + '.csv'
@@ -153,4 +136,3 @@ def chart_as_csv(chart):
     resp = HttpResponse(csv, content_type='text/csv')
     resp['Content-Disposition'] = 'attachment; filename=%s' % filename
     return resp
-

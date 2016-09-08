@@ -75,6 +75,65 @@ def download_series(modeladmin, request, queryset):
     for d in ds:
         d.download()
 download_series.short_description = 'Bronbestanden van geselecteerde tijdreeksen downloaden'
+
+#TODO: convert to celery
+from django.utils.text import slugify
+from django.conf import settings
+import os,tempfile
+from zipfile import ZipFile
+from threading import Thread
+
+from django.core.mail import send_mail
+from datetime import datetime, timedelta
+from django.template.loader import render_to_string
+from django.contrib.sites.models import Site
+
+def email_series_zip(request, queryset, zf):
+    if not queryset:
+        logger.warning('Not sending emails: empty queryset')
+    elif not request.user.email:
+        logger.warning('Not sending emails: no email address for user %s' % request.user.username)
+    else:
+        url = request.build_absolute_uri(settings.EXPORT_URL+os.path.basename(zf.filename))
+        logger.debug('Preparing zip file %s' % url)
+        for series in queryset:
+            filename = slugify(unicode(series)) + '.csv'
+            logger.debug('adding %s' % filename)
+            print 'adding %s' % filename
+            csv = series.to_csv()
+            zf.writestr(filename,csv)
+        zf.close()
+        logger.debug('Done, sending email with link to %s (%s)' % (request.user.username, request.user.email))
+        
+        message = render_to_string('data/notify_email_nl.html', {'name': request.user.first_name or request.user.username,
+                                                                 'domain': request.META.get('HTTP_HOST','acaciadata.com'),
+                                                                 'link': url,
+                                                                 'expire': (datetime.today() + timedelta(days=4)).date()
+                                                                 })
+        non_html_message = 'Beste {user},\n\nDe export van de geselecteerde tijdreeksen van {{domain}} is gereed. Je kan het zip bestand met de resultaten downloaden van {url}.\nDe download link verloopt op {{expire}}. Na deze datum wordt het bestand van onze server verwijderd.\n\nMet vriendelijke groet,\nAcacia Water'.format(user=request.user.first_name or request.user.username, url=url,domain = request.META.get('HTTP_HOST','acaciadata.com'),expire= (datetime.today() + timedelta(days=4)).date())
+        
+        success = send_mail(subject='Tijdreeksen gereed',
+    
+                   message=non_html_message,
+                   from_email = 'srmoquette@gmail.com',
+                   recipient_list=[request.user.email],
+                   html_message = message
+                )
+        if success == 0:
+            logger.error('Failed to send email')
+        else:
+            logger.debug('Email sent')
+
+def download_series_zip(modeladmin, request, queryset):
+    if not os.path.exists(settings.EXPORT_ROOT):
+        os.mkdir(settings.EXPORT_ROOT)
+    tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.zip', dir=settings.EXPORT_ROOT, delete=False)
+    zipfile = ZipFile(tmp,'w')
+    series = list(queryset)
+    t = Thread(target=email_series_zip, args=(request,series,zipfile))
+    t.start()
+    
+download_series_zip.short_description = 'Geselecteerde tijdreeksen converteren naar csv en link naaar zip bestand emailen'
     
 def refresh_series(modeladmin, request, queryset):
     for s in Series.objects.get_real_instances(queryset):

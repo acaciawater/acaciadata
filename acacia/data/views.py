@@ -3,23 +3,31 @@ import datetime,time,json,re,logging
 from django.views.generic.list import ListView
 from django.views.generic import DetailView
 from django.views.generic.base import TemplateView
-from django.template import RequestContext
+from django.template import RequestContext, loader
 from django.template.loader import render_to_string
 from django.shortcuts import get_object_or_404, redirect, render_to_response
 from django.http import HttpResponse
 from .models import Project, ProjectLocatie, MeetLocatie, Datasource, Series, Chart, Grid, Dashboard, TabGroup, KeyFigure
 from .util import datasource_as_zip, datasource_as_csv, meetlocatie_as_zip, series_as_csv, chart_as_csv
 from django.views.decorators.gzip import gzip_page
-from acacia.data.util import datasources_as_zip, all_series_as_zip
+from acacia.data.util import datasources_as_zip 
+
+from acacia.data.actions import download_series_zip
+# from django.contrib import admin
 
 logger = logging.getLogger(__name__)
 
+
 def AllSeriesAsZip(request):
     ''' Alle tijdreeksen van projectlocatie downloaden als zip file '''
-    series = Series.objects.all()
+    queryset = Series.objects.all()
+    series = list(queryset)[:3]
     project = Project.objects.first()
-    name = project.name + '.zip'
-    return all_series_as_zip(series, name)
+    download_series_zip(None, request, series)
+    name = project.name
+    template = loader.get_template('data/sending_email.html')
+    context = {'name':name}
+    return HttpResponse(template.render(context))
 
 def DatasourceAsZip(request,pk):
     ''' Alle bestanden in datasource downloaden als zip file '''
