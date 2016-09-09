@@ -3,7 +3,9 @@ from django.views.generic.list import ListView
 from acacia.data.models import Project
 from acacia.data.views import DatasourceDetailView, DatasourceAsZip, DatasourceAsCsv, ProjectDetailView, ProjectLocatieDetailView, \
     MeetLocatieDetailView, MeetlocatieAsZip, SeriesAsCsv, SeriesToJson, ChartToJson, GridToJson, ChartAsCsv, UpdateMeetlocatie, ChartView, \
-    ChartBaseView, DashView, TabGroupView, SeriesView, GridBaseView, GridView, UpdateDatasource, StartUpdateDatasource, poll_state, get_key, get_keys
+    ChartBaseView, DashView, TabGroupView, SeriesView, GridBaseView, GridView, \
+    EmailProject, EmailProjectLocatie, EmailMeetLocatie, EmailDatasource, \
+    UpdateDatasource, StartUpdateDatasource, poll_state, get_key, get_keys
 
 urlpatterns = patterns('',
     url(r'^$', ListView.as_view(model=Project), name='project-list'),
@@ -17,6 +19,11 @@ urlpatterns = patterns('',
     url(r'^download/meetlocatie/(?P<pk>\d+)', MeetlocatieAsZip,name='meetlocatie-zip'),
     url(r'^download/reeks/(?P<pk>\d+)', SeriesAsCsv,name='series-csv'),
     url(r'^download/grafiek/(?P<pk>\d+)', ChartAsCsv,name='chart-csv'),
+
+    url(r'^email/project/(?P<pk>\d+)', EmailProject,name='email-project'),
+    url(r'^email/projectlocatie/(?P<pk>\d+)', EmailProjectLocatie,name='email-projectlocatie'),
+    url(r'^email/meetlocatie/(?P<pk>\d+)', EmailMeetLocatie,name='email-meetlocatie'),
+    url(r'^email/datasource/(?P<pk>\d+)', EmailDatasource,name='email-datasource'),
     
     url(r'^update/(?P<pk>\d+)',UpdateDatasource,name='datasource-update'),
     url(r'^update/meetlocatie/(?P<pk>\d+)', UpdateMeetlocatie,name='meetlocatie-update'),
