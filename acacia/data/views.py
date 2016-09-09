@@ -9,8 +9,10 @@ from django.shortcuts import get_object_or_404, redirect, render_to_response
 from django.http import HttpResponse
 from .models import Project, ProjectLocatie, MeetLocatie, Datasource, Series, Chart, Grid, Dashboard, TabGroup, KeyFigure
 from .util import datasource_as_zip, datasource_as_csv, meetlocatie_as_zip, series_as_csv, chart_as_csv
+from .actions import download_series_zip
 from django.views.decorators.gzip import gzip_page
 from django.conf import settings
+from django.contrib.auth.decorators import login_required
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +33,28 @@ def MeetlocatieAsZip(request,pk):
 def SeriesAsCsv(request,pk):
     s = get_object_or_404(Series,pk=pk)
     return series_as_csv(s)
+
+@login_required
+def DownloadSeriesAsZip(request,source,series):
+    ''' Tijdreeksen downloaden als zip file '''
+    download_series_zip(None, request, series) # reuse method from admin.actions. Runs in separate thread
+    return render_to_response('data/sending_email.html', {'name': request.user.first_name or request.user.username, 'source': source }, context_instance=RequestContext(request))
+
+def EmailProject(request, pk):
+    p = get_object_or_404(Project,pk=pk)
+    return DownloadSeriesAsZip(request, unicode(p), p.series())
+
+def EmailProjectLocatie(request, pk):
+    loc = get_object_or_404(ProjectLocatie,pk=pk)
+    return DownloadSeriesAsZip(request, unicode(loc), loc.series())
+
+def EmailMeetLocatie(request,pk):
+    loc = get_object_or_404(MeetLocatie,pk=pk)
+    return DownloadSeriesAsZip(request, unicode(loc), loc.series())
+
+def EmailDatasource(request, pk):
+    ds = get_object_or_404(Datasource,pk=pk)
+    return DownloadSeriesAsZip(request, unicode(ds), ds.getseries())
 
 @gzip_page
 def SeriesToJson(request, pk):
