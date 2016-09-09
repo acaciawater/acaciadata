@@ -11,11 +11,12 @@ from models import Network, Well, Screen
 from django.conf import settings
 import json, logging, datetime, time
 import pandas as pd
+from django.shortcuts import get_object_or_404
 
 logger = logging.getLogger(__name__)
 
 class WellView(DetailView):
-    template = 'well_info.html'
+    template = 'meetnet/well_info.html'
     model = Well
 
     def get_context_data(self, **kwargs):
@@ -36,7 +37,7 @@ class ScreenView(DetailView):
 def wellinfo(request, pk):
     ''' return contents of info window for google maps '''
     well = Well.objects.get(pk=pk)
-    contents = render_to_string('well_info.html', {'object': well})
+    contents = render_to_string('meetnet/well_info.html', {'object': well})
     return HttpResponse(contents, content_type = 'application/text')
 
 class NetworkView(DetailView):
@@ -53,7 +54,7 @@ class NetworkView(DetailView):
                             'name': well.name,
                             'lat': pos.y,
                             'lon': pos.x,
-                            'url': reverse('well-info', args=[well.id]),
+                            'url': reverse('meetnet:well-info', args=[well.id]),
                             })
         context['content'] = json.dumps(content)
         if not network.bound is None:
@@ -186,3 +187,29 @@ class WellChartView(TemplateView):
         context['options'] = json.dumps(options, default=lambda x: int(time.mktime(x.timetuple())*1000))
         context['object'] = well
         return context
+
+from acacia.data.views import DownloadSeriesAsZip
+from acacia.data.models import Series
+
+def get_series(screen):
+    name = '%s COMP' % unicode(screen)
+    try:
+        return Series.objects.get(name=name)
+    except:
+        return None
+
+def EmailNetworkSeries(request,pk):
+    net = get_object_or_404(Network, pk=pk)
+    series = [get_series(s) for w in net.well_set.all() for s in w.screen_set.all()]
+    return DownloadSeriesAsZip(request, unicode(net), series)
+    
+def EmailWellSeries(request,pk):
+    well = get_object_or_404(Well, pk=pk)
+    series = [get_series(s) for s in well.screen_set.all()]
+    return DownloadSeriesAsZip(request, unicode(well), series)
+    
+def EmailScreenSeries(request,pk):
+    screen = get_object_or_404(Screen,pk=pk)
+    series = get_series(screen)
+    return DownloadSeriesAsZip(request, unicode(screen), series)
+                            

@@ -22,7 +22,7 @@ class Network(models.Model):
         return self.name
 
     def get_absolute_url(self):
-        return reverse('network-detail', args=[self.id])
+        return reverse('meetnet:network-detail', args=[self.id])
 
     class Meta:
         verbose_name = 'netwerk'
@@ -75,7 +75,7 @@ class Well(geo.Model):
 #     logger_names.short_description='dataloggers'
     
     def get_absolute_url(self):
-        return reverse('well-detail', args=[self.id])
+        return reverse('meetnet:well-detail', args=[self.id])
 
     def __unicode__(self):
         return self.name
@@ -209,7 +209,7 @@ class Screen(models.Model):
         return '%s/%03d' % (self.well, self.nr)
 
     def get_absolute_url(self):
-        return reverse('screen-detail', args=[self.id])
+        return reverse('meetnet:screen-detail', args=[self.id])
 
     def to_pandas(self, ref='nap',kind='COMP'):
         levels = self.get_series(ref,kind)

@@ -1,5 +1,5 @@
 from django.conf.urls import patterns, url
-from .views import NetworkView, WellView, ScreenView, WellChartView
+from .views import NetworkView, WellView, ScreenView, WellChartView, EmailNetworkSeries, EmailScreenSeries, EmailWellSeries
 
 urlpatterns = patterns('acacia.meetnet.views',
     url(r'^$', NetworkView.as_view(), name='home'),
@@ -8,4 +8,8 @@ urlpatterns = patterns('acacia.meetnet.views',
     url(r'^screen/(?P<pk>\d+)$', ScreenView.as_view(), name='screen-detail'),
     url(r'^chart/(?P<pk>\d+)/$', WellChartView.as_view(), name='chart-detail'),
     url(r'^info/(?P<pk>\d+)/$', 'wellinfo', name='well-info'),
+    url(r'^email/network/(?P<pk>\d+)', EmailNetworkSeries,name='email-network'),
+    url(r'^email/well/(?P<pk>\d+)', EmailWellSeries,name='email-well'),
+    url(r'^email/screen/(?P<pk>\d+)', EmailScreenSeries,name='email-screen'),
+    
 )

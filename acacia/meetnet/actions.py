@@ -13,7 +13,7 @@ def make_wellcharts(modeladmin, request, queryset):
         if not w.has_data():
             continue
 #        if w.chart.name is None or len(w.chart.name) == 0:
-        w.chart.name = os.path.join(w.chart.field.upload_to, slugify(unicode(w.nitg)) +'.png')
+        w.chart.name = os.path.join(w.chart.field.upload_to, slugify(unicode(w)) +'.png')
         w.save()
         imagedir = os.path.dirname(w.chart.path)
         if not os.path.exists(imagedir):

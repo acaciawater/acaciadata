@@ -64,7 +64,7 @@ function initialize() {
    	        labelClass: 'labels',
    	        labelStyle: {'opacity': 0.8},
    	        labelInBackground: true,
-   	        labelVisible: false
+   	        labelVisible: true
    		});
    		markers.push(marker);
    		google.maps.event.addListener(marker, 'click', (function(marker) {
@@ -91,7 +91,7 @@ function initialize() {
 
 $(function(){
 	initialize();
-	$('#hidelabels').hide();
+	$('#showlabels').hide();
 	});
 
 function showMarker(m) {
@@ -133,15 +133,15 @@ function hideLabels() {
 <div class = "row-fluid">
 <div class = "col-md-10"><div id= map style="width:100%;height:800px;"></div>
 <button class = "btn btn-primary" id="showlabels" onclick="showLabels()">Labels tonen</button>
-<button class = "btn btn-primary" id="hidelabels" onclick="hideLabels()">Labels verbergen</button>
-<button class = "btn" id="uploadMon" onclick="uploadMonfile()">Upload</button>
+<button class = "btn btn-primary active" id="hidelabels" onclick="hideLabels()">Labels verbergen</button>
+<a href="{% url 'meetnet:email-network' object.id %}" class="btn btn-primary" title="Alle tijdreeksen in netwerk downloaden" id="download">Downloaden</a>
 </div>
 <div class = "col-md-2">
 <div class = "list-group scroll">
 <a class="list-group-item active" data-toggle="collapse" data-target="#putten" aria-expanded="true" aria-controls="putten">Putten<span class="badge">{{object.well_set.count}}</a>
 <div class="collapse in" id="putten">
 {% for well in object.well_set.all %}
-<a onmouseover="showMarker({{forloop.counter0}});" onmouseout="hideMarker({{forloop.counter0}});" href="{% url 'well-detail' well.id %}" class="list-group-item">{{well.name}}
+<a onmouseover="showMarker({{forloop.counter0}});" onmouseout="hideMarker({{forloop.counter0}});" href="{% url 'meetnet:well-detail' well.id %}" class="list-group-item">{{well.name}}
 {% if well.straat %}<br/><div class='text-muted'><small>{{well.straat}}, {{well.plaats}}</small></div>{% endif %}</a>
 {% endfor %}
 </div>

@@ -2,7 +2,6 @@
 {% block title %}Grondwaterput {{object.name}} {% endblock title %}
 {% block breadcrumbs %}
 <ol class="breadcrumb">
-<!--   <li><a href="{% url 'network-detail' object.network.id %}">Netwerk</a></li> -->
   <li><a href="/">Home</a></li>
 </ol>
 {% endblock breadcrumbs %}
@@ -59,7 +58,7 @@ a img {
 <td>
 {% if object.has_data %}
 <div class="grafiek">
-	<a href="{% url 'chart-detail' object.id %}" target="_blank">
+	<a href="{% url 'meetnet:chart-detail' object.id %}" target="_blank">
 		<img src="{{chart}}" alt='grafiek' title='Klik voor interactieve grafiek in aparte tab'/>
 	</a>
 </div>
