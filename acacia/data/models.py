@@ -63,6 +63,12 @@ class Project(models.Model):
     logo = models.ImageField(upload_to=up.project_upload, blank=True, null=True)
     theme = models.CharField(max_length=50,verbose_name='thema', default='dark-blue',choices=THEME_CHOICES,help_text='Thema voor grafieken')
         
+    def series(self):
+        s = []
+        for m in self.projectlocatie_set.all():
+            s.extend(m.series())
+        return s
+
     def location_count(self):
         return self.projectlocatie_set.count()
     location_count.short_description='Aantal locaties'
