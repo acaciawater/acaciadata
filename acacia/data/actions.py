@@ -92,7 +92,7 @@ def email_series_zip(request, queryset, zf):
     if not queryset:
         logger.warning('Not sending emails: empty queryset')
     elif not request.user.email:
-        logger.warning('Not sending emails: no email address for user %s' % request.user.username)
+        logger.error('Not sending emails: no email address for user %s' % request.user.username)
     else:
         url = request.build_absolute_uri(settings.EXPORT_URL+os.path.basename(zf.filename))
         logger.debug('Preparing zip file %s' % url)
