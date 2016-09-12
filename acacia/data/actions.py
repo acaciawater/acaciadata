@@ -102,19 +102,15 @@ def email_series_zip(request, queryset, zf):
             csv = series.to_csv()
             zf.writestr(filename,csv)
         zf.close()
-    
-        logger.debug('Done, sending email with link to %s (%s)' % (request.user.username, request.user.email))
+        name = request.user.get_full_name() or request.user.username
+        logger.debug('Done, sending email with link to %s (%s)' % (name, request.user.email))
         
         name=request.user.first_name or request.user.username
         domain = request.META.get('HTTP_HOST','acaciadata.com')
         expire=(datetime.today() + timedelta(days=4)).date()
         html_message = render_to_string('data/notify_email_nl.html', {'name': name,'domain': domain,'link': url,'expire': expire})
         message = render_to_string('data/notify_email_nl.txt', {'name': name,'domain': domain,'link': url,'expire': expire})
-        success = send_mail(subject='Tijdreeksen gereed',
-                   message=message,
-                   from_email = 'acacia@acaciadata.com',
-                   recipient_list=[request.user.email,],
-                   html_message = html_message)
+        success = request.user.email_user(subject='Tijdreeksen gereed', message=message, html_message = html_message)
         if success == 0:
             logger.error('Failed to send email')
         else:
