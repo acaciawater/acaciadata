@@ -22,6 +22,10 @@ GOOGLE=900913
 AMERSFOORT=4289
 WGS84=4326
 
+# thumbnail size and resolution
+THUMB_DPI=72
+THUMB_SIZE=(9,3) # inch
+
 def toGoogle(p):
     return trans(p,GOOGLE)
 
@@ -45,20 +49,25 @@ def trans(p, srid):
     return p
 
 def save_thumbnail(series,imagefile,kind='line'):
-    plt.figure(figsize=(9,3))
+    plt.figure(figsize=THUMB_SIZE,dpi=THUMB_DPI)
     try:
-#        options = {'grid': False, 'xticks': [], 'legend': False}
+        n = series.count() / (THUMB_SIZE[0]*THUMB_DPI)
+        if n > 1:
+            #use data thinning: take very nth row
+            src = series.iloc[::n]
+        else:
+            src = series
         options = {'grid': False, 'legend': False}
         if kind == 'column':
             options['xticks'] = []
-            series.plot(kind='bar', **options)
+            src.plot(kind='bar', **options)
         elif kind == 'area':
-            x = series.index
-            y = series.values
-            series.plot(**options)
+            x = src.index
+            y = src.values
+            src.plot(**options)
             plt.fill_between(x,y)
         else:
-            series.plot(**options)
+            src.plot(**options)
         plt.savefig(imagefile,transparent=True)
     except:
         pass
