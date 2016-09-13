@@ -1095,7 +1095,7 @@ class Series(PolymorphicModel,DatasourceMixin):
         self.datapoints.all().delete()
         return self.create()
 
-    def update(self, data=None, start=None):
+    def update(self, data=None, start=None, thumbnail=True):
         logger = self.getLogger()
 
         logger.debug('Updating series %s' % self.name)
@@ -1132,7 +1132,7 @@ class Series(PolymorphicModel,DatasourceMixin):
         num_created = len(created) - num_deleted
         num_updated = num_deleted
         logger.info('Series %s updated: %d points created, %d updated' % (self.name, num_created, num_updated))
-        if num_created > 0 or num_updated > 0:
+        if thumbnail and (num_created > 0 or num_updated > 0):
             self.make_thumbnail()
         self.save()
         return num_created + num_updated
