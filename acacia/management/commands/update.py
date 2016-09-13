@@ -40,7 +40,12 @@ class Command(BaseCommand):
                 action='store_true',
                 dest = 'replace',
                 default = False,
-                help = 'recreate existing series')
+                help = 'recreate existing series'),
+            make_option('--nothumb',
+                action='store_false',
+                dest = 'thumb',
+                default = True,
+                help = 'don\'t update thumbnails for series')
         )
 
     def handle(self, *args, **options):
@@ -48,6 +53,7 @@ class Command(BaseCommand):
             #logging.getLogger('acacia.data').addHandler(email_handler)
             logger.datasource = ''
             logger.info('***UPDATE STARTED***')
+            thumb = options.get('thumb')
             down = options.get('down')
             if down:
                 logger.info('Downloading data, updating parameters and related time series')
@@ -145,7 +151,7 @@ class Command(BaseCommand):
                     for s in series:
                         logger.info('Updating timeseries %s' % s.name)
                         try:
-                            changes = s.replace() if replace else s.update(data,start=start) 
+                            changes = s.replace() if replace else s.update(data,start=start,thumbnail=thumb) 
                             if changes > 0:
                                 changed_series.append(s)
                             else:
@@ -174,7 +180,7 @@ class Command(BaseCommand):
                             count += update_formula(d)
                     try:
                         logger.info('Updating calculated time series %s' % f.name)
-                        if f.update() == 0:
+                        if f.update(thumbnail=False) == 0:
                             logger.warning('No new data for %s' % f.name)
                         count += 1
                     except Exception as e:
