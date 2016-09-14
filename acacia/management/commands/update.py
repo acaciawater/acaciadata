@@ -90,7 +90,7 @@ class Command(BaseCommand):
                         else:
                             # actialisatie vanaf een na laatste datapoint
                             # (rekening houden met niet volledig gevulde laatste tijdsinterval bij accumulatie of sommatie)
-                            last = [p.date for p in [s.beforelast() for s in series] if p is not None]
+                            last = [p.date for p in [s.beforelast() for s in series if s.aantal() > 0] if p is not None]
                             if len(last)>0:
                                 series_start = min(last)
                             else:
