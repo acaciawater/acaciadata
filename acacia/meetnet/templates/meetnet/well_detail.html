@@ -67,17 +67,18 @@ a img {
 <thead>
 <tr>
 	<th rowspan="2">Filter</th>
-	<th colspan="2"><div class = "text-center">Datalogger</div></th>
+	<th rowspan="2">Bovenkant<br>buis<br>(m tov NAP)</th>
 	<th colspan="2"><div class = "text-center">Filterstelling (m tov maaiveld)</div></th>
-	<th colspan="6"><div class = "text-center">Standen (m tov NAP)</div></th>
+	<th colspan="4"><div class = "text-center">Datalogger</div></th>
+	<th colspan="4"><div class = "text-center">Standen (m tov NAP)</div></th>
 </tr>
 <tr>
-	<th>Serienummer</th>
-	<th>Diepte</th>
 	<th>Bovenkant</th>
 	<th>Onderkant</th>
-	<th>Van</th>
-	<th>Tot</th>
+	<th>Serienr</th>
+	<th>Diepte</th>
+	<th>Start</th>
+	<th>Stop</th>
 	<th>Aantal</th>
 	<th>10%</th>
 	<th>50%</th>
@@ -87,19 +88,22 @@ a img {
 <tbody>
     {% for s in object.screen_set.all %}
 	<tr>
-    {% with s.stats as stats %}
-		<td>{{s.nr}}</td>
-		<td>{{s.last_logger.logger|default:''}}</td>
-		<td>{{s.last_logger.depth}}</td>
-		<td>{{s.top}}</td>
-		<td>{{s.bottom}}</td>
-		<td>{{s.start|date:'d M Y'}}</td>
-		<td>{{s.stop|date:'d M Y'}}</td>
-		<td>{{s.num_standen}}</td>
-		<td>{{stats.p10|default:''}}</td>
-		<td>{{stats.p50|default:''}}</td>
-		<td>{{stats.p90|default:''}}</td>
-	{% endwith %}
+		{% for pos in s.loggerpos_set.all %}
+    		{% with s.stats as stats %}
+				<td>{{s.nr}}</td>
+				<td>{{pos.refpnt}}</td>
+				<td>{{s.top}}</td>
+				<td>{{s.bottom}}</td>
+				<td>{{pos.logger|default:''}}</td>
+				<td>{{pos.depth}}</td>
+				<td>{{s.start|date:'d M Y'}}</td>
+				<td>{{s.stop|date:'d M Y'}}</td>
+				<td>{{s.num_standen}}</td>
+				<td>{{stats.p10|floatformat:3|default:''}}</td>
+				<td>{{stats.p50|floatformat:3|default:''}}</td>
+				<td>{{stats.p90|floatformat:3|default:''}}</td>
+			{% endwith %}
+		{% endfor %}
 	</tr>
     {% endfor %} 
 </tbody>
