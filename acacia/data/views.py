@@ -10,8 +10,8 @@ from django.http import HttpResponse
 from .models import Project, ProjectLocatie, MeetLocatie, Datasource, Series, Chart, Grid, Dashboard, TabGroup, KeyFigure
 from .util import datasource_as_zip, datasource_as_csv, meetlocatie_as_zip, series_as_csv, chart_as_csv
 from django.views.decorators.gzip import gzip_page
-from acacia.data.util import datasources_as_zip 
 
+from acacia.data.util import datasources_as_zip
 from acacia.data.actions import download_series_zip
 # from django.contrib import admin
 
@@ -52,7 +52,7 @@ def SeriesAsCsv(request,pk):
 def SeriesToJson(request, pk):
     s = get_object_or_404(Series,pk=pk)
     points = [[p.date,p.value] for p in s.datapoints.order_by('date')]
-        
+
     # convert datetime to javascript datetime using unix timetamp conversion
     j = json.dumps(points, default=lambda x: time.mktime(x.timetuple())*1000.0)
     return HttpResponse(j, content_type='application/json')
@@ -69,7 +69,7 @@ def ChartToJson(request, pk):
     start = c.auto_start()
     data = {}
     for cs in c.series.all():
-        
+
         def getseriesdata(s):
             if c.stop is None:
                 pts = [[p.date,p.value] for p in s.datapoints.filter(date__gte=start).order_by('date')]
@@ -87,7 +87,7 @@ def ChartToJson(request, pk):
                 # series need to be aligned
                 pass
         data['series_%d' % cs.series.id] = pts
-        
+
     return HttpResponse(json.dumps(data, default=lambda x: time.mktime(x.timetuple())*1000.0), content_type='application/json')
 
 @gzip_page
@@ -106,7 +106,7 @@ def GridToJson(request, pk):
         rowdata.extend(row)
     data = {'grid': rowdata, 'min': min(rowdata), 'max': max(rowdata) }
     return HttpResponse(json.dumps(data,default=lambda x: time.mktime(x.timetuple())*1000.0), content_type='application/json')
-    
+
 def get_key(request, pk):
     key = get_object_or_404(KeyFigure, pk)
     result = {'name': key.name, 'id': key.pk, 'value': key.get_value()}
@@ -161,8 +161,8 @@ class DatasourceDetailView(DetailView):
     model = Datasource
 
 class ProjectView(DetailView):
-    model = Project       
-    
+    model = Project
+
 class ProjectListView(ListView):
     model = Project
 
@@ -187,7 +187,7 @@ class ProjectDetailView(DetailView):
 
 class ProjectLocatieDetailView(DetailView):
     model = ProjectLocatie
-    
+
     def get_context_data(self, **kwargs):
         context = super(ProjectLocatieDetailView, self).get_context_data(**kwargs)
         content = render_to_string('data/projectlocatie_info.html', {'object': self.get_object()})
@@ -198,7 +198,7 @@ class ProjectLocatieDetailView(DetailView):
 
 class MeetLocatieDetailView(DetailView):
     model = MeetLocatie
-    
+
     def get_context_data(self, **kwargs):
         context = super(MeetLocatieDetailView, self).get_context_data(**kwargs)
         content = render_to_string('data/meetlocatie_info.html', {'object': self.get_object()})
@@ -206,7 +206,7 @@ class MeetLocatieDetailView(DetailView):
         context['maptype'] = 'SATELLITE'
         context['zoom'] = 16
         return context
-        
+
 class SeriesView(DetailView):
     model = Series
 
@@ -222,8 +222,8 @@ class SeriesView(DetailView):
 #                         'labelStyle': {'fontWeight': 'normal'},
 #                         'hideDuration': 0,
 #                         },
-            'chart': {'type': ser.type, 
-                      'animation': False, 
+            'chart': {'type': ser.type,
+                      'animation': False,
                       'zoomType': 'x',
                       'events': {'load': None},
                       },
@@ -232,15 +232,15 @@ class SeriesView(DetailView):
             'yAxis': [],
             'tooltip': {'valueSuffix': ' '+(unit or ''),
                         'valueDecimals': 2
-                       }, 
+                       },
             'legend': {'enabled': False},
-            'plotOptions': {'line': {'marker': {'enabled': False}}},            
-            'credits': {'enabled': True, 
-                        'text': 'acaciawater.com', 
+            'plotOptions': {'line': {'marker': {'enabled': False}}},
+            'credits': {'enabled': True,
+                        'text': 'acaciawater.com',
                         'href': 'http://www.acaciawater.com',
                        }
             }
-           
+
         allseries = []
         title = ser.name if (unit is None or len(unit)==0) else unit
         options['yAxis'].append({
@@ -277,7 +277,7 @@ class ChartBaseView(TemplateView):
 #                         'labelStyle': {'fontWeight': 'normal'},
 #                         'hideDuration': 0,
 #                         },
-            'chart': {'animation': False, 
+            'chart': {'animation': False,
                       'zoomType': 'x',
                       'events': {'load': None},
                       },
@@ -286,12 +286,12 @@ class ChartBaseView(TemplateView):
             'yAxis': [],
             'tooltip': {'valueDecimals': 2,
                         'shared': True,
-                       }, 
+                       },
             'legend': {'enabled': chart.series.count() > 1},
             'plotOptions': {'line': {'marker': {'enabled': False}},
-                            'column': {'allowpointSelect': True, 'pointPadding': 0.01, 'groupPadding': 0.01}},            
-            'credits': {'enabled': True, 
-                        'text': 'acaciawater.com', 
+                            'column': {'allowpointSelect': True, 'pointPadding': 0.01, 'groupPadding': 0.01}},
+            'credits': {'enabled': True,
+                        'text': 'acaciawater.com',
                         'href': 'http://www.acaciawater.com',
                        }
             }
@@ -301,7 +301,7 @@ class ChartBaseView(TemplateView):
         if not chart.stop is None:
             options['xAxis']['max'] = tojs(chart.stop)
         allseries = []
-        # TODO: geen nieuwe y-as aanmaken voor elke tijdreeks! 
+        # TODO: geen nieuwe y-as aanmaken voor elke tijdreeks!
         for _,s in enumerate(chart.series.all()):
             ser = s.series
             title = s.label #ser.name if len(ser.unit)==0 else '%s [%s]' % (ser.name, ser.unit) if chart.series.count()>1 else ser.unit
@@ -327,9 +327,9 @@ class ChartBaseView(TemplateView):
                                   'headerFormat': '<small>{point.key}</small><br/><table>',
                                   'pointFormat': '<tr><td style="color:{series.color}">{series.name}</td>\
                                     <td style = "text-align: right">: <b>{point.y}</b></td></tr>'}
-            
+
             else:
-                sop['tooltip'] = {'valueSuffix': ' ' + ser.unit}                           
+                sop['tooltip'] = {'valueSuffix': ' ' + ser.unit}
             if s.type == 'column' and s.stack is not None:
                 sop['stacking'] = s.stack
             if s.type == 'area' and s.series2:
@@ -341,18 +341,18 @@ class ChartBaseView(TemplateView):
         # remove quotes around date stuff
         jop = re.sub(r'\"(Date\.UTC\([\d,]+\))\"',r'\1', jop)
         return jop
-    
+
     def get_context_data(self, **kwargs):
         context = super(ChartBaseView, self).get_context_data(**kwargs)
         pk = context.get('pk',1)
-        chart = Chart.objects.get(pk=pk)                
+        chart = Chart.objects.get(pk=pk)
 
         jop = self.get_json(chart)
         context['options'] = jop
         context['chart'] = chart
         context['theme'] = chart.get_theme()
         return context
-        
+
 class ChartView(ChartBaseView):
     template_name = 'data/chart_detail.html'
 
@@ -365,20 +365,20 @@ class ChartView(ChartBaseView):
             context['options'] = jop
             context['chart'] = chart
         return context
-    
+
 class DashView(TemplateView):
     template_name = 'data/dash.html'
-     
+
     def get_context_data(self, **kwargs):
         context = super(DashView,self).get_context_data(**kwargs)
         pk = context.get('pk', None)
         dash = get_object_or_404(Dashboard, pk=pk)
         context['dashboard'] = dash
         return context
-    
+
 class TabGroupView(TemplateView):
     template_name = 'data/tabgroup.html'
-    
+
     def get_context_data(self, **kwargs):
         context = super(TabGroupView,self).get_context_data(**kwargs)
         pk = context.get('pk')
@@ -390,11 +390,11 @@ class TabGroupView(TemplateView):
         if page > 0:
             context['page'] = int(page)
             context['dashboard'] = dashboards[page-1]
-        return context    
+        return context
 
 class DashGroupView(TemplateView):
     template_name = 'data/dashgroup.html'
-    
+
     def get_context_data(self, **kwargs):
         context = super(DashGroupView,self).get_context_data(**kwargs)
         name = context.get('name')
@@ -408,7 +408,7 @@ class DashGroupView(TemplateView):
             context['title'] = 'Dashboard %s - %s' % (group.name, pages[page-1].name)
             context['page'] = int(page)
             context['dashboard'] = dashboards[page-1]
-        return context    
+        return context
 
 class GridBaseView(TemplateView):
     template_name = 'data/plain_map.html'
@@ -430,7 +430,7 @@ class GridBaseView(TemplateView):
             'xAxis': {
                 'type': 'datetime',
                 'min': x1,
-                'max': x2 
+                'max': x2
             },
             'yAxis': {
                 'title': {
@@ -442,7 +442,7 @@ class GridBaseView(TemplateView):
                 'endOnTick': False,
                 'reversed': True
             },
-    
+
             'colorAxis': {
                 'stops': [
                     [0, '#3060cf'],
@@ -455,7 +455,7 @@ class GridBaseView(TemplateView):
                 'startOnTick': False,
                 'endOnTick': False,
             },
-    
+
             'legend': {
                         'align': 'right',
                         'layout': 'vertical',
@@ -464,7 +464,7 @@ class GridBaseView(TemplateView):
                         'y': -8,
                         'symbolHeight': 600
             },
-            
+
             'series': [{
                 'id': 'grid',
                 'data' : [], # load using ajax
@@ -483,7 +483,7 @@ class GridBaseView(TemplateView):
         }
 
         return json.dumps(options,default=lambda x: time.mktime(x.timetuple())*1000.0)
-    
+
     def get_context_data(self, **kwargs):
         context = super(GridBaseView, self).get_context_data(**kwargs)
         pk = context.get('pk',0)
@@ -496,7 +496,6 @@ class GridBaseView(TemplateView):
         context['grid'] = grid
         context['map'] = True
         return context
-    
+
 class GridView(GridBaseView):
     template_name = 'data/map.html'
-
