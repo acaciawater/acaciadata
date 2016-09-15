@@ -114,7 +114,7 @@ class WellAdmin(admin.ModelAdmin):
     formfield_overrides = {models.PointField:{'widget': forms.TextInput(attrs={'size': '100'})}}
     actions = [actions.make_wellcharts,actions.recomp_wells]
     inlines = [ ScreenInline, PhotoInline]
-    list_display = ('name','nitg','network','maaiveld', 'num_filters', 'num_photos', 'straat', 'plaats')
+    list_display = ('name','nitg','network','maaiveld', 'baro', 'num_filters', 'num_photos', 'straat', 'plaats')
     #list_editable = ('location',)
     #list_per_page = 4
     ordering = ('network', 'name',)
@@ -124,7 +124,7 @@ class WellAdmin(admin.ModelAdmin):
     list_select_related = True
     fieldsets = (
                  ('Algemeen', {'classes': ('grp-collapse', 'grp-open'),
-                               'fields':('network', 'name', 'nitg', 'bro', 'maaiveld', 'date', 'log')}),
+                               'fields':('network', 'name', 'nitg', 'bro', 'maaiveld', 'baro', 'date', 'log')}),
                  ('Locatie', {'classes': ('grp-collapse', 'grp-closed'),
                               'fields':(('straat', 'huisnummer'), ('postcode', 'plaats'),('location','g'),'description')}),
                 )

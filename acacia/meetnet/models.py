@@ -44,6 +44,7 @@ class Well(geo.Model):
     log = models.ImageField(null=True,blank=True,upload_to='logs',verbose_name = 'boorstaat')
     chart = models.ImageField(null=True,blank=True, upload_to='charts', verbose_name='grafiek')
     g = models.FloatField(default=9.80665,verbose_name='valversnelling', help_text='valversnelling in m/s2')
+    baro = models.ForeignKey(Series, blank=True, null=True, verbose_name='luchtdruk', help_text = 'tijdreeks voor luchtdruk compensatie')
     objects = geo.GeoManager()
 
     def latlon(self):
@@ -60,20 +61,6 @@ class Well(geo.Model):
         return self.photo_set.count()
     num_photos.short_description='aantal fotos'
 
-#     def get_loggers(self):
-#         loggers = []
-#         for s in self.screen_set.all():
-#             loggers.extend(s.datalogger_set.all())
-#         return loggers
-#     
-#     def num_loggers(self):
-#         return len(self.get_loggers())
-#     num_loggers.short_description='aantal dataloggers'
-#     
-#     def logger_names(self):
-#         return ','.join([l.serial for l in self.get_loggers()])
-#     logger_names.short_description='dataloggers'
-    
     def get_absolute_url(self):
         return reverse('meetnet:well-detail', args=[self.id])
 
@@ -296,6 +283,13 @@ class MonFile(SourceFile):
 
     source = models.ForeignKey(LoggerPos,verbose_name='diver',blank=True,null=True)
     
+# from django.db.models.signals import pre_delete
+# from django.dispatch.dispatcher import receiver
+# from acacia.data.models import sourcefile_delete
+# @receiver(pre_delete, sender=SourceFile)
+# def monfile_delete(sender, instance, **kwargs):
+#     sourcefile_delete(sender, instance, **kwargs)
+
 class Channel(models.Model):
     monfile = models.ForeignKey(MonFile)
     number = models.IntegerField()
