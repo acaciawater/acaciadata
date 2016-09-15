@@ -16,11 +16,18 @@ rcParams['font.family'] = 'sans-serif'
 rcParams['font.size'] = '8'
 
 logger = logging.getLogger(__name__)
+# thumbnail size and resolution
+THUMB_DPI=72
+THUMB_SIZE=(9,3) # inch
 
 def chart_for_screen(screen):
-    plt.figure(figsize=(15,5))
+    plt.figure(figsize=THUMB_SIZE)
     plt.grid(linestyle='-', color='0.9')
     data = screen.get_levels('nap')
+    n = len(data) / (THUMB_SIZE[0]*THUMB_DPI)
+    if n > 1:
+        #use data thinning: take very nth row
+        data = data[::n]
     if len(data)>0:
         x,y = zip(*data)
         plt.plot_date(x, y, '-')
@@ -40,13 +47,18 @@ def chart_for_screen(screen):
     return img.getvalue()
 
 def chart_for_well(well):
-    fig=plt.figure(figsize=(15,5))
+    fig=plt.figure(figsize=THUMB_SIZE)
     ax=fig.gca()
     plt.grid(linestyle='-', color='0.9')
     count = 0
     y = []
+    x = []
     for screen in well.screen_set.all():
         data = screen.get_levels('nap')
+        n = len(data) / (THUMB_SIZE[0]*THUMB_DPI)
+        if n > 1:
+            #use data thinning: take very nth row
+            data = data[::n]
         if len(data)>0:
             x,y = zip(*data)
             plt.plot_date(x, y, '-', label=screen)
@@ -57,8 +69,9 @@ def chart_for_well(well):
             x,y = zip(*hand)
             plt.plot_date(x, y, 'ro', label='handpeiling')
             
-    y = [screen.well.maaiveld] * len(x)
-    plt.plot_date(x, y, '-', label='maaiveld')
+    if len(x):
+        y = [screen.well.maaiveld] * len(x)
+        plt.plot_date(x, y, '-', label='maaiveld')
 
     plt.title(well)
     plt.ylabel('m tov NAP')
@@ -90,11 +103,18 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
 
     seriesdata = None
     for logpos in screen.loggerpos_set.all().order_by('start_date'):
-        if logpos.refpnt is None or logpos.depth is None or logpos.baro is None:
+        if logpos.refpnt is None:
+            logger.warning('Referentiepunt ontbreekt voor {pos}'.format(pos=logpos))
+            continue
+        if logpos.depth is None:
+            logger.warning('Inhangdiepte ontbreekt voor {pos}'.format(pos=logpos))
+            continue
+        if logpos.baro is None:
+            logger.warning('Barometer ontbreekt voor {pos}'.format(pos=logpos))
             continue
         if seriesdata is  None:
             meteo = logpos.baro.meetlocatie().name
-            series.description = 'Gecompenseerd voor luchtdruk van %s' % meteo
+            #series.description = 'Gecompenseerd voor luchtdruk van %s' % meteo
             print '  Luchtdruk:', meteo
         if logpos.baro in baros:
             baro = baros[logpos.baro]
