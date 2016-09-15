@@ -41,6 +41,7 @@ class Command(BaseCommand):
 #                             'stop': datetime.datetime(2015,12,31),
                             })
                 chart.series.get_or_create(series=series, defaults={'label' : 'm tov NAP'})
+
                 # handpeilingen toevoegen (als beschikbaar)
                 try:
                     mloc = MeetLocatie.objects.get(name=unicode(screen))
@@ -48,3 +49,6 @@ class Command(BaseCommand):
                         chart.series.get_or_create(series=hand,defaults={'type':'scatter', 'order': 2})
                 except:
                     pass
+                
+                util.chart_for_screen(screen)
+            util.chart_for_well(well)
