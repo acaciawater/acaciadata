@@ -91,7 +91,7 @@ a img {
 		{% for pos in s.loggerpos_set.all %}
     		{% with s.stats as stats %}
 				<td>{{s.nr}}</td>
-				<td>{{pos.refpnt}}</td>
+				<td>{{s.refpnt}}</td>
 				<td>{{s.top}}</td>
 				<td>{{s.bottom}}</td>
 				<td>{{pos.logger|default:''}}</td>
