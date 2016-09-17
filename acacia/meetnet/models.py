@@ -282,13 +282,6 @@ class MonFile(SourceFile):
     num_points = models.IntegerField()
 
     source = models.ForeignKey(LoggerPos,verbose_name='diver',blank=True,null=True)
-    
-# from django.db.models.signals import pre_delete
-# from django.dispatch.dispatcher import receiver
-# from acacia.data.models import sourcefile_delete
-# @receiver(pre_delete, sender=SourceFile)
-# def monfile_delete(sender, instance, **kwargs):
-#     sourcefile_delete(sender, instance, **kwargs)
 
 class Channel(models.Model):
     monfile = models.ForeignKey(MonFile)
