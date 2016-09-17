@@ -4,8 +4,10 @@ Created on Jun 3, 2014
 @author: theo
 '''
 from .models import Well, Screen
-import logging, datetime
-import matplotlib.pyplot as plt
+import logging
+import matplotlib
+matplotlib.use('agg')
+import matplotlib.pylab as plt
 from matplotlib import rcParams
 from StringIO import StringIO
 from acacia.data.models import DataPoint
@@ -114,8 +116,7 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
             continue
         if seriesdata is  None:
             meteo = logpos.baro.meetlocatie().name
-            #series.description = 'Gecompenseerd voor luchtdruk van %s' % meteo
-            print '  Luchtdruk:', meteo
+            logger.info('Compenseren voor luchtdruk van {}'.format(meteo))
         if logpos.baro in baros:
             baro = baros[logpos.baro]
         else:
@@ -143,7 +144,6 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
             else:
                 seriesdata = seriesdata.append(data)
                 
-    series.datapoints.all().delete()
     if seriesdata is not None:
         seriesdata = seriesdata.groupby(level=0).last()
         seriesdata.sort(inplace=True)
@@ -153,6 +153,7 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
             if math.isnan(value) or date is None:
                 continue
             datapoints.append(DataPoint(series=series, date=date, value=value))
+        series.datapoints.all().delete()
         series.datapoints.bulk_create(datapoints)
         series.unit = 'm tov NAP'
         series.make_thumbnail()

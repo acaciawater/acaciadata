@@ -4,8 +4,9 @@ Created on Feb 12, 2014
 @author: theo
 '''
 import os, fnmatch, re
-import matplotlib.pyplot as plt
-from django.contrib.gis.gdal.srs import SpatialReference, CoordTransform
+import matplotlib
+matplotlib.use('agg')
+import matplotlib.pylab as plt
 from django.contrib.gis.geos import Point
 from acacia import settings
 from matplotlib import rcParams
