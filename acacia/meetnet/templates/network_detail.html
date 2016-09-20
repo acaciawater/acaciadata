@@ -132,9 +132,11 @@ function hideLabels() {
 -->
 <div class = "row-fluid">
 <div class = "col-md-10"><div id= map style="width:100%;height:800px;"></div>
+{% block buttons %}
 <button class = "btn btn-primary" id="showlabels" onclick="showLabels()">Labels tonen</button>
 <button class = "btn btn-primary active" id="hidelabels" onclick="hideLabels()">Labels verbergen</button>
 <a href="{% url 'meetnet:email-network' object.id %}" class="btn btn-primary" title="Alle tijdreeksen in netwerk downloaden" id="download">Downloaden</a>
+{% endblock buttons %}
 </div>
 <div class = "col-md-2">
 <div class = "list-group scroll">
