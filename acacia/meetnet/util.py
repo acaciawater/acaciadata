@@ -18,6 +18,7 @@ rcParams['font.family'] = 'sans-serif'
 rcParams['font.size'] = '8'
 
 logger = logging.getLogger(__name__)
+
 # thumbnail size and resolution
 THUMB_DPI=72
 THUMB_SIZE=(9,3) # inch
@@ -114,14 +115,22 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
         if logpos.baro is None:
             logger.warning('Barometer ontbreekt voor {pos}'.format(pos=logpos))
             continue
-        if seriesdata is  None:
-            meteo = logpos.baro.meetlocatie().name
-            logger.info('Compenseren voor luchtdruk van {}'.format(meteo))
+        if seriesdata is None:
+            meteo = logpos.baro
+            logger.info('Compenseren voor luchtdrukreeks {}'.format(meteo))
         if logpos.baro in baros:
             baro = baros[logpos.baro]
         else:
-            #baro = logpos.baro.to_pandas() / 9.80638 # 0.1 hPa naar cm H2O
-            baro = logpos.baro.to_pandas() #in cm H2O !!
+            baro = logpos.baro.to_pandas()
+
+            # if baro datasource = KNMI then convert from hPa to cm H2O
+            dsbaro = logpos.baro.getDatasource()
+            if dsbaro:
+                gen = dsbaro.generator
+                if 'knmi' in gen.name.lower() or 'knmi' in gen.classname.lower():
+                    # TODO: use g at  baro location, not well location
+                    baro = baro / (screen.well.g or 9.80638)
+            
             baro = baro.tz_convert(tz)
             baros[logpos.baro] = baro
         for mon in logpos.monfile_set.all().order_by('start_date'):
@@ -159,3 +168,49 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
         series.make_thumbnail()
         series.save()
     
+from acacia.data.knmi.models import NeerslagStation, Station
+from acacia.data.models import ProjectLocatie, Generator
+
+def createmeteo(request, well):
+    ''' Create datasources with meteo data for a well '''
+
+    def docreate(name,closest,gen,start):
+        instance = gen.get_class()()
+        ploc, created = project.projectlocatie_set.get_or_create(name = name, defaults = {'description': name, 'location': closest.location})
+        mloc, created = ploc.meetlocatie_set.get_or_create(name = name, defaults = {'description': name, 'location': closest.location})
+        if created:
+            logger.info('Meetlocatie {} aangemaakt'.format(name))   
+        ds, created = mloc.datasources.get_or_create(name = name, defaults = {'description': name,'generator': gen, 'user': user, 'timezone': 'UTC',
+                                                     'url': instance.url + '?stns={stn}&start={start}'.format(stn=closest.nummer,start=start)})
+        if created:
+            ds.download()
+            ds.update_parameters()
+            
+            for p in ds.parameter_set.filter(name__in=candidates):
+                try:
+                    series, created = p.series_set.get_or_create(name = p.name, description = p.description, unit = p.unit, user = request.user)
+                    series.replace()
+                except Exception as e:
+                    logger.error('ERROR creating series %s: %s' % (p.name, e))
+    
+    user = request.user
+
+    candidates = ['PG', 'EV24', 'RD', 'RH', 'P', 'T']
+    
+    ploc = ProjectLocatie.objects.get(name=well.name)
+    project = ploc.project
+    
+    gen = Generator.objects.get(classname__icontains='KNMI.meteo')
+    closest = Station.closest(well.location)
+    name = 'Meteostation {} (dagwaarden)'.format(closest.naam)
+    docreate(name,closest,gen,'20140501')
+
+    gen = Generator.objects.get(classname__icontains='KNMI.neerslag')
+    closest = NeerslagStation.closest(well.location)
+    name = 'Neerslagstation {}'.format(closest.naam)
+    docreate(name,closest,gen,'20140501')
+
+    gen = Generator.objects.get(classname__icontains='KNMI.uur')
+    closest = Station.closest(well.location)
+    name = 'Meteostation {} (uurwaarden)'.format(closest.naam)
+    docreate(name,closest,gen,'2014050101')
