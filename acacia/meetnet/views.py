@@ -12,6 +12,7 @@ from django.conf import settings
 import json, logging, datetime, time
 import pandas as pd
 from django.shortcuts import get_object_or_404
+from acacia.data.knmi.models import Station
 
 logger = logging.getLogger(__name__)
 
@@ -128,8 +129,6 @@ class WellChartView(TemplateView):
             }
         series = []
         xydata = []
-#         start = datetime.datetime(2014,1,1)
-#         stop = datetime.datetime(2015,1,1)
         for screen in well.screen_set.all():
             name = unicode(screen)
             #data = screen.to_pandas(ref='nap')[start:stop]
@@ -143,11 +142,6 @@ class WellChartView(TemplateView):
                             'zIndex': 1,
                             })
                 mean = pd.expanding_mean(data)
-    #             series.append({'name': 'gemiddelde',
-    #                         'type': 'line',
-    #                         'data': zip(mean.index.to_pydatetime(), mean.values),
-    #                         'linkedTo' : ':previous',
-    #                         })
                 std = pd.expanding_std(data)
                 a = (mean - std).dropna()
                 b = (mean + std).dropna()
@@ -160,7 +154,7 @@ class WellChartView(TemplateView):
                             'linkedTo' : ':previous',
                             'zIndex': 0,
                             })
-#             data = screen.to_pandas(ref='nap',kind='HAND')[start:stop]
+
             data = screen.to_pandas(ref='nap',kind='HAND')
             if data.size > 0:
                 hand = zip(data.index.to_pydatetime(), data.values)
@@ -182,14 +176,35 @@ class WellChartView(TemplateView):
                         'color': 'white',
                         'data': mv
                         })
-        
+
+        # neerslag toevoegen
+        try:
+            closest = Station.closest(well.location)
+            name = 'Meteostation {} (dagwaarden)'.format(closest.naam)
+            neerslag = Series.objects.get(name='RH',mlocatie__name=name)
+            data = neerslag.to_pandas(start=xydata[0][0], stop=xydata[-1][0])
+            data = zip(data.index.to_pydatetime(), data.values)
+            series.append({'name': 'Neerslag '+ closest.naam,
+                        'type': 'column',
+                        'data': data,
+                        'yAxis': 1,
+                        'pointRange': 24 * 3600 * 1000, # 1 day
+                        'pointPadding': 0,
+                        'pointPlacement': -0.45
+                        })
+            options['yAxis'].append({'title': {'text': '0.1 mm'},
+                                     'opposite': 1,
+                                     'min': 0,
+                                     })
+        except:
+            pass
         options['series'] = series
         context['options'] = json.dumps(options, default=lambda x: int(time.mktime(x.timetuple())*1000))
         context['object'] = well
         return context
 
 from acacia.data.views import DownloadSeriesAsZip
-from acacia.data.models import Series
+from acacia.data.models import Series, Datasource
 
 def get_series(screen):
     name = '%s COMP' % unicode(screen)
