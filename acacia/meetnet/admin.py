@@ -59,10 +59,14 @@ class DataloggerAdmin(admin.ModelAdmin):
 class LoggerPosAdmin(admin.ModelAdmin):
     model = LoggerPos
     list_display = ('logger', 'screen', 'start_date', 'end_date', 'refpnt', 'depth', 'baro', 'remarks')
+    list_filter = ('screen__well', 'screen')
     search_fields = ('logger__serial','screen__well__name')
     
 class LoggerInline(admin.TabularInline):
     model = LoggerPos
+    extra = 0
+    exclude = ('description',)
+    classes = ('grp-collapse', 'grp-closed',)
     
 class LoggerDatasourceAdmin(DatasourceAdmin):
     pass
@@ -99,20 +103,22 @@ class MonFileAdmin(SourceFileAdmin):
 class ScreenInline(admin.TabularInline):
     model = Screen
     extra = 0
+    classes = ('grp-collapse', 'grp-closed',)
         
 class ScreenAdmin(admin.ModelAdmin):
     actions = [actions.make_screencharts,actions.recomp_screens]
     list_display = ('__unicode__', 'refpnt', 'top', 'bottom', 'num_files', 'num_standen', 'start', 'stop')
     search_fields = ('well__name', 'well__nitg')
     list_filter = ('well','well__network')
-
+    inlines = [LoggerInline]
+    
 from django.contrib.gis.db import models
 from django import forms
     
 #class WellAdmin(geo.OSMGeoAdmin):
 class WellAdmin(admin.ModelAdmin):
     formfield_overrides = {models.PointField:{'widget': forms.TextInput(attrs={'size': '100'})}}
-    actions = [actions.make_wellcharts,actions.recomp_wells]
+    actions = [actions.make_wellcharts,actions.recomp_wells,actions.add_meteo_for_wells]
     inlines = [ ScreenInline, PhotoInline]
     list_display = ('name','nitg','network','maaiveld', 'baro', 'num_filters', 'num_photos', 'straat', 'plaats')
     #list_editable = ('location',)
