@@ -114,7 +114,7 @@ class WellChartView(TemplateView):
             'chart': {'type': 'arearange', 'zoomType': 'x'},
             'title': {'text': name},
             'xAxis': {'type': 'datetime'},
-            'yAxis': [{'title': {'text': 'm tov NAP'}}
+            'yAxis': [{'title': {'text': 'Grondwaterstand\n(m tov NAP)'}}
                       ],
             'tooltip': {'valueSuffix': ' m',
                         'valueDecimals': 2,
@@ -131,7 +131,6 @@ class WellChartView(TemplateView):
         xydata = []
         for screen in well.screen_set.all():
             name = unicode(screen)
-            #data = screen.to_pandas(ref='nap')[start:stop]
             data = screen.to_pandas(ref='nap')
             if data.size > 0:
                 xydata = zip(data.index.to_pydatetime(), data.values)
@@ -139,7 +138,8 @@ class WellChartView(TemplateView):
                             'type': 'line',
                             'data': xydata,
                             'lineWidth': 1,
-                            'zIndex': 1,
+                            'color': '#0066FF',
+                            'zIndex': 2,
                             })
                 mean = pd.expanding_mean(data)
                 std = pd.expanding_std(data)
@@ -150,6 +150,7 @@ class WellChartView(TemplateView):
                             'data': ranges,
                             'type': 'arearange',
                             'lineWidth': 0,
+                            'color': '#0066FF',
                             'fillOpacity': 0.2,
                             'linkedTo' : ':previous',
                             'zIndex': 0,
@@ -161,8 +162,8 @@ class WellChartView(TemplateView):
                 series.append({'name': 'handpeiling',
                             'type': 'scatter',
                             'data': hand,
-                            'zIndex': 2,
-                            'marker': {'symbol': 'circle', 'radius': 6, 'lineColor': 'white', 'lineWidth': 2, 'fillColor': 'blue'},
+                            'zIndex': 3,
+                            'marker': {'symbol': 'circle', 'radius': 6, 'lineColor': 'white', 'lineWidth': 2, 'fillColor': 'red'},
                             })
 
         if len(xydata)>0:
@@ -171,10 +172,11 @@ class WellChartView(TemplateView):
             mv.append((xydata[-1][0], screen.well.maaiveld))
             series.append({'name': 'maaiveld',
                         'type': 'line',
-                        'lineWidth': 1,
+                        'lineWidth': 2,
+                        'color': '#009900',
                         'dashStyle': 'Dash',
-                        'color': 'white',
-                        'data': mv
+                        'data': mv,
+                        'zIndex': 4,
                         })
 
         # neerslag toevoegen
@@ -182,7 +184,7 @@ class WellChartView(TemplateView):
             closest = Station.closest(well.location)
             name = 'Meteostation {} (dagwaarden)'.format(closest.naam)
             neerslag = Series.objects.get(name='RH',mlocatie__name=name)
-            data = neerslag.to_pandas(start=xydata[0][0], stop=xydata[-1][0])
+            data = neerslag.to_pandas(start=xydata[0][0], stop=xydata[-1][0]) / 10.0 # 0.1 mm -> mm
             data = zip(data.index.to_pydatetime(), data.values)
             series.append({'name': 'Neerslag '+ closest.naam,
                         'type': 'column',
@@ -190,9 +192,12 @@ class WellChartView(TemplateView):
                         'yAxis': 1,
                         'pointRange': 24 * 3600 * 1000, # 1 day
                         'pointPadding': 0,
-                        'pointPlacement': -0.45
+                        'pointPlacement': -0.45,
+                        'zIndex': 1,
+                        'color': 'orange', 
+                        'borderColor': '#cc6600', 
                         })
-            options['yAxis'].append({'title': {'text': '0.1 mm'},
+            options['yAxis'].append({'title': {'text': 'Neerslag (mm)'},
                                      'opposite': 1,
                                      'min': 0,
                                      })
