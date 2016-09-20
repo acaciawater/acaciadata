@@ -87,8 +87,8 @@ a img {
 </thead>
 <tbody>
     {% for s in object.screen_set.all %}
-	<tr>
 		{% for pos in s.loggerpos_set.all %}
+	<tr>
     		{% with s.stats as stats %}
 				<td>{{s.nr}}</td>
 				<td>{{s.refpnt}}</td>
@@ -103,8 +103,8 @@ a img {
 				<td>{{stats.p50|floatformat:3|default:''}}</td>
 				<td>{{stats.p90|floatformat:3|default:''}}</td>
 			{% endwith %}
-		{% endfor %}
 	</tr>
+		{% endfor %}
     {% endfor %} 
 </tbody>
 </table>
