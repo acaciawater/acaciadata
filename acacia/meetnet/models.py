@@ -251,7 +251,7 @@ class LoggerPos(models.Model):
 
     def __unicode__(self):
         return '%s@%s' % (self.logger, self.screen)
-
+    
     class Meta:
         verbose_name = 'DataloggerInstallatie'
         ordering = ['logger','start_date']
