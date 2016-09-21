@@ -38,7 +38,8 @@ def SeriesAsCsv(request,pk):
 def DownloadSeriesAsZip(request,source,series):
     ''' Tijdreeksen downloaden als zip file '''
     download_series_zip(None, request, series) # reuse method from admin.actions. Runs in separate thread
-    return render_to_response('data/sending_email.html', {'name': request.user.first_name or request.user.username, 'source': source }, context_instance=RequestContext(request))
+    return redirect(request.META.get('HTTP_REFERER','/'))
+#    return render_to_response('data/sending_email.html', {'name': request.user.first_name or request.user.username, 'source': source }, context_instance=RequestContext(request))
 
 def EmailProject(request, pk):
     p = get_object_or_404(Project,pk=pk)

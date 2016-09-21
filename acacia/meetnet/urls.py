@@ -1,5 +1,6 @@
 from django.conf.urls import patterns, url
-from .views import NetworkView, WellView, ScreenView, WellChartView, EmailNetworkSeries, EmailScreenSeries, EmailWellSeries
+from .views import NetworkView, WellView, ScreenView, WellChartView, EmailNetworkSeries, EmailScreenSeries, EmailWellSeries, UploadDoneView, UploadFileView
+from django.contrib.auth.decorators import login_required
 
 urlpatterns = patterns('acacia.meetnet.views',
     url(r'^$', NetworkView.as_view(), name='home'),
@@ -11,5 +12,7 @@ urlpatterns = patterns('acacia.meetnet.views',
     url(r'^email/network/(?P<pk>\d+)', EmailNetworkSeries,name='email-network'),
     url(r'^email/well/(?P<pk>\d+)', EmailWellSeries,name='email-well'),
     url(r'^email/screen/(?P<pk>\d+)', EmailScreenSeries,name='email-screen'),
+    url(r'^upload/(?P<id>\d+)/$', login_required(UploadFileView.as_view()), name='upload_files'),
+    url(r'^done/(?P<id>\d+)/$', login_required(UploadDoneView.as_view()), name='upload_done'),
     
 )
