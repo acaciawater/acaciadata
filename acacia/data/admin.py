@@ -211,7 +211,7 @@ class SourceFileAdmin(admin.ModelAdmin):
         obj.save()
     
 class ParameterAdmin(admin.ModelAdmin):
-    list_filter = ('datasource','datasource__meetlocatie', 'datasource__meetlocatie__projectlocatie__project')
+    list_filter = ('datasource','datasource__generator','datasource__meetlocatie', 'datasource__meetlocatie__projectlocatie__project')
     actions = [actions.update_thumbnails, actions.generate_series,]
     list_display = ('name', 'thumbtag', 'meetlocatie', 'datasource', 'unit', 'description', 'seriescount')
 #     actions = [actions.generate_series,]
