@@ -34,7 +34,6 @@ INSTALLED_APPS = (
     'django.contrib.gis',
     'bootstrap3',
     'registration',
-    'south',
     'acacia',
     'acacia.data',
 )

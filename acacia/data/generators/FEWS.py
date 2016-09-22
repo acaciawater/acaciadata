@@ -37,9 +37,12 @@ class FEWS(Generator):
         datasource = json.load(f)
         timeseries = datasource['events']
         columns = [datasource['name']]
-        for t in timeseries[:300]:
+        for t in timeseries:
             timestamps.append(t['timestamp'])
-            measurements.append((t['min']+t['max'])/2)
+            tmin = t['min']
+            tmax = t['min']
+            tgem = (tmin+tmax)/2 if (tmin and tmax) else None
+            measurements.append(tgem)
         times = [datetime.datetime.fromtimestamp(t/1000.0) for t in timestamps]
         data = pd.DataFrame(measurements,index=times,columns=columns)
         return data
