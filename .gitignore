@@ -50,8 +50,12 @@ coverage.xml
 # Django stuff:
 *.log
 
+#eclipse:
+.settings/
+
 # Sphinx documentation
 docs/_build/
 
 # PyBuilder
 target/
+/server_install.txt

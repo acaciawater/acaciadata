@@ -2,12 +2,18 @@
 {% block script %}
 {{ block.super }}
 <script src="http://code.highcharts.com/highcharts.js"></script>
+<script src="http://code.highcharts.com/modules/exporting.js"></script>
 <script>
 Highcharts.setOptions({
   lang: {
   	shortMonths : ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dec"],
 	months: ["Januari", "Februari", "Maart", "April", "Mei", "Juni",  "Juli", "Augustus", "September", "Oktober", "November", "December"],
 	weekdays: ["Zondag", "Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag", "Zaterdag"],
+	printChart: "Afdrukken",
+	downloadJPEG: "Download als JPG",
+	downloadPNG: "Download als PNG",
+	downloadPDF: "Download als PDF",
+	downloadSVG: "Download als SVG",
   }
 });
 
@@ -16,6 +22,12 @@ $(function () {
 });
 </script>
 {% endblock %}
+{% block extrastyle %}
+<style>
+.highcharts-contextmenu { font-family: "sans-serif"; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
 <div id="container" style="width:100%;height:400px;"></div>

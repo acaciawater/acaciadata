@@ -4,16 +4,13 @@ Created on Feb 12, 2014
 @author: theo
 '''
 import os, fnmatch, re
-import matplotlib
-matplotlib.use('agg')
-import matplotlib.pylab as plt
+import matplotlib.pyplot as plt
+from django.contrib.gis.gdal.srs import SpatialReference, CoordTransform
 from django.contrib.gis.geos import Point
 from acacia import settings
 from matplotlib import rcParams
 rcParams['font.size'] = '8'
 
-import logging
-logger = logging.getLogger(__name__)
 
 # EPSG codes
 RDNEW=28992
@@ -22,10 +19,6 @@ WEBMERC=3857
 GOOGLE=900913
 AMERSFOORT=4289
 WGS84=4326
-
-# thumbnail size and resolution
-THUMB_DPI=72
-THUMB_SIZE=(9,3) # inch
 
 def toGoogle(p):
     return trans(p,GOOGLE)
@@ -43,40 +36,29 @@ def trans(p, srid):
     psrid = p.srid
     if not psrid:
         psrid = WGS84
-    p.transform(srid)
-#     if (psrid != srid): 
-#         tr = CoordTransform(SpatialReference(p.srid), SpatialReference(srid))
-#         p.transform(tr)
+    if (psrid != srid): 
+        tr = CoordTransform(SpatialReference(p.srid), SpatialReference(srid))
+        p.transform(tr)
     return p
 
 def save_thumbnail(series,imagefile,kind='line'):
-    plt.figure(figsize=THUMB_SIZE,dpi=THUMB_DPI)
-    try:
-        n = series.count() / (THUMB_SIZE[0]*THUMB_DPI)
-        if n > 1:
-            #use data thinning: take very nth row
-            src = series.iloc[::n]
-        else:
-            src = series
-        options = {'grid': False, 'legend': False}
-        if kind == 'column':
-            options['xticks'] = []
-            src.plot(kind='bar', **options)
-        elif kind == 'area':
-            x = src.index
-            y = src.values
-            src.plot(**options)
-            plt.fill_between(x,y)
-        else:
-            src.plot(**options)
-        plt.savefig(imagefile,transparent=True)
-    except:
-        pass
+    plt.figure()
+    options = {'figsize': (9,3), 'grid': False, 'xticks': [], 'legend': False}
+    if kind == 'column':
+        series.plot(kind='bar', **options)
+    elif kind == 'area':
+        x = series.index
+        y = series.values
+        series.plot(**options)
+        plt.fill_between(x,y)
+    else:
+        series.plot(**options)
+    plt.savefig(imagefile,transparent=True)
     plt.close()
     
 def thumbtag(imagefile):
     url = os.path.join(settings.MEDIA_URL, imagefile)
-    return '<a href="%s"><img src="%s" height="60px"/></a>' % (url, url)
+    return '<a href="%s"><img src="%s" height="60px"\></a>' % (url, url)
 
 def find_files(pattern, root=os.curdir):
     for path, dirs, files in os.walk(os.path.abspath(root)):
@@ -99,10 +81,7 @@ def get_dirlist(content):
 from zipfile import ZipFile
 import StringIO
 from django.http import HttpResponse
-import django.utils.text as dut
-
-def slugify(value):
-    return dut.slugify(unicode(value))
+from django.utils.text import slugify
 
 def datasources_as_zip(datasources, zipname):
     io = StringIO.StringIO()
@@ -114,16 +93,14 @@ def datasources_as_zip(datasources, zipname):
             zippath = os.path.join(folder, f.filename())
             zf.write(filepath,zippath)
     zf.close()
-    resp = HttpResponse(io.getvalue(), content_type = "application/x-zip-compressed")
+    resp = HttpResponse(io.getvalue(), mimetype = "application/x-zip-compressed")
     resp['Content-Disposition'] = 'attachment; filename=%s' % zipname
     return resp
 
 def datasource_as_csv(d):
-    logger.debug('creating csv file for datasource %s' % d.name)
     filename = slugify(d.name) + '.csv'
-    csv = d.to_csv()
-    logger.debug('csv file created, size = %d bytes' % len(csv))
-    resp = HttpResponse(csv, content_type='text/csv')
+    resp = HttpResponse(d.to_csv(), mimetype = "text/csv")
+    resp['Content-Type'] = 'text/csv; filename=%s' % filename
     resp['Content-Disposition'] = 'attachment; filename=%s' % filename
     return resp
 
@@ -135,15 +112,7 @@ def meetlocatie_as_zip(loc):
 
 def series_as_csv(series):
     filename = slugify(series.name) + '.csv'
-    csv = series.to_csv()
-    resp = HttpResponse(csv, content_type='text/csv')
+    resp = HttpResponse(series.to_csv(), mimetype = "text/csv")
+    resp['Content-Type'] = 'text/csv; filename=%s' % filename
     resp['Content-Disposition'] = 'attachment; filename=%s' % filename
     return resp
-
-def chart_as_csv(chart):
-    filename = slugify(chart.name) + '.csv'
-    csv = chart.to_csv()
-    resp = HttpResponse(csv, content_type='text/csv')
-    resp['Content-Disposition'] = 'attachment; filename=%s' % filename
-    return resp
-

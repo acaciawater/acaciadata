@@ -30,7 +30,7 @@
 {% block script %}
 {{ block.super }}
 {% localize off %}
-<script src="http://maps.google.com/maps/api/js?sensor=false"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key={{apikey}}"></script>
 <script src="{% static "js/markerwithlabel.js" %}"></script>
 <script>
 var map;
@@ -64,7 +64,7 @@ function initialize() {
    	        labelClass: 'labels',
    	        labelStyle: {'opacity': 0.8},
    	        labelInBackground: true,
-   	        labelVisible: false
+   	        labelVisible: true
    		});
    		markers.push(marker);
    		google.maps.event.addListener(marker, 'click', (function(marker) {
@@ -91,7 +91,7 @@ function initialize() {
 
 $(function(){
 	initialize();
-	$('#hidelabels').hide();
+	$('#showlabels').hide();
 	});
 
 function showMarker(m) {
@@ -132,16 +132,44 @@ function hideLabels() {
 -->
 <div class = "row-fluid">
 <div class = "col-md-10"><div id= map style="width:100%;height:800px;"></div>
-<button class = "btn btn-primary" id="showlabels" onclick="showLabels()">Labels tonen</button>
-<button class = "btn btn-primary" id="hidelabels" onclick="hideLabels()">Labels verbergen</button>
-<button class = "btn" id="uploadMon" onclick="uploadMonfile()">Upload</button>
+{% block buttons %}
+<button class = "btn btn-default" id="showlabels" onclick="showLabels()">Labels tonen</button>
+<button class = "btn btn-default" id="hidelabels" onclick="hideLabels()">Labels verbergen</button>
+{% if user.is_authenticated and user.email %}
+<a href="{% url 'meetnet:upload_files' object.id %}" class="btn btn-default pull-right" title="Mon bestanden uploaden" id="upload">Uploaden</a>
+<a class="btn btn-default pull-right" title="Alle tijdreeksen in netwerk downloaden" id="download" data-toggle="modal" data-target="#myModal">Downloaden</a>
+<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="myModalLabel">Download tijdreeksen</h4>
+      </div>
+      <div class="modal-body">
+      	<p>
+      	Beste {{user.first_name|default:user.username}},
+      	</p>
+		<p>
+		Klik op OK alle tijdreeksen in het meetnet {{object}} te downloaden.<br>
+		Wij sturen een email met een link naar {{user.email}} als het bestand opgehaald kan worden.
+		</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Sluiten</button>
+		<a href="{% url 'meetnet:email-network' object.id %}" class="btn btn-primary" data-dismiss=" modal">Ok</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock buttons %}
 </div>
 <div class = "col-md-2">
 <div class = "list-group scroll">
 <a class="list-group-item active" data-toggle="collapse" data-target="#putten" aria-expanded="true" aria-controls="putten">Putten<span class="badge">{{object.well_set.count}}</a>
 <div class="collapse in" id="putten">
 {% for well in object.well_set.all %}
-<a onmouseover="showMarker({{forloop.counter0}});" onmouseout="hideMarker({{forloop.counter0}});" href="{% url 'well-detail' well.id %}" class="list-group-item">{{well.name}}
+<a onmouseover="showMarker({{forloop.counter0}});" onmouseout="hideMarker({{forloop.counter0}});" href="{% url 'meetnet:well-detail' well.id %}" class="list-group-item">{{well.name}}
 {% if well.straat %}<br/><div class='text-muted'><small>{{well.straat}}, {{well.plaats}}</small></div>{% endif %}</a>
 {% endfor %}
 </div>

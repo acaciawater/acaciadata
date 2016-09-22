@@ -7,7 +7,7 @@ import os, pandas as pd, numpy as np
 from django.db import models
 from django.contrib.gis.db import models as geo
 from django.core.urlresolvers import reverse
-from acacia.data.models import MeetLocatie, Datasource, Series, SourceFile
+from acacia.data.models import Datasource, Series, SourceFile
 from acacia.data import util
 
 class Network(models.Model):
@@ -22,7 +22,7 @@ class Network(models.Model):
         return self.name
 
     def get_absolute_url(self):
-        return reverse('network-detail', args=[self.id])
+        return reverse('meetnet:network-detail', args=[self.id])
 
     class Meta:
         verbose_name = 'netwerk'
@@ -44,6 +44,7 @@ class Well(geo.Model):
     log = models.ImageField(null=True,blank=True,upload_to='logs',verbose_name = 'boorstaat')
     chart = models.ImageField(null=True,blank=True, upload_to='charts', verbose_name='grafiek')
     g = models.FloatField(default=9.80665,verbose_name='valversnelling', help_text='valversnelling in m/s2')
+    baro = models.ForeignKey(Series, blank=True, null=True, verbose_name='luchtdruk', help_text = 'tijdreeks voor luchtdruk compensatie')
     objects = geo.GeoManager()
 
     def latlon(self):
@@ -60,22 +61,8 @@ class Well(geo.Model):
         return self.photo_set.count()
     num_photos.short_description='aantal fotos'
 
-#     def get_loggers(self):
-#         loggers = []
-#         for s in self.screen_set.all():
-#             loggers.extend(s.datalogger_set.all())
-#         return loggers
-#     
-#     def num_loggers(self):
-#         return len(self.get_loggers())
-#     num_loggers.short_description='aantal dataloggers'
-#     
-#     def logger_names(self):
-#         return ','.join([l.serial for l in self.get_loggers()])
-#     logger_names.short_description='dataloggers'
-    
     def get_absolute_url(self):
-        return reverse('well-detail', args=[self.id])
+        return reverse('meetnet:well-detail', args=[self.id])
 
     def __unicode__(self):
         return self.name
@@ -85,6 +72,17 @@ class Well(geo.Model):
             if s.has_data():
                 return True
         return False
+    
+    def last_measurement_date(self):
+        last = None
+        for s in self.screen_set.all():
+            if s.has_data():
+                stop = s.stop()
+                if last is None:
+                    last = stop
+                else:
+                    last = max(last,stop)
+        return last.date() if last else None
     
     class Meta:
         verbose_name = 'put'
@@ -190,14 +188,15 @@ class Screen(models.Model):
         
     def last_logger(self):
         last = self.loggerpos_set.all().order_by('start_date').last()
-        return None if last is None else last.logger
-        
+        #return None if last is None else last.logger
+        return last
+    
     def __unicode__(self):
         #return '%s/%03d' % (self.well.nitg, self.nr)
         return '%s/%03d' % (self.well, self.nr)
 
     def get_absolute_url(self):
-        return reverse('screen-detail', args=[self.id])
+        return reverse('meetnet:screen-detail', args=[self.id])
 
     def to_pandas(self, ref='nap',kind='COMP'):
         levels = self.get_series(ref,kind)
@@ -252,7 +251,7 @@ class LoggerPos(models.Model):
 
     def __unicode__(self):
         return '%s@%s' % (self.logger, self.screen)
-
+    
     class Meta:
         verbose_name = 'DataloggerInstallatie'
         ordering = ['logger','start_date']
@@ -283,7 +282,7 @@ class MonFile(SourceFile):
     num_points = models.IntegerField()
 
     source = models.ForeignKey(LoggerPos,verbose_name='diver',blank=True,null=True)
-    
+
 class Channel(models.Model):
     monfile = models.ForeignKey(MonFile)
     number = models.IntegerField()
@@ -299,21 +298,3 @@ class Channel(models.Model):
     class Meta:
         verbose_name = 'Kanaal'
         verbose_name_plural = 'Kanalen'
-
-# Series that can be edited manually
-class ManualSeries(Series):
-    locatie = models.ForeignKey(MeetLocatie)
-     
-    def meetlocatie(self):
-        return self.locatie
-
-    def __unicode__(self):
-        return self.name
- 
-    def get_series_data(self,data,start=None):
-        return self.to_pandas(start=start)
-     
-    class Meta:
-        verbose_name = 'Handmatige reeks'
-        verbose_name_plural = 'Handmatige reeksen'
-         

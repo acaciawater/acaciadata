@@ -11,8 +11,6 @@ def meteo2locatie(loc,user):
     
     p = loc.location
     
-    #stns = Station.objects.distance(p).order_by('distance')
-    #stn = stns[0]
     stns = Station.closest(p, 3)
     for stn in stns:
         name='Meteostation %s ' % stn.naam
@@ -28,8 +26,6 @@ def meteo2locatie(loc,user):
         df.download()
         df.update_parameters()
     
-    #stns = NeerslagStation.objects.distance(p).order_by('distance')
-    #stn = stns[0]
     stns = NeerslagStation.closest(p, 3)
     for stn in stns:
         name='Neerslagstation %s ' % stn.naam
@@ -44,18 +40,3 @@ def meteo2locatie(loc,user):
         df.save()
         df.download()
         df.update_parameters()
-
-    name='Regenradar %s ' % loc.name
-    try:
-        df = Datasource.objects.get(name = name, meetlocatie = loc)
-    except:
-        df = Datasource(name = name, meetlocatie = loc)
-    df.generator = Generator.objects.get(name='Regenradar')
-    generator = df.get_generator_instance()
-    df.url = generator.url
-    df.config = '{"x": %g, "y": %g}' % (p.x, p.y)
-    df.user=user
-    df.save()
-    df.download()
-    df.update_parameters()
-    

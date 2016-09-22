@@ -3,9 +3,8 @@ Created on Jun 1, 2014
 
 @author: theo
 '''
-from .models import Network, Well, Photo, Screen, Datalogger, LoggerPos, LoggerDatasource, MonFile, Channel, ManualSeries
-from acacia.data.admin import DatasourceAdmin, SourceFileAdmin, SeriesAdmin
-from acacia.data.models import DataPoint
+from .models import Network, Well, Photo, Screen, Datalogger, LoggerPos, LoggerDatasource, MonFile, Channel
+from acacia.data.admin import DatasourceAdmin, SourceFileAdmin
 from django.conf import settings
 from django.contrib import admin
 
@@ -60,10 +59,14 @@ class DataloggerAdmin(admin.ModelAdmin):
 class LoggerPosAdmin(admin.ModelAdmin):
     model = LoggerPos
     list_display = ('logger', 'screen', 'start_date', 'end_date', 'refpnt', 'depth', 'baro', 'remarks')
+    list_filter = ('screen__well', 'screen')
     search_fields = ('logger__serial','screen__well__name')
     
 class LoggerInline(admin.TabularInline):
     model = LoggerPos
+    extra = 0
+    exclude = ('description',)
+    classes = ('grp-collapse', 'grp-closed',)
     
 class LoggerDatasourceAdmin(DatasourceAdmin):
     pass
@@ -76,13 +79,6 @@ class LoggerDatasourceAdmin(DatasourceAdmin):
 #         fields = ('name', 'logger') + dic['fields'][1:]
 #         self.fieldsets[0][1]['fields'] = fields
 
-class DataPointInline(admin.TabularInline):
-    model = DataPoint
-    
-class ManualSeriesAdmin(SeriesAdmin):
-    model = ManualSeries
-    inlines = [DataPointInline,]
-    
 class ChannelInline(admin.TabularInline):
     model = Channel
 
@@ -107,22 +103,24 @@ class MonFileAdmin(SourceFileAdmin):
 class ScreenInline(admin.TabularInline):
     model = Screen
     extra = 0
+    classes = ('grp-collapse', 'grp-closed',)
         
 class ScreenAdmin(admin.ModelAdmin):
     actions = [actions.make_screencharts,actions.recomp_screens]
     list_display = ('__unicode__', 'refpnt', 'top', 'bottom', 'num_files', 'num_standen', 'start', 'stop')
     search_fields = ('well__name', 'well__nitg')
     list_filter = ('well','well__network')
-
+    inlines = [LoggerInline]
+    
 from django.contrib.gis.db import models
 from django import forms
     
 #class WellAdmin(geo.OSMGeoAdmin):
 class WellAdmin(admin.ModelAdmin):
     formfield_overrides = {models.PointField:{'widget': forms.TextInput(attrs={'size': '100'})}}
-    actions = [actions.make_wellcharts,actions.recomp_wells]
+    actions = [actions.make_wellcharts,actions.recomp_wells,actions.add_meteo_for_wells]
     inlines = [ ScreenInline, PhotoInline]
-    list_display = ('name','nitg','network','maaiveld', 'num_filters', 'num_photos', 'straat', 'plaats')
+    list_display = ('name','nitg','network','maaiveld', 'baro', 'num_filters', 'num_photos', 'straat', 'plaats')
     #list_editable = ('location',)
     #list_per_page = 4
     ordering = ('network', 'name',)
@@ -132,7 +130,7 @@ class WellAdmin(admin.ModelAdmin):
     list_select_related = True
     fieldsets = (
                  ('Algemeen', {'classes': ('grp-collapse', 'grp-open'),
-                               'fields':('network', 'name', 'nitg', 'bro', 'maaiveld', 'date', 'log')}),
+                               'fields':('network', 'name', 'nitg', 'bro', 'maaiveld', 'baro', 'date', 'log')}),
                  ('Locatie', {'classes': ('grp-collapse', 'grp-closed'),
                               'fields':(('straat', 'huisnummer'), ('postcode', 'plaats'),('location','g'),'description')}),
                 )
@@ -186,5 +184,3 @@ admin.site.register(LoggerPos, LoggerPosAdmin)
 admin.site.register(LoggerDatasource, LoggerDatasourceAdmin)
 admin.site.register(MonFile,MonFileAdmin)
 admin.site.register(Channel, ChannelAdmin)
-admin.site.register(ManualSeries,ManualSeriesAdmin)
-

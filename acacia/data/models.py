@@ -63,6 +63,12 @@ class Project(models.Model):
     logo = models.ImageField(upload_to=up.project_upload, blank=True, null=True)
     theme = models.CharField(max_length=50,verbose_name='thema', default='dark-blue',choices=THEME_CHOICES,help_text='Thema voor grafieken')
         
+    def series(self):
+        s = []
+        for m in self.projectlocatie_set.all():
+            s.extend(m.series())
+        return s
+
     def location_count(self):
         return self.projectlocatie_set.count()
     location_count.short_description='Aantal locaties'
@@ -469,7 +475,10 @@ class Datasource(models.Model, DatasourceMixin):
         c1 = calib[i-1]
         c2 = calib[i]
         dc = c2-c1
-        return c1 + (value - s1) * (dc / ds) 
+        if value < s1 or value > s2:
+            return None
+        calval = c1 + (value - s1) * (dc / ds) 
+        return calval
     
     def calibrate(self,data):
         for name in data.columns:
@@ -483,9 +492,7 @@ class Datasource(models.Model, DatasourceMixin):
                 caldata = [(d.sensor_value, d.calib_value) for d in caldata]
                 x,y = zip(*caldata)
                 sensdata = data[name]
-                sensdata.is_copy = False
-                for index,value in sensdata.iteritems():
-                    sensdata[index] = self.calibrate_value(value, x, y)
+                data[name] = [self.calibrate_value(value,x,y) for value in sensdata]
         return data
                 
     def to_csv(self):
@@ -1088,7 +1095,7 @@ class Series(PolymorphicModel,DatasourceMixin):
         self.datapoints.all().delete()
         return self.create()
 
-    def update(self, data=None, start=None):
+    def update(self, data=None, start=None, thumbnail=True):
         logger = self.getLogger()
 
         logger.debug('Updating series %s' % self.name)
@@ -1125,7 +1132,7 @@ class Series(PolymorphicModel,DatasourceMixin):
         num_created = len(created) - num_deleted
         num_updated = num_deleted
         logger.info('Series %s updated: %d points created, %d updated' % (self.name, num_created, num_updated))
-        if num_created > 0 or num_updated > 0:
+        if thumbnail and (num_created > 0 or num_updated > 0):
             self.make_thumbnail()
         self.save()
         return num_created + num_updated

@@ -1,0 +1,6 @@
+/__init__.pyc
+/celery.pyc
+/settings.pyc
+/urls.pyc
+/views.pyc
+/wsgi.pyc

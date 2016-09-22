@@ -5,7 +5,7 @@ Created on Jul 8, 2014
 '''
 import os
 from django.utils.text import slugify
-from .util import make_chart, recomp
+from .util import make_chart, recomp, createmeteo
 from acacia.data.models import Series
  
 def make_wellcharts(modeladmin, request, queryset):
@@ -13,7 +13,7 @@ def make_wellcharts(modeladmin, request, queryset):
         if not w.has_data():
             continue
 #        if w.chart.name is None or len(w.chart.name) == 0:
-        w.chart.name = os.path.join(w.chart.field.upload_to, slugify(unicode(w.nitg)) +'.png')
+        w.chart.name = os.path.join(w.chart.field.upload_to, slugify(unicode(w)) +'.png')
         w.save()
         imagedir = os.path.dirname(w.chart.path)
         if not os.path.exists(imagedir):
@@ -50,4 +50,10 @@ def recomp_wells(modeladmin, request, queryset):
     for well in queryset:
         recomp_screens(modeladmin,request,well.screen_set.all())
 recomp_wells.short_description = "Gecompenseerde tijdreeksen opnieuw aanmaken voor geselecteerde putten"
+
+def add_meteo_for_wells(modeladmin, request, queryset):
+    for well in queryset:
+        createmeteo(request,well)
+add_meteo_for_wells.short_description = "Meteostations en tijdreeksen toevoegen voor geselecteerde putten"
+
     
