@@ -287,7 +287,7 @@ def addmonfile(request,network,f):
     
     user = request.user
     generator = Generator.objects.get(name='Schlumberger')
-    if not filename.endswith('.MON'):
+    if not filename.lower().endswith('.mon'):
         logger.warning('Bestand {name} wordt overgeslagen: bestandsnaam eindigt niet op .MON'.format(name=basename))
         return (None,None)
     try:
@@ -318,6 +318,8 @@ def addmonfile(request,network,f):
             logger.info('Datalogger {log} gekoppeld aan filter {loc}'.format(log=serial,loc=unicode(screen)))
             if depth is None:
                 logger.warning('Geen kabellengte beschikbaar voor deze logger')
+            else:
+                logger.warning('Kabellengte {} overgenomen van bestaande installatie'.format(depth))
         else:
             logger.info('Geinstalleerde logger {log} gevonden in filter {loc}'.format(log=serial,loc=unicode(screen)))
 

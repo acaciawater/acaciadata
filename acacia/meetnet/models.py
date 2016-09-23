@@ -98,7 +98,10 @@ class Photo(models.Model):
         return '<a href="%s"><img src="%s" height="60px"/></a>' % (url,url)
 
     def __unicode__(self):
-        return os.path.basename(self.photo.file.name)
+        try:
+            return os.path.basename(self.photo.file.name)
+        except:
+            return ' '
 
     thumb.allow_tags=True
     thumb.short_description='voorbeeld'
