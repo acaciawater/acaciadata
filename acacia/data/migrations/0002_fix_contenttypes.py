@@ -5,6 +5,7 @@ from django.db import migrations
 from django.contrib.contenttypes.models import ContentType
 
 def fixct(apps, schema_editor):
+    #all polymorphic items
     for name in ['Series', 'Chart','Formula', 'ManualSeries', 'Grid']:
         model = apps.get_model('data', name)
         ct = ContentType.objects.get_for_model(model)
