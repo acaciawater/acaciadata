@@ -81,6 +81,8 @@ class MeetLocatieForm(ModelForm):
         # trim whitespace from name
         return self.cleaned_data['name'].strip()
 
+from .models import LOGGING_CHOICES
+
 class MeetLocatieAdmin(admin.ModelAdmin):
     form = MeetLocatieForm
     list_display = ('name','projectlocatie','project','datasourcecount',)
@@ -91,7 +93,6 @@ class MeetLocatieAdmin(admin.ModelAdmin):
     actions = [actions.meteo_toevoegen, 'add_notifications', actions.set_locatie]
 
     class NotificationActionForm(forms.Form):
-        from .models import LOGGING_CHOICES
         email = forms.EmailField(label='Email adres', required=True)
         level = forms.ChoiceField(label='Niveau', choices=LOGGING_CHOICES,required=True)
     
@@ -116,6 +117,50 @@ class MeetLocatieAdmin(admin.ModelAdmin):
     
     add_notifications.short_description='Berichtgeving toevoegen aan geselecteerde meetlocaties'
 
+class NotificationAdmin(admin.ModelAdmin):
+    Model = Notification
+    actions = ['set_level']
+    list_display = ('datasource', 'meetlocatie', 'user', 'email', 'level', 'active')
+    list_filter = ('datasource__meetlocatie','datasource', 'user', 'level')
+    search_fields = ('datasource', 'user')
+    #action_form = LevelActionForm
+    #actions = ['set_level']
+
+    class NotificationLevelForm(forms.Form):
+        level = forms.ChoiceField(choices = LOGGING_CHOICES, label='Niveau', initial={'level': 'ERROR'}, required=True, help_text='Niveau van berichtgeving')
+    
+    def set_level(self, request, queryset):
+        if 'apply' in request.POST:
+            form = self.NotificationLevelForm(request.POST)   
+            if form.is_valid():
+                level = form.cleaned_data['level']
+                num_updated = queryset.update(level=level)
+                self.message_user(request, "% email notifications changed" % num_updated)
+                return
+        elif 'cancel' in request.POST:
+            return redirect(request.get_full_path())
+        else:
+            form = self.NotificationLevelForm(initial={'level': 'ERROR'})
+        return render(request,'data/change_notify_level.html',{'form': form, 'locaties': queryset, 'check': admin.helpers.ACTION_CHECKBOX_NAME})
+
+    set_level.short_description='Niveau aanpassen'
+
+    
+    def get_form(self, request, obj=None, **kwargs):
+        if obj is None:
+            self.exclude = ('user', 'email')
+        else:
+            self.exclude = ()
+        form = super(NotificationAdmin,self).get_form(request,obj,**kwargs)
+        return form
+    
+    def save_model(self, request, obj, form, change):
+        if obj.user is None:
+            obj.user = request.user
+            obj.email = request.user.email
+        obj.subject = obj.subject.replace('%(datasource)', obj.source.name)
+        obj.save()
+        
 class CalibrationAdmin(admin.ModelAdmin):
     model = CalibrationData
     list_display = ('parameter', 'sensor_value', 'calib_value')
@@ -129,8 +174,8 @@ class CalibrationInline(admin.TabularInline):
     def formfield_for_foreignkey(self, db_field, request=None, **kwargs):
         field = super(CalibrationInline, self).formfield_for_foreignkey(db_field, request, **kwargs)
         if db_field.name == 'parameter':
-            if request.datasource is not None:
-                field.queryset = field.queryset.filter(datasource__exact = request.datasource)  
+            if request.source is not None:
+                field.queryset = field.queryset.filter(datasource__exact = request.source)  
             else:
                 field.queryset = field.queryset.none()
         return field 
@@ -179,7 +224,7 @@ class DatasourceAdmin(admin.ModelAdmin):
         
     def get_form(self, request, obj=None, **kwargs):
         # just save obj reference for future processing in Inline
-        request.datasource = obj
+        request.source = obj
         return super(DatasourceAdmin, self).get_form(request, obj, **kwargs)
      
     def save_formset(self, request, form, formset, change):
@@ -510,35 +555,6 @@ class TabGroupAdmin(admin.ModelAdmin):
     
 class WebcamAdmin(admin.ModelAdmin):
     list_display = ('name', 'snapshot', )
-      
-class NotificationAdmin(admin.ModelAdmin):
-    Model = Notification
-        
-    list_display = ('datasource', 'user', 'email', 'level', 'active')
-    list_filter = ('datasource', 'user', 'email', 'level', 'active')
-    search_fields = ('datasource', 'user')
-    #action_form = LevelActionForm
-    #actions = ['set_level']
-    
-    def get_form(self, request, obj=None, **kwargs):
-        if obj is None:
-            self.exclude = ('user', 'email')
-        else:
-            self.exclude = ()
-        form = super(NotificationAdmin,self).get_form(request,obj,**kwargs)
-        return form
-    
-    def save_model(self, request, obj, form, change):
-        if obj.user is None:
-            obj.user = request.user
-            obj.email = request.user.email
-        obj.subject = obj.subject.replace('%(datasource)', obj.datasource.name)
-        obj.save()
-        
-    def set_level(self, request, queryset):
-        level = request.POST.get('level')
-        queryset.update(level=level)
-    set_level.short_description='Niveau aanpassen'
 
 from actions import update_kental
 class KeyFigureAdmin(admin.ModelAdmin):
