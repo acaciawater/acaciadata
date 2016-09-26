@@ -49,8 +49,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        with DatasourceAdapter(logging.getLogger('update')) as logger:
-            #logging.getLogger('acacia.data').addHandler(email_handler)
+        with DatasourceAdapter(logging.getLogger('update.notify')) as logger:
             logger.datasource = ''
             logger.info('***UPDATE STARTED***')
             thumb = options.get('thumb')
@@ -122,13 +121,15 @@ class Command(BaseCommand):
                         newfilecount = 0
                         newfiles = None
 
-                    if down and newfilecount == 0:
-                        # we tried to download but there is no new data
+                    if newfilecount == 0:
+                        if down:
+                            # we tried to download but there is no new data
+                            logger.warning('No new data found for datasource {}'.format(d))
                         logger.debug('Update of timeseries skipped')
                         continue
-                    
-                    count = count + 1
-                    # TODO: Avoid reading the data twice: d.download() has called sourcefile.save() which reads the data and updates dimensions
+                    else:
+                        count += 1
+                        
                     logger.info('Reading datasource')
                     try:
                         data = d.get_data(files=newfiles,start=start)
@@ -148,18 +149,21 @@ class Command(BaseCommand):
                         except Exception as e:
                             logger.exception('ERROR updating parameters for datasource: %s' % e)
 
+                    updated = 0
                     for s in series:
                         logger.info('Updating timeseries %s' % s.name)
                         try:
                             changes = s.replace() if replace else s.update(data,start=start,thumbnail=thumb) 
                             if changes > 0:
+                                updated += 1
                                 changed_series.append(s)
                             else:
                                 logger.warning('No new data for %s' % s.name)    
                         except Exception as e:
                             logger.exception('ERROR updating timeseries %s: %s' % (s.name, e))
                 
-                    logger.info('Datasource %s updated' % d.name)
+                    if updated:
+                        logger.info('{} time series updated for datasource {}'.format(updated,d.name))
                 
                 except Exception as e:
                     logger.exception('ERROR updating datasource %s: %s' % (d.name, e))
@@ -204,6 +208,4 @@ class Command(BaseCommand):
                 logger.info('%d calculated time series were updated' % count)
 
             logger.info('***UPDATE COMPLETED***')
-            #email_handler.flush()
-            #logging.getLogger('acacia.data.update').removeHandler(email_handler)
                     
