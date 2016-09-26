@@ -22,27 +22,27 @@ class AutoFlushLoggingAdapter(logging.LoggerAdapter):
         ''' called when with block terminates '''
         self.flush()
       
-class DatasourceAdapter(AutoFlushLoggingAdapter):
-    ''' Logging adapter that adds datasource to log records '''
+class SourceAdapter(AutoFlushLoggingAdapter):
+    ''' Logging adapter that adds a source object to log records '''
     stack = []
-    datasource = None
+    source = None
     
-    def __init__(self,logger,datasource=None):
-        self.push(datasource)
-        return super(DatasourceAdapter,self).__init__(logger, datasource)
+    def __init__(self,logger,source=None):
+        self.push(source)
+        return super(SourceAdapter,self).__init__(logger, source)
      
     def process(self, msg, kwargs):
-        kwargs['extra'] = {'datasource': self.datasource}
+        kwargs['extra'] = {'source': self.source}
         return (msg, kwargs)
  
     def push(self,ds):
         self.stack.append(ds)
-        self.datasource = ds
-        return self.datasource
+        self.source = ds
+        return self.source
      
     def pop(self):
-        self.datasource = self.stack.pop()
-        return self.datasource
+        self.source = self.stack.pop()
+        return self.source
 
 from threading import Timer
 class TimedBufferingHandler(handlers.BufferingHandler):
@@ -73,9 +73,9 @@ class BufferingEmailHandler(handlers.BufferingHandler):
         from acacia.data.models import Datasource
         group = {}
         for record in records:
-            if hasattr(record,'datasource'):
-                if isinstance(record.datasource, Datasource):
-                    for n in record.datasource.notification_set.filter(active=True):
+            if hasattr(record,'source'):
+                if isinstance(record.source, (Datasource,)):
+                    for n in record.source.notification_set.filter(active=True):
                         email = n.email
                         nlvl = logging.getLevelName(n.level)
                         rlvl = record.levelno
@@ -90,9 +90,9 @@ class BufferingEmailHandler(handlers.BufferingHandler):
         from acacia.data.models import Datasource
         group = {}
         for record in records:
-            if hasattr(record,'datasource'):
-                if isinstance(record.datasource,Datasource):
-                    for n in record.datasource.notification_set.filter(active=True):
+            if hasattr(record,'source'):
+                if isinstance(record.source,(Datasource,)):
+                    for n in record.source.notification_set.filter(active=True):
                         nlvl = logging.getLevelName(n.level)
                         rlvl = record.levelno
                         if nlvl <= rlvl: 
@@ -105,13 +105,13 @@ class BufferingEmailHandler(handlers.BufferingHandler):
     def format_message(self, records):
         ''' formats log records as html '''
         from django.template.loader import render_to_string
-        # group records by datasource
+        # group records by source
         ds = {}
         for r in records:
-            if not r.datasource in ds:
-                ds[r.datasource] = [r]
+            if not r.source in ds:
+                ds[r.source] = [r]
             else:
-                ds[r.datasource].append(r)
+                ds[r.source].append(r)
         return render_to_string('data/notify_email.html', {'data': ds})
 
     def send_html_mail(self, subject, message, from_email, recipient_list,
@@ -134,7 +134,7 @@ class BufferingEmailHandler(handlers.BufferingHandler):
             grp = self.group_records_by_email(self.buffer)
             for email, records in grp.items():
                 msg = self.format_message(records)
-                ds = set([r.datasource for r in records])
+                ds = set([r.source for r in records])
                 if len(ds) == 1:
                     subject = 'Update of %s' % ds.pop()
                 else:
@@ -152,6 +152,6 @@ class BufferingEmailHandler(handlers.BufferingHandler):
             self.release() 
               
 # h=BufferingEmailHandler(fromaddr='webmaster@acaciadata.com', subject='Houston, we have a problem', capacity=10)
-# f=logging.Formatter('%(levelname)s %(asctime)s %(datasource)s: %(message)s')
+# f=logging.Formatter('%(levelname)s %(asctime)s %(source)s: %(message)s')
 # h.setFormatter(f)
 # l=logging.getLogger('acacia.data').addHandler(h)
