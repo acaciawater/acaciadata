@@ -7,7 +7,7 @@ from django.core.management.base import BaseCommand
 from optparse import make_option
 from acacia.data.models import Datasource, Formula, aware
 import logging
-from acacia.data.loggers import DatasourceAdapter
+from acacia.data.loggers import SourceAdapter
 from datetime import datetime
  
 # Move this part to settings.py
@@ -20,7 +20,7 @@ class Command(BaseCommand):
     args = ''
     help = 'Downloads data from remote sites and updates time series'
     option_list = BaseCommand.option_list + (
-            make_option('--nodownload',
+            make_option('-d','--nodownload',
                 action='store_false',
                 dest='down',
                 default=True,
@@ -31,7 +31,7 @@ class Command(BaseCommand):
                 dest = 'pk',
                 default = None,
                 help = 'update single datasource'),
-            make_option('--nocalc',
+            make_option('-c', '--nocalc',
                 action='store_false',
                 dest = 'calc',
                 default = True,
@@ -45,15 +45,22 @@ class Command(BaseCommand):
                 action='store_false',
                 dest = 'thumb',
                 default = True,
-                help = 'don\'t update thumbnails for series')
+                help = 'don\'t update thumbnails for series'),
+            make_option('-f','--force',
+                action='store_true',
+                dest = 'force',
+                default = False,
+                help = 'force update of timeseries'),
         )
 
     def handle(self, *args, **options):
-        with DatasourceAdapter(logging.getLogger('update.notify')) as logger:
-            logger.datasource = ''
+        with SourceAdapter(logging.getLogger('update.notify')) as logger:
+            logger.source = ''
             logger.info('***UPDATE STARTED***')
             thumb = options.get('thumb')
             down = options.get('down')
+            force = options.get('force')
+
             if down:
                 logger.info('Downloading data, updating parameters and related time series')
             else:
@@ -75,7 +82,7 @@ class Command(BaseCommand):
             for d in datasources:
                 if not d.autoupdate and pk is None:
                     continue
-                logger.datasource = d
+                logger.source = d
                 logger.info('Updating datasource %s' % d.name)
                 try:
                     series = d.getseries()
@@ -109,7 +116,7 @@ class Command(BaseCommand):
                             newfiles = d.download()
                         except Exception as e:
                             logger.exception('ERROR downloading datasource: %s' % e)
-                            continue
+                            newfiles = None
                         if newfiles is None:
                             newfilecount = 0
                         else:
@@ -125,8 +132,9 @@ class Command(BaseCommand):
                         if down:
                             # we tried to download but there is no new data
                             logger.warning('No new data found for datasource {}'.format(d))
-                        logger.debug('Update of timeseries skipped')
-                        continue
+                            if not force:
+                                logger.debug('Update of timeseries skipped')
+                                continue
                     else:
                         count += 1
                         
@@ -168,7 +176,7 @@ class Command(BaseCommand):
                 except Exception as e:
                     logger.exception('ERROR updating datasource %s: %s' % (d.name, e))
                 
-            logger.datasource = ''
+            logger.source = ''
             logger.info('%d datasources were updated' % count)
 
             calc = options.get('calc',True)

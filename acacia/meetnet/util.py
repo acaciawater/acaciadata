@@ -346,7 +346,7 @@ def addmonfile(request,network,f):
         except SourceFile.DoesNotExist:
             # add source file
             mon.name = mon.filename = basename
-            mon.datasource = ds
+            mon.source = ds
             mon.user = ds.user
             contentfile = ContentFile(contents)
             mon.file.save(name=filename, content=contentfile)
