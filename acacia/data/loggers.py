@@ -62,16 +62,15 @@ class TimedBufferingHandler(handlers.BufferingHandler):
         self.timer = Timer(self.interval, self.flush)
         self.timer.start()
 
-from acacia.data.models import Datasource
-
-class BufferingEmailHandler(TimedBufferingHandler):
+class BufferingEmailHandler(handlers.BufferingHandler):
     
-    def __init__(self, fromaddr, subject, capacity, interval):
-        super(BufferingEmailHandler,self).__init__(capacity,interval)
+    def __init__(self, fromaddr, subject, capacity):
+        super(BufferingEmailHandler,self).__init__(capacity)
         self.fromaddr = fromaddr
         self.subject = subject
   
     def group_records_by_email(self, records):
+        from acacia.data.models import Datasource
         group = {}
         for record in records:
             if hasattr(record,'datasource'):
@@ -88,10 +87,11 @@ class BufferingEmailHandler(TimedBufferingHandler):
         return group
 
     def group_records(self, records):
+        from acacia.data.models import Datasource
         group = {}
         for record in records:
             if hasattr(record,'datasource'):
-                if isinstance(record.datasource, Datasource):
+                if isinstance(record.datasource,Datasource):
                     for n in record.datasource.notification_set.filter(active=True):
                         nlvl = logging.getLevelName(n.level)
                         rlvl = record.levelno
