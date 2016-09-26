@@ -113,7 +113,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'gegevensbron',
                 'verbose_name_plural': 'gegevensbronnen',
             },
-            bases=(models.Model, acacia.data.models.DatasourceMixin),
+            bases=(models.Model, acacia.data.models.LoggerSourceMixin),
         ),
         migrations.CreateModel(
             name='Generator',
@@ -182,7 +182,7 @@ class Migration(migrations.Migration):
             options={
                 'ordering': ['name'],
             },
-            bases=(models.Model, acacia.data.models.DatasourceMixin),
+            bases=(models.Model, acacia.data.models.LoggerSourceMixin),
         ),
         migrations.CreateModel(
             name='Project',
@@ -235,7 +235,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Tijdreeks',
                 'verbose_name_plural': 'Tijdreeksen',
             },
-            bases=(models.Model, acacia.data.models.DatasourceMixin),
+            bases=(models.Model, acacia.data.models.LoggerSourceMixin),
         ),
         migrations.CreateModel(
             name='SeriesProperties',
@@ -272,7 +272,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'bronbestand',
                 'verbose_name_plural': 'bronbestanden',
             },
-            bases=(models.Model, acacia.data.models.DatasourceMixin),
+            bases=(models.Model, acacia.data.models.LoggerSourceMixin),
         ),
         migrations.CreateModel(
             name='Station',
