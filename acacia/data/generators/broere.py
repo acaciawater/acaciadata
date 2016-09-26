@@ -34,7 +34,7 @@ class NMCPro(Generator):
         header = self.get_header(f)
         names = header['COLUMNS']
         data = self.read_csv(f, header=None, skiprows = self.skiprows, names=names, comment = '#', index_col=0, 
-                           parse_dates=0, dayfirst = self.dayfirst, na_values = ['----', '-------'])
+                           parse_dates=[[0,1]], dayfirst = self.dayfirst, na_values = ['----', '-------'])
         data.dropna(how='all',inplace=True)
         data.sort(inplace=True)
         return data
