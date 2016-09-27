@@ -2,6 +2,7 @@ from .shortcuts import meteo2locatie
 from .models import Chart, Series, Grid, ManualSeries
 
 import logging, re
+from django.contrib.gis.geos.point import Point
 logger = logging.getLogger(__name__)
 
 def sourcefile_dimensions(modeladmin, request, queryset):
@@ -24,8 +25,7 @@ meteo_toevoegen.short_description = "Meteostation, neerslagstation en regenradar
 
 def upload_datasource(modeladmin, request, queryset):
     for df in queryset:
-        if df.url != '':
-            df.download()
+        df.download()
 upload_datasource.short_description = "Upload de geselecteerde gegevensbronnen naar de server"
 
 def update_parameters(modeladmin, request, queryset):
@@ -243,7 +243,6 @@ def update_grid(modeladmin, request, queryset):
         for cs in g.series.all():
             s = cs.series
             s.update()
-            
 update_grid.short_description = "Grid bijwerken"
 
 def test_kental(modeladmin, request, queryset):
@@ -253,4 +252,20 @@ def test_kental(modeladmin, request, queryset):
 def update_kental(modeladmin, request, queryset):
     for k in queryset:
         k.update()
-                
+
+def generate_locations(modeladmin, request, queryset):
+    '''generates meetlocaties from a datasource'''
+    ncreated = 0
+    for ds in queryset:
+        projectlocatie = ds.projectlocatie()
+        locs = ds.get_locations()
+        num = len(locs)
+        for key,values in locs.iteritems():
+            desc = values.get('description',None)
+            loc = Point(values['coords'],srid=values['srid'])
+            mloc, created = projectlocatie.meetlocatie_set.get_or_create(name=key,defaults={'description': desc,'location':loc})
+            if created:
+                logger.debug('Created Meetlocatie {}'.format(unicode(mloc)))
+                ncreated += 1
+    logger.info('{} new locations created'.format(ncreated))
+generate_locations.short_description = 'Meetlocaties aanmaken voor geselecteerde gegevensbronnen'

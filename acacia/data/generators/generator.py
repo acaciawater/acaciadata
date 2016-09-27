@@ -114,3 +114,11 @@ class Generator(object):
     def get_parameters(self,fil):
         ''' return dict of all parameters in the datafile '''
         return {}
+
+    def get_locations(self,fil):
+        ''' return dict of all locations in the datafile '''
+        return {}
+
+    def get_default_url(self):
+        return None
+    

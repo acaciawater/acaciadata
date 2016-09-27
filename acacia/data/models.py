@@ -173,10 +173,10 @@ class MeetLocatie(geo.Model):
         unique_together = ('projectlocatie', 'name')
 
     def filecount(self):
-        return sum([d.filecount() for d in self.datasources.all()])
+        return sum([d.filecount() or 0 for d in self.datasources.all()])
 
     def paramcount(self):
-        return sum([d.parametercount() for d in self.datasources.all()])
+        return sum([d.parametercount() or 0 for d in self.datasources.all()])
     
     def series(self):
         ser = []
@@ -249,7 +249,7 @@ class Datasource(models.Model, LoggerSourceMixin):
     name = models.CharField(max_length=100,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     meetlocatie=models.ForeignKey(MeetLocatie,related_name='datasources',help_text='Meetlocatie van deze gegevensbron')
-    url=models.CharField(blank=True,null=True,max_length=200,help_text='volledige url van de gegevensbron. Leeg laten voor handmatige uploads')
+    url=models.CharField(blank=True,null=True,max_length=200,help_text='volledige url van de gegevensbron. Leeg laten voor handmatige uploads of default url van generator')
     generator=models.ForeignKey(Generator,help_text='Generator voor het maken van tijdreeksen uit de datafiles')
     user=models.ForeignKey(User,verbose_name='Aangemaakt door')
     created = models.DateTimeField(auto_now_add=True,verbose_name='Aangemaakt op')
@@ -296,26 +296,23 @@ class Datasource(models.Model, LoggerSourceMixin):
     
     def download(self, start=None):
         logger = self.getLogger()
-        if self.url is None or len(self.url) == 0:
-            logger.error('Cannot download datasource %s: no url supplied' % (self.name))
-            return None
-
         if self.generator is None:
             logger.error('Cannot download datasource %s: no generator defined' % (self.name))
             return None
-            
-        logger.info('Downloading datasource %s from %s' % (self.name, self.url))
+
         gen = self.get_generator_instance()
         if gen is None:
             logger.error('Cannot download datasource %s: could not create instance of generator %s' % (self.name, self.generator))
             return None
 
-        options = {'url': self.url}
+        options = {}
+        
         if self.meetlocatie:
             #lonlat = self.meetlocatie.latlon() # does not initialize geo object manager
             loc = MeetLocatie.objects.get(pk=self.meetlocatie.pk)
             lonlat = loc.latlon()
             options['lonlat'] = (lonlat.x,lonlat.y)
+            options['meetlocatie'] = unicode(loc)
         if self.username:
             options['username'] = self.username
             options['password'] = self.password
@@ -333,7 +330,18 @@ class Datasource(models.Model, LoggerSourceMixin):
         elif not 'start' in options:
             # incremental download
             options['start'] = self.stop()
+
+        url = self.url or gen.get_default_url()
+        if not url:
+            logger.error('Cannot download datasource %s: no default url available' % (self.name))
+            return None
+
+        options['url']=url
+        
+        logger.info('Downloading datasource %s from %s' % (self.name, url))
+
         try:
+            
             files = []
             crcs = {f.crc:f.file for f in self.sourcefiles.all()}
 
@@ -467,6 +475,16 @@ class Datasource(models.Model, LoggerSourceMixin):
             return data.sort()
         return data
 
+    def get_locations(self,**kwargs):
+        logger = self.getLogger()
+        gen = self.get_generator_instance()
+        logger.debug('Getting locations for datasource %s', self.name)
+        files = kwargs.get('files', None) or self.sourcefiles.all()
+        locs = {}
+        for sourcefile in files:
+            locs.update(sourcefile.get_locations())
+        return locs
+    
     def calibrate_value(self, value, sensor, calib):
         ''' return calibrated sensor data 
             sensor is iterable with sorted sensor values            
@@ -683,6 +701,27 @@ class SourceFile(models.Model,LoggerSourceMixin):
             logger.debug('Got %d rows, %d columns', shape[0], shape[1])
         return data
 
+    def get_locations(self,gen=None):
+        logger=self.getLogger()
+        if gen is None:
+            gen = self.datasource.get_generator_instance()
+        try:
+            filename = self.file.name
+        except:
+            logger.error('Sourcefile %s has no associated file' % self.name)
+            return None
+        logger.debug('Getting locations for sourcefile %s', self.name)
+        try:
+            locs = gen.get_locations(self.file)
+        except Exception as e:
+            logger.exception('Error retrieving locations from %s: %s' % (filename, e))
+            return None
+        if not locs:
+            logger.warning('No locations found in %s' % filename)
+        else:
+            logger.debug('Got %d locations', len(locs))
+        return locs
+        
     def get_dimensions(self, data=None):
         if data is None:
             data = self.get_data()
@@ -695,8 +734,8 @@ class SourceFile(models.Model,LoggerSourceMixin):
             tz = timezone.get_current_timezone()
             self.rows = data.shape[0]
             self.cols = data.shape[1]
-            self.start = aware(data.index.min(),tz)
-            self.stop = aware(data.index.max(),tz)
+            self.start = aware(data.index.min(),tz) if self.rows else None
+            self.stop = aware(data.index.max(),tz) if self.rows else None
 
 from django.db.models.signals import pre_delete, pre_save, post_save
 from django.dispatch.dispatcher import receiver
