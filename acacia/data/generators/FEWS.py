@@ -49,9 +49,9 @@ class FEWS(Generator):
     
     def get_parameters(self, f):
         params = {}
-        content = f.read()
+#        content = f.read()
 #         datasource = json.loads('"result" :'+content)
-        datasource = json.loads(content)
+        datasource = json.load(f)
         name = datasource['name']
         description = datasource['parameter_referenced_unit']['parameter_short_display_name']
         unit = datasource['parameter_referenced_unit']['referenced_unit_short_display_name']
