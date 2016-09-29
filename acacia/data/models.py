@@ -41,21 +41,29 @@ def aware(d,tz=None):
     return d
 
 from django.utils.deconstruct import deconstructible
+
 @deconstructible
-class DatasourceMixin(object):
-    ''' Mixin that provides a logging adapter that adds datasource context to log records
-    Used to send emails to users that follow a datasource ''' 
-    def getDatasource(self):
-        if isinstance(self, Datasource):
-            return self
-        if hasattr(self,'datasource'):
-            datasource = getattr(self,'datasource')
-            return datasource() if callable(datasource) else datasource
+class LoggerSourceMixin(object):
+    ''' Mixin that provides a logging adapter that adds source context to log records
+    Used to send emails to users that follow a source ''' 
+    def getLoggerSource(self):
+        return self
 
     def getLogger(self,name=__name__): 
         logger = logging.getLogger(name)  
-        return logging.LoggerAdapter(logger,extra={'datasource': self.getDatasource()})
-       
+        return logging.LoggerAdapter(logger,extra={'source': self.getLoggerSource()})
+
+# @deconstructible
+# class DatasourceMixin(LoggerSourceMixin):
+#     def getLoggerSource(self):
+#         if isinstance(self, Datasource):
+#             return self
+#         if hasattr(self,'datasource'):
+#             datasource = getattr(self,'datasource')
+#             return datasource() if callable(datasource) else datasource
+#         else:
+#             return super(DatasourceMixin,self).getLoggerSource()
+
 class Project(models.Model):
     name = models.CharField(max_length=50, unique=True)
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
@@ -237,7 +245,7 @@ LOGGING_CHOICES = (
 #                  ('CRITICAL', 'Alleen kritieke fouten'),
                   )
 
-class Datasource(models.Model, DatasourceMixin):
+class Datasource(models.Model, LoggerSourceMixin):
     name = models.CharField(max_length=100,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     meetlocatie=models.ForeignKey(MeetLocatie,related_name='datasources',help_text='Meetlocatie van deze gegevensbron')
@@ -563,6 +571,8 @@ class Notification(models.Model):
         verbose_name ='Email berichten'
         verbose_name_plural = 'Email berichten'
     
+    def meetlocatie(self):
+        return self.datasource.meetlocatie
     
 # class UpdateSchedule(models.Model):
 #     datasource = models.ForeignKey(Datasource)
@@ -573,7 +583,7 @@ class Notification(models.Model):
 #     dayofweek = models.CharField(max_length=1,default='*')
 #     active = models.BooleanField(default=True)
     
-class SourceFile(models.Model,DatasourceMixin):
+class SourceFile(models.Model,LoggerSourceMixin):
     name=models.CharField(max_length=100,blank=True)
     datasource = models.ForeignKey('Datasource',related_name='sourcefiles', verbose_name = 'gegevensbron')
     file=models.FileField(max_length=200,upload_to=up.sourcefile_upload,blank=True,null=True)
@@ -739,7 +749,7 @@ SERIES_CHOICES = (('line', 'lijn'),
                   ('spline', 'spline')
                   )
         
-class Parameter(models.Model, DatasourceMixin):
+class Parameter(models.Model, LoggerSourceMixin):
     datasource = models.ForeignKey(Datasource)
     name = models.CharField(max_length=50,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
@@ -829,11 +839,10 @@ AGGREGATION_METHOD = (
 # set  default series type from parameter type in sqlite database: 
 # update data_series set type = (select p.type from data_parameter p where id = data_series.parameter_id) 
 
-#class Series(models.Model,DatasourceMixin):
 from polymorphic.manager import PolymorphicManager
 from polymorphic.models import PolymorphicModel
 
-class Series(PolymorphicModel,DatasourceMixin):
+class Series(PolymorphicModel,LoggerSourceMixin):
     mlocatie = models.ForeignKey(MeetLocatie,null=True,verbose_name='meetlocatie')
     name = models.CharField(max_length=100,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')

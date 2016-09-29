@@ -27,7 +27,7 @@ def meetlocatie_upload(instance, filename):
 def sourcefile_upload(instance, filename):
     try:
         sourcefile = instance
-        datasource = sourcefile.datasource
+        datasource = sourcefile.source
         meetlocatie = datasource.meetlocatie
         projectlocatie = meetlocatie.projectlocatie
         project = projectlocatie.project
@@ -43,7 +43,7 @@ def sourcefile_upload(instance, filename):
 def param_thumb_upload(instance, filename):
     try:
         parameter = instance
-        datasource = parameter.datasource
+        datasource = parameter.source
         meetlocatie = datasource.meetlocatie
         projectlocatie = meetlocatie.projectlocatie
         project = projectlocatie.project
@@ -60,7 +60,7 @@ def param_thumb_upload(instance, filename):
         
 def series_thumb_upload(instance, filename):
     try:
-        datasource = instance.datasource()
+        datasource = instance.source()
         meetlocatie = instance.meetlocatie()
         projectlocatie = instance.projectlocatie()
         project = instance.project()

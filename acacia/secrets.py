@@ -1,4 +1,6 @@
 SECRET_KEY = 'lyh)8hhwcz*a7i-o9ndk(7j0(%e25o3ji^7e+anqq4e)f^7#y('
+
+GOOGLE_MAPS_API_KEY = 'AIzaSyBZoEnkbR2kagMCHyT-CiuBzJOW3bkexBA'
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.mysql',
