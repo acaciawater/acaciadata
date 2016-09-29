@@ -19,7 +19,7 @@ class Media:
         '/static/grappelli/tinymce/jscripts/tiny_mce/tiny_mce.js',
         '/static/acacia/js/tinymce_setup/tinymce_setup.js',
     ]
-    
+
 class LocatieInline(admin.TabularInline):
     model = ProjectLocatie
     options = {
@@ -35,7 +35,7 @@ class SourceInlineFormSet(BaseInlineFormSet):
     def get_queryset(self):
         qs = super(SourceInlineFormSet, self).get_queryset()
         return qs[:100] # limit number of formsets
-    
+
 class SourceFileInline(admin.TabularInline):
     model = SourceFile
     exclude = ('cols', 'crc', 'user')
@@ -43,7 +43,7 @@ class SourceFileInline(admin.TabularInline):
     ordering = ('-start', '-stop', 'name')
     classes = ('grp-collapse grp-closed',)
     formset = SourceInlineFormSet
-    
+
 class ParameterInline(admin.TabularInline):
     model = Parameter
     extra = 0
@@ -58,7 +58,7 @@ class ProjectLocatieForm(ModelForm):
     model = ProjectLocatie
     location = geoforms.PointField(widget=
         geoforms.OSMWidget(attrs={'map_width': 800, 'map_height': 500}))
-        
+
 class ProjectLocatieAdmin(admin.ModelAdmin):
     #form = ProjectLocatieForm
     actions = [actions.meetlocatie_aanmaken,]
@@ -68,7 +68,7 @@ class ProjectLocatieAdmin(admin.ModelAdmin):
     formfield_overrides = {models.PointField:{'widget': forms.TextInput(attrs={'width': '40px'})},
                            models.TextField: {'widget': forms.Textarea(attrs={'class': 'htmleditor'})}}
 class MeetLocatieForm(ModelForm):
-    
+
     def clean_location(self):
         loc = self.cleaned_data['location']
         if loc is None:
@@ -76,7 +76,7 @@ class MeetLocatieForm(ModelForm):
             projectloc = self.cleaned_data['projectlocatie']
             loc = projectloc.location
         return loc
-    
+
     def clean_name(self):
         # trim whitespace from name
         return self.cleaned_data['name'].strip()
@@ -94,10 +94,10 @@ class MeetLocatieAdmin(admin.ModelAdmin):
         from .models import LOGGING_CHOICES
         email = forms.EmailField(label='Email adres', required=True)
         level = forms.ChoiceField(label='Niveau', choices=LOGGING_CHOICES,required=True)
-    
+
     def add_notifications(self, request, queryset):
         if 'apply' in request.POST:
-            form = self.NotificationActionForm(request.POST)   
+            form = self.NotificationActionForm(request.POST)
             if form.is_valid():
                 email = form.cleaned_data['email']
                 level = form.cleaned_data['level']
@@ -113,28 +113,28 @@ class MeetLocatieAdmin(admin.ModelAdmin):
         else:
             form = self.NotificationActionForm(initial={'email': request.user.email, 'level': 'ERROR'})
         return render(request,'data/notify.html',{'form': form, 'locaties': queryset, 'check': admin.helpers.ACTION_CHECKBOX_NAME})
-    
+
     add_notifications.short_description='Berichtgeving toevoegen aan geselecteerde meetlocaties'
 
 class CalibrationAdmin(admin.ModelAdmin):
     model = CalibrationData
     list_display = ('parameter', 'sensor_value', 'calib_value')
     list_filter = ('datasource', 'parameter')
-    
+
 class CalibrationInline(admin.TabularInline):
     model = CalibrationData
     extra = 0
     classes = ('grp-collapse grp-closed',)
- 
+
     def formfield_for_foreignkey(self, db_field, request=None, **kwargs):
         field = super(CalibrationInline, self).formfield_for_foreignkey(db_field, request, **kwargs)
         if db_field.name == 'parameter':
             if request.datasource is not None:
-                field.queryset = field.queryset.filter(datasource__exact = request.datasource)  
+                field.queryset = field.queryset.filter(datasource__exact = request.datasource)
             else:
                 field.queryset = field.queryset.none()
-        return field 
-           
+        return field
+
 class DatasourceForm(ModelForm):
     model = Datasource
     password = forms.CharField(label='Wachtwoord', help_text='Wachtwoord voor de webservice', widget=PasswordInput(render_value=True),required=False)
@@ -147,7 +147,7 @@ class DatasourceForm(ModelForm):
         except Exception as ex:
             raise forms.ValidationError('Onjuiste JSON dictionary: %s'% ex)
         return config
-    
+
     def clean(self):
         cleaned_data = super(DatasourceForm, self).clean()
         update = self.cleaned_data['autoupdate']
@@ -156,14 +156,14 @@ class DatasourceForm(ModelForm):
             if url == '' or url is None:
                 raise forms.ValidationError('Als autoupdate aangevinkt is moet een url opgegeven worden')
         return cleaned_data
-        
+
 class DatasourceAdmin(admin.ModelAdmin):
     form = DatasourceForm
     inlines = [CalibrationInline, SourceFileInline,] # takes VERY long for decagon with more than 1000 files
     search_fields = ['name',]
     actions = [actions.upload_datasource, actions.update_parameters]
     list_filter = ('meetlocatie','meetlocatie__projectlocatie','meetlocatie__projectlocatie__project','generator')
-    list_display = ('name', 'description', 'meetlocatie', 'generator', 'last_download', 'filecount', 'parametercount', 'seriescount', 'calibcount','start', 'stop', 'rows',)
+    list_display = ('name', 'description', 'meetlocatie', 'generator', 'last_download', 'filecount', 'parametercount', 'seriescount', 'calibcount','rows',)
     fieldsets = (
                  ('Algemeen', {'fields': ('name', 'description', 'timezone', 'meetlocatie',),
                                'classes': ('grp-collapse grp-open',),
@@ -172,16 +172,20 @@ class DatasourceAdmin(admin.ModelAdmin):
                                'classes': ('grp-collapse grp-closed',),
                               }),
     )
-    
+
+    def number_of_orders(self, obj):
+        return obj.order__count
+    number_of_orders.admin_order_field = 'order__count'
+
     def save_model(self, request, obj, form, change):
         obj.user = request.user
         obj.save()
-        
+
     def get_form(self, request, obj=None, **kwargs):
         # just save obj reference for future processing in Inline
         request.datasource = obj
         return super(DatasourceAdmin, self).get_form(request, obj, **kwargs)
-     
+
     def save_formset(self, request, form, formset, change):
         instances = formset.save(commit=False)
         for instance in instances:
@@ -195,7 +199,7 @@ class DatasourceAdmin(admin.ModelAdmin):
                     instance.name,ext = os.path.splitext(os.path.basename(instance.file.name))
             instance.save()
         formset.save_m2m()
-        
+
 class GeneratorAdmin(admin.ModelAdmin):
     list_display = ('name', 'classname', 'description')
 
@@ -209,13 +213,13 @@ class SourceFileAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         obj.user = request.user
         obj.save()
-    
+
 class ParameterAdmin(admin.ModelAdmin):
     list_filter = ('datasource','datasource__generator','datasource__meetlocatie', 'datasource__meetlocatie__projectlocatie__project')
     actions = [actions.update_thumbnails, actions.generate_series,]
     list_display = ('name', 'thumbtag', 'meetlocatie', 'datasource', 'unit', 'description', 'seriescount')
 #     actions = [actions.generate_series,]
-#     list_display = ('name', 'meetlocatie', 'datasource', 'unit', 'description', 'seriescount')    
+#     list_display = ('name', 'meetlocatie', 'datasource', 'unit', 'description', 'seriescount')
     search_fields = ['name','description', 'datasource__name']
     ordering = ('name','datasource',)
 
@@ -223,7 +227,7 @@ class ReadonlyTabularInline(admin.TabularInline):
     can_delete = False
     extra = 0
     editable_fields = []
-    
+
     def get_readonly_fields(self, request, obj=None):
         fields = []
         for field in self.model._meta.get_all_field_names():
@@ -231,10 +235,10 @@ class ReadonlyTabularInline(admin.TabularInline):
                 if (field not in self.editable_fields):
                     fields.append(field)
         return fields
-    
+
     def has_add_permission(self, request):
         return False
-    
+
 class DataPointInline(admin.TabularInline):
     model = DataPoint
     classes = ('grp-collapse grp-closed',)
@@ -289,11 +293,11 @@ class ParameterSeriesAdmin(PolymorphicChildModelAdmin):
                                'classes': ('grp-collapse grp-closed',),
                               }),
     )
-    
+
     def save_model(self, request, obj, form, change):
         obj.user = request.user
         obj.save()
-        
+
 #class ManualSeriesAdmin(admin.ModelAdmin):
 class ManualSeriesAdmin(PolymorphicChildModelAdmin):
     base_model = Series
@@ -317,7 +321,7 @@ class FormulaSeriesAdmin(PolymorphicChildModelAdmin):
     base_model = Series
     #list_display = ('name', 'thumbtag', 'locatie', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
     #search_fields = ['name','locatie']
-    
+
     fieldsets = (
                   ('Algemeen', {'fields': ('mlocatie', 'name', ('unit', 'type'), 'description',),
                                 'classes': ('grp-collapse grp-open',),
@@ -339,7 +343,7 @@ class FormulaSeriesAdmin(PolymorphicChildModelAdmin):
         obj.save()
 
     #exclude = ('parameter',)
-    
+
 #     def clean_formula_text(self):
 #         # try to evaluate the expression
 #         data = self.cleaned_data['formula_text']
@@ -349,7 +353,7 @@ class FormulaSeriesAdmin(PolymorphicChildModelAdmin):
 #         except Exception as e:
 #             raise forms.ValidationError('Fout bij berekening formule: %s' % e)
 #         return data
-        
+
 #class SeriesAdmin(admin.ModelAdmin):
 class SeriesAdmin(PolymorphicParentModelAdmin):
     actions = [actions.create_grid, actions.copy_series, actions.download_series_zip, actions.refresh_series, actions.replace_series, actions.series_thumbnails, actions.update_series_properties, actions.empty_series]
@@ -363,7 +367,7 @@ class SeriesAdmin(PolymorphicParentModelAdmin):
     autocomplete_lookup_fields = {
         'fk': ['scale_series', 'offset_series'],
     }
-    
+
     class ContentTypeFilter(admin.SimpleListFilter):
         title = 'Tijdreeks type'
         parameter_name = 'ctid'
@@ -377,7 +381,7 @@ class SeriesAdmin(PolymorphicParentModelAdmin):
             if self.value() is not None:
                 return queryset.filter(polymorphic_ctype_id = self.value())
             return queryset
-       
+
 
 #    list_filter = ('parameter__datasource__meetlocatie', 'parameter__datasource', 'parameter__datasource__meetlocatie__projectlocatie__project', ContentTypeFilter)
     list_filter = ('mlocatie', 'parameter__datasource', 'parameter__datasource__meetlocatie__projectlocatie__project', ContentTypeFilter)
@@ -443,7 +447,7 @@ class ChartAdmin(admin.ModelAdmin):
     search_fields = ['name','description', 'title']
 
     #formfield_overrides = {models.TextField: {'widget': forms.Textarea(attrs={'class': 'htmleditor'})}}
-                
+
     def save_model(self, request, obj, form, change):
         obj.user = request.user
         obj.save()
@@ -458,19 +462,19 @@ class GridAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         obj.user = request.user
         obj.save()
-        
+
 class ChartInline(admin.TabularInline):
     model = DashboardChart
     extra = 0
     ordering = ('order',)
-    
+
 class DashAdmin(admin.ModelAdmin):
     filter_horizontal = ('charts',)
     list_display = ('name', 'description', 'grafieken',)
     exclude = ('user',)
     search_fields = ['name','description']
     inlines = [ChartInline,]
-        
+
     def save_model(self, request, obj, form, change):
         obj.user = request.user
         obj.save()
@@ -491,7 +495,7 @@ class VariableAdmin(admin.ModelAdmin):
     search_fields = ['name','locatie__name']
     readonly_fields = ('thumbtag',)
     form = VariableAdminForm
-    
+
 class TabPageAdmin(admin.ModelAdmin):
     list_display = ('name', 'tabgroup', 'order', 'dashboard',)
     list_filter = ('tabgroup',)
@@ -501,25 +505,25 @@ class TabPageInline(admin.TabularInline):
     model = TabPage
     fields = ('name', 'tabgroup', 'order', 'dashboard',)
     extra = 0
-    
+
 class TabGroupAdmin(admin.ModelAdmin):
     list_display = ('name', 'location', 'pagecount')
     search_fields = ['name',]
     list_filter = ('location',)
     inlines = [TabPageInline,]
-    
+
 class WebcamAdmin(admin.ModelAdmin):
     list_display = ('name', 'snapshot', )
-      
+
 class NotificationAdmin(admin.ModelAdmin):
     Model = Notification
-        
+
     list_display = ('datasource', 'user', 'email', 'level', 'active')
     list_filter = ('datasource', 'user', 'email', 'level', 'active')
     search_fields = ('datasource', 'user')
     #action_form = LevelActionForm
     #actions = ['set_level']
-    
+
     def get_form(self, request, obj=None, **kwargs):
         if obj is None:
             self.exclude = ('user', 'email')
@@ -527,14 +531,14 @@ class NotificationAdmin(admin.ModelAdmin):
             self.exclude = ()
         form = super(NotificationAdmin,self).get_form(request,obj,**kwargs)
         return form
-    
+
     def save_model(self, request, obj, form, change):
         if obj.user is None:
             obj.user = request.user
             obj.email = request.user.email
         obj.subject = obj.subject.replace('%(datasource)', obj.datasource.name)
         obj.save()
-        
+
     def set_level(self, request, queryset):
         level = request.POST.get('level')
         queryset.update(level=level)
@@ -548,7 +552,7 @@ class KeyFigureAdmin(admin.ModelAdmin):
     filter_horizontal = ('variables',)
     list_filter = ('locatie', )
     list_display = ('name','locatie', 'value', 'last_update')
-    
+
 admin.site.register(Project, ProjectAdmin, Media = Media)
 admin.site.register(ProjectLocatie, ProjectLocatieAdmin, Media = Media)
 admin.site.register(MeetLocatie, MeetLocatieAdmin, Media = Media)
