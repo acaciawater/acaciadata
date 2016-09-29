@@ -227,6 +227,7 @@ class Generator(models.Model):
     classname = models.CharField(max_length=50,verbose_name='python klasse',
                                  help_text='volledige naam van de generator klasse, bijvoorbeeld acacia.data.generators.knmi.Meteo')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
+    url = models.URLField(blank=True,null=True,verbose_name = 'Default url')
     
     def get_class(self):
         return classForName(self.classname)
@@ -248,7 +249,8 @@ LOGGING_CHOICES = (
 class Datasource(models.Model, LoggerSourceMixin):
     name = models.CharField(max_length=100,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
-    meetlocatie=models.ForeignKey(MeetLocatie,related_name='datasources',help_text='Meetlocatie van deze gegevensbron')
+    meetlocatie=models.ForeignKey(MeetLocatie,verbose_name='Primaire meetlocatie',help_text='Primaire meetlocatie van deze gegevensbron')
+    locations=models.ManyToManyField(MeetLocatie,related_name='datasources',verbose_name='Secundaire meetlocaties', help_text='Secundaire meetlocaties die deze gegevensbron gebruiken')
     url=models.CharField(blank=True,null=True,max_length=200,help_text='volledige url van de gegevensbron. Leeg laten voor handmatige uploads of default url van generator')
     generator=models.ForeignKey(Generator,help_text='Generator voor het maken van tijdreeksen uit de datafiles')
     user=models.ForeignKey(User,verbose_name='Aangemaakt door')
@@ -279,20 +281,18 @@ class Datasource(models.Model, LoggerSourceMixin):
         loc = self.projectlocatie()
         return None if loc is None else loc.project
 
-    def get_generator_instance(self):
+    def get_generator_instance(self,**kwargs):
         logger = self.getLogger()
         if self.generator is None:
             raise Exception('Generator not defined for datasource %s' % self.name)
         gen = self.generator.get_class()
-        if self.config is None or len(self.config)==0:
-            return gen()
-        else:
+        if self.config:
             try:
-                kwargs = json.loads(self.config)
-                return gen(**kwargs)
+                kwargs.update(json.loads(self.config))
             except Exception as err:
                 logger.error('Configuration error in generator %s: %s' % (self.generator, err))
                 return None
+        return gen(**kwargs)
     
     def download(self, start=None):
         logger = self.getLogger()
@@ -431,9 +431,7 @@ class Datasource(models.Model, LoggerSourceMixin):
     
     def get_data(self,**kwargs):
         logger = self.getLogger()
-        gen = self.get_generator_instance()
-        if gen is None:
-            return
+        gen = self.get_generator_instance(**kwargs)
         logger.debug('Getting data for datasource %s', self.name)
         data = None
         start = aware(kwargs.get('start', None))
@@ -452,13 +450,15 @@ class Datasource(models.Model, LoggerSourceMixin):
                 sstart = aware(sourcefile.start,self.timezone)
                 if sstart is not None and sstart > stop:
                     continue
-            d = sourcefile.get_data(**kwargs)
+            d = sourcefile.get_data(gen,**kwargs)
             if d is not None:
                 if data is None:
                     data = d
                 else:
                     data = data.append(d)
         if data is not None:
+            if data.empty:
+                return None
             date = np.array([aware(d, self.timezone) for d in data.index.to_pydatetime()])
             slicer = None
             if start is not None:
@@ -613,7 +613,9 @@ class SourceFile(models.Model,LoggerSourceMixin):
     user=models.ForeignKey(User)
     created = models.DateTimeField(auto_now_add=True)
     uploaded = models.DateTimeField(auto_now=True)
-    
+
+    cached_data = {}
+        
     def __unicode__(self):
         return self.name
      
@@ -671,17 +673,20 @@ class SourceFile(models.Model,LoggerSourceMixin):
     filetag.short_description='bestand'
            
     def get_data(self,gen=None,**kwargs):
-        
         logger = self.getLogger()
-
         data = None
+        if not 'meetlocatie' in kwargs:
+            mloc = self.meetlocatie()
+            if mloc:
+                kwargs['meetlocatie'] = mloc.name
 
-        if hasattr(self, 'cached_data') and isinstance(self.cached_data,pd.DataFrame):
-            data = self.cached_data
+        mloc = kwargs['meetlocatie']
+        if mloc in self.cached_data:
+            data = self.cached_data[mloc]
             logger.debug('Data retrieved from cache')
         else:
             if gen is None:
-                gen = self.datasource.get_generator_instance()
+                gen = self.datasource.get_generator_instance(**kwargs)
             try:
                 filename = self.file.name
             except:
@@ -690,7 +695,8 @@ class SourceFile(models.Model,LoggerSourceMixin):
             logger.debug('Getting data for sourcefile %s', self.name)
             try:
                 data = gen.get_data(self.file,**kwargs)
-                self.cached_data = data
+                if mloc:
+                    self.cached_data[mloc] = data
             except Exception as e:
                 logger.exception('Error retrieving data from %s: %s' % (filename, e))
                 return None
@@ -913,7 +919,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
     
     class Meta:
         ordering = ['name',]
-        unique_together = ('parameter', 'name',)
+        unique_together = ('parameter','name','mlocatie')
         verbose_name = 'Tijdreeks'
         verbose_name_plural = 'Tijdreeksen'
         
@@ -1081,7 +1087,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         start = start or self.from_limit
         stop = stop or self.to_limit
         if dataframe is None:
-            dataframe = self.parameter.get_data(start=start,stop=stop)
+            dataframe = self.parameter.get_data(start=start,stop=stop,meetlocatie=self.mlocatie)
             if dataframe is None:
                 return None
             

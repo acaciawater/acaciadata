@@ -10,25 +10,40 @@ import ijson
 from acacia.data.generators.generator import Generator
 from acacia.data import util
 import pandas as pd
+from acacia.data.models import MeetLocatie
 
 class HNKWater(Generator):
 
-    defurl = r'http://hnk-water.nl/dl/?dl_parm={parm}&dl_coord=rd' 
-    defparm = 'GELDHD'
-    
-    def get_default_url(self):
-        return self.defurl
-    
+    def __init__(self,*args,**kwargs):
+        #self.url = kwargs.get('url','http://hnk-water.nl/dl/?dl_parm={parm}&dl_coord=rd')
+        self.parm = kwargs.get('parameter','GELDHD')
+        return Generator.__init__(self,*args,**kwargs)
+        
     def get_parameters(self, fil):
-        return {'GELDHD':{'description': 'Geleidbaarheid', 'unit': 'mS/cm'}}
+        params = {}
+        for p in [p for p in ijson.items(fil,'features.item.properties')]:
+            code = p['Parametercode']
+            if not code in params:
+                for d in p['data']:
+                    params[code]={'description':p['Parameteromschrijving'],'unit':d['Eenheid']}
+                    break
+        return params
+        #return {self.parm:{'description': 'Geleidbaarheid', 'unit': 'mS/cm'}}
     
     def download(self, **kwargs):
-        url = kwargs.get('url',self.get_default_url())
-        parm = kwargs.get('parameter',self.defparm)
+        url = kwargs.get('url',self.url)
+        parm = kwargs.get('parameter',self.parm)
         try:
+            start=kwargs.get('start',None)
+            if start:
+                start = start.year()
+            else:
+                start = 2016
             kwargs['url'] = url.format(parm=parm)
         except:
             pass
+        if not 'filename' in kwargs:
+            kwargs['filename'] = 'hnkwater_{}.json'.format(datetime.date.today())
         return Generator.download(self, **kwargs)
     
     def get_data1(self, fil, **kwargs):
@@ -71,8 +86,15 @@ class HNKWater(Generator):
         '''iterates over file and returns dataframe for parameter and location'''
         datapoints=[]
         mcode = kwargs.get('meetlocatie',None)
-        pcode = kwargs.get('parameter',self.defparm)
-        for p in [p for p in ijson.items(fil,'features.item.properties') if p['Meetpuntcode']==mcode and p['Parametercode']==pcode]:
+        pcode = kwargs.get('parameter',self.parm)
+        if mcode:
+            if isinstance(mcode, MeetLocatie):
+                mcode = mcode.name
+            pts = [p for p in ijson.items(fil,'features.item.properties') if p['Meetpuntcode']==mcode and p['Parametercode']==pcode]
+        else:
+            pts = [p for p in ijson.items(fil,'features.item.properties') if p['Parametercode']==pcode]
+            
+        for p in pts:
             for d in p['data']:
                 try:
                     val = float(d['Waarde'])
@@ -109,7 +131,8 @@ fname = '/home/theo/texelmeet/hhnk/hnk-water.nl.json'
 if __name__ == '__main__':
     gen = HNKWater()
     with open(fname) as f:
-#        print gen.get_locations(f)
+        print gen.get_parameters(f)
+        print gen.get_locations(f)
         print gen.get_data(f,meetlocatie='001010')
         
 #     result = gen.download(url=defurl)

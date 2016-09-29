@@ -67,6 +67,93 @@ class ProjectLocatieAdmin(admin.ModelAdmin):
     exclude = ['image']
     formfield_overrides = {models.PointField:{'widget': forms.TextInput(attrs={'width': '40px'})},
                            models.TextField: {'widget': forms.Textarea(attrs={'class': 'htmleditor'})}}
+
+class CalibrationAdmin(admin.ModelAdmin):
+    model = CalibrationData
+    list_display = ('parameter', 'sensor_value', 'calib_value')
+    list_filter = ('datasource', 'parameter')
+    
+class CalibrationInline(admin.TabularInline):
+    model = CalibrationData
+    extra = 0
+    classes = ('grp-collapse grp-closed',)
+ 
+    def formfield_for_foreignkey(self, db_field, request=None, **kwargs):
+        field = super(CalibrationInline, self).formfield_for_foreignkey(db_field, request, **kwargs)
+        if db_field.name == 'parameter':
+            if request.source is not None:
+                field.queryset = field.queryset.filter(datasource__exact = request.source)  
+            else:
+                field.queryset = field.queryset.none()
+        return field 
+               
+class DatasourceForm(ModelForm):
+    model = Datasource
+    password = forms.CharField(label='Wachtwoord', help_text='Wachtwoord voor de webservice', widget=PasswordInput(render_value=True),required=False)
+
+    def clean_config(self):
+        config = self.cleaned_data['config']
+        try:
+            if config != '':
+                json.loads(config)
+        except Exception as ex:
+            raise forms.ValidationError('Onjuiste JSON dictionary: %s'% ex)
+        return config
+    
+    def clean(self):
+        cleaned_data = super(DatasourceForm, self).clean()
+        update = self.cleaned_data['autoupdate']
+        if update:
+            url = self.cleaned_data['url']
+            if url == '' or url is None:
+                raise forms.ValidationError('Als autoupdate aangevinkt is moet een url opgegeven worden')
+        return cleaned_data
+        
+class DatasourceAdmin(admin.ModelAdmin):
+    form = DatasourceForm
+    inlines = [CalibrationInline, SourceFileInline] # takes VERY long for decagon with more than 1000 files
+    search_fields = ['name',]
+    actions = [actions.upload_datasource, actions.update_parameters, actions.datasource_dimensions,actions.generate_locations]
+    list_filter = ('meetlocatie','meetlocatie__projectlocatie','meetlocatie__projectlocatie__project','generator')
+    list_display = ('name', 'description', 'meetlocatie', 'generator', 'last_download', 'filecount', 'parametercount', 'seriescount', 'calibcount','start', 'stop', 'rows',)
+    fieldsets = (
+                 ('Algemeen', {'fields': ('name', 'description', 'timezone', 'meetlocatie','locations'),
+                               'classes': ('grp-collapse grp-open',),
+                               }),
+                 ('Bronnen', {'fields': (('generator', 'autoupdate'), 'url',('username', 'password',), 'config',),
+                               'classes': ('grp-collapse grp-closed',),
+                              }),
+    )
+    filter_horizontal = ('locations',)
+    
+    def save_model(self, request, obj, form, change):
+        obj.user = request.user
+        obj.save()
+        
+    def get_form(self, request, obj=None, **kwargs):
+        # just save obj reference for future processing in Inline
+        request.source = obj
+        return super(DatasourceAdmin, self).get_form(request, obj, **kwargs)
+     
+    def save_formset(self, request, form, formset, change):
+        instances = formset.save(commit=False)
+        for instance in instances:
+            if isinstance(instance, SourceFile):
+                try:
+                    if instance.user is None:
+                        instance.user = request.user
+                except:
+                        instance.user = request.user
+                if instance.name is None or len(instance.name) == 0:
+                    instance.name,ext = os.path.splitext(os.path.basename(instance.file.name))
+            instance.save()
+        formset.save_m2m()
+
+#     def formfield_for_manytomany(self, db_field, request, **kwargs):
+#             if db_field.name == 'locations':
+#                 kwargs['queryset'] = MeetLocatie.objects.all()
+#             return super(DatasourceAdmin, self).formfield_for_manytomany(db_field, request, **kwargs)
+            
 class MeetLocatieForm(ModelForm):
     
     def clean_location(self):
@@ -88,6 +175,8 @@ class MeetLocatieAdmin(admin.ModelAdmin):
     list_display = ('name','projectlocatie','project','datasourcecount',)
     list_filter = ('projectlocatie','projectlocatie__project',)
     exclude = ['image']
+    search_fields = ('name',)
+
     formfield_overrides = {models.PointField:{'widget': forms.TextInput, 'required': False},
                            models.TextField: {'widget': forms.Textarea(attrs={'class': 'htmleditor'})}}
     actions = [actions.meteo_toevoegen, 'add_notifications', actions.set_locatie]
@@ -161,88 +250,8 @@ class NotificationAdmin(admin.ModelAdmin):
         obj.subject = obj.subject.replace('%(datasource)', obj.source.name)
         obj.save()
         
-class CalibrationAdmin(admin.ModelAdmin):
-    model = CalibrationData
-    list_display = ('parameter', 'sensor_value', 'calib_value')
-    list_filter = ('datasource', 'parameter')
-    
-class CalibrationInline(admin.TabularInline):
-    model = CalibrationData
-    extra = 0
-    classes = ('grp-collapse grp-closed',)
- 
-    def formfield_for_foreignkey(self, db_field, request=None, **kwargs):
-        field = super(CalibrationInline, self).formfield_for_foreignkey(db_field, request, **kwargs)
-        if db_field.name == 'parameter':
-            if request.source is not None:
-                field.queryset = field.queryset.filter(datasource__exact = request.source)  
-            else:
-                field.queryset = field.queryset.none()
-        return field 
-           
-class DatasourceForm(ModelForm):
-    model = Datasource
-    password = forms.CharField(label='Wachtwoord', help_text='Wachtwoord voor de webservice', widget=PasswordInput(render_value=True),required=False)
-
-    def clean_config(self):
-        config = self.cleaned_data['config']
-        try:
-            if config != '':
-                json.loads(config)
-        except Exception as ex:
-            raise forms.ValidationError('Onjuiste JSON dictionary: %s'% ex)
-        return config
-    
-    def clean(self):
-        cleaned_data = super(DatasourceForm, self).clean()
-        update = self.cleaned_data['autoupdate']
-        if update:
-            url = self.cleaned_data['url']
-            if url == '' or url is None:
-                raise forms.ValidationError('Als autoupdate aangevinkt is moet een url opgegeven worden')
-        return cleaned_data
-        
-class DatasourceAdmin(admin.ModelAdmin):
-    form = DatasourceForm
-    inlines = [CalibrationInline, SourceFileInline,] # takes VERY long for decagon with more than 1000 files
-    search_fields = ['name',]
-    actions = [actions.upload_datasource, actions.update_parameters, actions.generate_locations]
-    list_filter = ('meetlocatie','meetlocatie__projectlocatie','meetlocatie__projectlocatie__project','generator')
-    list_display = ('name', 'description', 'meetlocatie', 'generator', 'last_download', 'filecount', 'parametercount', 'seriescount', 'calibcount','start', 'stop', 'rows',)
-    fieldsets = (
-                 ('Algemeen', {'fields': ('name', 'description', 'timezone', 'meetlocatie',),
-                               'classes': ('grp-collapse grp-open',),
-                               }),
-                 ('Bronnen', {'fields': (('generator', 'autoupdate'), 'url',('username', 'password',), 'config',),
-                               'classes': ('grp-collapse grp-closed',),
-                              }),
-    )
-    
-    def save_model(self, request, obj, form, change):
-        obj.user = request.user
-        obj.save()
-        
-    def get_form(self, request, obj=None, **kwargs):
-        # just save obj reference for future processing in Inline
-        request.source = obj
-        return super(DatasourceAdmin, self).get_form(request, obj, **kwargs)
-     
-    def save_formset(self, request, form, formset, change):
-        instances = formset.save(commit=False)
-        for instance in instances:
-            if isinstance(instance, SourceFile):
-                try:
-                    if instance.user is None:
-                        instance.user = request.user
-                except:
-                        instance.user = request.user
-                if instance.name is None or len(instance.name) == 0:
-                    instance.name,ext = os.path.splitext(os.path.basename(instance.file.name))
-            instance.save()
-        formset.save_m2m()
-        
 class GeneratorAdmin(admin.ModelAdmin):
-    list_display = ('name', 'classname', 'description')
+    list_display = ('name', 'classname', 'description','url')
 
 class SourceFileAdmin(admin.ModelAdmin):
     actions = [actions.sourcefile_dimensions,]

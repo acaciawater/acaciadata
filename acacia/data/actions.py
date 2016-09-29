@@ -12,6 +12,12 @@ def sourcefile_dimensions(modeladmin, request, queryset):
         sf.save() # pre-save signal calls get_dimensions
 sourcefile_dimensions.short_description='Geselecteerde bronbestanden doorlezen en eigenschappen actualiseren'
 
+def datasource_dimensions(modeladmin, request, queryset):
+    '''alle sourcefiles doorlezen en eigenschappen updaten (start, stop, rows etc)'''
+    for ds in queryset:
+        sourcefile_dimensions(modeladmin, request, ds.sourcefiles.all())
+datasource_dimensions.short_description='Bestanden in geselecteerde gegevensbronnen doorlezen en eigenschappen actualiseren'
+
 def meetlocatie_aanmaken(modeladmin, request, queryset):
     '''standaard meetlocatie aanmaken op zelfde locatie als projectlocatie '''
     for p in queryset:
@@ -64,8 +70,17 @@ update_thumbnails.short_description = "Thumbnails vernieuwen van geselecteerde p
 def generate_series(modeladmin, request, queryset):
     for p in queryset:
         try:
-            series, created = p.series_set.get_or_create(name = p.name, description = p.description, unit = p.unit, user = request.user)
-            series.replace()
+            ds = p.datasource
+
+            # get list of all locations
+            locs = set(ds.locations.all())
+            locs.add(ds.meetlocatie)
+            
+            # create series for all locations
+            for loc in locs:
+                series, created = p.series_set.get_or_create(mlocatie = loc, name = p.name, 
+                                                             defaults= {'description': p.description, 'unit': p.unit, 'user': request.user})
+                series.replace()
         except Exception as e:
             logger.error('ERROR creating series %s: %s' % (p.name, e))
 generate_series.short_description = 'Standaard tijdreeksen aanmaken voor geselecteerde parameters'
