@@ -31,15 +31,11 @@ class HNKWater(Generator):
         #return {self.parm:{'description': 'Geleidbaarheid', 'unit': 'mS/cm'}}
     
     def download(self, **kwargs):
-        url = kwargs.get('url',self.url)
+        url = kwargs.get('url')
         parm = kwargs.get('parameter',self.parm)
         try:
-            start=kwargs.get('start',None)
-            if start:
-                start = start.year()
-            else:
-                start = 2016
-            kwargs['url'] = url.format(parm=parm)
+            start=kwargs.get('sjaar',2015)
+            kwargs['url'] = url.format(parm=parm,start=start)
         except:
             pass
         if not 'filename' in kwargs:
@@ -66,43 +62,28 @@ class HNKWater(Generator):
         df = pd.DataFrame.from_records(datapoints,index=['meetpunt','datum'],columns=['datum','meetpunt','GELDHD'])
         return df
 
-    def get_data2(self, fil, **kwargs):
-        '''iterates over entire file and returns dataframe for all locations'''
-        datapoints=[]
-        for prop in ijson.items(fil,'features.item.properties'):
-            mcode = prop['Meetpuntcode']
-            data = prop['data']
-            for d in data:
-                try:
-                    val = float(d['Waarde'])
-                    dat = datetime.datetime.strptime(d['datum'],'%Y-%m-%d')
-                    datapoints.append((dat,mcode,val))
-                except:
-                    pass
-        df = pd.DataFrame.from_records(datapoints,index=['meetpunt','datum'],columns=['datum','meetpunt','GELDHD'])
-        return df
-
     def get_data(self, fil, **kwargs):
         '''iterates over file and returns dataframe for parameter and location'''
         datapoints=[]
         mcode = kwargs.get('meetlocatie',None)
         pcode = kwargs.get('parameter',self.parm)
-        if mcode:
-            if isinstance(mcode, MeetLocatie):
-                mcode = mcode.name
-            pts = [p for p in ijson.items(fil,'features.item.properties') if p['Meetpuntcode']==mcode and p['Parametercode']==pcode]
-        else:
-            pts = [p for p in ijson.items(fil,'features.item.properties') if p['Parametercode']==pcode]
+        if mcode and isinstance(mcode, MeetLocatie):
+            mcode = mcode.name
             
-        for p in pts:
-            for d in p['data']:
-                try:
-                    val = float(d['Waarde'])
-                    dat = datetime.datetime.strptime(d['datum'],'%Y-%m-%d')
-                    datapoints.append((dat,val))
-                except:
-                    # problem with datapoint
-                    pass
+        for p in ijson.items(fil,'features.item.properties'):
+            if p['Meetpuntcode'] == mcode:
+                for d in p['data']:
+                    try:
+                        val = float(d['Waarde'])
+                        dat = datetime.datetime.strptime(d['datum'],'%Y-%m-%d')
+                        # TODO: check unit
+                        datapoints.append((dat,val))
+                    except:
+                        # problem with datapoint
+                        pass
+            elif datapoints:
+                # different location. Assume datapoints are grouped by location, so no more points in this file
+                break
         df = pd.DataFrame.from_records(datapoints,index=['datum'],columns=['datum',pcode])
         df.dropna(inplace=True)
         return df
