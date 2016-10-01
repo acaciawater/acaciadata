@@ -614,8 +614,6 @@ class SourceFile(models.Model,LoggerSourceMixin):
     created = models.DateTimeField(auto_now_add=True)
     uploaded = models.DateTimeField(auto_now=True)
 
-    cached_data = {}
-        
     def __unicode__(self):
         return self.name
      
@@ -681,6 +679,8 @@ class SourceFile(models.Model,LoggerSourceMixin):
                 kwargs['meetlocatie'] = mloc.name
 
         mloc = kwargs['meetlocatie']
+        if not hasattr(self,'cached_data'): 
+            self.cached_data = {}
         if mloc in self.cached_data:
             data = self.cached_data[mloc]
             logger.debug('Data retrieved from cache')
