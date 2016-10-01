@@ -331,7 +331,7 @@ class Datasource(models.Model, LoggerSourceMixin):
             # incremental download
             options['start'] = self.stop()
 
-        url = self.url or gen.get_default_url()
+        url = self.url or self.generator.url
         if not url:
             logger.error('Cannot download datasource %s: no default url available' % (self.name))
             return None
