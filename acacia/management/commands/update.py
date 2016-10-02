@@ -112,10 +112,14 @@ class Command(BaseCommand):
                         logger.info('Got %d new files' % newfilecount)
 
                     # for update use newfiles AND the existing sourcefiles that contain data for aggregation
-                    after = min(last.values())
-                    candidates = d.sourcefiles.filter(start__gte=after)
+                    if last:
+                        after = min(last.values())
+                        candidates = d.sourcefiles.filter(start__gte=after)
+                    else:
+                        after = None
+                        candidates = d.sourcefiles.all()
                     if not candidates:
-                        logger.warning('No new data found after {after} for datasource {ds}'.format(after=after,ds=d))
+                        logger.warning('No new data for datasource {ds}'.format(ds=d))
                         if not force:
                             logger.debug('Update of timeseries skipped')
                             continue
@@ -129,7 +133,7 @@ class Command(BaseCommand):
                         logger.exception('Error reading datasource: %s', e)
                         continue
                     if data is None:
-                        logger.error('No new data found after {after} for {ds}'.format(after=after, ds=d))
+                        logger.error('No new data for datasource {ds}'.format(ds=d))
                         # don't bother to continue: no data
                         continue
                     if replace:
@@ -146,8 +150,9 @@ class Command(BaseCommand):
                         logger.info('Updating timeseries %s' % s.name)
                         try:
                             # replace timeseries or update after beforelast datapoint
-                            changes = s.replace() if replace else s.update(data,start=last[s],thumbnail=thumb) 
-                            if changes > 0:
+                            start = last.get(s,None)
+                            changes = s.replace() if replace else s.update(data,start=start,thumbnail=thumb) 
+                            if changes:
                                 updated += 1
                                 logger.debug('%d datapoints updated for %s' % (changes, s.name))    
                                 changed_series.append(s)
