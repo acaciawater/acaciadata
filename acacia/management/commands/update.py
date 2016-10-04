@@ -54,7 +54,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        with SourceAdapter(logging.getLogger('update.notify')) as logger:
+        with SourceAdapter(logging.getLogger(__name__)) as logger:
             logger.source = ''
             logger.info('***UPDATE STARTED***')
             thumb = options.get('thumb')
@@ -90,68 +90,62 @@ class Command(BaseCommand):
                         start = None
                     else:
                         # actualiseren (data toevoegen) vanaf laatste punt
-                        data_start = d.stop()
+                        # set starting date/time for update as last date/time in current sourcefiles
+                        data_stop = d.stop()
                         if len(series) == 0:
-                            series_start = data_start
+                            last = {}
                         else:
-                            # actialisatie vanaf een na laatste datapoint
+                            # maak dict met een na laatste datapoint per tijdreeks
                             # (rekening houden met niet volledig gevulde laatste tijdsinterval bij accumulatie of sommatie)
-                            last = [p.date for p in [s.beforelast() for s in series if s.aantal() > 0] if p is not None]
-                            if len(last)>0:
-                                series_start = min(last)
-                            else:
-                                series_start = data_start
+                            last = {}
+                            for s in series:
+                                if s.aantal() > 0:
+                                    try:
+                                        last[s] = s.beforelast().date
+                                    except: 
+                                        logger.error('Beforelast-error for series {s}'.format(s=s))
                                 
-                        if data_start is None:
-                            start = series_start
-                        else:
-                            start = min(series_start,data_start)
-                        
-                        # if start is in the future, use datetime.now as start to overwrite previous forecasts
-                        start = min(start, aware(datetime.now()))
-                        
-                    if down and d.autoupdate and d.url is not None:
+                    if down and d.autoupdate:
                         logger.info('Downloading datasource')
                         try:
-                            newfiles = d.download()
+                            # if start is in the future, use datetime.now as start to overwrite previous forecasts
+                            start = min(data_stop, aware(datetime.now()))
+                            newfiles = d.download(start)
                         except Exception as e:
                             logger.exception('ERROR downloading datasource: %s' % e)
                             newfiles = None
-                        if newfiles is None:
-                            newfilecount = 0
-                        else:
-                            newfilecount = len(newfiles)
+                        newfilecount = len(newfiles) if newfiles else 0
                         logger.info('Got %d new files' % newfilecount)
-                        if newfilecount == 0:
-                            newfiles = None
-                    else:
-                        newfilecount = 0
-                        newfiles = None
 
-                    if newfilecount == 0:
-                        if down:
-                            # we tried to download but there is no new data
-                            logger.warning('No new data found for datasource {}'.format(d))
-                            if not force:
-                                logger.debug('Update of timeseries skipped')
-                                continue
+                    # for update use newfiles AND the existing sourcefiles that contain data for aggregation
+                    if last:
+                        after = min(last.values())
+                        candidates = d.sourcefiles.filter(start__gte=after)
+                    else:
+                        after = None
+                        candidates = d.sourcefiles.all()
+                    if not candidates:
+                        logger.warning('No new data for datasource {ds}'.format(ds=d))
+                        if not force:
+                            logger.debug('Update of timeseries skipped')
+                            continue
                     else:
                         count += 1
                         
                     logger.info('Reading datasource')
                     try:
-                        data = d.get_data(files=newfiles,start=start)
+                        data = d.get_data(files=candidates,start=after)
                     except Exception as e:
                         logger.exception('Error reading datasource: %s', e)
                         continue
                     if data is None:
-                        logger.error('No data found for %s. Update of timeseries skipped' % d.name)
+                        logger.error('No new data for datasource {ds}'.format(ds=d))
                         # don't bother to continue: no data
                         continue
                     if replace:
                         logger.info('Updating parameters')
                         try:
-                            d.update_parameters(data=data,files=newfiles,limit=10)
+                            d.update_parameters(data=data,files=candidates,limit=10)
                             if replace:
                                 d.make_thumbnails(data=data)
                         except Exception as e:
@@ -161,12 +155,15 @@ class Command(BaseCommand):
                     for s in series:
                         logger.info('Updating timeseries %s' % s.name)
                         try:
+                            # replace timeseries or update after beforelast datapoint
+                            start = last.get(s,None)
                             changes = s.replace() if replace else s.update(data,start=start,thumbnail=thumb) 
-                            if changes > 0:
+                            if changes:
                                 updated += 1
+                                logger.debug('%d datapoints updated for %s' % (changes, s.name))    
                                 changed_series.append(s)
                             else:
-                                logger.warning('No new data for %s' % s.name)    
+                                logger.warning('No updates for %s' % s.name)    
                         except Exception as e:
                             logger.exception('ERROR updating timeseries %s: %s' % (s.name, e))
                 
