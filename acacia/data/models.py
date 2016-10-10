@@ -15,8 +15,9 @@ import numpy as np
 import pandas as pd
 import json,util,StringIO,pytz,logging
 
-THEME_CHOICES = (('dark-blue','blauw'),
-                 ('darkgreen','groen'),
+THEME_CHOICES = ((None,'standaard'),
+                 ('dark-blue','blauw'),
+                 ('dark-green','groen'),
                  ('gray','grijs'),
                  ('grid','grid'),
                  ('skies','wolken'),)
@@ -69,7 +70,7 @@ class Project(models.Model):
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     image = models.ImageField(upload_to=up.project_upload, blank = True, null=True)
     logo = models.ImageField(upload_to=up.project_upload, blank=True, null=True)
-    theme = models.CharField(max_length=50,verbose_name='thema', default='dark-blue',choices=THEME_CHOICES,help_text='Thema voor grafieken')
+    theme = models.CharField(max_length=50,null=True, blank=True,verbose_name='thema', default='dark-blue',choices=THEME_CHOICES,help_text='Thema voor grafieken')
         
     def series(self):
         s = []
@@ -962,7 +963,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
 
     def theme(self):
         p = self.project()
-        return None if p is None else 'themes/%s.js' % p.theme
+        return None if p is None or p.theme is None else 'themes/%s.js' % p.theme
     
     def default_type(self):
         p = self.parameter
@@ -1599,7 +1600,7 @@ class ChartSeries(models.Model):
     
     def theme(self):
         s = self.series
-        return None if s is None else s.theme
+        return None if s is None else s.theme()
 
     class Meta:
         ordering = ['order', 'name',]
