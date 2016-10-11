@@ -100,14 +100,14 @@ class DatasourceForm(ModelForm):
             raise forms.ValidationError('Onjuiste JSON dictionary: %s'% ex)
         return config
     
-    def clean(self):
-        cleaned_data = super(DatasourceForm, self).clean()
-        update = self.cleaned_data['autoupdate']
-        if update:
-            url = self.cleaned_data['url']
-            if url == '' or url is None:
-                raise forms.ValidationError('Als autoupdate aangevinkt is moet een url opgegeven worden')
-        return cleaned_data
+#     def clean(self):
+#         cleaned_data = super(DatasourceForm, self).clean()
+#         update = self.cleaned_data['autoupdate']
+#         if update:
+#             url = self.cleaned_data['url']
+#             if url == '' or url is None:
+#                 raise forms.ValidationError('Als autoupdate aangevinkt is moet een url opgegeven worden')
+#         return cleaned_data
         
 class DatasourceAdmin(admin.ModelAdmin):
     form = DatasourceForm
