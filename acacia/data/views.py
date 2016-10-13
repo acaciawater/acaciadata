@@ -301,16 +301,15 @@ class ChartBaseView(TemplateView):
                        }, 
             'legend': {'enabled': chart.series.count() > 1},
             'plotOptions': {'line': {'marker': {'enabled': False}},
-                            'column': {'allowpointSelect': True, 'pointPadding': 0.01, 'groupPadding': 0.01}},            
+                              'column': {'allowpointSelect': True, 'pointPadding': 0.01, 'groupPadding': 0.01}},
             'credits': {'enabled': True, 
                         'text': 'acaciawater.com', 
                         'href': 'http://www.acaciawater.com',
                        }
             }
-
-        start = chart.auto_start()
-        options['xAxis']['min'] = tojs(start)
-        if not chart.stop is None:
+        if chart.start:
+            options['xAxis']['min'] = tojs(chart.start)
+        if chart.stop:
             options['xAxis']['max'] = tojs(chart.stop)
         allseries = []
         # TODO: geen nieuwe y-as aanmaken voor elke tijdreeks! 
