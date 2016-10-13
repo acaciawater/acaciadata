@@ -319,9 +319,24 @@ class SaveUserMixin:
         obj.user = request.user
         obj.save()
 
+class ContentTypeFilter(admin.SimpleListFilter):
+    title = 'Tijdreeks type'
+    parameter_name = 'ctid'
+
+    def lookups(self, request, modeladmin):
+        ''' Possibilities are: series, formula and manual '''
+        ct_types = ContentType.objects.get_for_models(Series,Formula,ManualSeries)
+        return [(ct.id, ct.name) for ct in sorted(ct_types.values(), key=lambda x: x.name)]
+
+    def queryset(self, request, queryset):
+        if self.value() is not None:
+            return queryset.filter(polymorphic_ctype_id = self.value())
+        return queryset
+   
 class ParameterSeriesAdmin(PolymorphicChildModelAdmin):
     actions = [actions.copy_series, actions.download_series, actions.refresh_series, actions.replace_series, actions.series_thumbnails, actions.update_series_properties, actions.empty_series]
     #list_display = ('name', 'thumbtag', 'parameter', 'datasource', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
+    list_filter = ('mlocatie', 'parameter__datasource', 'parameter__datasource__meetlocatie__projectlocatie__project', ContentTypeFilter)
     base_model = Series
     #base_form = SeriesForm
     exclude = ('user',)
@@ -353,6 +368,7 @@ class ManualSeriesAdmin(PolymorphicChildModelAdmin):
     base_model = Series
     actions = [actions.copy_series, actions.series_thumbnails]
     list_display = ('name', 'mlocatie', 'thumbtag', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
+    list_filter = ('mlocatie', 'parameter__datasource', 'parameter__datasource__meetlocatie__projectlocatie__project', ContentTypeFilter)
     exclude = ('user','parameter')
     inlines = [DataPointInline,]
     search_fields = ['name','locatie']
@@ -371,6 +387,7 @@ class FormulaSeriesAdmin(PolymorphicChildModelAdmin):
     base_model = Series
     #list_display = ('name', 'thumbtag', 'locatie', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
     #search_fields = ['name','locatie']
+    list_filter = ('mlocatie', 'parameter__datasource', 'parameter__datasource__meetlocatie__projectlocatie__project', ContentTypeFilter)
     
     fieldsets = (
                   ('Algemeen', {'fields': ('mlocatie', 'name', ('unit', 'type'), 'description',),
@@ -409,7 +426,6 @@ class SeriesAdmin(PolymorphicParentModelAdmin):
     actions = [actions.create_grid, actions.copy_series, actions.download_series_zip, actions.refresh_series, actions.replace_series, actions.series_thumbnails, actions.update_series_properties, actions.empty_series]
     list_display = ('name', 'thumbtag', 'typename', 'parameter', 'datasource', 'mlocatie', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
     base_model = Series
-    #base_form = SeriesForm
     child_models = ((ManualSeries, ManualSeriesAdmin), (Formula, FormulaSeriesAdmin), (Series, ParameterSeriesAdmin))
     exclude = ('user',)
 
@@ -418,22 +434,6 @@ class SeriesAdmin(PolymorphicParentModelAdmin):
         'fk': ['scale_series', 'offset_series'],
     }
     
-    class ContentTypeFilter(admin.SimpleListFilter):
-        title = 'Tijdreeks type'
-        parameter_name = 'ctid'
-
-        def lookups(self, request, modeladmin):
-            ''' Possibilities are: series, formula and manual '''
-            ct_types = ContentType.objects.get_for_models(Series,Formula,ManualSeries)
-            return [(ct.id, ct.name) for ct in sorted(ct_types.values(), key=lambda x: x.name)]
-
-        def queryset(self, request, queryset):
-            if self.value() is not None:
-                return queryset.filter(polymorphic_ctype_id = self.value())
-            return queryset
-       
-
-#    list_filter = ('parameter__datasource__meetlocatie', 'parameter__datasource', 'parameter__datasource__meetlocatie__projectlocatie__project', ContentTypeFilter)
     list_filter = ('mlocatie', 'parameter__datasource', 'parameter__datasource__meetlocatie__projectlocatie__project', ContentTypeFilter)
     search_fields = ['name','parameter__name','parameter__datasource__name']
 
