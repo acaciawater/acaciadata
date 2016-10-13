@@ -251,7 +251,7 @@ class Datasource(models.Model, LoggerSourceMixin):
     name = models.CharField(max_length=100,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     meetlocatie=models.ForeignKey(MeetLocatie,null=True,blank=True,verbose_name='Primaire meetlocatie',help_text='Primaire meetlocatie van deze gegevensbron')
-    locations=models.ManyToManyField(MeetLocatie,null=True,blank=True,related_name='datasources',verbose_name='Secundaire meetlocaties', help_text='Secundaire meetlocaties die deze gegevensbron gebruiken')
+    locations=models.ManyToManyField(MeetLocatie,blank=True,related_name='datasources',verbose_name='Secundaire meetlocaties', help_text='Secundaire meetlocaties die deze gegevensbron gebruiken')
     url=models.CharField(blank=True,null=True,max_length=200,help_text='volledige url van de gegevensbron. Leeg laten voor handmatige uploads of default url van generator')
     generator=models.ForeignKey(Generator,help_text='Generator voor het maken van tijdreeksen uit de datafiles')
     user=models.ForeignKey(User,verbose_name='Aangemaakt door')
