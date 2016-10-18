@@ -2,7 +2,7 @@ op leaseweb server 37.48.84.66
 
 domain acaciadata.com
 users
-acacia:Acacia@12345
+acacia:Acacia!12345
 root:yX7yskaim
 
 mysql database acaciadata
@@ -27,7 +27,6 @@ virtual environment:
 pip install virtualenv
 
 start virtualenv django in httpdocs
-#get pil: pip install --no-index -f http://dist.plone.org/thirdparty/ -U PIL
 pip install Pillow numpy matplotlib django-celery
 
 install vhost.conf in ~/conf
@@ -46,6 +45,3 @@ chmod g+w acacia/*.db
 
 reconfigure domain:
 /usr/local/psa/admin/bin/httpdmng --reconfigure-domain acaciadata
-
-
-
