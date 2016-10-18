@@ -5,19 +5,19 @@ Created on Feb 13, 2014
 '''
 from django.core.management.base import BaseCommand
 from acacia.data.models import SourceFile
-from optparse import make_option
 import os
 
 class Command(BaseCommand):
     args = ''
     help = 'Checks existence of sourcefiles'
-    option_list = BaseCommand.option_list + (
-        make_option('--delete',
+    
+    def add_arguments(self, parser):
+        parser.add_argument('--delete',
             action='store_true',
             dest='delete',
             default=False,
-            help='Delete source files that do not exist'),
-        )
+            help='Delete source files that do not exist')
+
     def handle(self, *args, **options):
         should_delete = options.get('delete')
         files = SourceFile.objects.all()

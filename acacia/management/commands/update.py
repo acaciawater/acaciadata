@@ -4,54 +4,47 @@ Created on Feb 13, 2014
 @author: theo
 '''
 from django.core.management.base import BaseCommand
-from optparse import make_option
 from acacia.data.models import Datasource, Formula, aware
 import logging
 from acacia.data.loggers import SourceAdapter
 from datetime import datetime
  
-# Move this part to settings.py
-# email_handler=BufferingEmailHandler(fromaddr='webmaster@acaciadata.com', subject='Houston, we have a problem', capacity=1000, interval=30)
-# email_handler.setFormatter(logging.Formatter('%(levelname)s %(asctime)s %(datasource)s: %(message)s'))
-# email_handler.setLevel(logging.DEBUG)
-# logging.getLogger('acacia.data').addHandler(email_handler)
-
 class Command(BaseCommand):
     args = ''
     help = 'Downloads data from remote sites and updates time series'
-    option_list = BaseCommand.option_list + (
-            make_option('-d','--nodownload',
+    
+    def add_arguments(self, parser):
+        parser.add_argument('-d','--nodownload',
                 action='store_false',
                 dest='down',
                 default=True,
-                help='Don\'t download new files'),
-            make_option('--pk',
+                help='Don\'t download new files')
+        parser.add_argument('--pk',
                 action='store',
-                type = 'int',
+                type = int,
                 dest = 'pk',
                 default = None,
-                help = 'update single datasource'),
-            make_option('-c', '--nocalc',
+                help = 'update single datasource')
+        parser.add_argument('-c', '--nocalc',
                 action='store_false',
                 dest = 'calc',
                 default = True,
-                help = 'skip update of calculated series'),
-            make_option('--replace',
+                help = 'skip update of calculated series')
+        parser.add_argument('--replace',
                 action='store_true',
                 dest = 'replace',
                 default = False,
-                help = 'recreate existing series'),
-            make_option('--nothumb',
+                help = 'recreate existing series')
+        parser.add_argument('--nothumb',
                 action='store_false',
                 dest = 'thumb',
                 default = True,
                 help = 'don\'t update thumbnails for series'),
-            make_option('-f','--force',
+        parser.add_argument('-f','--force',
                 action='store_true',
                 dest = 'force',
                 default = False,
-                help = 'force update of timeseries'),
-        )
+                help = 'force update of timeseries')
 
     def handle(self, *args, **options):
         with SourceAdapter(logging.getLogger('update.notify')) as logger:

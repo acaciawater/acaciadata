@@ -5,7 +5,6 @@ from acacia.data.generators import FEWS
 from django.contrib.auth.models import User 
 from django.core.management.base import BaseCommand, CommandError
 import requests
-from optparse import make_option
 from pydoc import describe
 from django.conf import settings
 
@@ -60,14 +59,14 @@ def get_locations_and_timeseries(headers, string):
 class Command(BaseCommand):
     args = ''
     help = 'FEWS timeseries update'
-    option_list = BaseCommand.option_list + (
-            make_option('--query',
+    
+    def add_arguments(self, parser):
+        parser.add_argument('--query',
                 action='store',
-                type = 'string',
+                type = str,
                 dest = '--query',
                 default = None,
-                help = 'lizard filter'),
-        )
+                help = 'lizard filter')
 
     def handle(self, *args, **options):
         user = User.objects.get(username='stephane')

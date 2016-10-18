@@ -16,14 +16,14 @@ except:
 class Command(BaseCommand):
     args = ''
     help = 'Check for port changes in decagon datasource'
-    option_list = BaseCommand.option_list + (
-            make_option('--pk',
+    
+    def add_arguments(self, parser):
+        parser.add_argument('--pk',
                 action='store',
-                type = 'int',
+                type = int,
                 dest = 'pk',
                 default = None,
-                help = 'check single datasource'),
-        )
+                help = 'check single datasource')
 
     def handle(self, *args, **options):
         #logger = logging.getLogger('acacia.data')

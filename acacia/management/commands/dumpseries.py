@@ -13,19 +13,21 @@ logger = logging.getLogger('acacia.data')
 class Command(BaseCommand):
     args = ''
     help = 'Dumps all series as csv files'
-    option_list = BaseCommand.option_list + (
-            make_option('--dest',
+    
+    def add_arguments(self,parser):
+        
+        parser.add_argument('--dest',
                 action='store',
                 dest = 'dest',
                 default = '.',
-                help = 'destination folder'),
-            make_option('--pk',
+                help = 'destination folder')
+
+        parser.add_argument('--pk',
                 action='store',
-                type = 'int',
+                type = int,
                 dest = 'pk',
                 default = None,
-                help = 'dump single datasource'),
-        )
+                help = 'dump single datasource')
 
     def handle(self, *args, **options):
         dest = options.get('dest', '.')
