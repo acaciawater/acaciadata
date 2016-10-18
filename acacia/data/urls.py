@@ -1,4 +1,4 @@
-from django.conf.urls import patterns, url, include
+from django.conf.urls import url, include
 from django.views.generic.list import ListView
 from acacia.data.models import Project
 from acacia.data.views import DatasourceDetailView, DatasourceAsZip, DatasourceAsCsv, ProjectDetailView, ProjectLocatieDetailView, \
@@ -7,8 +7,7 @@ from acacia.data.views import DatasourceDetailView, DatasourceAsZip, DatasourceA
     EmailProject, EmailProjectLocatie, EmailMeetLocatie, EmailDatasource, \
     UpdateDatasource, StartUpdateDatasource, poll_state, get_key, get_keys
 
-urlpatterns = patterns('',
-    url(r'^$', ListView.as_view(model=Project), name='project-list'),
+urlpatterns = [url(r'^$', ListView.as_view(model=Project), name='project-list'),
     url(r'^/$', ListView.as_view(model=Project), name='project-list'),
     url(r'^bron/(?P<pk>\d+)/$', DatasourceDetailView.as_view(), name='datasource-detail'),
 
@@ -47,4 +46,4 @@ urlpatterns = patterns('',
     url(r'^meetlocatie/(?P<pk>\d+)$', MeetLocatieDetailView.as_view(), name='meetlocatie-detail'),
     
     url(r'^chaining/', include('smart_selects.urls'))
-)
+    ]
