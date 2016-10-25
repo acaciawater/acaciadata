@@ -8,7 +8,7 @@ from acacia.data.views import DatasourceDetailView, DatasourceAsZip, DatasourceA
     UpdateDatasource, StartUpdateDatasource, poll_state, get_key, get_keys
 
 urlpatterns = [url(r'^$', ListView.as_view(model=Project), name='project-list'),
-    url(r'^/$', ListView.as_view(model=Project), name='project-list'),
+    url(r'^$', ListView.as_view(model=Project), name='project-list'),
     url(r'^bron/(?P<pk>\d+)/$', DatasourceDetailView.as_view(), name='datasource-detail'),
 
     url(r'^key/(?P<pk>\d+)/$', get_key, name='get_key'),
