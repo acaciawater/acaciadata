@@ -11,7 +11,7 @@ def copy_locaties(apps,schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('data', '0006_auto_20160927_1709'),
+        ('data', '0007_auto_20160928_1107'),
     ]
 
     operations = [
