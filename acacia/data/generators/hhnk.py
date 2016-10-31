@@ -42,26 +42,6 @@ class HNKWater(Generator):
             kwargs['filename'] = 'hnkwater_{}.json'.format(datetime.date.today())
         return Generator.download(self, **kwargs)
     
-    def get_data1(self, fil, **kwargs):
-        '''loads entire file in memory and returns dataframe for all locations'''
-        o = json.load(fil)
-        datapoints=[]
-        for feature in o['features']:
-            geom = feature['geometry']
-            coords = geom['coordinates']
-            prop = feature['properties']
-            mcode = prop['Meetpuntcode']
-            moms = prop['Meetpuntomschrijving']
-            pcode = prop['Parametercode']
-            poms = prop['Parameteromschrijving']
-            data = prop['data']
-            for d in data:
-                val = float(d['Waarde'])
-                dat = datetime.datetime.strptime(d['datum'],'%Y-%m-%d')
-                datapoints.append((dat,mcode,val))
-        df = pd.DataFrame.from_records(datapoints,index=['meetpunt','datum'],columns=['datum','meetpunt','GELDHD'])
-        return df
-
     def get_data(self, fil, **kwargs):
         '''iterates over file and returns dataframe for parameter and location'''
         datapoints=[]
@@ -85,6 +65,26 @@ class HNKWater(Generator):
                 # different location. Assume datapoints are grouped by location, so no more points in this file
                 break
         df = pd.DataFrame.from_records(datapoints,index=['datum'],columns=['datum',pcode])
+        df.dropna(inplace=True)
+        return df
+
+    def get_location_data(self, fil, **kwargs):
+        '''iterates over file and returns single dataframe for all locations'''
+        datapoints=[]
+        pcode = kwargs.get('parameter',self.parm)
+            
+        for p in ijson.items(fil,'features.item.properties'):
+            mcode = p['Meetpuntcode']
+            for d in p['data']:
+                try:
+                    val = float(d['Waarde'])
+                    dat = datetime.datetime.strptime(d['datum'],'%Y-%m-%d')
+                    # TODO: check unit
+                    datapoints.append((mcode,dat,val))
+                except:
+                    # problem with datapoint
+                    pass
+        df = pd.DataFrame.from_records(datapoints,index=['meetpunt', 'datum'],columns=['meetpunt','datum',pcode])
         df.dropna(inplace=True)
         return df
 

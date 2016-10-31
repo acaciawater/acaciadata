@@ -119,3 +119,7 @@ class Generator(object):
         ''' return dict of all locations in the datafile '''
         return {}
     
+    def get_location_data(self,fil,**kwargs):
+        ''' return data for ALL locations '''
+        return self.get_data(fil)
+    
