@@ -251,7 +251,7 @@ class Datasource(models.Model, LoggerSourceMixin):
     name = models.CharField(max_length=100,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     meetlocatie=models.ForeignKey(MeetLocatie,null=True,blank=True,verbose_name='Primaire meetlocatie',help_text='Primaire meetlocatie van deze gegevensbron')
-    locations=models.ManyToManyField(MeetLocatie,blank=True,related_name='datasources',verbose_name='Secundaire meetlocaties', help_text='Secundaire meetlocaties die deze gegevensbron gebruiken')
+    locations=models.ManyToManyField(MeetLocatie,blank=True,related_name='datasources',verbose_name='locaties', help_text='Secundaire meetlocaties die deze gegevensbron gebruiken')
     url=models.CharField(blank=True,null=True,max_length=200,help_text='volledige url van de gegevensbron. Leeg laten voor handmatige uploads of default url van generator')
     generator=models.ForeignKey(Generator,help_text='Generator voor het maken van tijdreeksen uit de datafiles')
     user=models.ForeignKey(User,verbose_name='Aangemaakt door')
@@ -478,7 +478,6 @@ class Datasource(models.Model, LoggerSourceMixin):
 
     def get_locations(self,**kwargs):
         logger = self.getLogger()
-        gen = self.get_generator_instance()
         logger.debug('Getting locations for datasource %s', self.name)
         files = kwargs.get('files', None) or self.sourcefiles.all()
         locs = {}
@@ -534,6 +533,11 @@ class Datasource(models.Model, LoggerSourceMixin):
         count = self.parameter_set.count()
         return count if count>0 else None
     parametercount.short_description = 'parameters'
+
+    def locationcount(self):
+        count = self.locations.count()
+        return count if count>0 else None
+    locationcount.short_description = 'locaties'
 
     def filecount(self):
         count = self.sourcefiles.count()
@@ -606,13 +610,14 @@ class SourceFile(models.Model,LoggerSourceMixin):
     name=models.CharField(max_length=100,blank=True)
     datasource = models.ForeignKey('Datasource',related_name='sourcefiles', verbose_name = 'gegevensbron')
     file=models.FileField(max_length=200,upload_to=up.sourcefile_upload,blank=True,null=True)
-    rows=models.IntegerField(default=0)
-    cols=models.IntegerField(default=0)
+    rows=models.IntegerField(default=0,verbose_name='rijen')
+    cols=models.IntegerField(default=0,verbose_name='kolommen')
+    locs=models.IntegerField(default=0,verbose_name='locaties')
     start=models.DateTimeField(null=True,blank=True)
     stop=models.DateTimeField(null=True,blank=True)
     crc=models.IntegerField(default=0)
     user=models.ForeignKey(User)
-    created = models.DateTimeField(auto_now_add=True)
+    created = models.DateTimeField(auto_now_add=True,verbose_name='aangemaakt')
     uploaded = models.DateTimeField(auto_now=True)
 
     def __unicode__(self):
@@ -708,6 +713,29 @@ class SourceFile(models.Model,LoggerSourceMixin):
             logger.debug('Got %d rows, %d columns', shape[0], shape[1])
         return data
 
+    def get_location_data(self,gen=None,**kwargs):
+        logger = self.getLogger()
+        data = None
+        if gen is None:
+            gen = self.datasource.get_generator_instance(**kwargs)
+        try:
+            filename = self.file.name
+        except:
+            logger.error('Sourcefile %s has no associated file' % self.name)
+            return None
+        logger.debug('Getting data for sourcefile %s', self.name)
+        try:
+            data = gen.get_location_data(self.file,**kwargs)
+        except Exception as e:
+            logger.exception('Error retrieving data from %s: %s' % (filename, e))
+            return None
+        if data is None:
+            logger.warning('No data retrieved from %s' % filename)
+        else:
+            shape = data.shape
+            logger.debug('Got %d rows, %d columns', shape[0], shape[1])
+        return data
+
     def get_locations(self,gen=None):
         logger=self.getLogger()
         if gen is None:
@@ -731,18 +759,23 @@ class SourceFile(models.Model,LoggerSourceMixin):
         
     def get_dimensions(self, data=None):
         if data is None:
-            data = self.get_data()
+            data = self.get_location_data()
         if data is None:
             self.rows = 0
             self.cols = 0
+            self.locs = 0
             self.start = None
             self.stop = None
         else:
             tz = timezone.get_current_timezone()
             self.rows = data.shape[0]
             self.cols = data.shape[1]
-            self.start = aware(data.index.min(),tz) if self.rows else None
-            self.stop = aware(data.index.max(),tz) if self.rows else None
+            if isinstance(data.index, pd.MultiIndex):
+                locs = set(data.index.get_level_values(0))
+                dates = data.index.get_level_values(1)
+                self.locs = len(locs) 
+                self.start = aware(min(dates),tz) if self.rows else None
+                self.stop = aware(max(dates),tz) if self.rows else None
 
 from django.db.models.signals import pre_delete, pre_save, post_save
 from django.dispatch.dispatcher import receiver

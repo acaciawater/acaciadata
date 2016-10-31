@@ -274,7 +274,6 @@ def generate_locations(modeladmin, request, queryset):
     for ds in queryset:
         projectlocatie = ds.projectlocatie()
         locs = ds.get_locations()
-        num = len(locs)
         for key,values in locs.iteritems():
             desc = values.get('description',None)
             loc = Point(values['coords'],srid=values['srid'])

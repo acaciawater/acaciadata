@@ -115,7 +115,7 @@ class DatasourceAdmin(admin.ModelAdmin):
     search_fields = ['name',]
     actions = [actions.upload_datasource, actions.update_parameters, actions.datasource_dimensions,actions.generate_locations]
     list_filter = ('meetlocatie','meetlocatie__projectlocatie','meetlocatie__projectlocatie__project','generator')
-    list_display = ('name', 'description', 'meetlocatie', 'generator', 'last_download', 'filecount', 'parametercount', 'seriescount', 'calibcount','start', 'stop', 'rows',)
+    list_display = ('name', 'description', 'meetlocatie', 'generator', 'last_download', 'filecount', 'locationcount', 'parametercount', 'seriescount', 'calibcount','start', 'stop', 'rows',)
     fieldsets = (
                  ('Algemeen', {'fields': ('name', 'description', 'timezone', 'meetlocatie','locations'),
                                'classes': ('grp-collapse grp-open',),
@@ -256,8 +256,8 @@ class GeneratorAdmin(admin.ModelAdmin):
 class SourceFileAdmin(admin.ModelAdmin):
     actions = [actions.sourcefile_dimensions,]
     fields = ('name', 'datasource', 'file',)
-    list_display = ('name','datasource', 'meetlocatie', 'filetag', 'rows', 'cols', 'start', 'stop', 'uploaded',)
-    list_filter = ('datasource', 'datasource__meetlocatie', 'datasource__meetlocatie__projectlocatie__project', 'uploaded',)
+    list_display = ('name','datasource', 'meetlocatie', 'filetag', 'locs', 'rows', 'cols', 'start', 'stop', 'created',)
+    list_filter = ('datasource', 'datasource__meetlocatie', 'datasource__meetlocatie__projectlocatie__project', 'created',)
     search_fields = ['name',]
 
     def save_model(self, request, obj, form, change):
