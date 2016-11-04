@@ -269,6 +269,7 @@ def update_kental(modeladmin, request, queryset):
         k.update()
 
 def generate_locations(modeladmin, request, queryset):
+    from acacia.data.util import toRD
     '''generates meetlocaties from a datasource'''
     ncreated = 0
     for ds in queryset:
@@ -277,9 +278,17 @@ def generate_locations(modeladmin, request, queryset):
         for key,values in locs.iteritems():
             desc = values.get('description',None)
             loc = Point(values['coords'],srid=values['srid'])
-            mloc, created = projectlocatie.meetlocatie_set.get_or_create(name=key,defaults={'description': desc,'location':loc})
-            if created:
-                logger.debug('Created Meetlocatie {}'.format(unicode(mloc)))
-                ncreated += 1
+            loc = toRD(loc)
+            try:
+                mloc, created = projectlocatie.meetlocatie_set.get_or_create(name=key,defaults={'description': desc,'location':loc})
+                if created:
+                    logger.debug('Created Meetlocatie {}'.format(unicode(mloc)))
+                    ncreated += 1
+                    try:
+                        ds.locations.add(mloc)
+                    except Exception as e:
+                        logger.error('Cannot add secondary meetlocatie {loc} to datasource {ds}: {ex}'.format(loc=mloc, ds=ds, ex=e))
+            except Exception as e:
+                logger.exception('Cannot create meetlocatie {}'.format(key))
     logger.info('{} new locations created'.format(ncreated))
 generate_locations.short_description = 'Meetlocaties aanmaken voor geselecteerde gegevensbronnen'
