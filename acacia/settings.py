@@ -94,15 +94,6 @@ GRAPPELLI_ADMIN_TITLE='Beheer van Acacia Online Datastore'
 ACCOUNT_ACTIVATION_DAYS = 7
 LOGIN_REDIRECT_URL = '/data/'
 
-# Celery stuff
-#BROKER_URL = 'redis://localhost:6379/0'
-#CELERY_RESULT_BACKEND='redis://localhost:6379/0'
-#INSTALLED_APPS += ('kombu.transport.django','djcelery',)    
-              
-#import djcelery
-#djcelery.setup_loader()
-#CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
-
 LOGGING_ROOT = os.path.join(BASE_DIR, 'logs')
 
 # Logging
