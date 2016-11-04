@@ -5,7 +5,7 @@ from acacia.data.views import DatasourceDetailView, DatasourceAsZip, DatasourceA
     MeetLocatieDetailView, MeetlocatieAsZip, SeriesAsCsv, SeriesToJson, ChartToJson, GridToJson, ChartAsCsv, UpdateMeetlocatie, ChartView, \
     ChartBaseView, DashView, TabGroupView, SeriesView, GridBaseView, GridView, \
     EmailProject, EmailProjectLocatie, EmailMeetLocatie, EmailDatasource, \
-    UpdateDatasource, StartUpdateDatasource, poll_state, get_key, get_keys
+    UpdateDatasource, get_key, get_keys
 
 urlpatterns = [url(r'^$', ListView.as_view(model=Project), name='project-list'),
     url(r'^$', ListView.as_view(model=Project), name='project-list'),
@@ -27,9 +27,6 @@ urlpatterns = [url(r'^$', ListView.as_view(model=Project), name='project-list'),
     url(r'^update/(?P<pk>\d+)',UpdateDatasource,name='datasource-update'),
     url(r'^update/meetlocatie/(?P<pk>\d+)', UpdateMeetlocatie,name='meetlocatie-update'),
     
-    url(r'^start/(?P<pk>\d+)',StartUpdateDatasource,name='start-datasource-update'),
-    url(r'^start/poll_state$', poll_state, name="poll_state"),
-        
     url(r'^get/series/(?P<pk>\d+)/$', SeriesToJson),
     url(r'^get/chart/(?P<pk>\d+)/$', ChartToJson),
     url(r'^get/grid/(?P<pk>\d+)/$', GridToJson),
