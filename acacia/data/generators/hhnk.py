@@ -10,7 +10,7 @@ import ijson
 from acacia.data.generators.generator import Generator
 from acacia.data import util
 import pandas as pd
-from acacia.data.models import MeetLocatie
+from itertools import groupby
 
 class HNKWater(Generator):
 
@@ -41,53 +41,50 @@ class HNKWater(Generator):
         if not 'filename' in kwargs:
             kwargs['filename'] = 'hnkwater_{}.json'.format(datetime.date.today())
         return Generator.download(self, **kwargs)
-    
-    def get_data(self, fil, **kwargs):
-        '''iterates over file and returns dataframe for parameter and location'''
-        datapoints=[]
-        mcode = kwargs.get('meetlocatie',None)
-        pcode = kwargs.get('parameter',self.parm)
-        if mcode and isinstance(mcode, MeetLocatie):
-            mcode = mcode.name
-            
-        for p in ijson.items(fil,'features.item.properties'):
-            if p['Meetpuntcode'] == mcode:
-                for d in p['data']:
-                    try:
-                        val = float(d['Waarde'])
-                        dat = datetime.datetime.strptime(d['datum'],'%Y-%m-%d')
-                        # TODO: check unit
-                        datapoints.append((dat,val))
-                    except:
-                        # problem with datapoint
-                        pass
-            elif datapoints:
-                # different location. Assume datapoints are grouped by location, so no more points in this file
-                break
-        df = pd.DataFrame.from_records(datapoints,index=['datum'],columns=['datum',pcode])
-        df.dropna(inplace=True)
-        return df
 
-    def get_location_data(self, fil, **kwargs):
-        '''iterates over file and returns single dataframe for all locations'''
-        datapoints=[]
-        pcode = kwargs.get('parameter',self.parm)
+    def iter_data(self, fil, **kwargs):
+        '''iterates over file and returns rows with location, date and parameter value'''
+        from acacia.data.models import MeetLocatie, Parameter
+        
+        location = kwargs.get('meetlocatie',None)
+        if location and isinstance(location, MeetLocatie):
+            location = location.name
+
+        parameter = kwargs.get('parameter',self.parm)
+        if parameter and isinstance(parameter, Parameter):
+            parameter = parameter.name
             
         for p in ijson.items(fil,'features.item.properties'):
-            mcode = p['Meetpuntcode']
+            
+            loc = p['Meetpuntcode']
+            if location and loc != location:
+                continue 
+            
+            par = p['Parametercode']
+            if parameter and par != parameter:
+                continue
+            
             for d in p['data']:
                 try:
                     val = float(d['Waarde'])
                     dat = datetime.datetime.strptime(d['datum'],'%Y-%m-%d')
-                    # TODO: check unit
-                    datapoints.append((mcode,dat,val))
+                    yield (loc,par,dat,val)
                 except:
                     # problem with datapoint
                     pass
-        df = pd.DataFrame.from_records(datapoints,index=['meetpunt', 'datum'],columns=['meetpunt','datum',pcode])
-        df.dropna(inplace=True)
-        return df
 
+    def get_data(self, fil, **kwargs):
+        '''iterates over file and returns data'''
+        flat = pd.DataFrame(self.iter_data(fil,**kwargs),columns=['locatie','parameter','datum','waarde'])
+        locs= flat.groupby('locatie')
+        dfs = {}
+        for loc, df in locs:
+            df=df.drop('locatie',axis=1)
+            df=df.drop_duplicates()
+            df=df.pivot(index='datum',columns='parameter',values='waarde')
+            dfs[loc] = df
+        return dfs
+    
     def iter_locations(self, fil):
         ''' iterates over point locations and returns id, coords, description tuple'''
         for feature in ijson.items(fil,'features.item'):
@@ -107,14 +104,18 @@ class HNKWater(Generator):
         return locs
     
 #from acacia.data.models import Datasource
-fname = '/home/theo/texelmeet/hhnk/hnk-water.nl.json'
+fname = '/home/theo/texelmeet/hhnk/media/datafiles/files/None/hnkwater_2016-11-02.json'
 
 if __name__ == '__main__':
     gen = HNKWater()
     with open(fname) as f:
-        print gen.get_parameters(f)
-        print gen.get_locations(f)
-        print gen.get_data(f,meetlocatie='001010')
+#         print gen.get_parameters(f)
+#         f.seek(0)
+#         print gen.get_locations(f)
+#         f.seek(0)
+        d = gen.get_data(f)
+        for k,v in d.iteritems():
+            print k,v['GELDHD']
         
 #     result = gen.download(url=defurl)
 #     for key,contents in result.items():

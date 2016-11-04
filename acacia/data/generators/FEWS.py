@@ -1,96 +1,126 @@
 import logging
-import pandas as pd
 from generator import Generator
-import time
-import json
+import ijson.backends.yajl2_cffi as ijson
 import requests
-import datetime
-
-import os, urllib2, cgi
-import re
-import dateutil
-import acacia.data.util as util
-from django.utils import timezone
-from django.core.files.base import File
+import datetime, time
 import pandas as pd
+from django.conf import settings
+from django.utils.text import slugify
+from urllib import urlencode
+from acacia.data import util
+from acacia.data.models import MeetLocatie, Parameter
+from pandas.util.testing import isiterable
 
 logger = logging.getLogger(__name__)
 
-def spliturl(url):
-    pattern = r'^(?P<scheme>ftp|https?)://(?:(?P<user>\w+)?(?::(?P<passwd>\S+))?@)?(?P<url>.+)'
-    try:
-        m = re.match(pattern, url)
-        return m.groups()
-    except:
-        return ()
-
-# logger = logging.getLogger(__name__)
-
 class FEWS(Generator):
-    ''' Get timeseries EC en Chlorisiteit from FEWS'''
-#     def download(self):
- 
+    ''' Get timeseries from FEWS Rest API json response ''' 
+    
+    def __init__(self,*args,**kwargs):
+        super(FEWS,self).__init__(*args,**kwargs)
+        self.organisation = kwargs.get('organisation', 'HHNK')
+        self.parm = kwargs.get('parameter',['CL.berekend','EGVms_cm.meting'])
+
+    def timestamp(self, datetime=datetime.datetime.utcnow()):
+        ''' return unix timestamp from datetime '''
+        return int(time.mktime(datetime.utctimetuple())*1000)
+                
+    def download (self, **kwargs):
+        ''' download json response from ddsc REST API 
+            defaults: organisation = HHNK, start = 1/1/2015, end=today '''
+         
+        base_url = kwargs.get('url', None)
+        if not base_url:
+            logger.error('FEWS url is missing')
+            return {}
+        if not base_url.endswith('/'):
+            base_url += '/'
+            
+        username = kwargs.get('username',settings.FEWSUSERNAME)
+        passwd = kwargs.get('password',settings.FEWSPASSWORD)
+        start = kwargs.get('start',None) or self.timestamp(datetime.datetime(2015,1,1))
+        end = kwargs.get('end',None) or self.timestamp(datetime.datetime.utcnow())
+        headers = {'username': username, 'password':passwd}
+        result = {}
+        params = {'format':'json',
+                  'location__organisation__name':'HHNK',
+                  'start':start,
+                  'end':end}
+        for pname in self.parm:
+            params['name__startswith'] = pname
+            url = base_url + '?' + urlencode(params)
+            page=1
+            while url:
+                response = requests.get(url = url, headers = headers)
+                filename = 'ddsc{page}_{param}.json'.format(param=slugify(pname), page=page)
+                result[filename] = response.text
+                url = response.json()['next']
+                page += 1
+
+        callback = kwargs.get('callback', None)
+        if callback is not None:
+            callback(result)        
         
+        return result
+
     def get_data(self, f, **kwargs):
-        timestamps = []
-        measurements = []
-        datasource = json.load(f)
-        timeseries = datasource['events']
-        columns = [datasource['name']]
-        for t in timeseries:
-            timestamps.append(t['timestamp'])
-            tmin = t['min']
-            tmax = t['min']
-            tgem = (tmin+tmax)/2 if (tmin and tmax) else None
-            measurements.append(tgem)
-        times = [datetime.datetime.fromtimestamp(t/1000.0) for t in timestamps]
-        data = pd.DataFrame(measurements,index=times,columns=columns)
-        return data
+        location = kwargs.get('meetlocatie',None)
+        if location and isinstance(location, MeetLocatie):
+            location = location.name
+
+        params = kwargs.get('parameter',self.parm)
+        if params and isinstance(params, Parameter):
+            params = [params.name]
+            
+        # find data for location and one of the parameters (always one parameter per json file)
+        dfs = {}
+        for ts in ijson.items(f,'results.item'):
+            pname = ts['name']
+            if not pname in params:
+                # only 1 parameter per file
+                break
+            lcode = ts['location']['organisation_code']
+            if not location or lcode == location: 
+                events = ts['events']
+                data = []
+                if events:
+                    for e in events:
+                        tmin = e['min']
+                        tmax = e['min']
+                        tgem = (tmin+tmax)/2 if (tmin and tmax) else None
+                        t=e['timestamp']
+                        data.append((datetime.datetime.fromtimestamp(t/1000),tgem))
+                if data:
+                    df = pd.DataFrame.from_records(data, index=['datum'], columns=['datum',pname])
+                    if location:
+                        # requested for a single location
+                        return df
+                    dfs[lcode] = df
+        return dfs
     
     def get_parameters(self, f):
         params = {}
-#        content = f.read()
-#         datasource = json.loads('"result" :'+content)
-        datasource = json.load(f)
-        name = datasource['name']
-        description = datasource['parameter_referenced_unit']['parameter_short_display_name']
-        unit = datasource['parameter_referenced_unit']['referenced_unit_short_display_name']
-        params[name] = {'description':description,'unit':unit}
+        for obs in ijson.items(f,'results.item.observation_type'):
+            params[obs['code']] = {'description':obs['parameter_short_display_name'], 'unit': obs['referenced_unit_short_display_name']}
+            break # one single parameter per file
         return params
-        
-    def download (self, **kwargs):
-        '''
-        expects credentials, filename_prefix and a timeseries url
-        creates or updates bronbestand in json format
-        '''
-        url =  kwargs.get('url', None)
-        if url[-1] != '/':
-            url += '/'
+
+    def iter_locations(self, fil):
+        ''' iterates over point locations and returns id, coords, description tuple'''
+        for feature in ijson.items(fil,'results.item.location'):
+            geom = feature['geometry']
+            if geom and geom['type'] == 'Point':
+                x,y,z = geom['coordinates']
+                coords = [float(x),float(y)]
+                mcode = feature['organisation_code']
+                moms = feature['name']
+                yield (mcode,coords,moms)
+
+    def get_locations(self, fil):
+        ''' returns dictionary of locations with location code as key '''
+        locs = {}
+        for (code,coords,oms) in self.iter_locations(fil):
+            locs[code]=dict(coords=coords,description=oms,srid=util.WGS84)
+        return locs
             
-        if not 'url' in kwargs:
-            logger.error('url for download is undefined')
-        
-        callback = kwargs.get('callback', None)
-        username = kwargs.get('username',None)
-        passwd = kwargs.get('password',None)
-        start = kwargs.get('start',None)
-        result = {}
-        headers = {'username': username, 'password':passwd}
-              
-        response = requests.get(url = url, headers = headers)
-        data = response.json()
-                
-        filename = kwargs.get('filename', None) or 'ddsc.json'
-        
-        if start == None:
-            start = data["first_value_timestamp"]
-        end = data['last_value_timestamp']
-        query = {'start':start, 'end':end}
-        response = requests.get(url = url, headers = headers, params=query)
-        result[filename] = response.text
-        if callback is not None:
-            callback(result)        
-        return result
-
-
-
+    
