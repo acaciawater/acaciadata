@@ -32,7 +32,8 @@ class Generator(object):
         return {}
 
     def get_data(self,fil,**kwargs):
-        return []
+        ''' dict of dataframes per location '''
+        return {}
 
     def get_handle(self,fil,mode='r'):
         if isinstance(fil, File):
@@ -118,8 +119,4 @@ class Generator(object):
     def get_locations(self,fil):
         ''' return dict of all locations in the datafile '''
         return {}
-    
-    def get_location_data(self,fil,**kwargs):
-        ''' return data for ALL locations '''
-        return self.get_data(fil)
     
