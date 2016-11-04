@@ -200,11 +200,13 @@ class MeetLocatie(geo.Model):
             for m in self.manualseries_set.all():
                 ser.append(m)
         if ser:
-            # dont know if formula_set occurs
             # remove duplicates (if any)
             ser = list(set(ser))    
         return ser
 
+    def getseries(self):
+        return self.series()
+    
     def charts(self):
         charts = []
         for f in self.datasources.all():
@@ -452,7 +454,13 @@ class Datasource(models.Model, LoggerSourceMixin):
                 if sstart is not None and sstart > stop:
                     continue
             d = sourcefile.get_data(gen,**kwargs)
-            if d is not None:
+            if d:
+                if len(d)>1:
+                    # data for more than 1 location returned!
+                    # this is not yet allowed
+                    logger.error('Data for more than 1 location returned. Location filter missing?')
+                    return None
+                d=d.values()[0]
                 if data is None:
                     data = d
                 else:
@@ -675,45 +683,35 @@ class SourceFile(models.Model,LoggerSourceMixin):
         return '<a href="%s">%s</a>' % (os.path.join(settings.MEDIA_URL,self.file.name),self.filename())
     filetag.allow_tags=True
     filetag.short_description='bestand'
-           
+
+    def get_data_dimensions(self, data):
+        tz = timezone.get_current_timezone()
+        numrows=0
+        cols=set()
+        begin=None
+        end=None
+        for k,v in data.iteritems():
+            rows = v.shape[0]
+            if rows:
+                numrows += rows
+                start = aware(min(v.index), tz)
+                begin = min(begin,start) if begin else start 
+                stop = aware(max(v.index), tz)
+                end = max(end,stop) if end else stop 
+                for colname in v.columns.values:
+                    cols.add(colname)
+        numcols=len(cols)
+        numlocs = len(data)
+        
+        self.cols = numcols
+        self.rows = numrows
+        self.locs = numlocs
+        self.start= begin
+        self.stop = end
+        
+        return (numlocs,numrows,numcols,begin,end)
+    
     def get_data(self,gen=None,**kwargs):
-        logger = self.getLogger()
-        data = None
-        if not 'meetlocatie' in kwargs:
-            mloc = self.meetlocatie()
-            if mloc:
-                kwargs['meetlocatie'] = mloc.name
-
-        mloc = kwargs['meetlocatie']
-        if not hasattr(self,'cached_data'): 
-            self.cached_data = {}
-        if mloc in self.cached_data:
-            data = self.cached_data[mloc]
-            logger.debug('Data retrieved from cache')
-        else:
-            if gen is None:
-                gen = self.datasource.get_generator_instance(**kwargs)
-            try:
-                filename = self.file.name
-            except:
-                logger.error('Sourcefile %s has no associated file' % self.name)
-                return None
-            logger.debug('Getting data for sourcefile %s', self.name)
-            try:
-                data = gen.get_data(self.file,**kwargs)
-                if mloc:
-                    self.cached_data[mloc] = data
-            except Exception as e:
-                logger.exception('Error retrieving data from %s: %s' % (filename, e))
-                return None
-        if data is None:
-            logger.warning('No data retrieved from %s' % filename)
-        else:
-            shape = data.shape
-            logger.debug('Got %d rows, %d columns', shape[0], shape[1])
-        return data
-
-    def get_location_data(self,gen=None,**kwargs):
         logger = self.getLogger()
         data = None
         if gen is None:
@@ -725,15 +723,19 @@ class SourceFile(models.Model,LoggerSourceMixin):
             return None
         logger.debug('Getting data for sourcefile %s', self.name)
         try:
-            data = gen.get_location_data(self.file,**kwargs)
+            data = gen.get_data(self.file,**kwargs)
         except Exception as e:
             logger.exception('Error retrieving data from %s: %s' % (filename, e))
             return None
-        if data is None:
+        if not data:
             logger.warning('No data retrieved from %s' % filename)
         else:
-            shape = data.shape
-            logger.debug('Got %d rows, %d columns', shape[0], shape[1])
+            # generator may return single dataframe or dict with location as key
+            if isinstance(data,pd.DataFrame):
+                loc = kwargs.get('meetlocatie',self.meetlocatie())
+                data={loc:data}
+            self.get_data_dimensions(data)
+            logger.debug('Got %d locations, %d rows, %d columns', self.locs,self.rows,self.cols)
         return data
 
     def get_locations(self,gen=None):
@@ -759,24 +761,16 @@ class SourceFile(models.Model,LoggerSourceMixin):
         
     def get_dimensions(self, data=None):
         if data is None:
-            data = self.get_location_data()
-        if data is None:
-            self.rows = 0
-            self.cols = 0
-            self.locs = 0
-            self.start = None
-            self.stop = None
+            data = self.get_data()
+            if data is None:
+                self.rows = 0
+                self.cols = 0
+                self.locs = 0
+                self.start = None
+                self.stop = None
         else:
-            tz = timezone.get_current_timezone()
-            self.rows = data.shape[0]
-            self.cols = data.shape[1]
-            if isinstance(data.index, pd.MultiIndex):
-                locs = set(data.index.get_level_values(0))
-                dates = data.index.get_level_values(1)
-                self.locs = len(locs) 
-                self.start = aware(min(dates),tz) if self.rows else None
-                self.stop = aware(max(dates),tz) if self.rows else None
-
+            self.get_data_dimensions(data)
+            
 from django.db.models.signals import pre_delete, pre_save, post_save
 from django.dispatch.dispatcher import receiver
 from functools import wraps
@@ -853,7 +847,7 @@ class Parameter(models.Model, LoggerSourceMixin):
         return self.datasource.project()
     
     def get_data(self,**kwargs):
-        return self.datasource.get_data(param=self.name,**kwargs)
+        return self.datasource.get_data(parameter=self.name,**kwargs)
 
     def seriescount(self):
         return self.series_set.count()
@@ -1715,17 +1709,17 @@ class CalibrationData(models.Model):
         verbose_name = 'IJkpunt'        
         verbose_name_plural = 'IJkset'
 
-from smart_selects.db_fields import ChainedManyToManyField
+#from smart_selects.db_fields import ChainedManyToManyField
 
 class KeyFigure(models.Model):
     ''' Net zoiets als een Formula, maar dan met een scalar als resultaat'''
     locatie = models.ForeignKey(MeetLocatie)
     name = models.CharField(max_length=200, verbose_name = 'naam')
     description = models.TextField(blank=True, null = True, verbose_name = 'omschrijving')
-    #variables = models.ManyToManyField(Variable,verbose_name = 'variabelen')
-    variables = ChainedManyToManyField(Variable,verbose_name = 'variabelen',
-            chained_field = locatie,
-            chained_model_field = 'locatie')
+    variables = models.ManyToManyField(Variable,verbose_name = 'variabelen')
+#     variables = ChainedManyToManyField(Variable,verbose_name = 'variabelen',
+#             chained_field = locatie,
+#             chained_model_field = 'locatie')
     formula = models.TextField(blank=True,null=True,verbose_name = 'berekening')
     last_update = models.DateTimeField(auto_now = True, verbose_name = 'bijgewerkt')
     startDate = models.DateField(blank=True, null=True)
