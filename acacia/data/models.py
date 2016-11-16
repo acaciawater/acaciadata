@@ -1605,6 +1605,30 @@ AXIS_CHOICES = (
                 ('r', 'rechts'),
                )
 
+class BandStyle(models.Model):
+    name = models.CharField(max_length=32)
+    fillcolor = models.CharField(max_length=32)
+    fillstyle = models.CharField(max_length=32,default='solid')
+    opacity = models.FloatField(default=0.8)
+    linecolor = models.CharField(max_length=32,default='black')
+    linestyle = models.CharField(max_length=32,default='solid')
+    linewidth = models.CharField(max_length=32,default=0)
+
+class Band(models.Model):
+    chart = models.Foreignkey(Chart)
+    style = models.Foreignkey(BandStyle)
+    label = models.CharField(max_length=50)
+    
+class HorizontalBand(Band):
+    bottom = models.FloatField()
+    top = models.FloatField()
+    repetition = models.FloatField(default=0)
+
+class VerticalBand(Band):
+    left = models.DateTimeField()
+    right = models.DateTimeField()
+    repetition = models.CharField(max_length=8,choices=PERIOD_CHOICES)
+
 class ChartSeries(models.Model):
     chart = models.ForeignKey(Chart,related_name='series', verbose_name='grafiek')
     order = models.IntegerField(default=1,verbose_name='volgorde')
