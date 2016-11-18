@@ -14,6 +14,7 @@ import upload as up
 import numpy as np
 import pandas as pd
 import json,util,StringIO,pytz,logging
+import dateutil
 
 THEME_CHOICES = ((None,'standaard'),
                  ('dark-blue','blauw'),
@@ -1478,8 +1479,7 @@ PERIOD_CHOICES = (
               ('years', 'jaar'),
               )
 
-import dateutil
-    
+   
 #class Chart(models.Model):
 class Chart(PolymorphicModel):
     name = models.CharField(max_length = 100, verbose_name = 'naam')
@@ -1598,36 +1598,78 @@ class Grid(Chart):
         else:
             z2 *= self.scale
         return (x1,y1,z1,x2,y2,z2)
-                
-            
+
+DASHSTYLES = (('Solid', 'Standaard'),
+              ('Dash', 'Gestreept'),
+              ('Dot', 'Gestippeld'),
+              )
+ORIENTATION = (('h', 'horizontaal'), ('v','vertikaal'))              
+dashStyles = [
+        'Solid',
+        'ShortDash',
+        'ShortDot',
+        'ShortDashDot',
+        'ShortDashDotDot',
+        'Dot',
+        'Dash',
+        'LongDash',
+        'DashDot',
+        'LongDashDot',
+        'LongDashDotDot'
+    ]
+class BandStyle(models.Model):
+    name = models.CharField(max_length=32,verbose_name='naam')
+    fillcolor = models.CharField(max_length=32,verbose_name='achtergrondkleur')
+    bordercolor = models.CharField(max_length=32,default='black',verbose_name='randkleur')
+    borderwidth = models.IntegerField(default=0,verbose_name='breedte rand')
+    zIndex = models.IntegerField(default = 0,verbose_name='volgorde')
+
+    def __unicode__(self):
+        return self.name
+    
+class LineStyle(models.Model):
+    name = models.CharField(max_length=32,verbose_name='naam')
+    color = models.CharField(max_length=32,default='black',verbose_name='kleur')
+    dashstyle = models.CharField(max_length=32,default='Solid',choices=DASHSTYLES,verbose_name='stijl')
+    width = models.CharField(max_length=32,default='0',verbose_name='breedte')
+    zIndex = models.IntegerField(default = 0,verbose_name='volgorde')
+
+    def __unicode__(self):
+        return self.name
+
+
+class PlotLine(models.Model):
+    chart = models.ForeignKey(Chart,verbose_name='grafiek')
+    axis = models.IntegerField(default=1)
+    style = models.ForeignKey(LineStyle,verbose_name='stijl')
+    orientation = models.CharField(max_length=1,choices=ORIENTATION,verbose_name='oriëntatie')
+    label = models.CharField(max_length=50)
+    value = models.CharField(max_length=32,verbose_name='waarde')
+    repetition = models.CharField(max_length=32,default='0',verbose_name='herhaling')
+
+    class Meta:
+        verbose_name = 'Lijn'
+        verbose_name_plural = 'Lijnen'
+        
+        
+class PlotBand(models.Model):
+    chart = models.ForeignKey(Chart,verbose_name='grafiek')
+    axis = models.IntegerField(default=1)
+    style = models.ForeignKey(BandStyle,verbose_name='stijl')
+    orientation = models.CharField(max_length=1,choices=ORIENTATION,verbose_name='oriëntatie')
+    label = models.CharField(max_length=50)
+    low = models.CharField(max_length = 32,verbose_name='van')
+    high = models.CharField(max_length=32,verbose_name='tot')
+    repetition = models.CharField(max_length=32,verbose_name='herhaling')
+
+    class Meta:
+        verbose_name = 'Strook'
+        verbose_name_plural = 'Stroken'
+
 AXIS_CHOICES = (
                 ('l', 'links'),
                 ('r', 'rechts'),
                )
-
-class BandStyle(models.Model):
-    name = models.CharField(max_length=32)
-    fillcolor = models.CharField(max_length=32)
-    fillstyle = models.CharField(max_length=32,default='solid')
-    opacity = models.FloatField(default=0.8)
-    linecolor = models.CharField(max_length=32,default='black')
-    linestyle = models.CharField(max_length=32,default='solid')
-    linewidth = models.CharField(max_length=32,default=0)
-
-class Band(models.Model):
-    chart = models.Foreignkey(Chart)
-    style = models.Foreignkey(BandStyle)
-    label = models.CharField(max_length=50)
-    
-class HorizontalBand(Band):
-    bottom = models.FloatField()
-    top = models.FloatField()
-    repetition = models.FloatField(default=0)
-
-class VerticalBand(Band):
-    left = models.DateTimeField()
-    right = models.DateTimeField()
-    repetition = models.CharField(max_length=8,choices=PERIOD_CHOICES)
 
 class ChartSeries(models.Model):
     chart = models.ForeignKey(Chart,related_name='series', verbose_name='grafiek')

@@ -13,6 +13,9 @@ from .actions import download_series_zip
 from django.views.decorators.gzip import gzip_page
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from dateutil.parser import parse
+import dateutil
+from acacia.data.models import aware
 
 logger = logging.getLogger(__name__)
 
@@ -294,7 +297,7 @@ class ChartBaseView(TemplateView):
                       'events': {'load': None},
                       },
             'title': {'text': chart.title},
-            'xAxis': {'type': 'datetime'},
+            'xAxis': {'type': 'datetime','plotBands': []},
             'yAxis': [],
             'tooltip': {'valueDecimals': 2,
                         'shared': True,
@@ -312,9 +315,31 @@ class ChartBaseView(TemplateView):
         if chart.stop:
             options['xAxis']['max'] = tojs(chart.stop)
         allseries = []
-        # TODO: geen nieuwe y-as aanmaken voor elke tijdreeks! 
+
+        tmin = chart.start
+        tmax = chart.stop
+        ymin = None
+        ymax = None 
+        
         for _,s in enumerate(chart.series.all()):
             ser = s.series
+            if tmin:
+                tmin = min(tmin,s.t0 or ser.van())
+            else:
+                tmin = s.t0 or ser.van()
+            if tmax:
+                tmax = max(tmax,s.t1 or ser.tot())
+            else:
+                tmax = s.t1 or ser.tot()
+            if ymin:
+                ymin = min(ymin,s.y0 or ser.minimum())
+            else:
+                ymin = s.y0 or ser.minimum()
+            if ymax:
+                ymax = max(ymax,s.y1 or ser.maximum())
+            else:
+                ymax = s.y1 or ser.maximum()
+                
             title = s.label #ser.name if len(ser.unit)==0 else '%s [%s]' % (ser.name, ser.unit) if chart.series.count()>1 else ser.unit
             options['yAxis'].append({
                                      'title': {'text': title},
@@ -348,6 +373,62 @@ class ChartBaseView(TemplateView):
                 sop['fillOpacity'] = 0.3
             allseries.append(sop)
         options['series'] = allseries
+        
+        for band in chart.plotband_set.all():
+            if band.orientation == 'h':
+                ax = options['yAxis'][band.axis-1]
+                lo = float(band.low)
+                hi = float(band.high)
+                every = max(1,float(band.repetition))
+                b = []
+                for i in range(20):
+                    if lo < ymax:
+                        b.append({'color': band.style.fillcolor, 'borderWidth': band.style.borderwidth, 'borderColor': band.style.bordercolor, 'from': lo, 'to': hi, 'label': {'text':band.label}})
+                        lo += every
+                        hi += every
+            else:
+                ax = options['xAxis']
+                lo = parse(band.low)
+                hi = parse(band.high)
+                
+                def parserep(r):
+                    from dateutil.relativedelta import relativedelta
+                    pattern = r'(?P<rep>\d*)(?P<how>[hdwmy])'
+                    match = re.match(pattern, r,re.IGNORECASE)
+                    if match:
+                        rep = match.group('rep') or 1
+                        how = match.group('how')
+                        if how == 'h':
+                            delta = relativedelta(hours=int(rep))
+                        elif how == 'd':
+                            delta = relativedelta(days=int(rep))
+                        elif how == 'w':
+                            delta = relativedelta(weeks=int(rep))
+                        elif how == 'm':
+                            delta = relativedelta(months=int(rep))
+                        elif how == 'y':
+                            delta = relativedelta(years=int(rep))
+                        return delta
+                    return None
+
+                delta = parserep(band.repetition)
+                
+                b = []
+                for i in range(20):
+                    if aware(lo) < aware(tmax):
+                        b.append({'color': band.style.fillcolor, 'borderWidth': band.style.borderwidth, 'borderColor': band.style.bordercolor, 'from': lo, 'to': hi, 'label': {'text':band.label}})
+                        if delta:
+                            lo += delta
+                            hi += delta
+                
+            if not 'plotBands' in ax:
+                ax['plotBands'] = []
+            ax['plotBands'].extend(b) 
+        
+        for line in chart.plotline_set.all():
+            pass
+        
+
         jop = json.dumps(options,default=date_handler)
         # remove quotes around date stuff
         jop = re.sub(r'\"(Date\.UTC\([\d,]+\))\"',r'\1', jop)

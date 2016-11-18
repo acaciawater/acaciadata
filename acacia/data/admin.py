@@ -13,6 +13,8 @@ from django.contrib.contenttypes.models import ContentType
 import django.contrib.gis.forms as geoforms
 import json
 import actions
+from acacia.data.models import PlotLine, LineStyle, PlotBand, BandStyle
+import dateutil
 
 class Media:
     js = [
@@ -480,10 +482,46 @@ class DataPointAdmin(admin.ModelAdmin):
     list_filter = ('series', )
     ordering = ('series', 'date', )
 
+class HiLoInlineFormSet(BaseInlineFormSet):
+    def clean(self):
+        super(HiLoInlineFormSet, self).clean()
+        for form in self.forms:
+            orient = form.cleaned_data['orientation']
+            hi = form.cleaned_data['high']
+            lo = form.cleaned_data['low']
+            if orient == 'h':
+            # horizontal band: low and high must be numebers
+                try:
+                    van=float(lo)
+                    tot=float(hi)
+                except:
+                    raise forms.ValidationError("'van' en 'tot' moeten een getal zijn")
+            else:
+                # vertical band: low and high must be datetime
+                try:
+                    van = dateutil.parser.parse(lo)
+                    tot = dateutil.parser.parse(hi)
+                except:
+                    raise forms.ValidationError("'van' en 'tot' moeten een datum zijn")
+            if van > tot:
+                raise forms.ValidationError("'van' mag niet groter zijn dan 'tot'")
+            
+class PlotBandInline(admin.TabularInline):
+    model = PlotBand
+    classes = ('grp-collapse grp-closed',)
+    extra = 0
+    formset = HiLoInlineFormSet
+
+class PlotLineInline(admin.TabularInline):
+    model = PlotLine
+    classes = ('grp-collapse grp-closed',)
+    extra = 0
+    formset = HiLoInlineFormSet
+    
 class ChartAdmin(admin.ModelAdmin):
     actions = [actions.copy_charts,]
     list_display = ('name', 'title', 'tijdreeksen', )
-    inlines = [ChartSeriesInline,]
+    inlines = [PlotBandInline,PlotLineInline,ChartSeriesInline,]
     exclude = ('user',)
     fieldsets = (
                  ('Algemeen', {'fields': ('name', 'description', 'title'),
@@ -592,3 +630,8 @@ admin.site.register(Notification, NotificationAdmin)
 admin.site.register(Grid, GridAdmin)
 admin.site.register(CalibrationData, CalibrationAdmin)
 admin.site.register(KeyFigure, KeyFigureAdmin)
+
+admin.site.register(PlotBand)
+admin.site.register(PlotLine)
+admin.site.register(LineStyle)
+admin.site.register(BandStyle)
