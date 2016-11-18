@@ -21,7 +21,9 @@ import datetime
 import pandas as pd
 import pylab 
 import matplotlib.pyplot as plt
+import logging
 
+logger = logging.getLogger(__name__)
 
 ###############################################################################
 #getting Pt, GW and Et time series in a pandas dataframe
@@ -30,28 +32,120 @@ import matplotlib.pyplot as plt
 regarding the time and date of when the measurements were recorded. '''
 
 os.chdir('/home/stephane/eclipse_workspace/ModelMiriam/hornhuizen')
-def gws_forecast(hist_gws,hist_ev,hist_pt,forec_et,forec_pt,forec_tmp):
+def gws_forecast(histor_gws,histor_ev,histor_pt,forecast_et,forecast_pt,forecast_tmp):
+    
+    hist_gws = histor_gws.to_pandas().to_frame()
+    hist_gws = hist_gws.resample('d', how='mean')
+    hist_gws.fillna(inplace = True, method = 'bfill', limit = 7)
+#     hist_gws.fillna(1.0, inplace = True, method = 'bfill', limit = 7))
+    if hist_gws.isnull().any().any():
+        logger.warning('Series %s replacement of nan values failed' % (histor_gws.name))
+        return None
+    
+    hist_ev = histor_ev.to_pandas().to_frame()
+    hist_ev = hist_ev.resample('d', how='mean')
+    hist_ev.fillna(inplace = True, method = 'bfill', limit = 7)
+    if hist_gws.isnull().any().any():
+        logger.warning('Series %s replacement of nan values failed' % (histor_ev.name))
+        return None
+
+    hist_pt = histor_pt.to_pandas().to_frame()
+#         hist_pt = hist_pt.resample('d', how='mean')
+    hist_pt.fillna(0, inplace = True, limit = 7)
+    if hist_gws.isnull().any().any():
+        logger.warning('Series %s replacement of nan values failed' % (histor_pt.name))
+        return None
+    
+    df = hist_gws.join(hist_pt)
+    df_day = df.join(hist_ev)
+      
+    
+    forec_et = forecast_et.to_pandas().to_frame()
+    df_et_day_voorsp = forec_et.resample('d', how='mean')
+    df_et_day_voorsp.fillna(1.0, inplace = True)
+    if hist_gws.isnull().any().any():
+        logger.warning('Series %s replacement of nan values failed' % (forecast_et.name))
+        return None
+    
+    forec_pt = forecast_pt.to_pandas().to_frame()
+    df_pt_day_voorsp = forec_pt.resample('d', how='sum')
+    df_pt_day_voorsp.fillna(1.0, inplace = True)
+    if hist_gws.isnull().any().any():
+        logger.warning('Series %s replacement of nan values failed' % (forecast_pt.name))
+        return None
+    
+    forec_tmp = forecast_tmp.to_pandas().to_frame()
+    df_tmp_day_voorsp = forec_tmp.resample('d', how='mean')
+    df_tmp_day_voorsp.fillna(1.0, inplace = True)
+    if hist_gws.isnull().any().any():
+        logger.warning('Series %s replacement of nan values failed' % (forecast_tmp.name))
+        return None
+    
+    
+
+    
+    
+
+  
+#     
+#     ''' voorspellingen  '''
+#     df = pd.read_csv('downloaded16_11_11/pevprsfc_mean.csv', index_col=0, parse_dates=True, dayfirst=False)
+#     df_et_day_voorsp = df.resample('d', how = 'mean')
+#     df_et_day_voorsp.fillna(1.0, inplace = True)
+#     df = pd.read_csv('downloaded16_11_11/apcpsfc_mean.csv', index_col=0, parse_dates=True, dayfirst=False)
+#     df_pt_day_voorsp = df.resample('d', how = 'sum')
+#     df_pt_day_voorsp.fillna(1.0, inplace = True)
+#     df = pd.read_csv('downloaded16_11_11/tmp2m_mean.csv', index_col=0, parse_dates=True, dayfirst=False)
+#     df_tmp_day_voorsp = df.resample('d', how = 'mean')
+#     df_tmp_day_voorsp.fillna(1.0, inplace = True)
+
+#     hist_gws = get_object_or_404(Series,pk=hist_gws).to_pandas().to_frame()
+#     hist_gws = hist_gws.resample('d', how='mean')
+#     hist_gws.fillna(1.0, inplace = True)
+#     hist_ev = get_object_or_404(Series,pk=hist_ev).to_pandas().to_frame()
+#     hist_ev = hist_ev.resample('d', how='mean')
+#     hist_ev.fillna(1.0, inplace = True)
+#     hist_pt = get_object_or_404(Series,pk=hist_pt).to_pandas().to_frame()
+#     hist_pt = hist_pt.resample('d', how='mean')
+#     hist_pt.fillna(1.0, inplace = True)
+#     df = hist_gws.join(hist_pt)
+#     df_day = df.join(hist_ev)
+#       
     
     #using data from the spaarwater website
     # hist  gws
-    df = pd.read_csv('grondwaterstand.csv', index_col=0, parse_dates=True, dayfirst=False)
-    df_h_day = df.resample('d', how = 'mean')
+#     df = pd.read_csv('grondwaterstand.csv', index_col=0, parse_dates=True, dayfirst=False)
+#     df_h_day = df.resample('d', how = 'mean')
+#     # hist ev
+#     df = pd.read_csv('ev24.csv', index_col=0, parse_dates=True, dayfirst=False)
+#     df_et_day = df.resample('d', how = 'mean')
+# #     hist precip.
+#     df = pd.read_csv('neerslag_hornhuizen.csv', index_col=0, parse_dates=True, dayfirst=False)
+#     df_pt_day = df.resample('d', how = 'mean')
+#     df = df_h_day.join(df_pt_day)
+#     df_day = df.join(df_et_day)
+
+
     
-    # hist ev
-    df = pd.read_csv('ev24.csv', index_col=0, parse_dates=True, dayfirst=False)
-    df_et_day = df.resample('d', how = 'mean')
-#     hist precip.
-    df = pd.read_csv('neerslag_hornhuizen.csv', index_col=0, parse_dates=True, dayfirst=False)
-    df_pt_day = df.resample('d', how = 'mean')
-    
-    df = df_h_day.join(df_pt_day)
-    df_day = df.join(df_et_day)
+#     forec_et = get_object_or_404(Series,pk=forec_et)
+#     forec_et = forec_et.resample('d', how='mean')
+#     forec_pt = get_object_or_404(Series,pk=forec_pt)
+#     forec_pt = forec_pt.resample('d', how='mean')
+#     forec_tmp = get_object_or_404(Series,pk=forec_tmp)
+#     forec_tmp = forec_tmp.resample('d', how='mean')
+
+    data_day = np.zeros([len(hist_gws), 5])
+    index = hist_gws.index.tolist()    
+
 
     #creating arrays for lmfit 
     # Mean daily values for gw, pt and et using dataframes from spaarwater website
+    
     '''here she creates an combined historical data array called data_day'''
-    data_day = np.zeros([len(df_h_day), 5])
-    index = df_h_day.index.tolist()
+#     data_day = np.zeros([len(df_h_day), 5])
+#     index = df_h_day.index.tolist()
+   
+    
     datetime_day = []
     for i in range (len(index)):
         a = index[i]
@@ -67,21 +161,11 @@ def gws_forecast(hist_gws,hist_ev,hist_pt,forec_et,forec_pt,forec_tmp):
        # last cell contains nan, thats why -2
     '''here she throws away the last value because Et has a NAN at [-1]'''
     data_h = data_day[len(data_day)-141:-1,1] 
-    Pt = data_day[len(data_day)-141:-1,2]
-    Et = data_day[len(data_day)-141:-1,3] # last two cells = nan, thats why -2
+#     Pt = data_day[len(data_day)-141:-1,2]
+#     Et = data_day[len(data_day)-141:-1,3] # last two cells = nan, thats why -2
     Pt_Et = data_day[len(data_day)-141:-1,4]
     hmin1 = data_h
     
-    ''' voorspellingen  '''
-    #evaporation calculated with Makking, unit [W/m2]--> radiation, so the mean values need to be used
-    df = pd.read_csv('pevprsfc_mean.csv', index_col=0, parse_dates=True, dayfirst=False)
-    df_et_day_voorsp = df.resample('d', how = 'mean')
-    
-    df = pd.read_csv('apcpsfc_mean.csv', index_col=0, parse_dates=True, dayfirst=False)
-    df_pt_day_voorsp = df.resample('d', how = 'sum')
-    
-    df = pd.read_csv('tmp2m_mean.csv', index_col=0, parse_dates=True, dayfirst=False)
-    df_tmp_day_voorsp = df.resample('d', how = 'mean')
 
 ###############################################################################
 #functions for lmfit, calculation of forecasted groundwater level
@@ -230,19 +314,37 @@ def gws_forecast(hist_gws,hist_ev,hist_pt,forec_et,forec_pt,forec_tmp):
 #     pylab.plot(data_h, 'k')
 #     pylab.plot(index, voorspelling_h, 'r')
 #     pylab.show()
-    return data_h, voorspelling_h 
+#     data_h = pd.DataFrame(data_h)
+    
+    historisch_gws = df_day.ix[:,0][:-1]
+    first_date_forecast = historisch_gws.index[-2]
+    historisch_gws = pd.DataFrame(historisch_gws)
+    forecast_indices = []
+    for i in range(len(voorspelling_h)):
+        forecast_indices.append(first_date_forecast+i)
+    
+    voorspelling_h = pd.DataFrame(data=voorspelling_h, index = forecast_indices, columns = ['voorspelde_gws'])
+#     voorspelling_h =  pd.DataFrame(voorspelling_h)
+
+    joined_together = historisch_gws.join(voorspelling_h, how='outer')
+    joined_together.columns = ['Grondwaterstand', 'voorspelde_gws']
+    return joined_together 
 
 '''
 test run
 '''
-# hist_gws = get_object_or_404(Series,pk=495)
-# hist_ev = get_object_or_404(Series,pk=208)
-# hist_pt = get_object_or_404(Series,pk=772)
-# forec_et = get_object_or_404(Series,pk=1085)
-# forec_pt = get_object_or_404(Series,pk=1083)
-# forec_tmp = get_object_or_404(Series,pk=1087)
+# hist_gws = get_object_or_404(Series,pk=495) #grondwaterstand
+# hist_ev = get_object_or_404(Series,pk=208) #EV24 lauwersoog
+# hist_pt = get_object_or_404(Series,pk=722) #neerslag hornhuizen RP2
+# forec_et = get_object_or_404(Series,pk=1085) #pevprsfc-mean
+# forec_pt = get_object_or_404(Series,pk=1083) #apcpsfc_mean
+# forec_tmp = get_object_or_404(Series,pk=1087) #tmp2m_mean
 # gws_forecast(hist_gws,hist_ev,hist_pt,forec_et,forec_pt,forec_tmp)
 # localhost:8000/gwsvoorspelling?hist_gws=495&hist_ev=208&hist_pt=772&forec_et=1085&forec_pt=1083&forec_tmp=1087
 # get_object_or_404(Series,pk=).to_pandas().resample('d', how='mean')
+
+# dataf = get_object_or_404(Series,pk=495).to_pandas()
+# en dan dataf zo aanpassen dat het in het model werkt 
+
 
 
