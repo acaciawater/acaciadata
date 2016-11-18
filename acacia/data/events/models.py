@@ -17,7 +17,7 @@ HOW = (('mean', 'gemiddelde'),
         ('min', 'minimum'),
         ('sum', 'som'),
         )
-HILO = (('>', 'boven'), ('<', 'onder'))
+HILO = (('>', 'boven'), ('<', 'onder')) # hier gelijk en ongelijk toevoegen
 
 class Trigger(models.Model):
     name = models.CharField(max_length=100,verbose_name='naam')
@@ -55,6 +55,9 @@ class Target(models.Model):
     def __unicode__(self):
         return self.user.username
 
+    class Meta:
+        verbose_name = 'ontvanger'
+        
 ACTION_IGNORE = 0
 ACTION_EMAIL = 1
 ACTION_SMS = 2
