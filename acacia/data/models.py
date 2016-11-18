@@ -724,11 +724,15 @@ class SourceFile(models.Model,LoggerSourceMixin):
             return None
         logger.debug('Getting data for sourcefile %s', self.name)
         try:
+            self.file.open()
             data = gen.get_data(self.file,**kwargs)
         except Exception as e:
             logger.exception('Error retrieving data from %s: %s' % (filename, e))
             return None
-        if not data:
+        finally:
+            self.file.close()
+
+        if data is None or data.empty:
             logger.warning('No data retrieved from %s' % filename)
         else:
             # generator may return single dataframe or dict with location as key
