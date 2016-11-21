@@ -18,15 +18,15 @@
   {% endif %}
   {% endfor %}
 </ul>
-<div class="row row-fluid">
 {% for chart in dashboard.sorted_charts.all %}
+<div class="row row-fluid">
+<div class="col-md-6">
+{{chart.description|safe}}
+</div>
 <div class="col-md-6">
 <iframe src="{% url 'acacia:chart-detail' chart.id %}" height="400px" width="100%" marginwidth="0" seamless="seamless" frameborder="0"></iframe>
 </div>
-{% if forloop.counter|divisibleby:2 %}
-</div><div class="row row-fluid">
-{% endif %}
-{% endfor %}
 </div>
+{% endfor %}
 </div>
 {% endblock %}

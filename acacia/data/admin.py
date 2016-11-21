@@ -547,8 +547,7 @@ class ChartAdmin(admin.ModelAdmin):
                 )
 
     search_fields = ['name','description', 'title']
-
-    #formfield_overrides = {models.TextField: {'widget': forms.Textarea(attrs={'class': 'htmleditor'})}}
+    formfield_overrides = {models.TextField: {'widget': forms.Textarea(attrs={'class': 'htmleditor'})}}
 
     def save_model(self, request, obj, form, change):
         obj.user = request.user
