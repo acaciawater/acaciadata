@@ -1,7 +1,7 @@
 import logging
 import numpy as np
 import datetime
-
+import pandas as pd
 logger = logging.getLogger(__name__)
 
 from generator import Generator
@@ -34,8 +34,17 @@ class NMCPro(Generator):
         header = self.get_header(f)
         names = header['COLUMNS']
         data = self.read_csv(f, header=None, skiprows = self.skiprows, names=names, comment = '#', index_col=0, 
-                           parse_dates=[[0,1]], dayfirst = self.dayfirst, na_values = ['----', '-------'])
+                           parse_dates=0, dayfirst = self.dayfirst, na_values = ['----', '-------'])
+        if data.index[0] == data.index[1]:
+            data = self.read_csv(f, header=None, skiprows = self.skiprows, names=names, comment = '#', index_col=0, 
+                                 parse_dates=[[0,1]], dayfirst = self.dayfirst, na_values = ['----', '-------'],)
+            data = data.replace({',':'.'}, regex = True)
         data.dropna(how='all',inplace=True)
+        for key in data.keys():
+            try:
+                data[key] = data[key].astype('float64')
+            except:
+                pass
         data.sort(inplace=True)
         return data
 
@@ -51,7 +60,7 @@ class NMCJr(NMCPro):
 
     def __init__(self, *args, **kwargs):        
         super(NMCJr,self).__init__(*args, **kwargs)
-        
+    
 if __name__ == '__main__':
     nmc = NMCPro()
     data=nmc.get_data()
