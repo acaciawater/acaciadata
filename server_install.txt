@@ -19,7 +19,7 @@ add-apt-repository ppa:ubuntugis/ppa
 apt-get update
 
 install system wide stuff:
-apt-get install python-setuptools python-pip libpng-dev g++ libfreetype6-dev python-dev libapache2-mod-wsgi binutils libproj-dev libgdal-dev gdal-bin --upgrade
+apt-get install python-setuptools python-pip libpng-dev g++ libfreetype6-dev python-dev libapache2-mod-wsgi binutils libproj-dev libgdal-dev gdal-bin libffi-dev libyajl-dev --upgrade
 
 for sqlite db: apt-get install libsqlite3-dev 
 
@@ -27,7 +27,7 @@ virtual environment:
 pip install virtualenv
 
 start virtualenv django in httpdocs
-pip install Pillow numpy matplotlib django-celery
+pip install Pillow numpy matplotlib
 
 install vhost.conf in ~/conf
 install wgsi.py in ~/httpdocs/django.acacia/acacia
