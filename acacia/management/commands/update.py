@@ -47,7 +47,7 @@ class Command(BaseCommand):
                 help = 'force update of timeseries')
 
     def handle(self, *args, **options):
-        with SourceAdapter(logging.getLogger('update.notify')) as logger:
+        with SourceAdapter(logging.getLogger(__name__)) as logger:
             logger.source = ''
             logger.info('***UPDATE STARTED***')
             thumb = options.get('thumb')
