@@ -20,7 +20,7 @@ function fetchSeries(url) {
 	    },
 
 	    error: function(hdr,status,errorThrown) {
-	    	alert("Fout tijdens laden van tijdreeks: " + errorThrown);
+	    	//alert("Fout tijdens laden van tijdreeks: " + errorThrown);
 	    },
 
 	    complete: function(hdr, status) {
