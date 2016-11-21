@@ -3,6 +3,7 @@
 {% block script %}
 {{ block.super }}
 <script src="http://code.highcharts.com/4.2.0/highcharts.js"></script>
+<script src="http://code.highcharts.com/4.2.0/modules/exporting.js"></script>
 <script src="http://code.highcharts.com/4.2.0/highcharts-more.js"></script>
 {% if map %}
 <script src="http://code.highcharts.com/maps/4.2.0/modules/heatmap.js"></script>
@@ -19,6 +20,11 @@ Highcharts.setOptions({
   	shortMonths : ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dec"],
 	months: ["Januari", "Februari", "Maart", "April", "Mei", "Juni",  "Juli", "Augustus", "September", "Oktober", "November", "December"],
 	weekdays: ["Zondag", "Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag", "Zaterdag"],
+	printChart: "Afdrukken",
+	downloadJPEG: "Download als JPG",
+	downloadPNG: "Download als PNG",
+	downloadPDF: "Download als PDF",
+	downloadSVG: "Download als SVG",
   }
 });
 </script>
