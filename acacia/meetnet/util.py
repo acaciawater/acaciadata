@@ -380,7 +380,7 @@ def addmonfile(request,network,f):
         mon.channel_set.add(*channels)
         mon.save()
 
-        logger.info('Bestand {filename} toegevoegd aan gegevensbron {ds} voor logger {log}'.format(filename=basename, ds=unicode(ds), log=unicode(pos)))
+        logger.info('Bestand {filename} toegevoegd aan gegevensbron {ds} voor logger {log}'.format(filename=basename, ds=unicode(ds), log=unicode(pos or serial)))
         return (mon,screen)
     return error
 
