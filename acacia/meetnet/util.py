@@ -5,6 +5,7 @@ Created on Jun 3, 2014
 '''
 import logging
 import matplotlib
+from django.core.exceptions import MultipleObjectsReturned
 matplotlib.use('agg')
 import matplotlib.pylab as plt
 from matplotlib import rcParams
@@ -133,7 +134,7 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
             baro = logpos.baro.to_pandas()
 
             # if baro datasource = KNMI then convert from hPa to cm H2O
-            dsbaro = logpos.baro.getDatasource()
+            dsbaro = logpos.baro.datasource()
             if dsbaro:
                 gen = dsbaro.generator
                 if 'knmi' in gen.name.lower() or 'knmi' in gen.classname.lower():
@@ -144,7 +145,11 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
             baros[logpos.baro] = baro
         for mon in logpos.monfile_set.all().order_by('start_date'):
             print ' ', logpos.logger, mon
-            data = mon.get_data()['PRESSURE']
+            mondata = mon.get_data()
+            if isinstance(mondata,dict):
+                # Nov 2016: new signature for get_data 
+                mondata = mondata.itervalues().next()
+            data = mondata['PRESSURE']
             data = series.do_postprocess(data).tz_localize(tz)
             
             adata, abaro = data.align(baro)
@@ -284,30 +289,28 @@ def addmonfile(request,network,f):
     filename = f.name    
     basename = os.path.basename(filename)
     logger.info('Verwerken van bestand ' + basename)
-    
+    error = (None,None)
     user = request.user
     generator = Generator.objects.get(name='Schlumberger')
     if not filename.lower().endswith('.mon'):
         logger.warning('Bestand {name} wordt overgeslagen: bestandsnaam eindigt niet op .MON'.format(name=basename))
-        return (None,None)
+        return error
+    mon, channels = createmonfile(f)
+    serial = mon.serial_number
+    put = mon.location
+    logger.info('Informatie uit MON file: Put={put}, diver={ser}'.format(put=put,ser=serial))
+    
+    datalogger, created = Datalogger.objects.get_or_create(serial=serial,defaults={'model': mon.instrument_type})
+    if created:
+        logger.info('Nieuwe datalogger toegevoegd met serienummer {ser}'.format(ser=serial))
+    
     try:
-        mon, channels = createmonfile(f)
-        serial = mon.serial_number
-        put = mon.location
-        logger.info('Informatie uit MON file: Put={put}, diver={ser}'.format(put=put,ser=serial))
+        # find logger datasource by well/screen combination
         well = network.well_set.get(name=put)
         # TODO: find out screen number
         filter = 1
         screen = well.screen_set.get(nr=filter)
-        try:
-            loc = MeetLocatie.objects.get(name=unicode(screen))
-        except:
-            loc = MeetLocatie.objects.get(name='%s/%s' % (put,filter))
-            
-        datalogger, created = Datalogger.objects.get_or_create(serial=serial,defaults={'model': mon.instrument_type})
-        if created:
-            logger.info('Nieuwe datalogger toegevoegd met serienummer {ser}'.format(ser=serial))
-        
+
         # get installation depth from last existing logger
         existing_loggers = screen.loggerpos_set.all().order_by('start_date')
         last = existing_loggers.last()
@@ -334,34 +337,52 @@ def addmonfile(request,network,f):
             if shouldsave:
                 pos.save()
 
+        try:
+            loc = MeetLocatie.objects.get(name=unicode(screen))
+        except MeetLocatie.DoesNotExist:
+            loc = MeetLocatie.objects.get(name='%s/%s' % (put,filter))
+
         # get/create datasource for logger
         ds, created = LoggerDatasource.objects.get_or_create(name=datalogger.serial,meetlocatie=loc,
-                                                             defaults = {'logger': datalogger, 'generator': generator, 'user': user, 'timezone': 'CET'})
-        f.seek(0)
-        contents = f.read()
-        mon.crc = abs(binascii.crc32(contents))
-        try:
-            sf = ds.sourcefiles.get(crc=mon.crc)
-            logger.warning('Identiek bestand bestaat al in gegevensbron {ds}'.format(ds=unicode(ds)))
-        except SourceFile.DoesNotExist:
-            # add source file
-            mon.name = mon.filename = basename
-            mon.source = ds
-            mon.user = ds.user
-            contentfile = ContentFile(contents)
-            mon.file.save(name=filename, content=contentfile)
-            mon.get_dimensions()
-            mon.save()
-            mon.channel_set.add(*channels)
-            pos.monfile_set.add(mon)
-
-            logger.info('Bestand {filename} toegevoegd aan gegevensbron {ds} voor logger {log}'.format(filename=basename, ds=unicode(ds), log=unicode(pos)))
-            return (mon,screen)
+                                                                 defaults = {'logger': datalogger, 'generator': generator, 'user': user, 'timezone': 'CET'})
     except Well.DoesNotExist:
-        logger.error('Put {put} niet gevonden in meetnet {net}'.format(put=put,net=network))
+        # this maybe a baro logger, not installed in a well
+        try:
+            well = None
+            screen = None
+            ds = LoggerDatasource.objects.get(logger=datalogger)
+            loc = ds.meetlocatie
+            pos = None
+        except LoggerDatasource.DoesNotExist:
+            logger.error('Gegevensbron/meetlocatie voor datalogger ontbreekt')
+            return error
+        except MultipleObjectsReturned:
+            logger.error('Meerdere gegevensbronnen voor deze datalogger')
+            return error
     except Screen.DoesNotExist:
         logger.error('Filter {filt} niet gevonden voor put {put}'.format(put=put, filt=filter))
-    return (None,None)
+        return error
+
+    f.seek(0)
+    contents = f.read()
+    mon.crc = abs(binascii.crc32(contents))
+    try:
+        sf = ds.sourcefiles.get(crc=mon.crc)
+        logger.warning('Identiek bestand bestaat al in gegevensbron {ds}'.format(ds=unicode(ds)))
+    except SourceFile.DoesNotExist:
+        # add source file
+        mon.name = mon.filename = basename
+        mon.datasource = ds
+        mon.source = pos
+        mon.user = ds.user
+        mon.file.save(name=filename, content=ContentFile(contents))
+        mon.get_dimensions()
+        mon.channel_set.add(*channels)
+        mon.save()
+
+        logger.info('Bestand {filename} toegevoegd aan gegevensbron {ds} voor logger {log}'.format(filename=basename, ds=unicode(ds), log=unicode(pos)))
+        return (mon,screen)
+    return error
 
 def update_series(request,screen):
     user=request.user
@@ -416,8 +437,9 @@ def handle_uploaded_files(request, network, localfiles):
                     logger.warning('Bestand {name} overgeslagen'.format(name=filename))
                 else:
                     msg.append('Succes')
-                    screens.add(screen)
-                    wells.add(screen.well)
+                    if screen:
+                        screens.add(screen)
+                        wells.add(screen.well)
             except Exception as e:
                 logger.exception('Probleem met bestand {name}: {error}'.format(name=filename,error=e))
                 msg.append('Fout: '+unicode(e))
