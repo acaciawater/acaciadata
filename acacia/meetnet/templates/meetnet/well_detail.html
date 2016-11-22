@@ -67,22 +67,22 @@ a img {
 <thead>
 <tr>
 	<th rowspan="2">Filter</th>
-	<th rowspan="2">Bovenkant<br>buis<br>(m tov NAP)</th>
 	<th colspan="2"><div class = "text-center">Filterstelling (m tov maaiveld)</div></th>
-	<th colspan="4"><div class = "text-center">Datalogger</div></th>
+	<th colspan="5"><div class = "text-center">Datalogger</div></th>
 	<th colspan="4"><div class = "text-center">Standen (m tov NAP)</div></th>
 </tr>
 <tr>
-	<th>Bovenkant</th>
-	<th>Onderkant</th>
-	<th>Serienr</th>
-	<th>Diepte</th>
-	<th>Start</th>
-	<th>Stop</th>
-	<th>Aantal</th>
-	<th>10%</th>
-	<th>50%</th>
-	<th>90%</th>
+	<th title="Bovenkant filter in m tov maaiveld">Bovenkant</th>
+	<th title="Onderkant filter in m tov maaiveld">Onderkant</th>
+	<th title="Serienummer van de datalogger">Serienr</th>
+	<th title="Ophangpunt in m tov NAP">Refpnt</th>
+	<th title="Kabellengte in m">Kabellengte</th>
+	<th title="Startdatum meetreeks">Start</th>
+	<th title="Stopdatum meetreeks">Stop</th>
+	<th title="Aantal metingen">Aantal</th>
+	<th title="10-percentiel">10%</th>
+	<th title="50-percentiel (mediaan)">50%</th>
+	<th title="90-percentiel">90%</th>
 </tr>
 </thead>
 <tbody>
@@ -91,13 +91,13 @@ a img {
 	<tr>
     		{% with s.stats as stats %}
 				<td>{{s.nr}}</td>
-				<td>{{s.refpnt}}</td>
 				<td>{{s.top}}</td>
 				<td>{{s.bottom}}</td>
 				<td>{{pos.logger|default:''}}</td>
+				<td>{{pos.refpnt}}</td>
 				<td>{{pos.depth}}</td>
-				<td>{{s.start|date:'d M Y'}}</td>
-				<td>{{s.stop|date:'d M Y'}}</td>
+				<td>{{pos.start_date|date:'d M Y'}}</td>
+				<td>{{pos.end_date|date:'d M Y'}}</td>
 				<td>{{s.num_standen}}</td>
 				<td>{{stats.p10|floatformat:3|default:''}}</td>
 				<td>{{stats.p50|floatformat:3|default:''}}</td>
