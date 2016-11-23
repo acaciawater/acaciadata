@@ -138,7 +138,12 @@ class Screen(models.Model):
         try:
             series = Series.objects.get(name=name)
         except Series.DoesNotExist:
-            return levels
+            # try old naming convention
+            name = '%s/%03d %s' % (self.well.nitg, self.nr, kind)
+            try:
+                series = Series.objects.get(name=name)
+            except:
+                return levels
         for dp in series.datapoints.all():
             try:
                 if ref == 'nap':
