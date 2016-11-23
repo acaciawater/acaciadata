@@ -4,7 +4,6 @@ Created on Nov 23, 2016
 @author: theo
 '''
 from django.core.management.base import BaseCommand
-#from optparse import make_option
 from acacia.data.models import KeyFigure
 from acacia.data.loggers import SourceAdapter
 import logging
