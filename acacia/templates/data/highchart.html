@@ -2,11 +2,11 @@
 {% load staticfiles %}
 {% block script %}
 {{ block.super }}
-<script src="http://code.highcharts.com/4.2.0/highcharts.js"></script>
-<script src="http://code.highcharts.com/4.2.0/modules/exporting.js"></script>
-<script src="http://code.highcharts.com/4.2.0/highcharts-more.js"></script>
+<script src="https://code.highcharts.com/4.2.0/highcharts.js"></script>
+<script src="https://code.highcharts.com/4.2.0/modules/exporting.js"></script>
+<script src="https://code.highcharts.com/4.2.0/highcharts-more.js"></script>
 {% if map %}
-<script src="http://code.highcharts.com/maps/4.2.0/modules/heatmap.js"></script>
+<script src="https://code.highcharts.com/maps/4.2.0/modules/heatmap.js"></script>
 {% endif %}
 {% if theme %}
 <script src="{% static theme %}"></script>
