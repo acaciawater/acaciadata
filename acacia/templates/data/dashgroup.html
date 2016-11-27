@@ -21,7 +21,7 @@
 {% for chart in dashboard.sorted_charts.all %}
 <div class="row row-fluid">
 <div class="col-md-8">
-<iframe src="{% url 'acacia:chart-detail' chart.id %}" height="400px" width="100%" marginwidth="0" seamless="seamless" frameborder="0"></iframe>
+<iframe src="{{ chart.get_dash_url }}" height="400px" width="100%" marginwidth="0" seamless="seamless" frameborder="0"></iframe>
 </div>
 <div class="col-md-4">
 {{chart.description|safe}}
