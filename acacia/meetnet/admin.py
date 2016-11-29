@@ -90,7 +90,7 @@ class MonFileAdmin(SourceFileAdmin):
     inlines = [ChannelInline,]
     list_display = ('name','datasource', 'source', 'serial_number', 'status', 'instrument_type', 'location', 'num_channels', 'num_points', 'start_date', 'end_date', 'uploaded',)
     list_filter = ('serial_number', 'datasource', 'datasource__meetlocatie', 'datasource__meetlocatie__projectlocatie__project', 'uploaded',)
-    search_fields = ['name','file__name','serial_number']
+    search_fields = ['name','serial_number']
     fields = None
     fieldsets = (
                  ('Algemeen', {'classes': ('grp-collapse', 'grp-open'),
