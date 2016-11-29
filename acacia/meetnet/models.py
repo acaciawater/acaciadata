@@ -127,7 +127,7 @@ class Screen(models.Model):
     material = models.CharField(blank=True, max_length = 10,verbose_name = 'materiaal', default='pvc', choices = MATERIALS)
     chart = models.ImageField(null=True,blank=True, upload_to='charts', verbose_name='grafiek')
 
-    def get_series(self, ref = 'nap', kind='COMP'):
+    def get_series(self, ref = 'nap', kind='COMP', **kwargs):
         
         def bydate(record):
             return record[0]
@@ -144,7 +144,7 @@ class Screen(models.Model):
                 series = Series.objects.get(name=name)
             except:
                 return levels
-        for dp in series.datapoints.all():
+        for dp in series.filter_points(**kwargs):
             try:
                 if ref == 'nap':
                     level = dp.value
@@ -206,8 +206,8 @@ class Screen(models.Model):
     def get_absolute_url(self):
         return reverse('meetnet:screen-detail', args=[self.id])
 
-    def to_pandas(self, ref='nap',kind='COMP'):
-        levels = self.get_series(ref,kind)
+    def to_pandas(self, ref='nap',kind='COMP',**kwargs):
+        levels = self.get_series(ref,kind,**kwargs)
         if len(levels) > 0:
             x,y = zip(*levels)
         else:
@@ -263,6 +263,14 @@ class LoggerPos(models.Model):
     class Meta:
         verbose_name = 'DataloggerInstallatie'
         ordering = ['logger','start_date']
+
+    def stats(self):
+        df = self.screen.to_pandas(start=self.start_date, stop=self.end_date)
+        s = df.describe(percentiles=[.1,.5,.9])
+        s['p10'] = None if np.isnan(s['10%']) else s['10%']
+        s['p50'] = None if np.isnan(s['50%']) else s['50%']
+        s['p90'] = None if np.isnan(s['90%']) else s['90%']
+        return s
             
 class LoggerDatasource(Datasource):
     logger = models.ForeignKey(Datalogger, related_name = 'datasources')
