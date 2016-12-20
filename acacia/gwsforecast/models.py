@@ -20,11 +20,14 @@ class GWSForecast(Datasource):
     hist_gws,hist_ev,hist_pt,forec_et,forec_pt,forec_tmp
     '''
     hist_gws = models.ForeignKey(Series)
-    hist_ev = models.ForeignKey(Series,related_name='hist_ev')
-    hist_pt = models.ForeignKey(Series,related_name='hist_pt')
-    forec_et = models.ForeignKey(Series,related_name='forec_et')
-    forec_pt = models.ForeignKey(Series,related_name='forec_pt')
-    forec_tmp = models.ForeignKey(Series,related_name='forec_tmp')
+    hist_ev = models.ForeignKey(Series,related_name='hist_ev',default=None)
+    hist_pt = models.ForeignKey(Series,related_name='hist_pt',default=None)
+    forec_et = models.ForeignKey(Series,related_name='forec_et',default=None)
+    forec_pt = models.ForeignKey(Series,related_name='forec_pt',default=None)
+    forec_tmp = models.ForeignKey(Series,related_name='forec_tmp',default=None)
+    forec_et_std = models.ForeignKey(Series,related_name='forec_et_std',default=None)
+    forec_pt_std = models.ForeignKey(Series,related_name='forec_pt_std',default=None)
+    forec_tmp_std = models.ForeignKey(Series,related_name='forec_tmp_std',default=None)
     
 #     hist_ev = models.ForeignKey(Series,null=True,blank=True,related_name='hist_ev')
 #     hist_pt = models.ForeignKey(Series,null=True,blank=True,related_name='hist_pt')
@@ -36,7 +39,8 @@ class GWSForecast(Datasource):
     def download(self, start=None):
         logger = self.getLogger()
         options = { 'hist_gws': self.hist_gws,'hist_ev':self.hist_ev,'hist_pt':self.hist_pt,
-                    'forec_et':self.forec_et,'forec_pt':self.forec_pt,'forec_tmp':self.forec_tmp}
+                    'forec_et':self.forec_et,'forec_pt':self.forec_pt,'forec_tmp':self.forec_tmp,
+                    'forec_et_std':self.forec_et_std, 'forec_pt_std':self.forec_pt_std, 'forec_tmp_std':self.forec_tmp_std}
          
         if self.generator is None:
             logger.error('Cannot download datasource %s: no generator defined' % (self.name))
@@ -122,8 +126,11 @@ class GWSGenerator(GenericCSV):
         forec_et = kwargs.get('forec_et', None)
         forec_pt = kwargs.get('forec_pt', None)
         forec_tmp = kwargs.get('forec_tmp', None)
+        forec_et_std =  kwargs.get('forec_et_std', None)
+        forec_pt_std = kwargs.get('forec_pt_std', None)
+        forec_tmp_std = kwargs.get('forec_tmp_std', None)
         
-        response =  gws_forecaster.gws_forecast(hist_gws, hist_ev, hist_pt, forec_et, forec_pt, forec_tmp)
+        response =  gws_forecaster.gws_forecast(hist_gws.to_pandas().to_frame(), hist_ev.to_pandas().to_frame(), hist_pt.to_pandas().to_frame(), forec_et.to_pandas().to_frame(), forec_pt.to_pandas().to_frame(), forec_tmp.to_pandas().to_frame(), forec_et_std.to_pandas().to_frame(), forec_pt_std.to_pandas().to_frame(), forec_tmp_std.to_pandas().to_frame())
         s = StringIO.StringIO()
         response.to_csv(s)
         response_string = s.getvalue()

@@ -17,7 +17,7 @@ class GWSForecastForm(DatasourceForm):
 class GWSAdmin(DatasourceAdmin):
     form = GWSForecastForm
     fieldsets = (
-                 ('Algemeen', {'fields': ('name', 'description', 'timezone', 'meetlocatie', 'hist_gws','hist_ev','hist_pt','forec_et','forec_pt','forec_tmp' ),
+                 ('Algemeen', {'fields': ('name', 'description', 'timezone', 'meetlocatie', 'hist_gws','hist_ev','hist_pt','forec_et','forec_pt','forec_tmp', 'forec_et_std', 'forec_pt_std', 'forec_tmp_std' ),
                                'classes': ('grp-collapse grp-open',),
                                }),
                  ('Bronnen', {'fields': (('generator', 'autoupdate'), 'url',('username', 'password',), 'config',),
