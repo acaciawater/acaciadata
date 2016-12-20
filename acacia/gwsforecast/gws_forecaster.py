@@ -30,6 +30,7 @@ def gws_forecast(df_gws_hist, df_et_hist, df_pt_hist, df_et_mean_fc, df_pt_mean_
     
     #hist gw
     df_h_day = df_gws_hist.resample('d', how = 'mean')
+    df_h_day.fillna(value=None, method = 'ffill', inplace = True) #will continue filling nan with previous value, no restriction yet
     #hist evaporation 
     df_et_day = df_et_hist.resample('d', how = 'mean')
     df_et_day.fillna(value=None, method = 'ffill', inplace = True) #will continue filling nan with previous value, no restriction yet
@@ -338,7 +339,7 @@ def gws_forecast(df_gws_hist, df_et_hist, df_pt_hist, df_et_mean_fc, df_pt_mean_
     df_voorspelling_h_min = pd.DataFrame(data=voorspelling_h_min, index = forecast_indices, columns = ['fc_gws_min'])
     df_voorspelling_h_max = pd.DataFrame(data=voorspelling_h_max, index = forecast_indices, columns = ['fc_gws_max'])
     
-    df_h_day_cm = df_h_day[-300:] * 10.0
+    df_h_day_cm = df_h_day[-300:]
     join_1 = df_h_day_cm.join(df_voorspelling_h, how = 'outer')
     join_2 = join_1.join(df_voorspelling_h_min, how = 'outer')
     joined_together = join_2.join(df_voorspelling_h_max, how = 'outer')    
