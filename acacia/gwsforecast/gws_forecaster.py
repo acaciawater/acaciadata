@@ -339,7 +339,8 @@ def gws_forecast(df_gws_hist, df_et_hist, df_pt_hist, df_et_mean_fc, df_pt_mean_
     df_voorspelling_h_min = pd.DataFrame(data=voorspelling_h_min, index = forecast_indices, columns = ['fc_gws_min'])
     df_voorspelling_h_max = pd.DataFrame(data=voorspelling_h_max, index = forecast_indices, columns = ['fc_gws_max'])
     
-    df_h_day_cm = df_h_day[-300:]
+    df_h_day_m = df_h_day[-300:]
+    df_h_day_cm = df_h_day_m.multiply(100.0)
     join_1 = df_h_day_cm.join(df_voorspelling_h, how = 'outer')
     join_2 = join_1.join(df_voorspelling_h_min, how = 'outer')
     joined_together = join_2.join(df_voorspelling_h_max, how = 'outer')    
