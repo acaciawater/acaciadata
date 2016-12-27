@@ -1,0 +1,32 @@
+{% extends 'data/highstock.html' %}
+{% block title %}{{series.name}}{% endblock title %}
+{% block navbar %}{% endblock %}
+{% block admin_url %}series/{{object.id}}{% endblock %}
+{% block chartloader %}
+	<script>
+	    function selcol(a,n) {
+	    	// select column 0 (index) and column n
+	    	return a.map(x => [x[0],x[n]]);
+	    }
+		function fetchSeries() {
+		    $.getJSON('get/{{object.id}}', function(data) {
+				  	var chart = $('#container').highcharts();
+			    	chart.series[0].setData(selcol(data,1));
+			    	chart.series[1].setData(selcol(data,2));
+			    });
+		}
+		
+		$(function () {
+		  var opt = {{options|safe}};
+		  opt.chart.events.load = fetchSeries;
+		  chart = $('#container').highcharts('StockChart', 	opt);
+		});
+	</script>
+{% endblock %}
+{% block content %}
+{{ block.super }}
+<br/>
+<div class="text-center">
+<a href="{% url 'acacia:series-csv' object.id %}" class="btn btn-primary active" data-toggle="tooltip" title="Tijdreeks downloaden als csv bestand" id="download">Downloaden</a>
+</div>
+{% endblock %}
