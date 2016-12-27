@@ -147,3 +147,46 @@ def chart_as_csv(chart):
     resp['Content-Disposition'] = 'attachment; filename=%s' % filename
     return resp
 
+def resample_rule(delta):
+    ''' determine nice Pandas resample rule based on datetime.timedelta '''
+    days = delta.days
+    rule = ''
+    if days > 1:
+        if days < 7:
+            rule = 'D'
+        elif days < 30:
+            rule = 'W'
+        elif days < 365:
+            rule = 'M'
+        else:
+            rule = 'A'
+    else:
+        mins = delta.seconds/60
+        if mins > 1:
+            if mins < 2:
+                rule = 'T'
+            elif mins < 5:
+                rule = '2T'
+            elif mins < 10:
+                rule = '5T'
+            elif mins < 15:
+                rule = '10T'
+            elif mins < 30:
+                rule = '15T'
+            elif mins < 60:
+                rule = '30T'
+            else:
+                hours = mins / 60
+                if hours < 3:
+                    rule = 'H'
+                elif hours < 6:
+                    rule = '3H'
+                elif hours < 12:
+                    rule = '6H'
+                elif hours < 24:
+                    rule = '12H'
+                else:
+                    rule = 'D'
+        else:
+            rule = 'S'
+    return rule
