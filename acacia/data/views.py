@@ -16,6 +16,8 @@ from django.contrib.auth.decorators import login_required
 from dateutil.parser import parse
 import dateutil
 from acacia.data.models import aware
+import pandas as pd
+from acacia.data.util import resample_rule
 
 logger = logging.getLogger(__name__)
 
@@ -78,15 +80,27 @@ def SeriesToDict(request, pk):
 @gzip_page
 def ChartToJson(request, pk):
     c = get_object_or_404(Chart,pk=pk)
-    start = c.auto_start()
+    start = request.GET.get('start', c.auto_start())
+    stop = request.GET.get('stop', c.stop)
+    maxpts = int(request.GET.get('max',0))
     data = {}
     for cs in c.series.all():
         
         def getseriesdata(s):
-            if c.stop is None:
-                pts = [[p.date,p.value] for p in s.datapoints.filter(date__gte=start).order_by('date')]
+            if stop is None:
+                pts = [(p.date,p.value) for p in s.datapoints.filter(date__gte=start).order_by('date')]
             else:
-                pts = [[p.date,p.value] for p in s.datapoints.filter(date__gte=start, date__lte=c.stop).order_by('date')]
+                pts = [(p.date,p.value) for p in s.datapoints.filter(date__gte=start, date__lte=stop).order_by('date')]
+            if maxpts>0:
+                num = len(pts)
+                if num > maxpts:
+                    # thin series
+                    date_range = pts[-1][0] - pts[0][0]
+                    delta = date_range / maxpts
+                    rule = resample_rule(delta)
+                    x,y = zip(*pts)
+                    resampled = pd.Series(data=y,index=x).resample(rule)
+                    pts = zip(resampled.index,resampled.values)
             return pts
 
         pts = getseriesdata(cs.series)
@@ -324,13 +338,13 @@ class ChartBaseView(TemplateView):
         for _,s in enumerate(chart.series.all()):
             ser = s.series
             if tmin:
-                tmin = min(tmin,s.t0 or ser.van())
+                tmin = min(tmin,s.t0 or ser.van() or chart.start)
             else:
-                tmin = s.t0 or ser.van()
+                tmin = s.t0 or ser.van() or chart.start
             if tmax:
-                tmax = max(tmax,s.t1 or ser.tot())
+                tmax = max(tmax,s.t1 or ser.tot() or chart.stop)
             else:
-                tmax = s.t1 or ser.tot()
+                tmax = s.t1 or ser.tot() or chart.stop
             if ymin:
                 ymin = min(ymin,s.y0 or ser.minimum())
             else:
