@@ -1052,7 +1052,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         
         if self.resample is not None and self.resample != '':
             try:
-                series = series.resample(how=self.aggregate, rule=self.resample)
+                series = series.resample(self.resample,how=self.aggregate)
                 if series.empty:
                     return series
             except Exception as e:
@@ -1396,7 +1396,7 @@ class Formula(Series):
         variables = {var.name: var.series.to_pandas() for var in self.formula_variables.all()}
         if self.resample is not None and len(self.resample)>0:
             for name,series in variables.iteritems():
-                variables[name] = series.resample(rule=self.resample, how=self.aggregate)
+                variables[name] = series.resample(self.resample, how=self.aggregate)
         
         # add all series into a single dataframe 
         df = pd.DataFrame(variables)
@@ -1405,7 +1405,12 @@ class Formula(Series):
             # using intersecting time interval only (no extrapolation)
             start = max([v.index.min() for v in variables.values()])
             stop = min([v.index.max() for v in variables.values()])
-            df = df[start:stop]
+            try:
+                # sometimes strange errors occur:
+                # cannot do slice indexing on <class 'pandas.indexes.range.RangeIndex'> with these indexers [2014-02-20 00:00:00+00:00] of <class 'pandas.tslib.Timestamp'>
+                df = df[start:stop]
+            except:
+                pass
 
         # interpolate missing values
         df = df.interpolate(method='time')
@@ -1465,7 +1470,7 @@ class DataPoint(models.Model):
     series = models.ForeignKey(Series,related_name='datapoints')
     date = models.DateTimeField(verbose_name='Tijdstip')
     value = models.FloatField(verbose_name='Waarde')
-    
+
     class Meta:
         verbose_name = 'Meetwaarde'
         verbose_name_plural = 'Meetwaarden'
