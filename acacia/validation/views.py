@@ -1,5 +1,7 @@
-import os, tempfile, json, time, re
+import os, tempfile, json, re
+import time
 import pandas as pd
+import numpy as np
 
 from django.shortcuts import get_object_or_404
 from django.conf import settings
@@ -9,10 +11,13 @@ from django.views.decorators.gzip import gzip_page
 from django.http.response import HttpResponse
 from django.core.urlresolvers import reverse
 
-from acacia.validation.models import Validation
+from acacia.validation.models import Validation, Result
 from acacia.data.util import slugify
-from acacia.validation.forms import UploadFileForm
+from acacia.validation.forms import UploadFileForm, ValidationForm
 from acacia.data.views import SeriesView, date_handler
+
+import logging
+logger = logging.getLogger(__name__)
 
 def download(request, pk):
     ''' download Excel file for validation '''
@@ -20,12 +25,12 @@ def download(request, pk):
     
     pts = [(p.date,p.value) for p in validation.series.datapoints.all()]
     index,data = zip(*pts)
-    raw = pd.Series(data=data,index=index)
+    raw = pd.Series(data,index)
 
-    pts = [(p.point.date,p.value) for p in validation.validpoint_set.prefetch_related('point')]
+    pts = [(p.date,p.value) for p in validation.validpoint_set.all()]
     index,data = zip(*pts)
-    val = pd.Series(data=data,index=index)
-    
+    val = pd.Series(data,index)
+        
     # build dataframe with both raw and validated time series
     df = pd.DataFrame({'raw': raw, 'validated': val})
 
@@ -90,11 +95,41 @@ class UploadFileView(FormView):
         
         return super(UploadFileView,self).form_valid(form)
 
+
+class ValidationView(FormView):
+     
+    template_name = 'validation.html'
+    form_class = ValidationForm
+    success_url = 'val/1/done'
+      
+    def get_success_url(self):
+        return reverse('validation:validation_done',kwargs=self.kwargs)
+  
+    def get_context_data(self, **kwargs):
+        context = super(ValidationView, self).get_context_data(**kwargs)
+        val = get_object_or_404(Validation,pk=int(self.kwargs.get('pk')))
+        context['validation'] = val
+        context['invalid'] = val.invalid_points.count()
+        return context
+  
+    def form_valid(self, form):
+        return super(ValidationView,self).form_valid(form)
+      
+
 @gzip_page
 def ValToJson(request, pk):
     ''' return two series: raw and validated '''
     validation = get_object_or_404(Validation,pk=pk)
-    pts = [(p.point.date,p.point.value,p.value) for p in validation.validpoint_set.prefetch_related('point')]
+    options = {'start': request.GET.get('start', None),
+               'stop': request.GET.get('stop', None)}
+    val = validation.to_pandas(**options)
+    raw = validation.series.to_pandas(**options)
+    df = pd.DataFrame({'raw':raw,'validated': val})
+    def nn(x):
+        # replace NaN with None for json converter
+        return None if np.isnan(x) else x
+    pts = [(r[0],nn(r[1][0]),nn(r[1][1])) for r in df.iterrows()]
+    #j = df.to_json(default_handler=lambda x: time.mktime(x.timetuple())*1000.0)
     j = json.dumps(pts, default=lambda x: time.mktime(x.timetuple())*1000.0)
     return HttpResponse(j, content_type='application/json')
     
@@ -109,20 +144,25 @@ class SeriesView(DetailView):
         title = unit or ser.name
         options = {
             'rangeSelector': { 'enabled': False,
-                               'inputEnabled': False,
-                               },
+                              'inputEnabled': False,
+                              },
+            'navigator': {'adaptToUpdatedData': True, 'enabled': False},
+            'loading': {'style': {'backgroundColor': 'white', 'fontFamily': 'Arial', 'fontSize': 'small'},
+                        'labelStyle': {'fontWeight': 'normal'},
+                        'hideDuration': 0,
+                        },
             'chart': {'type': ser.type, 
                       'animation': False, 
                       'zoomType': 'x',
                       'events': {'load': None},
                       },
             'title': {'text': ser.name},
-            'xAxis': {'type': 'datetime'},
+            'xAxis': {'type': 'datetime', 'events': {}},
             'yAxis': [{'title': {'text': title}}],
             'tooltip': {'valueSuffix': ' '+(unit or ''),
-                        'valueDecimals': 2
+                        'valueDecimals': 2,
+                        'shared' : True,
                        }, 
-            'legend': {'enabled': False},
             'plotOptions': {'line': {'marker': {'enabled': False}}},            
             'credits': {'enabled': True, 
                         'text': 'acaciawater.com', 
@@ -130,8 +170,8 @@ class SeriesView(DetailView):
                        }
             }
            
-        series = [{'name': ser.name + '(raw)', 'type': ser.type, 'data': [] },
-                {'name': ser.name + '(validated)', 'type': ser.type, 'data': [] } ]                 
+        series = [{'name': 'raw', 'type': ser.type, 'data': [], 'color': 'red' },
+                {'name': 'validated', 'type': ser.type, 'data': [], 'color': 'green' } ]                 
 
         options['series'] = series
         jop = json.dumps(options,default=date_handler)
@@ -139,5 +179,5 @@ class SeriesView(DetailView):
         jop = re.sub(r'\"(Date\.UTC\([\d,]+\))\"',r'\1', jop)
 
         context['options'] = jop
-        context['theme'] = ' None' #ser.theme()
+        context['theme'] = None
         return context
