@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 import json,util,StringIO,pytz,logging
 import dateutil
+from django.db.models.aggregates import StdDev
 
 THEME_CHOICES = ((None,'standaard'),
                  ('dark-blue','blauw'),
@@ -1249,6 +1250,9 @@ class Series(PolymorphicModel,LoggerSourceMixin):
  
     def gemiddelde(self):
         return self.getproperties().gemiddelde
+
+    def stddev(self):
+        return self.getproperties().stddev
  
     def laatste(self):
         return self.getproperties().laatste
@@ -1280,10 +1284,8 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         return self.datapoints.filter(date__range=[start,stop])
     
     def to_pandas(self, **kwargs):
-        points = self.filter_points(**kwargs)
-        dates = [dp.date for dp in points]
-        values = [dp.value for dp in points]
-        return pd.Series(values,index=dates,name=self.name).sort_index()
+        index,data = zip(*self.filter_points(**kwargs).values_list('date','value'))
+        return pd.Series(data,index).sort_index()
     
     def to_csv(self, **kwargs):
         ser = self.to_pandas(**kwargs)
@@ -1320,18 +1322,20 @@ class SeriesProperties(models.Model):
     van = models.DateTimeField(null = True)
     tot = models.DateTimeField(null = True)
     gemiddelde = models.FloatField(default = 0, null = True)
+    stddev = models.FloatField(default = 0, null = True)
     eerste = models.ForeignKey('DataPoint',null = True, related_name='first')
     laatste = models.ForeignKey('DataPoint',null = True, related_name='last')
     beforelast = models.ForeignKey('DataPoint', null = True, related_name='beforelast')  
 
     def update(self, save = True):
-        agg = self.series.datapoints.aggregate(van=Min('date'), tot=Max('date'), min=Min('value'), max=Max('value'), avg=Avg('value'))
+        agg = self.series.datapoints.aggregate(van=Min('date'), tot=Max('date'), min=Min('value'), max=Max('value'), avg=Avg('value'), std = StdDev('value'))
         self.aantal = self.series.datapoints.count()
         self.van = agg.get('van', datetime.datetime.now())
         self.tot = agg.get('tot', datetime.datetime.now())
         self.min = agg.get('min', 0)
         self.max = agg.get('max', 0)
         self.gemiddelde = agg.get('avg', 0)
+        self.stddev = agg.get('std', 0)
         if self.aantal == 0:
             self.eerste = None
             self.laatste = None
