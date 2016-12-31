@@ -1,5 +1,5 @@
 from django.contrib import admin
-from acacia.validation.models import Validation, ValidationResult,\
+from acacia.validation.models import Validation, Result,\
     BaseRule, ValueRule, SeriesRule, NoDataRule, OutlierRule, DiffRule
 from acacia.validation.views import download
 from polymorphic.admin.parentadmin import PolymorphicParentModelAdmin
@@ -38,7 +38,6 @@ class SeriesRuleAdmin(PolymorphicChildModelAdmin):
 @admin.register(NoDataRule)
 class NoDataRuleAdmin(PolymorphicChildModelAdmin):
     base_model = NoDataRule
-    exclude = ('comp',)
     
 @admin.register(OutlierRule)
 class OutlierRuleAdmin(NoDataRuleAdmin):
@@ -63,10 +62,10 @@ class ValidationAdmin(admin.ModelAdmin):
         'fk': ['series'],
     }
     
-class ValidationResultAdmin(admin.ModelAdmin):
+class ResultAdmin(admin.ModelAdmin):
     list_display = ('validation', 'begin','end', 'user',)
     list_filter = ('validation__series', 'begin', 'end', 'user',)
 
 #admin.site.register(Rule,RuleAdmin)
 admin.site.register(Validation,ValidationAdmin)
-admin.site.register(ValidationResult,ValidationResultAdmin)
+admin.site.register(Result,ResultAdmin)

@@ -1,10 +1,11 @@
-from django.db import models
+from django.db import models, transaction
 from django.contrib.auth.models import User
 from acacia.data.models import Series, DataPoint
 import pandas as pd
-import numpy as np
-import itertools
 from polymorphic.models import PolymorphicModel
+import logging
+
+logger = logging.getLogger(__name__)
 
 COMPARE_CHOICES = (
     ('GT', 'boven'), 
@@ -33,11 +34,11 @@ class BaseRule(PolymorphicModel):
         return None
 
     def apply(self,target):
-        return self.compare(target, 0)
+        return (target,self.compare(target, 0))
     
     def __unicode__(self):
         return self.name
-
+    
 class ValueRule(BaseRule):
     ''' validation rule with set limits '''
     class Meta:
@@ -46,7 +47,7 @@ class ValueRule(BaseRule):
     value = models.FloatField(null=True,blank=True,default=None,verbose_name='waarde',help_text='validatiewaarde waarde')
 
     def apply(self,target):
-        return self.compare(target, self.value)
+        return (target,self.compare(target, self.value))
 
 class SeriesRule(BaseRule):
     class Meta:
@@ -54,30 +55,49 @@ class SeriesRule(BaseRule):
 
     ''' compare with other series '''
     series = models.ForeignKey(Series,null=True,blank=True,default=None,verbose_name='tijdreeks', help_text='validatie tijdreeks')
+
     def apply(self,target):
         ''' apply this rule on a target series '''
-        return self.compare(target, self.series)
+        return (target,self.compare(target, self.series))
 
+SLOT_CHOICES = (
+    ('H', 'uur'),
+    ('D', 'dag'),
+    ('W', 'week'),
+    ('M', 'maand'),
+    )
 class NoDataRule(BaseRule):
     class Meta:
-        verbose_name = 'Geen gegevens'
+        verbose_name = 'Aantal'
         
     ''' counts measurements in timeslot ''' 
-    slot = models.CharField(max_length=4,default='D')
+    slot = models.CharField(max_length=4,default='D',choices=SLOT_CHOICES)
     count = models.PositiveIntegerField(default=1)
+    
     def apply(self, target):
-        counts = target.resample(self.slot).count() 
-        return counts >= self.count
-
+        # count points in every time slot
+        bins = target.resample(self.slot).count()
+        # find missing data
+        missing = bins[bins==0].replace(0,None)
+        # insert missing points in target
+        target = target.append(missing).sort_index()
+        valid = self.compare(bins,self.count)
+        tolerance = valid.index[1] - valid.index[0] if valid.size > 1 else 3600*24*1000 # default: 1 day
+        # align validated bins with target
+        result = valid.reindex(target.index,method='nearest',tolerance=tolerance)
+        return (target, result)
+    
 class OutlierRule(BaseRule):
     class Meta:
         verbose_name = 'Uitbijter'
 
     ''' identifies outliers based on standard deviation and mean ''' 
     tolerance = models.FloatField(default=3,verbose_name = 'tolerantie', help_text = 'gemiddelde plus of min x maal de standaardafwijking')
+    
     def apply(self, target):
-        devi = abs(target-target.mean()) / target.std()
-        return devi <= self.tolerance
+        std = target.std() * self.tolerance
+        dev = abs(target-target.mean())
+        return (target,self.compare(dev,std))
  
 class DiffRule(BaseRule):
     class Meta:
@@ -85,52 +105,16 @@ class DiffRule(BaseRule):
     
     ''' identifies outliers based on difference and standard deviation ''' 
     tolerance = models.FloatField(default=3,verbose_name = 'tolerantie', help_text = 'verschil plus of min x maal de standaardafwijking')
+    
     def apply(self, target):
-        devi = abs(target.diff()) / target.std()
-        test = devi[devi > self.tolerance]
-        print test.count()
-        return devi <= self.tolerance
- 
-# class Rule(models.Model):
-#     ''' Validation rule '''
-#     class Meta:
-#         verbose_name = 'regel'
-#         verbose_name_plural = 'regels'
-#         
-#     name = models.CharField(max_length=50,verbose_name='naam')
-#     description = models.TextField(blank=True,verbose_name='omschrijving')
-#     value = models.FloatField(null=True,blank=True,default=None,verbose_name='waarde',help_text='vaste validatiewaarde waarde (criterium)')
-#     series = models.ForeignKey(Series,null=True,blank=True,default=None,verbose_name='tijdreeks', help_text='validatie tijdreeks')
-#     comp = models.CharField(max_length=2, choices=COMPARE_CHOICES, default='GT',verbose_name='vergelijking')
-#  
-#     def apply(self,target):
-#         ''' apply this rule on a target series '''
-#         '''TODO: laatste waarde langer dan x dagen geleden '''
-#         def compare(a,b):
-#             if self.comp == 'GT':
-#                 return a > b
-#             elif self.comp == 'LT':
-#                 return a < b
-#             elif self.comp == 'EQ':
-#                 return a == b
-#             elif self.comp == 'NE':
-#                 return a != b
-#             return None
-# 
-#         rhs = self.series.to_pandas() if self.series else self.value
-#         result = compare(target, rhs)
-#         return result
-#     
-#     def __unicode__(self):
-#         return self.name
-
+        std = target.std() * self.tolerance
+        dev = abs(target.diff())
+        return (target,self.compare(dev,std))
+    
 class ValidPoint(models.Model):
-    # the original datapoint
-    point = models.ForeignKey(DataPoint)
-    # the validation that was applied
     validation = models.ForeignKey('Validation')
-    # validated value
-    value = models.FloatField(null=True)
+    date = models.DateTimeField()
+    value = models.FloatField(default=None,null=True)
 
 class Validation(models.Model):
     
@@ -140,34 +124,118 @@ class Validation(models.Model):
         
     series = models.ForeignKey(Series,verbose_name = 'tijdreeks')
     rules = models.ManyToManyField(BaseRule, verbose_name = 'validatieregels')
+
+    def iter_exceptions(self):
+        for v in self.validpoint_set.filter(value__isnull=True):
+            yield v.point
+
+    def filter_points(self, **kwargs):
+        ''' filter valid points on date '''
+        start = kwargs.get('start', None)
+        stop = kwargs.get('stop', None)
+        if start is None and stop is None:
+            return self.validpoint_set.all()
+        return self.validpoint_set.filter(date__range=[start or self.series.van(),stop or self.series.tot()]).order_by('date')
+
+    def select_points(self,**kwargs):
+        ''' select (and possibly create) valid points '''
+        points = self.filter_points(**kwargs)
+        if points.exists():
+            addpoints = self.series.datapoints.filter(date__gt=points.last().date)
+        else:
+            addpoints = self.series.filter_points(**kwargs)
+        if addpoints.exists():
+            self.validpoint_set.bulk_create([ValidPoint(validation=self,date=p.date,value=p.value) for p in addpoints])
+            points = self.filter_points(**kwargs)
+        return points
     
+    def to_pandas(self, **kwargs):
+        try:
+            index,data = zip(*self.filter_points(**kwargs).values_list('date','value'))
+            return pd.Series(data,index).sort_index()
+        except:
+            return pd.Series()
+
+    @property        
+    def invalid_points(self):
+        return self.validpoint_set.filter(value__isnull=True)
+        
     def apply(self, **kwargs):
-        points = self.series.filter_points(**kwargs).order_by('date')
-        index, data = zip(*[(p.date,p.value) for p in points])
+        ''' apply validation and return validated points '''
+        
+        # retrieve both existing and new points
+        points = self.select_points(**kwargs).order_by('date')
+        
+        # create pandas time series from points
+        index, data = zip(*[(p.date, p.value) for p in points])
         series = pd.Series(data,index)
 
+        numinvalid = 0
+        result = None
+        logger.debug('Validating {}: {} rules'.format(self.series, self.rules.count()))
+        self.subresult_set.all().delete()
         for rule in self.rules.all():
-            series = series.where(rule.apply(series),other=None)
+            series, valid = rule.apply(series)
+            if result is None:
+                # save result
+                result = valid
+            else:
+                # update the result
+                result = result.where(valid,other=None)
 
-        valid_points = [ValidPoint(validation=self,point=p,value=v) for p,v in itertools.izip(points,series.values)]
+            invalid = valid[valid==False]
+            invalid_count = invalid.count()
+            numinvalid += invalid_count
+            valid_count = valid.count() - invalid_count
+
+            if invalid_count:
+                first = invalid.index[0]
+            else:
+                first = None
+            self.subresult_set.create(rule=rule,valid=valid_count,invalid=invalid_count,first_invalid=first)
+            logger.debug('rule {}, {} exceptions'.format(rule,invalid_count))
+
+        # set values to None where validation failed
+        series = series.where(result,other=None)
+        valid_points = [ValidPoint(validation=self,date=p[0],value=p[1]) for p in series.iteritems()]
+        if numinvalid:
+            # find first invalid point
+            first = (x for x in valid_points if x.value is None).next()
+            # find corresponding point in original time series
+            try:
+                original = self.series.datapoints.get(date=first.date)
+            except DataPoint.DoesNotExist:
+                original = None
+            logger.warning('Validation failed for {}: {} valid datapoints, {} exceptions, first occurrence = {}'.format(self.series, series.count(), numinvalid, first.date, original.value if original else None))
+        else:
+            logger.info('Validated {}: {} valid datapoints, {} exceptions'.format(self.series, series.count(), numinvalid))
         return valid_points
     
     def persist(self, **kwargs):
+        ''' apply validation and dump points to database '''
         pts = self.apply(**kwargs)
-        self.validpoint_set.all().delete()
-        self.validpoint_set.bulk_create(pts)
+        with transaction.atomic():
+            # replace ALL validated points
+            self.validpoint_set.all().delete()
+            self.validpoint_set.bulk_create(pts)
         return pts
     
     def __unicode__(self):
         return unicode(self.series)
     
-VALIDATION_STATUS = (
-    ('P','pending'),
-    ('A','accepted'),
-    ('R','rejected'),
-    )
+class SubResult(models.Model):
+    class Meta:
+        verbose_name = 'tussenresultaat'
+        verbose_name_plural = 'tussenresultaten'
+
+    validation = models.ForeignKey(Validation)
+    rule = models.ForeignKey(BaseRule)
+    valid = models.PositiveIntegerField()
+    invalid = models.PositiveIntegerField()
+    first_invalid = models.DateTimeField(null=True)
+    message = models.TextField(null=True,blank=True)
   
-class ValidationResult(models.Model):
+class Result(models.Model):
     
     class Meta:
         verbose_name = 'resultaat'

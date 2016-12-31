@@ -1,0 +1,134 @@
+{% extends 'bootbase.html' %}
+{% load staticfiles %}
+{% load l10n %}
+{% block title %}Validation {{object}}{% endblock title %}
+{% block breadcrumbs %}{% endblock %}
+{% block brandname %}{% endblock %}
+{% block extrastyle %}	
+<style>
+.badge {
+  padding: 1px 9px 2px;
+  font-size: 12.025px;
+  font-weight: bold;
+  white-space: nowrap;
+  color: #ffffff;
+  background-color: #999999;
+  -webkit-border-radius: 9px;
+  -moz-border-radius: 9px;
+  border-radius: 9px;
+}
+.badge:hover {
+  color: #ffffff;
+  text-decoration: none;
+  cursor: pointer;
+}
+.badge-error {
+  background-color: #b94a48;
+}
+.badge-error:hover {
+  background-color: #953b39;
+}
+.badge-warning {
+  background-color: #f89406;
+}
+.badge-warning:hover {
+  background-color: #c67605;
+}
+.badge-success {
+  background-color: #468847;
+}
+.badge-success:hover {
+  background-color: #356635;
+}
+.badge-info {
+  background-color: #3a87ad;
+}
+.badge-info:hover {
+  background-color: #2d6987;
+}
+.badge-inverse {
+  background-color: #333333;
+}
+.badge-inverse:hover {
+  background-color: #1a1a1a;
+}
+</style>
+{% endblock extrastyle %}
+{% block script %}
+{{ block.super }}
+<script>
+</script>
+{% endblock script %}
+{% block content %}
+	<div class='container-fluid'>
+		<div class='row'>
+			<div class="col-md-12">
+			{% with validation.series as s %}
+				<h4>{{s.mlocatie}}, Tijdreeks {{s.name}} (#{{s.id}})</h4>
+			{% endwith %}
+			</div>
+		</div>
+		<div class="row">
+			<div class="col-md-12">
+				<iframe src="show/{{validation.id}}" height="400px" width="100%" marginwidth="0" seamless="seamless" frameborder="0"></iframe>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col-md-6">
+				<div class="list-group">
+					<h3>Validatieregels</h3>
+					{% for sub in validation.subresult_set.all %}
+					<div class="list-group-item">
+						<h4 class="list-group-item-heading">{{sub.rule}}</h4>
+						<span class="badge badge-success" title="aantal geldige metingen">{{sub.valid}}</span>
+						{%if sub.invalid %}<span class="badge badge-error" title = "aantal ongeldige metingen">{{sub.invalid}}</span>{% endif %}
+						<p class="list-group-item-text">{{sub.rule.description}}</p>
+					</div>
+					{% endfor %}
+				</div>
+			</div>
+			<div class="col-md-6">
+				<div class="list-group">
+					<h3>Resultaten</h3>
+					{% with validation.series as s %}
+					<div class="list-group-item">
+						<h4 class="list-group-item-heading">Tijdreeks {{s}}</h5>
+						<p class="list-group-item-text">Aantal metingen: {{s.aantal}}</p>
+						<p class="list-group-item-text">Periode: {{s.van}} t/m {{s.tot}}</p>
+						<p class="list-group-item-text">Min/max: {{s.minimum}} - {{s.maximum}}</p>
+						<p class="list-group-item-text">Gemiddelde: {{s.gemiddelde}}</p>
+						<p class="list-group-item-text">Standaardafwijking: {{s.stddev}}</p>
+					</div>
+					{% endwith %}
+					
+					{% with validation.invalid_points as ivp %}
+					  {% with ivp.count as aantal %}
+						  {% if aantal %}
+							<div class="list-group-item list-group-item-warning">
+								<h4 class="list-group-item-heading">Validatie</h4>
+								<p class="list-group-item-text">Aantal ongeldige metingen: {{aantal}}</p>
+								<p class="list-group-item-text">Eerste ongeldige meting: {{ivp.first.date}}</p>
+							</div>
+						  {% else %}
+							<div class="list-group-item list-group-item-success">
+								<h4 class="list-group-item-heading">Validatie</h4>
+								<p class="list-group-item-text">Geen ongeldige metingen</p>
+							</div>
+						  {% endif %}
+					   {% endwith %}
+					{% endwith %}
+				</div>
+			</div>
+		</div>
+		<div class="row">
+			<form action="" method="post">
+				{% csrf_token %}
+				{{form.errors}}
+				<div class="col-md-12">
+					<button type="submit" class="btn btn-primary">Ok</button>
+				</div>
+			</form>
+		</div>
+	</div>
+	
+{% endblock content %}
