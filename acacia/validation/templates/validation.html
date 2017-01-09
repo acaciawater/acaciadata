@@ -52,10 +52,17 @@
 .badge-inverse:hover {
   background-color: #1a1a1a;
 }
+
+div img {
+	height: 16px;
+}
+
 </style>
 {% endblock extrastyle %}
 {% block script %}
 {{ block.super }}
+<!-- <script src= {% static "dropzone.js" %}></script>  -->
+<!-- <link rel="stylesheet" href= {% static "dropzone.css" %}/> -->
 <script>
 </script>
 {% endblock script %}
@@ -79,9 +86,9 @@
 					<h3>Validatieregels</h3>
 					{% for sub in validation.subresult_set.all %}
 					<div class="list-group-item">
-						<h4 class="list-group-item-heading">{{sub.rule}}</h4>
 						<span class="badge badge-success" title="aantal geldige metingen">{{sub.valid}}</span>
 						{%if sub.invalid %}<span class="badge badge-error" title = "aantal ongeldige metingen">{{sub.invalid}}</span>{% endif %}
+						<h4 class="list-group-item-heading">{{sub.rule}}</h4>
 						<p class="list-group-item-text">{{sub.rule.description}}</p>
 					</div>
 					{% endfor %}
@@ -92,7 +99,7 @@
 					<h3>Resultaten</h3>
 					{% with validation.series as s %}
 					<div class="list-group-item">
-						<h4 class="list-group-item-heading">Tijdreeks {{s}}</h5>
+						<h4 class="list-group-item-heading">Tijdreeks {{s}}</h4>
 						<p class="list-group-item-text">Aantal metingen: {{s.aantal}}</p>
 						<p class="list-group-item-text">Periode: {{s.van}} t/m {{s.tot}}</p>
 						<p class="list-group-item-text">Min/max: {{s.minimum}} - {{s.maximum}}</p>
@@ -104,15 +111,18 @@
 					{% with validation.invalid_points as ivp %}
 					  {% with ivp.count as aantal %}
 						  {% if aantal %}
-							<div class="list-group-item list-group-item-warning">
+							<div class="list-group-item list-group-item-danger">
+								<img class="pull-right" src="{% static "warning64.png" %}"/>
 								<h4 class="list-group-item-heading">Validatie</h4>
 								<p class="list-group-item-text">Aantal ongeldige metingen: {{aantal}}</p>
 								<p class="list-group-item-text">Eerste ongeldige meting: {{ivp.first.date}}</p>
 							</div>
 						  {% else %}
 							<div class="list-group-item list-group-item-success">
+								<img class="pull-right" src="{% static "camera_test.png" %}"/>
 								<h4 class="list-group-item-heading">Validatie</h4>
 								<p class="list-group-item-text">Geen ongeldige metingen</p>
+								<p></p>
 							</div>
 						  {% endif %}
 					   {% endwith %}
@@ -121,13 +131,8 @@
 			</div>
 		</div>
 		<div class="row">
-			<form action="" method="post">
-				{% csrf_token %}
-				{{form.errors}}
-				<div class="col-md-12">
-					<button type="submit" class="btn btn-primary">Ok</button>
-				</div>
-			</form>
+			<div class="col-md-6"></div>
+			<iframe class="col-md-6" src="up/{{validation.id}}" width="100%" marginwidth="0" seamless="seamless" frameborder="0"></iframe>
 		</div>
 	</div>
 	

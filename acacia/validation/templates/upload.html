@@ -1,10 +1,12 @@
-{% extends 'bootbase.html' %}
 {% load staticfiles %}
 {% load l10n %}
-{% block title %}Validation {{object}}{% endblock title %}
-{% block breadcrumbs %}{% endblock %}
-{% block brandname %}{% endblock %}
-{% block extrastyle %}	
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+<link href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+
 <style>
 .btn-file {
 	position: relative;
@@ -31,9 +33,7 @@ input[readonly] {
 	cursor: text !important;
 }
 </style>
-{% endblock extrastyle %}
-{% block script %}
-{{ block.super }}
+
 <script>
 	$(document).on(
 			'change',
@@ -63,43 +63,38 @@ input[readonly] {
 						});
 			});
 </script>
-{% endblock script %}
-
-{% block content %}
+</head>
+<body>
 	<div class='container-fluid'>
 		<div class='row'>
-			<div class="col-md-6">
-			{% with validation.series as s %}
-				<h4>Upload van gevalideerde tijdreeks {{s.mlocatie}} | {{s.name}} (#{{s.id}})</h4>
-			{% endwith %}
-			</div>
+			<h4>Upload van gevalideerde tijdreeks</h4>
 		</div>
 		<div class="row">
 			<form action="" method="post" enctype="multipart/form-data">
 				{% csrf_token %}
 				{{form.errors}}
-				<div class="col-sm-5">
+				<div class="col-sm-9">
 					<div class="input-group">
 						<span class="input-group-btn">
-<!-- 							<span class="btn btn-primary btn-file"> Browse&hellip; <input type="file" multiple> </span> -->
  							<span class="btn btn-primary btn-file"> Browse&hellip; {{form.filename}} </span>
 						</span>
 						<input type="text" id="text1" class="form-control" readonly>
 					</div>
 				</div>
-				<div class="col-sm-5">
+				<div class="col-sm-1">
 					<button type="submit" class="btn btn-primary">Upload</button>
+				</div>
+				<div class="col-sm-1">
+					<button type="submit" class="btn btn-primary">Download</button>
 				</div>
 			</form>
 		</div>
 		<br>
 		<div class="row">
-			<div class="col-md-6">
-			<p class="text-muted">
-			Klik op Browse&hellip; om een gevalideerd Excel bestand te selecteren. Door op Upload te klikken wordt de geselecteerde bestanden naar de server gekopieerd en verder verwerkt.
+			<p class="text-muted small">
+			<i>Klik op Browse&hellip; om een gevalideerd Excel bestand te selecteren. Door op Upload te klikken wordt de geselecteerde bestanden naar de server gekopieerd en verder verwerkt.</i>
 			</p>
 		</div>
-		</div>
 	</div>
-	
-{% endblock content %}
+</body>
+</html>
