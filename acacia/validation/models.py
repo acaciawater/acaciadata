@@ -148,7 +148,7 @@ class Validation(models.Model):
         verbose_name = 'validatie'
         verbose_name_plural = 'validaties'
         
-    series = models.ForeignKey(Series,verbose_name = 'tijdreeks')
+    series = models.OneToOneField(Series,verbose_name = 'tijdreeks')
     rules = models.ManyToManyField(BaseRule, verbose_name = 'validatieregels')
 
     def iter_exceptions(self):

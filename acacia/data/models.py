@@ -16,6 +16,7 @@ import pandas as pd
 import json,util,StringIO,pytz,logging
 import dateutil
 from django.db.models.aggregates import StdDev
+from django.core.exceptions import ObjectDoesNotExist
 
 THEME_CHOICES = ((None,'standaard'),
                  ('dark-blue','blauw'),
@@ -1312,6 +1313,16 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         except Exception as e:
             logger.exception('Error generating thumbnail: %s' % e)
         return self.thumbnail
+
+    @property
+    def validpoints(self):
+        try:
+            for v in self.validation.validpoint_set.all():
+                if v.value is None:
+                    break
+                yield v
+        except ObjectDoesNotExist:
+            pass
 
 # cache series properties to speed up loading admin page for series
 class SeriesProperties(models.Model):
