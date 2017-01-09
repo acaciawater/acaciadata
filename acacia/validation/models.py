@@ -55,10 +55,13 @@ class SeriesRule(BaseRule):
 
     ''' compare with other series '''
     series = models.ForeignKey(Series,null=True,blank=True,default=None,verbose_name='tijdreeks', help_text='validatie tijdreeks')
-
+    constant = models.FloatField(default=0)
+    factor = models.FloatField(default=1)
+    
     def apply(self,target):
         ''' apply this rule on a target series '''
-        return (target,self.compare(target, self.series))
+        # abs(target*factor - series) < constant 
+        return (target,self.compare(abs(target * self.factor - self.series), self.constant))
 
 SLOT_CHOICES = (
     ('H', 'uur'),
@@ -96,7 +99,7 @@ class OutlierRule(BaseRule):
     
     def apply(self, target):
         std = target.std() * self.tolerance
-        dev = abs(target-target.mean())
+        dev = (target-target.mean()).abs()
         return (target,self.compare(dev,std))
  
 class DiffRule(BaseRule):
@@ -108,9 +111,32 @@ class DiffRule(BaseRule):
     
     def apply(self, target):
         std = target.std() * self.tolerance
-        dev = abs(target.diff())
+        dev = target.diff().abs()
         return (target,self.compare(dev,std))
+
+class ScriptRule(BaseRule):
+    class Meta:
+        verbose_name = 'Python script'
+
+    script = models.TextField(default = "print 'running validation script ' + str(self)\nresult = (target,self.compare(target, 0))")
     
+    def apply(self, target):
+        try:
+            var = {'self': self, 'target': target}
+            ret = {}
+            exec (self.script, var, ret)
+            if not 'result' in ret:
+                raise ValueError('User script must set local variable result')
+            result = ret['result']
+
+            if isinstance(result, tuple):
+                return result
+            else:
+                return (target, result)
+            
+        except Exception as e:
+            raise e
+            
 class ValidPoint(models.Model):
     validation = models.ForeignKey('Validation')
     date = models.DateTimeField()
@@ -190,10 +216,11 @@ class Validation(models.Model):
 
             if invalid_count:
                 first = invalid.index[0]
+                logger.warning('validation {}, rule "{}" failed at {}'.format(self.series,rule,first))
             else:
                 first = None
+                logger.info('validation {}, rule "{}" passed'.format(self.series,rule))
             self.subresult_set.create(rule=rule,valid=valid_count,invalid=invalid_count,first_invalid=first)
-            logger.debug('rule {}, {} exceptions'.format(rule,invalid_count))
 
         # set values to None where validation failed
         series = series.where(result,other=None)
@@ -202,13 +229,13 @@ class Validation(models.Model):
             # find first invalid point
             first = (x for x in valid_points if x.value is None).next()
             # find corresponding point in original time series
-            try:
-                original = self.series.datapoints.get(date=first.date)
-            except DataPoint.DoesNotExist:
-                original = None
-            logger.warning('Validation failed for {}: {} valid datapoints, {} exceptions, first occurrence = {}'.format(self.series, series.count(), numinvalid, first.date, original.value if original else None))
+#             try:
+#                 original = self.series.datapoints.get(date=first.date)
+#             except DataPoint.DoesNotExist:
+#                 original = None
+            logger.warning('Validation failed for {}, first occurrence = {}'.format(self.series, first.date))
         else:
-            logger.info('Validated {}: {} valid datapoints, {} exceptions'.format(self.series, series.count(), numinvalid))
+            logger.info('Validation {} passed'.format(self.series))
         return valid_points
     
     def persist(self, **kwargs):

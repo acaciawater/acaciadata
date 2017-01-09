@@ -1,6 +1,7 @@
 from django.contrib import admin
 from acacia.validation.models import Validation, Result,\
-    BaseRule, ValueRule, SeriesRule, NoDataRule, OutlierRule, DiffRule
+    BaseRule, ValueRule, SeriesRule, NoDataRule, OutlierRule, DiffRule,\
+    ScriptRule
 from acacia.validation.views import download
 from polymorphic.admin.parentadmin import PolymorphicParentModelAdmin
 from polymorphic.admin.childadmin import PolymorphicChildModelAdmin
@@ -8,6 +9,7 @@ from polymorphic.admin.filters import PolymorphicChildModelFilter
 
 def test_validation(modeladmin, request, queryset):
     for v in queryset:
+        v.validpoint_set.all().delete()
         result = v.persist()
 
 def download_validation(modeladmin, request, queryset):
@@ -19,7 +21,7 @@ test_validation.short_description='Valideren'
 @admin.register(BaseRule)
 class BaseRuleAdmin(PolymorphicParentModelAdmin):
     base_model = BaseRule
-    child_models = (ValueRule, SeriesRule, NoDataRule, OutlierRule, DiffRule)
+    child_models = (ValueRule, SeriesRule, NoDataRule, OutlierRule, DiffRule, ScriptRule)
     list_filter = (PolymorphicChildModelFilter,)
     search_fields = ('name','description')
 
@@ -46,13 +48,12 @@ class OutlierRuleAdmin(NoDataRuleAdmin):
 @admin.register(DiffRule)
 class DiffRuleAdmin(NoDataRuleAdmin):
     base_model = DiffRule
+
+@admin.register(ScriptRule)
+class ScriptRuleAdmin(NoDataRuleAdmin):
+    base_model = ScriptRule
     
-# class RuleAdmin(admin.ModelAdmin):
-#     raw_id_fields = ['series']
-#     autocomplete_lookup_fields = {
-#         'fk': ['series'],
-#     }
-#     
+@admin.register(Validation)
 class ValidationAdmin(admin.ModelAdmin):
     actions = [test_validation,download_validation]
     list_filter = ('series',)
@@ -62,10 +63,8 @@ class ValidationAdmin(admin.ModelAdmin):
         'fk': ['series'],
     }
     
+@admin.register(Result)
 class ResultAdmin(admin.ModelAdmin):
     list_display = ('validation', 'begin','end', 'user',)
     list_filter = ('validation__series', 'begin', 'end', 'user',)
 
-#admin.site.register(Rule,RuleAdmin)
-admin.site.register(Validation,ValidationAdmin)
-admin.site.register(Result,ResultAdmin)
