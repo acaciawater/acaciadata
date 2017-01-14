@@ -150,7 +150,8 @@ class Validation(models.Model):
         
     series = models.OneToOneField(Series,verbose_name = 'tijdreeks')
     rules = models.ManyToManyField(BaseRule, verbose_name = 'validatieregels')
-
+    users = models.ManyToManyField(User,null=True,blank=True,help_text='Gebruikers die emails ontvangen over validatie')
+    
     def iter_exceptions(self):
         for v in self.validpoint_set.filter(value__isnull=True):
             yield v.point
