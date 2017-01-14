@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.core.urlresolvers import reverse
 from django.contrib.gis.db import models as geo
 from django.utils.text import slugify
-from acacia import settings
+from django.conf import settings
 import upload as up
 import numpy as np
 import pandas as pd

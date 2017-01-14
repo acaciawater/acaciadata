@@ -4,7 +4,7 @@ Created on Feb 28, 2014
 @author: theo
 '''
 from django.utils.text import slugify
-from acacia import settings
+from django.conf import settings
 
 def project_upload(instance, filename):
     return '/'.join(['images',

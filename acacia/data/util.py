@@ -8,7 +8,7 @@ import matplotlib
 matplotlib.use('agg')
 import matplotlib.pylab as plt
 from django.contrib.gis.geos import Point
-from acacia import settings
+from django.conf import settings
 from matplotlib import rcParams
 rcParams['font.size'] = '8'
 
