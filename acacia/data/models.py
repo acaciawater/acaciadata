@@ -1322,8 +1322,17 @@ class Series(PolymorphicModel,LoggerSourceMixin):
                     break
                 yield v
         except ObjectDoesNotExist:
+            # no validation available
             pass
-
+        
+    @property
+    def is_valid(self):
+        try:
+            return self.validation.result.valid 
+        except ObjectDoesNotExist:
+            # no validation or no validation.result
+            return False
+        
 # cache series properties to speed up loading admin page for series
 class SeriesProperties(models.Model):
     series = models.OneToOneField(Series,related_name='properties')
