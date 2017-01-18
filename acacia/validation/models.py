@@ -150,7 +150,7 @@ class Validation(models.Model):
         
     series = models.OneToOneField(Series,verbose_name = 'tijdreeks')
     rules = models.ManyToManyField(BaseRule, verbose_name = 'validatieregels')
-    users = models.ManyToManyField(User,null=True,blank=True,help_text='Gebruikers die emails ontvangen over validatie')
+    users = models.ManyToManyField(User,help_text='Gebruikers die emails ontvangen over validatie')
     
     def iter_exceptions(self):
         for v in self.validpoint_set.filter(value__isnull=True):
@@ -262,6 +262,9 @@ class SubResult(models.Model):
     invalid = models.PositiveIntegerField()
     first_invalid = models.DateTimeField(null=True)
     message = models.TextField(null=True,blank=True)
+    
+    def __unicode__(self):
+        return '{}:{}'.format(self.validation, self.rule)
   
 class Result(models.Model):
     
@@ -269,13 +272,14 @@ class Result(models.Model):
         verbose_name = 'resultaat'
         verbose_name_plural = 'resultaten'
         
-    validation = models.ForeignKey(Validation,verbose_name = 'validatie')
+    validation = models.OneToOneField(Validation,verbose_name = 'validatie')
     begin = models.DateTimeField()
     end = models.DateTimeField()
-    xlfile = models.FileField(upload_to='valid')
+    xlfile = models.FileField(upload_to='valid',blank=True,null=True)
     user = models.ForeignKey(User)
     remarks = models.TextField(blank=True,null=True)
- 
+    valid = models.BooleanField(default = False)
+
     def __unicode__(self):
         return self.validation
      
