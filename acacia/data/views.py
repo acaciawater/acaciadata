@@ -335,6 +335,8 @@ class ChartBaseView(TemplateView):
         ymin = None
         ymax = None 
         
+        num_series = chart.series.count()
+
         for _,s in enumerate(chart.series.all()):
             ser = s.series
             if tmin:
@@ -353,6 +355,11 @@ class ChartBaseView(TemplateView):
                 ymax = max(ymax,s.y1 or ser.maximum())
             else:
                 ymax = s.y1 or ser.maximum()
+            
+            try:
+                deltat = (ser.tot()-ser.van()).total_seconds() / ser.aantal() * 1000
+            except:
+                deltat = 24 * 3600000 # 1 day
                 
             title = s.label #ser.name if len(ser.unit)==0 else '%s [%s]' % (ser.name, ser.unit) if chart.series.count()>1 else ser.unit
             options['yAxis'].append({
@@ -380,8 +387,11 @@ class ChartBaseView(TemplateView):
             
             else:
                 sop['tooltip'] = {'valueSuffix': ' ' + ser.unit}                           
-            if s.type == 'column' and s.stack is not None:
-                sop['stacking'] = s.stack
+            if s.type == 'column':
+                if s.stack is not None:
+                    sop['stacking'] = s.stack
+                if num_series > 1:
+                    sop['pointRange'] = deltat
             if s.type == 'area' and s.series2:
                 sop['type'] = 'arearange'
                 sop['fillOpacity'] = 0.3
