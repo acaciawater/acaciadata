@@ -1,7 +1,7 @@
 from django.contrib import admin
 from acacia.validation.models import Validation, Result,\
     BaseRule, ValueRule, SeriesRule, NoDataRule, OutlierRule, DiffRule,\
-    ScriptRule
+    ScriptRule, SubResult
 from acacia.validation.views import download
 from polymorphic.admin.parentadmin import PolymorphicParentModelAdmin
 from polymorphic.admin.childadmin import PolymorphicChildModelAdmin
@@ -63,6 +63,11 @@ class ValidationAdmin(admin.ModelAdmin):
         'fk': ['series'],
     }
     
+@admin.register(SubResult)
+class SubResultAdmin(admin.ModelAdmin):
+    list_display = ('rule', 'validation', 'valid', 'invalid', 'first_invalid')
+    list_filter = ('validation', 'rule')
+
 @admin.register(Result)
 class ResultAdmin(admin.ModelAdmin):
     list_display = ('validation', 'begin','end', 'user',)
