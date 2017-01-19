@@ -1,7 +1,6 @@
 import logging
 import numpy as np
 import datetime
-import pandas as pd
 logger = logging.getLogger(__name__)
 
 from generator import Generator
@@ -15,6 +14,16 @@ class NMCPro(Generator):
     def __init__(self, *args, **kwargs):        
         super(NMCPro,self).__init__(*args, **kwargs)
         self.dayfirst = kwargs.get('dayfirst', False)
+
+    def process(self, data):
+        data.dropna(how='all',inplace=True)
+        for key in data.keys():
+            try:
+                data[key] = data[key].astype('float64')
+            except:
+                pass
+        data.sort(inplace=True)
+        return data
 
     def get_header(self, f):
         f.seek(0)
@@ -34,19 +43,8 @@ class NMCPro(Generator):
         header = self.get_header(f)
         names = header['COLUMNS']
         data = self.read_csv(f, header=None, skiprows = self.skiprows, names=names, comment = '#', index_col=0, 
-                           parse_dates=0, dayfirst = self.dayfirst, na_values = ['----', '-------'])
-        if data.index[0] == data.index[1]:
-            data = self.read_csv(f, header=None, skiprows = self.skiprows, names=names, comment = '#', index_col=0, 
-                                 parse_dates=[[0,1]], dayfirst = self.dayfirst, na_values = ['----', '-------'],)
-            data = data.replace({',':'.'}, regex = True)
-        data.dropna(how='all',inplace=True)
-        for key in data.keys():
-            try:
-                data[key] = data[key].astype('float64')
-            except:
-                pass
-        data.sort(inplace=True)
-        return data
+                           parse_dates=[0], dayfirst = self.dayfirst, na_values = ['----', '-------'])
+        return self.process(data)
 
     def get_parameters(self, fil):
         header = self.get_header(fil)
@@ -60,6 +58,13 @@ class NMCJr(NMCPro):
 
     def __init__(self, *args, **kwargs):        
         super(NMCJr,self).__init__(*args, **kwargs)
+
+    def get_data(self, f, **kwargs):
+        header = self.get_header(f)
+        names = header['COLUMNS']
+        data = self.read_csv(f, header=None, skiprows = self.skiprows, names=names, comment = '#', index_col=0, 
+                           parse_dates=[[0,1]], dayfirst = self.dayfirst, na_values = ['----', '-------'])
+        return self.process(data)
     
 if __name__ == '__main__':
     nmc = NMCPro()
