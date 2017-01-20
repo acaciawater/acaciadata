@@ -725,6 +725,7 @@ class SourceFile(models.Model,LoggerSourceMixin):
             logger.error('Sourcefile %s has no associated file' % self.name)
             return None
         logger.debug('Getting data for sourcefile %s', self.name)
+        wasClosed = self.file.closed
         try:
             self.file.open()
             data = gen.get_data(self.file,**kwargs)
@@ -732,7 +733,8 @@ class SourceFile(models.Model,LoggerSourceMixin):
             logger.exception('Error retrieving data from %s: %s' % (filename, e))
             return None
         finally:
-            self.file.close()
+            if wasClosed:
+                self.file.close()
 
         if data is None or data.empty:
             logger.warning('No data retrieved from %s' % filename)
