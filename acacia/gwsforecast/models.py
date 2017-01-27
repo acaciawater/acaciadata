@@ -15,9 +15,6 @@ gws_forecaster
 
 class GWSForecast(Datasource):
     '''
-    usese the location of itself to get the data from knmi if any of the series apart from hist_gws are empty
-    passes the location to the generator
-    hist_gws,hist_ev,hist_pt,forec_et,forec_pt,forec_tmp
     '''
     hist_gws = models.ForeignKey(Series)
     hist_ev = models.ForeignKey(Series,related_name='hist_ev',default=None)
@@ -113,8 +110,7 @@ class GWSGenerator(GenericCSV):
     '''
     embeds the model of miriam
     overwrite the downloadfunction so that it's output is the forecasted gws and the historical one
-    creates a voorspelde gws als berekende reeks
-    if no values in 5 series, get it form knmi on basis of location
+    creates a voorspelde gws as berekende reeks
     '''
     
     def download(self, **kwargs):
