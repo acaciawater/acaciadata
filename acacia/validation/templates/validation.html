@@ -57,6 +57,16 @@ div img {
 	height: 16px;
 }
 
+.addrule {
+  margin-top: 12px;
+  margin-left: 12px;
+  font-size: 1.5em;
+  color: #3a87ad;
+}
+a:hover {
+   text-decoration: none;
+}
+
 </style>
 {% endblock extrastyle %}
 {% block script %}
@@ -64,6 +74,11 @@ div img {
 <!-- <script src= {% static "dropzone.js" %}></script>  -->
 <!-- <link rel="stylesheet" href= {% static "dropzone.css" %}/> -->
 <script>
+  function opladen() {
+	  var up = $("upload");
+	  up.toggle();
+	  return false;
+  }
 </script>
 {% endblock script %}
 {% block content %}
@@ -92,6 +107,13 @@ div img {
 						<p class="list-group-item-text">{{sub.rule.description}}</p>
 					</div>
 					{% endfor %}
+					<div>
+						<a href="{% url 'admin:validation_validation_change' validation.id %}?next={{next}}" class="addrule pull-right glyphicon glyphicon-pencil" title="Validatie wijzigen"></a>
+						<a href="" class="addrule pull-right glyphicon glyphicon-envelope" title="Email notificatie"></a>
+						<a href="{% url 'validation:upload' validation.id %}?next={{next}}" class="addrule pull-right glyphicon glyphicon-upload" title="Upload validatiebestand"></a> 
+						<a href="{% url 'validation:download' validation.id %}" class="addrule pull-right glyphicon glyphicon-download" title="Download validatiebestand"></a>
+						<input id=upload type="file" style="display:none"/>
+					</div>
 				</div>
 			</div>
 			<div class="col-md-6">
@@ -130,10 +152,10 @@ div img {
 				</div>
 			</div>
 		</div>
-		<div class="row">
-			<div class="col-md-6"></div>
-			<iframe class="col-md-6" src="up/{{validation.id}}" width="100%" marginwidth="0" seamless="seamless" frameborder="0"></iframe>
-		</div>
+<!-- 		<div class="row"> -->
+<!-- 			<div class="col-md-6"></div> -->
+<!-- 			<iframe class="col-md-6" src="up/{{validation.id}}" width="100%" marginwidth="0" seamless="seamless" frameborder="0"></iframe> -->
+<!-- 		</div> -->
 	</div>
 	
 {% endblock content %}

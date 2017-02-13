@@ -57,10 +57,14 @@ class UploadDoneView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super(UploadDoneView, self).get_context_data(**kwargs)
         context['user'] = self.request.user
+        context['next'] = self.request.GET.get('next', self.request.get_full_path())
         return context
 
 def save_file(file_obj,folder):
     path = default_storage.path(os.path.join(folder,file_obj.name))
+    fldr = os.path.dirname(path)
+    if not os.path.exists(fldr):
+        os.makedirs(fldr)
     with open(path, 'wb') as destination:
         for chunk in file_obj.chunks():
             destination.write(chunk)
@@ -73,7 +77,9 @@ class UploadFileView(FormView):
     success_url = 'up/1/done'
     
     def get_success_url(self):
-        return reverse('validation:upload_done',kwargs=self.kwargs)
+#        return self.success_url
+         url = reverse('validation:upload_done',kwargs=self.kwargs)
+         return url + '?next=' + self.request.get_full_path()
 
     def get_context_data(self, **kwargs):
         context = super(UploadFileView, self).get_context_data(**kwargs)
@@ -110,6 +116,7 @@ class ValidationView(FormView):
         val = get_object_or_404(Validation,pk=int(self.kwargs.get('pk')))
         context['validation'] = val
         context['invalid'] = val.invalid_points.count()
+        context['next'] = self.request.get_full_path()
         return context
   
     def form_valid(self, form):

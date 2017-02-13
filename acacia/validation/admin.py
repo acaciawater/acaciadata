@@ -6,6 +6,7 @@ from acacia.validation.views import download
 from polymorphic.admin.parentadmin import PolymorphicParentModelAdmin
 from polymorphic.admin.childadmin import PolymorphicChildModelAdmin
 from polymorphic.admin.filters import PolymorphicChildModelFilter
+from django.shortcuts import redirect
 
 def test_validation(modeladmin, request, queryset):
     for v in queryset:
@@ -62,6 +63,19 @@ class ValidationAdmin(admin.ModelAdmin):
     autocomplete_lookup_fields = {
         'fk': ['series'],
     }
+    def response_add(self, request, obj, post_url_continue=None):
+        ret = admin.ModelAdmin.response_add(self, request, obj, post_url_continue=post_url_continue)
+        if 'next' in request.GET:
+            return redirect(request.GET['next'])
+        else:
+            return ret
+        
+    def response_change(self, request, obj):
+        ret = admin.ModelAdmin.response_change(self, request, obj)
+        if 'next' in request.GET:
+            return redirect(request.GET['next'])
+        else:
+            return ret
     
 @admin.register(SubResult)
 class SubResultAdmin(admin.ModelAdmin):
