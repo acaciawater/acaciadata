@@ -39,7 +39,10 @@ class AHN(models.Model):
             features = obj['features']
             for f in features:
                 props = f['properties']
-                return props['GRAY_INDEX']
+                z = props['GRAY_INDEX']
+                if z > 1e30:
+                    z = None
+                return z
         else:
             raise Exception(response.reason)
         
