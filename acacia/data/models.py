@@ -147,7 +147,7 @@ class MeetLocatie(geo.Model):
     name = models.CharField(max_length=100,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     image = models.ImageField(upload_to=up.meetlocatie_upload, blank = True, null = True)
-    location = geo.PointField(srid=util.RDNEW,verbose_name='locatie', help_text='Meetlocatie in Rijksdriehoekstelsel coordinaten')
+    location = geo.PointField(dim=3,srid=util.RDNEW,verbose_name='locatie', help_text='Meetlocatie in Rijksdriehoekstelsel coordinaten')
     objects = geo.GeoManager()
     webcam = models.ForeignKey(Webcam, null = True, blank=True)
 
