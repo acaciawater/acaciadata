@@ -300,17 +300,24 @@ def addmonfile(request,network,f):
     put = mon.location
     logger.info('Informatie uit MON file: Put={put}, diver={ser}'.format(put=put,ser=serial))
     
-    datalogger, created = Datalogger.objects.get_or_create(serial=serial,defaults={'model': mon.instrument_type})
-    if created:
-        logger.info('Nieuwe datalogger toegevoegd met serienummer {ser}'.format(ser=serial))
-    
     try:
         # find logger datasource by well/screen combination
-        well = network.well_set.get(name=put)
+        match = re.match(r'(\w+)[\.\-](\d{1,3}$)',put)
+        if match:
+            put = match.group(1)
+            filter = int(match.group(2))
+        else:
+            filter = 1
+        
+        well = network.well_set.get(name__iexact=put)
+
         # TODO: find out screen number
-        filter = 1
         screen = well.screen_set.get(nr=filter)
 
+        datalogger, created = Datalogger.objects.get_or_create(serial=serial,defaults={'model': mon.instrument_type})
+        if created:
+            logger.info('Nieuwe datalogger toegevoegd met serienummer {ser}'.format(ser=serial))
+    
         # get installation depth from last existing logger
         existing_loggers = screen.loggerpos_set.all().order_by('start_date')
         last = existing_loggers.last()
