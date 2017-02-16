@@ -262,7 +262,7 @@ class LoggerPos(models.Model):
     
     class Meta:
         verbose_name = 'DataloggerInstallatie'
-        ordering = ['logger','start_date']
+        ordering = ['start_date','logger']
 
     def stats(self):
         df = self.screen.to_pandas(start=self.start_date, stop=self.end_date)
