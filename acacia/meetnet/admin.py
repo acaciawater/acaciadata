@@ -59,7 +59,7 @@ class DataloggerAdmin(admin.ModelAdmin):
 class LoggerPosAdmin(admin.ModelAdmin):
     model = LoggerPos
     list_display = ('logger', 'screen', 'start_date', 'end_date', 'refpnt', 'depth', 'baro', 'remarks')
-    list_filter = ('screen__well', 'screen')
+    list_filter = ('screen__well', 'screen', 'baro')
     search_fields = ('logger__serial','screen__well__name')
     
 class LoggerInline(admin.TabularInline):
