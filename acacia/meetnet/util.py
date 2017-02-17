@@ -309,7 +309,10 @@ def addmonfile(request,network,f):
         else:
             filter = 1
         
-        well = network.well_set.get(name__iexact=put)
+        try:
+            well = network.well_set.get(name__iexact=put)
+        except Well.DoesNotExist:
+            well = network.well_set.get(nitg__iexact=put)
 
         # TODO: find out screen number
         screen = well.screen_set.get(nr=filter)
@@ -323,7 +326,7 @@ def addmonfile(request,network,f):
         last = existing_loggers.last()
         depth = last.depth if last else None
         
-        pos, created = datalogger.loggerpos_set.get_or_create(screen=screen,refpnt=screen.refpnt,defaults={'baro': well.baro, 'depth': depth, 'start_date': mon.start_date, 'end_date': mon.end_date})
+        pos, created = datalogger.loggerpos_set.get_or_create(screen=screen,refpnt=screen.refpnt,start_date=mon.start_date, defaults={'baro': well.baro, 'depth': depth, 'end_date': mon.end_date})
         if created:
             logger.info('Datalogger {log} gekoppeld aan filter {loc}'.format(log=serial,loc=unicode(screen)))
             if depth is None:
@@ -347,7 +350,7 @@ def addmonfile(request,network,f):
         try:
             loc = MeetLocatie.objects.get(name=unicode(screen))
         except MeetLocatie.DoesNotExist:
-            loc = MeetLocatie.objects.get(name='%s/%s' % (put,filter))
+            loc = MeetLocatie.objects.get(name='%s/%03d' % (well.nitg,filter))
 
         # get/create datasource for logger
         ds, created = LoggerDatasource.objects.get_or_create(name=datalogger.serial,meetlocatie=loc,
@@ -357,10 +360,10 @@ def addmonfile(request,network,f):
         try:
             well = None
             screen = None
-            ds = LoggerDatasource.objects.get(logger=datalogger)
+            ds = LoggerDatasource.objects.get(logger=Datalogger.objects.get(serial=serial))
             loc = ds.meetlocatie
             pos = None
-        except LoggerDatasource.DoesNotExist:
+        except (LoggerDatasource.DoesNotExist, Datalogger.DoesNotExist):
             logger.error('Gegevensbron/meetlocatie voor datalogger ontbreekt')
             return error
         except MultipleObjectsReturned:
@@ -397,11 +400,15 @@ def update_series(request,screen):
     series, created = Series.objects.get_or_create(name=name,defaults={'user':user})
     try:
         meetlocatie = MeetLocatie.objects.get(name=unicode(screen))
-        series.mlocatie = meetlocatie
-        series.save()
     except:
-        logger.exception('Meetlocatie niet gevonden voor filter {screen}'.format(screen=unicode(screen)))
-        return
+        try:
+            meetlocatie = MeetLocatie.objects.get(name='%s/%03d'% (unicode(screen.well.nitg), screen.nr))
+        except:
+            logger.exception('Meetlocatie niet gevonden voor filter {screen}'.format(screen=unicode(screen)))
+            return
+
+    series.mlocatie = meetlocatie
+    series.save()
 
     recomp(screen, series)
                  
