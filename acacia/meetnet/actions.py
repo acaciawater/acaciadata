@@ -49,6 +49,7 @@ recomp_screens.short_description = "Gecompenseerde tijdreeksen opnieuw aanmaken 
 def recomp_wells(modeladmin, request, queryset):
     for well in queryset:
         recomp_screens(modeladmin,request,well.screen_set.all())
+    make_wellcharts(modeladmin, request, queryset)
 recomp_wells.short_description = "Gecompenseerde tijdreeksen opnieuw aanmaken voor geselecteerde putten"
 
 def add_meteo_for_wells(modeladmin, request, queryset):
