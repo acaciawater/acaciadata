@@ -160,11 +160,11 @@ class Screen(models.Model):
         levels.sort(key=bydate)
         return levels
 
-    def get_levels(self, ref='nap'):
-        return self.get_series(ref,kind='COMP')        
+    def get_levels(self, ref='nap', **kwargs):
+        return self.get_series(ref,kind='COMP',**kwargs)        
 
-    def get_hand(self, ref='nap'):
-        return self.get_series(ref,kind='HAND')        
+    def get_hand(self, ref='nap', **kwargs):
+        return self.get_series(ref,kind='HAND',**kwargs)        
         
     def get_monfiles(self):
         files = []
