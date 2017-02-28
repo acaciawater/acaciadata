@@ -15,6 +15,7 @@ import os,re
 import datetime
 import binascii
 import numpy as np
+import pandas as pd
 
 from django.template.loader import render_to_string
 from django.core.files.base import ContentFile
@@ -59,7 +60,7 @@ def chart_for_screen(screen):
     plt.close()    
     return img.getvalue()
 
-def chart_for_well(well):
+def chart_for_well1(well):
     fig=plt.figure(figsize=THUMB_SIZE)
     ax=fig.gca()
     plt.grid(linestyle='-', color='0.9')
@@ -85,6 +86,46 @@ def chart_for_well(well):
     if len(x):
         y = [screen.well.maaiveld] * len(x)
         plt.plot_date(x, y, '-', label='maaiveld')
+
+    plt.title(well)
+    plt.ylabel('m tov NAP')
+    if count > 0:
+        leg=plt.legend()
+        leg.get_frame().set_alpha(0.3)
+    
+    img = StringIO() 
+    plt.savefig(img,format='png',bbox_inches='tight')
+    plt.close()    
+    return img.getvalue()
+
+def chart_for_well(well,start=None,stop=None):
+    fig=plt.figure(figsize=(15,5))
+    ax=fig.gca()
+    datemin=start or datetime.datetime(2013,1,1)
+    datemax=stop or datetime.datetime(2017,1,1)
+    ax.set_xlim(datemin, datemax)
+    plt.grid(linestyle='-', color='0.9')
+    count = 0
+    y = []
+    x = []
+    for screen in well.screen_set.all():
+        data = screen.get_levels('nap',start=datemin,stop=datemax)
+        if len(data)>0:
+            x,y = zip(*data)
+            # resample to hour frequency (gaps representing missing data) 
+            s = pd.Series(y,index=x).asfreq('H')
+            y = s.tolist()
+            x = list(s.index)
+            plt.plot_date(x, y, '-', label=screen)
+            count += 1
+
+        hand = screen.get_hand('nap')
+        if len(hand)>0:
+            x,y = zip(*hand)
+            plt.plot_date(x, y, 'ro', label='handpeiling')
+    x = [datemin,datemax]
+    y = [screen.well.maaiveld] * len(x)
+    plt.plot_date(x, y, '-', label='maaiveld')
 
     plt.title(well)
     plt.ylabel('m tov NAP')
