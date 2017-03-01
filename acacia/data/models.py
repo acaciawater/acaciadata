@@ -1278,13 +1278,20 @@ class Series(PolymorphicModel,LoggerSourceMixin):
     def filter_points(self, **kwargs):
         start = kwargs.get('start', None)
         stop = kwargs.get('stop', None)
+
+        queryset = self.datapoints
+        raw = kwargs.get('raw', True)
+        if self.validated and not raw:
+            first = self.validation.invalid_points.first()
+            if first:
+                queryset = self.validation.validpoint_set.filter(date__lt=first.date)
         if start is None and stop is None:
-            return self.datapoints.all()
+            return queryset.all()
         if start is None:
             start = self.van()
         if stop is None:
             stop = self.tot()
-        return self.datapoints.filter(date__range=[start,stop])
+        return queryset.filter(date__range=[start,stop])
     
     def to_pandas(self, **kwargs):
         index,data = zip(*self.filter_points(**kwargs).values_list('date','value'))
@@ -1333,6 +1340,12 @@ class Series(PolymorphicModel,LoggerSourceMixin):
             return self.validation.result.valid 
         except ObjectDoesNotExist:
             # no validation or no validation.result
+            return False
+    @property
+    def validated(self):
+        try:
+            return self.validation.validpoint_set.count() > 0
+        except ObjectDoesNotExist:
             return False
         
 # cache series properties to speed up loading admin page for series
