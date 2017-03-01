@@ -78,8 +78,8 @@ class UploadFileView(FormView):
     
     def get_success_url(self):
 #        return self.success_url
-         url = reverse('validation:upload_done',kwargs=self.kwargs)
-         return url + '?next=' + self.request.get_full_path()
+        url = reverse('validation:upload_done',kwargs=self.kwargs)
+        return url + '?next=' + self.request.get_full_path()
 
     def get_context_data(self, **kwargs):
         context = super(UploadFileView, self).get_context_data(**kwargs)
@@ -136,7 +136,6 @@ def ValToJson(request, pk):
         # replace NaN with None for json converter
         return None if np.isnan(x) else x
     pts = [(r[0],nn(r[1][0]),nn(r[1][1])) for r in df.iterrows()]
-    #j = df.to_json(default_handler=lambda x: time.mktime(x.timetuple())*1000.0)
     j = json.dumps(pts, default=lambda x: time.mktime(x.timetuple())*1000.0)
     return HttpResponse(j, content_type='application/json')
     
