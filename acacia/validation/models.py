@@ -1,6 +1,7 @@
 from django.db import models, transaction
 from django.contrib.auth.models import User
-from acacia.data.models import Series, DataPoint
+from acacia.data.models import Series
+from django.core.urlresolvers import reverse
 import pandas as pd
 from polymorphic.models import PolymorphicModel
 import logging
@@ -14,7 +15,7 @@ COMPARE_CHOICES = (
     ('NE', 'ongelijk'))
 
 class BaseRule(PolymorphicModel):
-    ''' Basic validation rule '''
+    ''' Basic validation rule (compares a time series with zero)'''
     class Meta:
         verbose_name = 'regel'
         
@@ -40,7 +41,7 @@ class BaseRule(PolymorphicModel):
         return self.name
     
 class ValueRule(BaseRule):
-    ''' validation rule with set limits '''
+    ''' validation rule with set limits (compares a time series with fixed numeric value) '''
     class Meta:
         verbose_name = 'Vaste grens'
         
@@ -50,17 +51,16 @@ class ValueRule(BaseRule):
         return (target,self.compare(target, self.value))
 
 class SeriesRule(BaseRule):
+    ''' compares series with other series (compares target with constant + series * factor) '''
     class Meta:
         verbose_name = 'Tijdreeks'
 
-    ''' compare with other series '''
     series = models.ForeignKey(Series,null=True,blank=True,default=None,verbose_name='tijdreeks', help_text='validatie tijdreeks')
     constant = models.FloatField(default=0)
     factor = models.FloatField(default=1)
     
     def apply(self,target):
         ''' apply this rule on a target series '''
-        # abs(target*factor - series) < constant 
         return (target,self.compare(abs(target * self.factor - self.series), self.constant))
 
 SLOT_CHOICES = (
@@ -70,10 +70,10 @@ SLOT_CHOICES = (
     ('M', 'maand'),
     )
 class NoDataRule(BaseRule):
+    ''' Rule that checks a time series for number of measurements in specified time span (e.g. at least 6 values per day) '''
     class Meta:
         verbose_name = 'Aantal'
         
-    ''' counts measurements in timeslot ''' 
     slot = models.CharField(max_length=4,default='D',choices=SLOT_CHOICES)
     count = models.PositiveIntegerField(default=1)
     
@@ -91,10 +91,10 @@ class NoDataRule(BaseRule):
         return (target, result)
     
 class OutlierRule(BaseRule):
+    ''' Finds  outliers based on standard deviation and mean ''' 
     class Meta:
         verbose_name = 'Uitbijter'
 
-    ''' identifies outliers based on standard deviation and mean ''' 
     tolerance = models.FloatField(default=3,verbose_name = 'tolerantie', help_text = 'gemiddelde plus of min x maal de standaardafwijking')
     
     def apply(self, target):
@@ -103,10 +103,10 @@ class OutlierRule(BaseRule):
         return (target,self.compare(dev,std))
  
 class DiffRule(BaseRule):
+    ''' Finds local outliers based on difference between successive points and standard deviation ''' 
     class Meta:
         verbose_name = 'Lokale uitbijter'
     
-    ''' identifies outliers based on difference and standard deviation ''' 
     tolerance = models.FloatField(default=3,verbose_name = 'tolerantie', help_text = 'verschil plus of min x maal de standaardafwijking')
     
     def apply(self, target):
@@ -115,6 +115,10 @@ class DiffRule(BaseRule):
         return (target,self.compare(dev,std))
 
 class ScriptRule(BaseRule):
+    ''' Validation rule based on user defined python script.
+    The script must set a local variable named result: 
+    a tuple consisting of the target series and a boolean series with the validation result '''
+    
     class Meta:
         verbose_name = 'Python script'
 
@@ -138,6 +142,7 @@ class ScriptRule(BaseRule):
             raise e
             
 class ValidPoint(models.Model):
+    ''' A datapoint that has passed a validation rule '''
     validation = models.ForeignKey('Validation')
     date = models.DateTimeField()
     value = models.FloatField(default=None,null=True)
@@ -152,6 +157,9 @@ class Validation(models.Model):
     rules = models.ManyToManyField(BaseRule, verbose_name = 'validatieregels')
     users = models.ManyToManyField(User,blank=True,help_text='Gebruikers die emails ontvangen over validatie')
     
+    def get_absolute_url(self):
+        return reverse('validation:validation-detail', args=[self.id])
+
     def iter_exceptions(self):
         for v in self.validpoint_set.filter(value__isnull=True):
             yield v.point
@@ -252,6 +260,7 @@ class Validation(models.Model):
         return unicode(self.series)
     
 class SubResult(models.Model):
+    ''' Result of applying a single validation rule ''' 
     class Meta:
         verbose_name = 'tussenresultaat'
         verbose_name_plural = 'tussenresultaten'
@@ -267,7 +276,7 @@ class SubResult(models.Model):
         return '{}:{}'.format(self.validation, self.rule)
   
 class Result(models.Model):
-    
+    ''' Result of a validation, including uploaded datafile of a user '''
     class Meta:
         verbose_name = 'resultaat'
         verbose_name_plural = 'resultaten'
@@ -282,4 +291,3 @@ class Result(models.Model):
 
     def __unicode__(self):
         return self.validation
-     
