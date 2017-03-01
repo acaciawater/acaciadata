@@ -87,10 +87,16 @@ def ChartToJson(request, pk):
     for cs in c.series.all():
         
         def getseriesdata(s):
+            queryset = s.datapoints
+            if s.validated:
+                # series has been validated. Take up to first invalid point 
+                first = s.validation.invalid_points.first()
+                if first:
+                    queryset = s.validation.validpoint_set.filter(date__lt=first.date)
             if stop is None:
-                pts = [(p.date,p.value) for p in s.datapoints.filter(date__gte=start).order_by('date')]
+                pts = [(p.date,p.value) for p in queryset.filter(date__gte=start).order_by('date')]
             else:
-                pts = [(p.date,p.value) for p in s.datapoints.filter(date__gte=start, date__lte=stop).order_by('date')]
+                pts = [(p.date,p.value) for p in queryset.filter(date__gte=start, date__lte=stop).order_by('date')]
             if maxpts>0:
                 num = len(pts)
                 if num > maxpts:
@@ -372,6 +378,11 @@ class ChartBaseView(TemplateView):
             name = s.name
             if name is None or name == '':
                 name = ser.name
+                
+            if not ser.validated:
+                # append asterisk to name when series has not been validated  
+                name += '*'
+                 
             sop = {'name': name,
                    'id': 'series_%d' % ser.id,
                    'type': s.type,
