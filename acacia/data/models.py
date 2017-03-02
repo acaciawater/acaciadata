@@ -1583,13 +1583,13 @@ class Chart(PolymorphicModel):
             return start
         return self.start
 
-    def to_pandas(self):
-        s = { unicode(cd.series): cd.series.to_pandas() for cd in self.series.all() }
+    def to_pandas(self,**kwargs):
+        s = { unicode(cd.series)+('' if cd.series.validated else '*'): cd.series.to_pandas(**kwargs) for cd in self.series.all() }
         return pd.DataFrame(s)
     
-    def to_csv(self):
+    def to_csv(self,**kwargs):
         io = StringIO.StringIO()
-        df = self.to_pandas()
+        df = self.to_pandas(**kwargs)
         df.to_csv(io,index_label='Datum/tijd')
         return io.getvalue()
         
