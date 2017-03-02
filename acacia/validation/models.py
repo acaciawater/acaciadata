@@ -194,7 +194,7 @@ class Validation(models.Model):
     @property        
     def invalid_points(self):
         return self.validpoint_set.filter(value__isnull=True)
-        
+    
     def apply(self, **kwargs):
         ''' apply validation and return validated points '''
         
@@ -286,8 +286,9 @@ class Result(models.Model):
     end = models.DateTimeField()
     xlfile = models.FileField(upload_to='valid',blank=True,null=True)
     user = models.ForeignKey(User)
+    date = models.DateTimeField(auto_now=True,verbose_name='uploaded')
     remarks = models.TextField(blank=True,null=True)
     valid = models.BooleanField(default = False)
 
     def __unicode__(self):
-        return self.validation
+        return unicode(self.validation)
