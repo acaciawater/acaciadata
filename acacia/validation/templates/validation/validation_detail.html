@@ -57,6 +57,7 @@
     					chart.showLoading('Drawing chart...');
 				    	chart.series[0].setData(selcol(data,1));
 				    	chart.series[1].setData(selcol(data,2));
+				    	chart.series[2].setData(selcol(data,3));
 		    		}
 		    )
 		    //.fail(function(xhr, status, error) { alert('Fail: '+status);})
@@ -70,6 +71,7 @@
 		    			chart.showLoading('Drawing chart...');
 				    	chart.series[0].setData(selcol(data,1));
 				    	chart.series[1].setData(selcol(data,2));
+				    	chart.series[2].setData(selcol(data,3));
 			    	}
 		    )
 		    .fail(function(xhr, status, error) {})

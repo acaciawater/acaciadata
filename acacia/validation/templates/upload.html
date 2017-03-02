@@ -65,15 +65,15 @@ input[readonly] {
 </script>
 </head>
 <body>
-	<div class='container-fluid'>
+	<div class='container container-fluid'>
 		<div class='row'>
-			<h4>Upload/download van gevalideerde tijdreeks</h4>
+			<h4>Upload van gevalideerde tijdreeks</h4>
 		</div>
 		<div class="row">
 			<form action="" method="post" enctype="multipart/form-data">
 				{% csrf_token %}
 				{{form.errors}}
-				<div class="col-sm-9">
+				<div class="col-sm-6">
 					<div class="input-group">
 						<span class="input-group-btn">
  							<span class="btn btn-primary btn-file"> Browse&hellip; {{form.filename}} </span>
@@ -83,9 +83,6 @@ input[readonly] {
 				</div>
 				<div class="col-sm-1">
 					<button type="submit" class="btn btn-primary">Upload</button>
-				</div>
-				<div class="col-sm-1">
-					<a href="{% url 'validation:download' validation.id %}" class="btn btn-primary">Download</a>
 				</div>
 			</form>
 		</div>

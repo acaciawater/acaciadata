@@ -3,7 +3,7 @@ import time
 import pandas as pd
 import numpy as np
 
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django.conf import settings
 from django.core.files.storage import default_storage
 from django.views.generic import FormView, TemplateView, DetailView
@@ -11,13 +11,35 @@ from django.views.decorators.gzip import gzip_page
 from django.http.response import HttpResponse
 from django.core.urlresolvers import reverse
 
-from acacia.validation.models import Validation, Result
+from acacia.validation.models import Validation, Result, ValidPoint
 from acacia.data.util import slugify
 from acacia.validation.forms import UploadFileForm, ValidationForm
 from acacia.data.views import SeriesView, date_handler
 
 import logging
+from datetime import datetime
 logger = logging.getLogger(__name__)
+
+def remove_result(request, pk):
+    ''' removes validation result '''
+    result = get_object_or_404(Result,pk=pk)
+    val = result.validation
+    result.delete()
+    val.validpoint_set.all().delete()
+    val.persist()
+    return redirect(val.get_absolute_url())
+
+def remove_points(request, pk):
+    ''' removes validated points'''
+    val = get_object_or_404(Validation,pk=pk)
+    val.validpoint_set.all().delete()
+    return redirect(val.get_absolute_url())
+    
+def validate(request, pk):
+    ''' validates timeseries '''
+    val = get_object_or_404(Validation,pk=pk)
+    val.persist()
+    return redirect(val.get_absolute_url())
 
 def download(request, pk):
     ''' download Excel file for validation '''
@@ -31,8 +53,11 @@ def download(request, pk):
     index,data = zip(*pts)
     val = pd.Series(data,index)
         
+    val = val.groupby(level=0).last()
+    raw = raw.groupby(level=0).last()
+
     # build dataframe with both raw and validated time series
-    df = pd.DataFrame({'raw': raw, 'validated': val})
+    df = pd.DataFrame({'raw (id=%d)' % validation.series.id: raw, 'validated (id=%d)' % validation.id: val})
 
     # create (and delete) tmp file and remember filename
     if not os.path.exists(settings.EXPORT_ROOT):
@@ -70,6 +95,56 @@ def save_file(file_obj,folder):
             destination.write(chunk)
     return path
 
+class ValidationError(Exception):
+    pass
+
+def process_file(request, path):
+    # read excel file as pandas dataframe
+    logger.debug('Processing validation file '+path)
+    df = pd.read_excel(path,index_col=0)
+    rows,cols = df.shape
+    if cols != 2:
+        raise ValidationError('Validation file must have three columns')
+    logger.debug('{} rows read'.format(rows))
+
+    # get id of validation instance
+    raw, val = df.columns
+    m = re.search(r'id=(\d+)', val)
+    if m:
+        # get validation instance
+        val_id = int(m.group(1))
+        val = Validation.objects.get(pk=val_id)
+    else:
+        raise ValidationError('Format error in header')
+    # drop N/A values
+    df.dropna(how='any',inplace=True)
+    df.sort_index(inplace=True)
+    relpath = os.path.join(settings.MEDIA_URL,os.path.relpath(path,default_storage.location))
+    begin = df.index[0]
+    end = df.index[-1]
+    defaults={'begin':begin,'end':end,'user':request.user,'xlfile':relpath,'valid':True, 'date': datetime.now()}
+
+    #result,updated = Result.objects.update_or_create(validation=val,defaults=defaults)
+    
+    result,created = Result.objects.get_or_create(validation=val,defaults=defaults)
+    if not created:
+        result.__dict__.update(defaults)
+        result.save()
+    
+    # update valid points
+    pts = [ValidPoint(validation=val,date=date,value=values[1]) for date,values in df.iterrows()]
+    #val.validpoint_set.filter(date__range=[begin,end]).delete()
+    val.validpoint_set.all().delete()
+    val.validpoint_set.bulk_create(pts)
+
+    # revalidate
+    val.persist()
+    
+def process_uploaded_files(request, files):
+    logger.debug('Processing {} uploaded validation files'.format(len(files)))
+    for f in files:
+        process_file(request,f)
+        
 class UploadFileView(FormView):
 
     template_name = 'upload.html'
@@ -78,9 +153,10 @@ class UploadFileView(FormView):
     
     def get_success_url(self):
 #        return self.success_url
-        url = reverse('validation:upload_done',kwargs=self.kwargs)
-        return url + '?next=' + self.request.get_full_path()
-
+#         url = reverse('validation:validation-detal',kwargs=self.kwargs)
+#         return url + '?next=' + self.request.get_full_path()
+        return reverse('validation:validation-detail', kwargs=self.kwargs)
+    
     def get_context_data(self, **kwargs):
         context = super(UploadFileView, self).get_context_data(**kwargs)
         context['validation'] = get_object_or_404(Validation,pk=int(self.kwargs.get('pk')))
@@ -91,16 +167,11 @@ class UploadFileView(FormView):
         # download files to upload folder
         local_files = []
         for f in form.files.getlist('filename'):
-            path = save_file(f,'upload')
+            path = save_file(f,'valid')
             local_files.append(path)
-            
-        # start background process that handles uploaded files
-#         from threading import Thread
-#         t = Thread(target=handle_uploaded_files, args=(self.request, network, local_files))
-#         t.start()
-        
-        return super(UploadFileView,self).form_valid(form)
 
+        process_uploaded_files(self.request, local_files)
+        return super(UploadFileView,self).form_valid(form)
 
 class ValidationView(FormView):
      
@@ -129,13 +200,42 @@ def ValToJson(request, pk):
     validation = get_object_or_404(Validation,pk=pk)
     options = {'start': request.GET.get('start', None),
                'stop': request.GET.get('stop', None)}
-    val = validation.to_pandas(**options)
     raw = validation.series.to_pandas(**options)
-    df = pd.DataFrame({'raw':raw,'validated': val})
+    
+    val = validation.to_pandas(**options)
+    if val.size == 0:
+        val = pd.Series(raw.index,None)
+        hasval = False
+    else:
+        hasval = True
+
+    inv = validation.invalid_points
+    if inv:
+        index, data = zip(*[(p.date, 1.0) for p in inv])
+        inv = pd.Series(data,index)
+        hasinv = True
+    else:
+        inv = pd.Series(raw.index,None)
+        hasinv = False
+    
+    raw = raw.groupby(level=0).last()
+    val = val.groupby(level=0).last()
+    inv = inv.groupby(level=0).last()
+    df = pd.DataFrame({'raw':raw,'valid': val, 'invalid': inv})
+    if not hasval:
+        df['valid'] = np.nan
+    if not hasinv:
+        df['invalid'] = np.nan
+    else:
+        df['invalid'] = df['invalid'] * df['raw']
+
+    df.dropna(how='all',inplace=True)
+
     def nn(x):
         # replace NaN with None for json converter
-        return None if np.isnan(x) else x
-    pts = [(r[0],nn(r[1][0]),nn(r[1][1])) for r in df.iterrows()]
+        return None if pd.isnull(x) else x
+    
+    pts = [(index,nn(row['raw']),nn(row['valid']),nn(row['invalid'])) for index,row in df.iterrows()]
     j = json.dumps(pts, default=lambda x: time.mktime(x.timetuple())*1000.0)
     return HttpResponse(j, content_type='application/json')
     
@@ -176,8 +276,10 @@ class SeriesView(DetailView):
                        }
             }
            
-        series = [{'name': 'raw', 'type': ser.type, 'data': [], 'color': 'red' },
-                {'name': 'validated', 'type': ser.type, 'data': [], 'color': 'green' } ]                 
+        series = [{'name': 'raw', 'type': ser.type, 'data': [], 'color': 'gray' },
+                {'name': 'valid', 'type': ser.type, 'data': [], 'color': 'green' }, 
+                {'name': 'invalid', 'type': 'scatter', 'data': [], 'color': 'red', 'marker': {'symbol': 'circle'} } 
+                ]                 
 
         options['series'] = series
         jop = json.dumps(options,default=date_handler)
