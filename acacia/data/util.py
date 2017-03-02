@@ -142,7 +142,7 @@ def series_as_csv(series):
 
 def chart_as_csv(chart):
     filename = slugify(chart.name) + '.csv'
-    csv = chart.to_csv()
+    csv = chart.to_csv(raw=False) # use validated data if possible
     resp = HttpResponse(csv, content_type='text/csv')
     resp['Content-Disposition'] = 'attachment; filename=%s' % filename
     return resp

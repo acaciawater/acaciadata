@@ -89,10 +89,11 @@ def ChartToJson(request, pk):
         def getseriesdata(s):
             queryset = s.datapoints
             if s.validated:
-                # series has been validated. Take up to first invalid point 
+                # series has been validated. Take up to first invalid point
+                queryset = s.validation.validpoint_set 
                 first = s.validation.invalid_points.first()
                 if first:
-                    queryset = s.validation.validpoint_set.filter(date__lt=first.date)
+                    queryset = queryset.filter(date__lt=first.date)
             if stop is None:
                 pts = [(p.date,p.value) for p in queryset.filter(date__gte=start).order_by('date')]
             else:
