@@ -58,7 +58,7 @@ class ScriptRuleAdmin(NoDataRuleAdmin):
 class ValidationAdmin(admin.ModelAdmin):
     actions = [test_validation,download_validation]
     list_filter = ('series',)
-    filter_horizontal = ('rules',)
+    filter_horizontal = ('rules','users')
     raw_id_fields = ['series']
     autocomplete_lookup_fields = {
         'fk': ['series'],
@@ -84,6 +84,6 @@ class SubResultAdmin(admin.ModelAdmin):
 
 @admin.register(Result)
 class ResultAdmin(admin.ModelAdmin):
-    list_display = ('validation', 'begin','end', 'user',)
-    list_filter = ('validation__series', 'begin', 'end', 'user',)
+    list_display = ('validation', 'xlfile', 'begin','end', 'user','date',)
+    list_filter = ('validation__series__mlocatie', 'date', 'user',)
 
