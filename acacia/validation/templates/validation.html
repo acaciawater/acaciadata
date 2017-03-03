@@ -6,6 +6,13 @@
 {% block brandname %}{% endblock %}
 {% block extrastyle %}	
 <style>
+.icon-stack {
+    position: relative;
+}
+.icon-stack .glyphicon {
+    position: absolute; 
+}
+
 .badge {
   padding: 1px 9px 2px;
   font-size: 12.025px;
@@ -123,7 +130,9 @@ a:hover {
 					<h3>Resultaten</h3>
 					{% with validation.series as s %}
 					<div class="list-group-item">
-						<h4 class="list-group-item-heading">Tijdreeks {{s}}</h4>
+						<h4 class="list-group-item-heading">Tijdreeks <a href="{{s.get_absolute_url}}">{{s}}</a>
+						<a href="{% url 'validation:stats' validation.id %}" class="addrule pull-right glyphicon small glyphicon-refresh" title="Statistiek verversen"></a>
+						</h4>
 						<p class="list-group-item-text">Aantal metingen: {{s.aantal}}</p>
 						<p class="list-group-item-text">Periode: {{s.van}} t/m {{s.tot}}</p>
 						<p class="list-group-item-text">Min/max: {{s.minimum}} - {{s.maximum}}</p>
@@ -163,6 +172,7 @@ a:hover {
 					{% if result %} <a href="{% url 'validation:remove_result' result.id %}" class="addrule red pull-right glyphicon glyphicon-remove" title="Validatiebestand verwijderen"></a> {% endif %}
 					<a href="{% url 'validation:upload' validation.id %}?next={{next}}" class="addrule pull-right glyphicon glyphicon-upload" title="Upload validatiebestand"></a> 
 					<a href="{% url 'validation:download' validation.id %}" class="addrule pull-right glyphicon glyphicon-download" title="Download validatiebestand"></a>
+					<a href="{% url 'validation:accept' validation.id %}" class="addrule pull-right glyphicon glyphicon-ok" title="Alle ongeldige punten verwijderen"></a> 
 					<input id=upload type="file" style="display:none"/>
 					{% endwith %}
 				</div>

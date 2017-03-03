@@ -20,6 +20,18 @@ import logging
 from datetime import datetime
 logger = logging.getLogger(__name__)
 
+def accept(request, pk):
+    ''' accept all and remove invalid points from validation '''
+    val = get_object_or_404(Validation,pk=pk)
+    val.validpoint_set.filter(value__isnull=True).delete()
+    return redirect(val.get_absolute_url())
+    
+def update_stats(request, pk):
+    ''' update statistics of series on a validation page '''
+    val = get_object_or_404(Validation,pk=pk)
+    val.series.getproperties().update()
+    return redirect(val.get_absolute_url())
+    
 def remove_result(request, pk):
     ''' removes validation result '''
     result = get_object_or_404(Result,pk=pk)
