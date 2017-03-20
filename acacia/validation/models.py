@@ -204,6 +204,7 @@ class Validation(models.Model):
         # create pandas time series from points
         index, data = zip(*[(p.date, p.value) for p in points])
         series = pd.Series(data,index)
+        series = series.groupby(series.index).last()
 
         numinvalid = 0
         result = None
@@ -211,6 +212,7 @@ class Validation(models.Model):
         self.subresult_set.all().delete()
         for rule in self.rules.all():
             series, valid = rule.apply(series)
+            valid = valid.groupby(valid.index).last()
             if result is None:
                 # save result
                 result = valid

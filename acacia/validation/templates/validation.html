@@ -159,9 +159,13 @@ a:hover {
 								<img class="pull-right" src="{% static "camera_test.png" %}"/>
 								<h4 class="list-group-item-heading">Validatie</h4>
 								{% if result %}
-									<p class="list-group-item-text">Validatiebestand: <a href = "{{result.xlfile}}">{{result.xlfile.name}}</a></p>
-									<p class="list-group-item-text">Upload op {{result.date}} door {{result.user.get_full_name|default:result.user}}</a></p>
-								{% endif %}
+									{% if result.xlfile %}
+										<p class="list-group-item-text">Validatiebestand: <a href = "{{result.xlfile}}">{{result.xlfile.name}}</a></p>
+										<p class="list-group-item-text">Upload op {{result.date}} door {{result.user.get_full_name|default:result.user}}</a></p>
+									{% else %}
+										<p class="list-group-item-text">Geaccepteerd op {{result.date}} door {{result.user.get_full_name|default:result.user}}</a></p>
+									{% endif %}
+								{% endif %}									
 								<p class="list-group-item-text">Geen ongeldige metingen</p>
 								<p></p>
 							</div>

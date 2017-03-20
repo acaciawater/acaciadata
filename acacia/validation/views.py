@@ -22,8 +22,19 @@ logger = logging.getLogger(__name__)
 
 def accept(request, pk):
     ''' accept all and remove invalid points from validation '''
-    val = get_object_or_404(Validation,pk=pk)
-    val.validpoint_set.filter(value__isnull=True).delete()
+    val = get_object_or_404(Validation,pk=pk)   
+    pts = val.validpoint_set
+    if pts:
+        begin = pts.first().date
+        end = pts.last().date
+        val.validpoint_set.filter(value__isnull=True).delete()
+        defaults={'begin':begin,'end':end,'user':request.user,'xlfile':None,'valid':True, 'date': datetime.now(), 'remarks': 'Alles geaccepteerd'}
+    
+        result,created = Result.objects.get_or_create(validation=val,defaults=defaults)
+        if not created:
+            result.__dict__.update(defaults)
+            result.save()
+
     return redirect(val.get_absolute_url())
     
 def update_stats(request, pk):
@@ -129,7 +140,7 @@ def process_file(request, path):
     else:
         raise ValidationError('Format error in header')
     # drop N/A values
-    df.dropna(how='any',inplace=True)
+    df.dropna(how='all',inplace=True)
     df.sort_index(inplace=True)
     relpath = os.path.join(settings.MEDIA_URL,os.path.relpath(path,default_storage.location))
     begin = df.index[0]
@@ -144,7 +155,7 @@ def process_file(request, path):
         result.save()
     
     # update valid points
-    pts = [ValidPoint(validation=val,date=date,value=values[1]) for date,values in df.iterrows()]
+    pts = [ValidPoint(validation=val,date=date,value=None if np.isnan(values[1]) else values[1]) for date,values in df.iterrows()]
     #val.validpoint_set.filter(date__range=[begin,end]).delete()
     val.validpoint_set.all().delete()
     val.validpoint_set.bulk_create(pts)
