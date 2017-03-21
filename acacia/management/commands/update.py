@@ -107,7 +107,7 @@ class Command(BaseCommand):
                     # for update use newfiles AND the existing sourcefiles that contain data for aggregation
                     if last:
                         after = min(last.values())
-                        candidates = d.sourcefiles.filter(start__gte=after)
+                        candidates = d.sourcefiles.filter(stop__gte=after)
                     else:
                         after = None
                         candidates = d.sourcefiles.all()
