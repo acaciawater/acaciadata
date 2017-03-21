@@ -7,7 +7,7 @@ from django.template import RequestContext
 from django.template.loader import render_to_string
 from django.shortcuts import get_object_or_404, redirect, render_to_response
 from django.http import HttpResponse
-from .models import Project, ProjectLocatie, MeetLocatie, Datasource, Series, Chart, Grid, Dashboard, TabGroup, KeyFigure
+from .models import Project, ProjectLocatie, MeetLocatie, Datasource, Series, Chart, Grid, Dashboard, TabGroup, KeyFigure, Formula
 from .util import datasource_as_zip, datasource_as_csv, meetlocatie_as_zip, series_as_csv, chart_as_csv
 from .actions import download_series_zip
 from django.views.decorators.gzip import gzip_page
@@ -381,8 +381,14 @@ class ChartBaseView(TemplateView):
                 name = ser.name
                 
             if not ser.validated:
-                # append asterisk to name when series has not been validated  
-                name += '*'
+                # append asterisk to name when series has not been validated
+                if isinstance(ser,Formula):
+                    for dep in ser.get_dependencies():
+                        if not dep.validated:
+                            name += '*'
+                            break
+                else:
+                    name += '*'
                  
             sop = {'name': name,
                    'id': 'series_%d' % ser.id,
