@@ -1,7 +1,7 @@
 from django.contrib import admin
 from acacia.validation.models import Validation, Result,\
     BaseRule, ValueRule, SeriesRule, NoDataRule, OutlierRule, DiffRule,\
-    ScriptRule, SubResult
+    ScriptRule, SubResult, RuleOrder
 from acacia.validation.views import download
 from polymorphic.admin.parentadmin import PolymorphicParentModelAdmin
 from polymorphic.admin.childadmin import PolymorphicChildModelAdmin
@@ -53,12 +53,18 @@ class DiffRuleAdmin(NoDataRuleAdmin):
 @admin.register(ScriptRule)
 class ScriptRuleAdmin(NoDataRuleAdmin):
     base_model = ScriptRule
-    
+
+class RuleInline(admin.TabularInline):
+    model = RuleOrder
+    extra = 1
+        
 @admin.register(Validation)
 class ValidationAdmin(admin.ModelAdmin):
     actions = [test_validation,download_validation]
+    inlines = [RuleInline]
+    exclude = ('users',)
+    #filter_horizontal = ('users',)
     list_filter = ('series',)
-    filter_horizontal = ('rules','users')
     raw_id_fields = ['series']
     autocomplete_lookup_fields = {
         'fk': ['series'],

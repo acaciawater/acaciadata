@@ -53,8 +53,9 @@ def remove_result(request, pk):
     return redirect(val.get_absolute_url())
 
 def remove_points(request, pk):
-    ''' removes validated points'''
+    ''' removes validated points and subresults'''
     val = get_object_or_404(Validation,pk=pk)
+    val.subresult_set.all().delete()
     val.validpoint_set.all().delete()
     return redirect(val.get_absolute_url())
     

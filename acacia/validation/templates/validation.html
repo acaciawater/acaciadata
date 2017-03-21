@@ -109,14 +109,18 @@ a:hover {
 			<div class="col-md-6">
 				<div class="list-group">
 					<h3>Validatieregels</h3>
-					{% for sub in validation.subresult_set.all %}
-					<div class="list-group-item">
-						<span class="badge badge-success" title="aantal geldige metingen">{{sub.valid}}</span>
-						{%if sub.invalid %}<span class="badge badge-error" title = "aantal ongeldige metingen">{{sub.invalid}}</span>{% endif %}
-						<h4 class="list-group-item-heading">{{sub.rule}}</h4>
-						<p class="list-group-item-text">{{sub.rule.description}}</p>
-					</div>
-					{% endfor %}
+					    {% for ro in validation.ruleorder_set.all %}
+							<div class="list-group-item">
+							{% with ro.rule as rule %}
+								{% for sub in rule.subresult_set.all %}
+									<span class="badge badge-success" title="aantal geldige metingen">{{sub.valid}}</span>
+									{%if sub.invalid %}<span class="badge badge-error" title = "aantal ongeldige metingen">{{sub.invalid}}</span>{% endif %}
+								{% endfor %}
+								<h4 class="list-group-item-heading">{{ro.order}}.&nbsp;{{rule}}</h4>
+								<p class="list-group-item-text">{{rule.description}}</p>
+							{% endwith %}
+							</div>
+						{% endfor %}
 					<div>
 						<a href="{% url 'validation:remove_points' validation.id %}" class="addrule pull-right glyphicon glyphicon-remove" title="Gevalideerde data verwijderen"></a>
 						<a href="{% url 'admin:validation_validation_change' validation.id %}?next={{next}}" class="addrule pull-right glyphicon glyphicon-pencil" title="Validatie wijzigen"></a>

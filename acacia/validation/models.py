@@ -140,7 +140,7 @@ class ScriptRule(BaseRule):
             
         except Exception as e:
             raise e
-            
+
 class ValidPoint(models.Model):
     ''' A datapoint that has passed a validation rule '''
     validation = models.ForeignKey('Validation')
@@ -154,7 +154,8 @@ class Validation(models.Model):
         verbose_name_plural = 'validaties'
         
     series = models.OneToOneField(Series,verbose_name = 'tijdreeks')
-    rules = models.ManyToManyField(BaseRule, verbose_name = 'validatieregels')
+#    rulesold = models.ManyToManyField(BaseRule, verbose_name = 'validatieregels')
+    rules = models.ManyToManyField(BaseRule, verbose_name = 'validatieregels',through='RuleOrder',related_name='validations')
     users = models.ManyToManyField(User,blank=True,help_text='Gebruikers die emails ontvangen over validatie')
     
     def get_absolute_url(self):
@@ -210,7 +211,8 @@ class Validation(models.Model):
         result = None
         logger.debug('Validating {}: {} rules'.format(self.series, self.rules.count()))
         self.subresult_set.all().delete()
-        for rule in self.rules.all():
+        for ro in self.ruleorder_set.all():
+            rule = ro.rule
             series, valid = rule.apply(series)
             valid = valid.groupby(valid.index).last()
             if result is None:
@@ -260,7 +262,16 @@ class Validation(models.Model):
     
     def __unicode__(self):
         return unicode(self.series)
-    
+
+class RuleOrder(models.Model):
+    rule = models.ForeignKey(BaseRule, on_delete=models.CASCADE)
+    validation = models.ForeignKey(Validation, on_delete=models.CASCADE)
+    order = models.PositiveSmallIntegerField(default=1)
+
+    class Meta:
+        verbose_name = 'Regel'
+        ordering = ['order']
+         
 class SubResult(models.Model):
     ''' Result of applying a single validation rule ''' 
     class Meta:
