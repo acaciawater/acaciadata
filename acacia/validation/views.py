@@ -254,6 +254,7 @@ def ValToJson(request, pk):
         df['invalid'] = df['invalid'] * df['raw']
 
     df.dropna(how='all',inplace=True)
+    df.sort_index(inplace=True)
 
     def nn(x):
         # replace NaN with None for json converter
