@@ -57,7 +57,8 @@ class ScriptRuleAdmin(NoDataRuleAdmin):
 @admin.register(SlotRule)
 class SlotRuleAdmin(NoDataRuleAdmin):
     base_model = SlotRule
-
+    exclude=('comp',)
+    
 class RuleInline(admin.TabularInline):
     model = RuleOrder
     extra = 1
