@@ -253,7 +253,7 @@ def ValToJson(request, pk):
     else:
         df['invalid'] = df['invalid'] * df['raw']
 
-    df.dropna(how='all',inplace=True)
+    #df.dropna(how='all',inplace=True)
     df.sort_index(inplace=True)
 
     def nn(x):

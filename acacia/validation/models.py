@@ -2,6 +2,7 @@ from django.db import models, transaction
 from django.contrib.auth.models import User
 from acacia.data.models import Series
 from django.core.urlresolvers import reverse
+import numpy as np
 import pandas as pd
 from polymorphic.models import PolymorphicModel
 import logging
@@ -64,6 +65,7 @@ class SeriesRule(BaseRule):
         return (target,self.compare(abs(target * self.factor - self.series), self.constant))
 
 SLOT_CHOICES = (
+    ('T', 'minuut'),
     ('H', 'uur'),
     ('D', 'dag'),
     ('W', 'week'),
@@ -74,17 +76,44 @@ class NoDataRule(BaseRule):
     class Meta:
         verbose_name = 'Aantal'
         
-    slot = models.CharField(max_length=4,default='D',choices=SLOT_CHOICES)
-    count = models.PositiveIntegerField(default=1)
+    slot = models.CharField(max_length=10,default='D',choices=SLOT_CHOICES,verbose_name='Frequentie')
+    count = models.PositiveIntegerField(default=1,verbose_name='Aantal')
     
     def apply(self, target):
         # count points in every time slot
         bins = target.resample(self.slot).count()
         # find missing data
-        missing = bins[bins==0].replace(0,None)
+        missing = bins[bins==0].astype(np.object)
+        missing[:] = None
         # insert missing points in target
         target = target.append(missing).sort_index()
+
         valid = self.compare(bins,self.count)
+        tolerance = valid.index[1] - valid.index[0] if valid.size > 1 else 3600*24*1000 # default: 1 day
+        # align validated bins with target
+        result = valid.reindex(target.index,method='nearest',tolerance=tolerance)
+        return (target, result)
+
+class SlotRule(BaseRule):
+    ''' Rule that checks a time series for a single measurements in specified time span'''
+    class Meta:
+        verbose_name = 'Interval'
+        
+    count = models.PositiveIntegerField(default=1,verbose_name='Aantal')
+    slot = models.CharField(max_length=4,default='D',choices=SLOT_CHOICES,verbose_name='Eenheid')
+
+    def apply(self, target):
+        # count points in every time slot
+        slot = '%d%s' % (self.count,self.slot)
+        bins = target.resample(slot).count()
+        # find missing data
+        missing = bins[bins==0].astype(np.object)
+        missing[:] = None
+        
+        # insert missing points in target
+        target = target.append(missing).sort_index()
+
+        valid = bins[bins>0]
         tolerance = valid.index[1] - valid.index[0] if valid.size > 1 else 3600*24*1000 # default: 1 day
         # align validated bins with target
         result = valid.reindex(target.index,method='nearest',tolerance=tolerance)

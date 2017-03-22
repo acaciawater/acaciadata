@@ -1,7 +1,7 @@
 from django.contrib import admin
 from acacia.validation.models import Validation, Result,\
     BaseRule, ValueRule, SeriesRule, NoDataRule, OutlierRule, DiffRule,\
-    ScriptRule, SubResult, RuleOrder
+    ScriptRule, SlotRule, SubResult, RuleOrder
 from acacia.validation.views import download
 from polymorphic.admin.parentadmin import PolymorphicParentModelAdmin
 from polymorphic.admin.childadmin import PolymorphicChildModelAdmin
@@ -22,7 +22,7 @@ test_validation.short_description='Valideren'
 @admin.register(BaseRule)
 class BaseRuleAdmin(PolymorphicParentModelAdmin):
     base_model = BaseRule
-    child_models = (ValueRule, SeriesRule, NoDataRule, OutlierRule, DiffRule, ScriptRule)
+    child_models = (ValueRule, SeriesRule, NoDataRule, OutlierRule, DiffRule, ScriptRule, SlotRule)
     list_filter = (PolymorphicChildModelFilter,)
     search_fields = ('name','description')
 
@@ -53,6 +53,10 @@ class DiffRuleAdmin(NoDataRuleAdmin):
 @admin.register(ScriptRule)
 class ScriptRuleAdmin(NoDataRuleAdmin):
     base_model = ScriptRule
+
+@admin.register(SlotRule)
+class SlotRuleAdmin(NoDataRuleAdmin):
+    base_model = SlotRule
 
 class RuleInline(admin.TabularInline):
     model = RuleOrder
