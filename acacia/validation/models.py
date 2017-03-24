@@ -107,8 +107,8 @@ class SlotRule(BaseRule):
         slot = '%d%s' % (self.count,self.slot)
         bins = target.resample(slot).count()
         # find missing data
-        missing = bins[bins==0].astype(np.object)
-        missing[:] = None
+        bins=bins.astype(np.object)
+        missing = bins[bins==0].replace(0,None)
         
         # insert missing points in target
         target = target.append(missing).sort_index()

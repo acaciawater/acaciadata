@@ -217,7 +217,6 @@ class ValidationView(FormView):
     def form_valid(self, form):
         return super(ValidationView,self).form_valid(form)
       
-
 @gzip_page
 def ValToJson(request, pk):
     ''' return two series: raw and validated '''
@@ -228,7 +227,7 @@ def ValToJson(request, pk):
     
     val = validation.to_pandas(**options)
     if val.size == 0:
-        val = pd.Series(raw.index,None)
+        val = pd.Series(data=np.nan,index=raw.index)
         hasval = False
     else:
         hasval = True
@@ -239,7 +238,7 @@ def ValToJson(request, pk):
         inv = pd.Series(data,index)
         hasinv = True
     else:
-        inv = pd.Series(raw.index,None)
+        inv = pd.Series(data=np.nan,index=raw.index)
         hasinv = False
     
     raw = raw.groupby(level=0).last()
