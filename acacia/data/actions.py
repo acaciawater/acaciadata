@@ -70,17 +70,24 @@ update_thumbnails.short_description = "Thumbnails vernieuwen van geselecteerde p
 def generate_series(modeladmin, request, queryset):
     for p in queryset:
         try:
+            data = p.get_data()
             ds = p.datasource
-
+            
             # get list of all locations
             locs = set(ds.locations.all())
+
             locs.add(ds.meetlocatie)
             
             # create series for all locations
             for loc in locs:
-                series, created = p.series_set.get_or_create(mlocatie = loc, name = p.name, 
+                if loc.name in data:
+                    logger.debug('Creating series {} for location {}'.format(p.name, loc.name))
+                    series, created = p.series_set.get_or_create(mlocatie = loc, name = p.name, 
                                                              defaults= {'description': p.description, 'unit': p.unit, 'user': request.user})
-                series.replace()
+                    try:
+                        series.replace(data[loc.name])
+                    except Exception as e:
+                        logger.error('ERROR creating series %s for location %s: %s' % (p.name, loc.name, e))
         except Exception as e:
             logger.error('ERROR creating series %s: %s' % (p.name, e))
 generate_series.short_description = 'Standaard tijdreeksen aanmaken voor geselecteerde parameters'
