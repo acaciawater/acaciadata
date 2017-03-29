@@ -2,6 +2,8 @@ import logging
 from generator import Generator
 import ijson.backends.yajl2_cffi as ijson
 import requests
+import six
+import pytz
 import datetime, time
 import pandas as pd
 from django.conf import settings
@@ -19,7 +21,7 @@ class FEWS(Generator):
     def __init__(self,*args,**kwargs):
         super(FEWS,self).__init__(*args,**kwargs)
         self.organisation = kwargs.get('organisation', 'HHNK')
-        self.parm = kwargs.get('parameter',['CL.berekend','EGVms_cm.meting'])
+        self.parm = kwargs.get('parameter',['CL.berekend','EGVms_cm.meting', 'CL'])
 
     def timestamp(self, datetime=datetime.datetime.utcnow()):
         ''' return unix timestamp from datetime '''
@@ -38,7 +40,7 @@ class FEWS(Generator):
             
         username = kwargs.get('username',settings.FEWSUSERNAME)
         passwd = kwargs.get('password',settings.FEWSPASSWORD)
-        start = kwargs.get('start',None) or self.timestamp(datetime.datetime(2015,1,1))
+        start = kwargs.get('start',None) or self.timestamp(datetime.datetime(2016,1,1))
         end = kwargs.get('end',None) or self.timestamp(datetime.datetime.utcnow())
         headers = {'username': username, 'password':passwd}
         result = {}
@@ -47,7 +49,7 @@ class FEWS(Generator):
                   'start':start,
                   'end':end}
         for pname in self.parm:
-            params['name__startswith'] = pname
+            params['name'] = pname
             url = base_url + '?' + urlencode(params)
             page=1
             while url:
@@ -69,8 +71,11 @@ class FEWS(Generator):
             location = location.name
 
         params = kwargs.get('parameter',self.parm)
-        if params and isinstance(params, Parameter):
-            params = [params.name]
+        if params:
+            if isinstance(params, Parameter):
+                params = [params.name]
+            elif isinstance(params, six.string_types):
+                params = [params]
             
         # find data for location and one of the parameters (always one parameter per json file)
         dfs = {}
@@ -89,13 +94,13 @@ class FEWS(Generator):
                         tmax = e['min']
                         tgem = (tmin+tmax)/2 if (tmin and tmax) else None
                         t=e['timestamp']
-                        data.append((datetime.datetime.fromtimestamp(t/1000),tgem))
+                        data.append((datetime.datetime.utcfromtimestamp(t/1000),tgem))
                 if data:
                     df = pd.DataFrame.from_records(data, index=['datum'], columns=['datum',pname])
+                    dfs[lcode] = df
                     if location:
                         # requested for a single location
-                        return df
-                    dfs[lcode] = df
+                        break
         return dfs
     
     def get_parameters(self, f):
