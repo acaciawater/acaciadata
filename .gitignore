@@ -60,3 +60,4 @@ docs/_build/
 # PyBuilder
 target/
 /server_install.txt
+/.gitignore~
