@@ -323,22 +323,23 @@ class ChartBaseView(TemplateView):
         
         for _,s in enumerate(chart.series.all()):
             ser = s.series
-            if tmin:
-                tmin = min(tmin,s.t0 or ser.van())
-            else:
-                tmin = s.t0 or ser.van()
-            if tmax:
-                tmax = max(tmax,s.t1 or ser.tot())
-            else:
-                tmax = s.t1 or ser.tot()
-            if ymin:
-                ymin = min(ymin,s.y0 or ser.minimum())
-            else:
-                ymin = s.y0 or ser.minimum()
-            if ymax:
-                ymax = max(ymax,s.y1 or ser.maximum())
-            else:
-                ymax = s.y1 or ser.maximum()
+            if ser.aantal() > 0:
+                if tmin:
+                    tmin = min(tmin,s.t0 or ser.van())
+                else:
+                    tmin = s.t0 or ser.van()
+                if tmax:
+                    tmax = max(tmax,s.t1 or ser.tot())
+                else:
+                    tmax = s.t1 or ser.tot()
+                if ymin:
+                    ymin = min(ymin,s.y0 or ser.minimum())
+                else:
+                    ymin = s.y0 or ser.minimum()
+                if ymax:
+                    ymax = max(ymax,s.y1 or ser.maximum())
+                else:
+                    ymax = s.y1 or ser.maximum()
                 
             title = s.label #ser.name if len(ser.unit)==0 else '%s [%s]' % (ser.name, ser.unit) if chart.series.count()>1 else ser.unit
             options['yAxis'].append({
