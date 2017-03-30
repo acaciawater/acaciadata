@@ -6,7 +6,7 @@ Created on Jul 8, 2014
 import os
 from django.utils.text import slugify
 from .util import make_chart, recomp, createmeteo
-from acacia.data.models import Series
+from acacia.data.models import Series, Project, ProjectLocatie, MeetLocatie
  
 def make_wellcharts(modeladmin, request, queryset):
     for w in queryset:
@@ -57,4 +57,14 @@ def add_meteo_for_wells(modeladmin, request, queryset):
         createmeteo(request,well)
 add_meteo_for_wells.short_description = "Meteostations en tijdreeksen toevoegen voor geselecteerde putten"
 
-    
+def register_wells(modeladmin, request, queryset):
+    from util import register_well
+    for well in queryset:
+        register_well(well)
+register_wells.short_description = 'Registreer geselecteerde putten bij acaciadata.com'
+
+def register_screens(modeladmin, request, queryset):
+    from util import register_screen
+    for screen in queryset:
+        register_screen(screen)
+register_screens.short_description = 'Registreer geselecteerde filters bij acaciadata.com'

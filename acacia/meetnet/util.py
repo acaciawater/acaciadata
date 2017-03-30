@@ -20,7 +20,7 @@ import pandas as pd
 from django.template.loader import render_to_string
 from django.core.files.base import ContentFile
 
-from acacia.data.models import ProjectLocatie, Generator, DataPoint, MeetLocatie, SourceFile, Chart, Series
+from acacia.data.models import Project, ProjectLocatie, Generator, DataPoint, MeetLocatie, SourceFile, Chart, Series
 from acacia.data.generators import sws
 from acacia.data.knmi.models import NeerslagStation, Station
 from .models import Well, Screen, Datalogger, MonFile, Channel, LoggerDatasource
@@ -222,6 +222,18 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
         series.unit = 'm tov NAP'
         series.make_thumbnail()
         series.save()
+
+def register_well(well):
+    # register well in acaciadata
+    project,created = Project.objects.get_or_create(name=well.network.name)
+    ploc, created = project.projectlocatie_set.get_or_create(name=well.name,defaults={'location': well.location})
+    mloc, created = ploc.meetlocatie_set.get_or_create(name=well.name,defaults={'location': well.location})
+
+def register_screen(screen):
+    # register screen in acaciadata
+    project,created = Project.objects.get_or_create(name=screen.well.network.name)
+    ploc, created = project.projectlocatie_set.get_or_create(name=screen.well.name,defaults={'location': screen.well.location})
+    mloc, created = ploc.meetlocatie_set.get_or_create(name=unicode(screen),defaults={'location': screen.well.location})
     
 def createmeteo(request, well):
     ''' Create datasources with meteo data for a well '''

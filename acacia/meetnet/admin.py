@@ -69,7 +69,15 @@ class LoggerInline(admin.TabularInline):
     classes = ('grp-collapse', 'grp-closed',)
     
 class LoggerDatasourceAdmin(DatasourceAdmin):
-    pass
+    model = LoggerDatasource
+    fieldsets = (
+                 ('Algemeen', {'fields': (('name', 'logger'), 'description', 'timezone', 'meetlocatie','locations'),
+                               'classes': ('grp-collapse grp-open',),
+                               }),
+                 ('Bronnen', {'fields': (('generator', 'autoupdate'), 'url',('username', 'password',), 'config',),
+                               'classes': ('grp-collapse grp-closed',),
+                              }),
+    )
 
 #     def __init__(self, *args, **kwargs):
 #         super(LoggerDatasourceAdmin,self).__init__(*args, **kwargs)
@@ -106,7 +114,7 @@ class ScreenInline(admin.TabularInline):
     classes = ('grp-collapse', 'grp-closed',)
         
 class ScreenAdmin(admin.ModelAdmin):
-    actions = [actions.make_screencharts,actions.recomp_screens]
+    actions = [actions.make_screencharts,actions.recomp_screens,actions.register_screens]
     list_display = ('__unicode__', 'refpnt', 'top', 'bottom', 'num_files', 'num_standen', 'start', 'stop')
     search_fields = ('well__name', 'well__nitg')
     list_filter = ('well','well__network')
@@ -118,7 +126,7 @@ from django import forms
 #class WellAdmin(geo.OSMGeoAdmin):
 class WellAdmin(admin.ModelAdmin):
     formfield_overrides = {models.PointField:{'widget': forms.TextInput(attrs={'size': '100'})}}
-    actions = [actions.make_wellcharts,actions.recomp_wells,actions.add_meteo_for_wells]
+    actions = [actions.make_wellcharts,actions.recomp_wells,actions.add_meteo_for_wells,actions.register_wells]
     inlines = [ ScreenInline, PhotoInline]
     list_display = ('name','nitg','network','maaiveld', 'baro', 'num_filters', 'num_photos', 'straat', 'plaats')
     #list_editable = ('location',)

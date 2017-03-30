@@ -29,6 +29,7 @@ class Network(models.Model):
         verbose_name_plural = 'netwerken'
 
 class Well(geo.Model):
+    #TODO: this class should inherit from acacia.data.models.MeetLocatie
     network = models.ForeignKey(Network, verbose_name = 'Meetnet')
     name = models.CharField(max_length=50, unique=True, verbose_name = 'naam')
     nitg = models.CharField(max_length=50, verbose_name = 'TNO/NITG nummer', blank=True)
