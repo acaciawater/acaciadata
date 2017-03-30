@@ -12,6 +12,7 @@ class Generic(Generator):
         super(Generic,self).__init__(*args, **kwargs)
         self.header = kwargs.get('header', None)
         self.dayfirst = kwargs.get('dayfirst', False)
+        self.separator = kwargs.get('separator', ',')
 
     def set_labels(self,data):
         if self.header is None:
