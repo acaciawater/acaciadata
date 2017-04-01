@@ -15,11 +15,12 @@ import os,re
 import datetime
 import binascii
 import numpy as np
+import pandas as pd
 
 from django.template.loader import render_to_string
 from django.core.files.base import ContentFile
 
-from acacia.data.models import ProjectLocatie, Generator, DataPoint, MeetLocatie, SourceFile, Chart, Series
+from acacia.data.models import Project, ProjectLocatie, Generator, DataPoint, MeetLocatie, SourceFile, Chart, Series
 from acacia.data.generators import sws
 from acacia.data.knmi.models import NeerslagStation, Station
 from .models import Well, Screen, Datalogger, MonFile, Channel, LoggerDatasource
@@ -59,7 +60,7 @@ def chart_for_screen(screen):
     plt.close()    
     return img.getvalue()
 
-def chart_for_well(well):
+def chart_for_well1(well):
     fig=plt.figure(figsize=THUMB_SIZE)
     ax=fig.gca()
     plt.grid(linestyle='-', color='0.9')
@@ -85,6 +86,46 @@ def chart_for_well(well):
     if len(x):
         y = [screen.well.maaiveld] * len(x)
         plt.plot_date(x, y, '-', label='maaiveld')
+
+    plt.title(well)
+    plt.ylabel('m tov NAP')
+    if count > 0:
+        leg=plt.legend()
+        leg.get_frame().set_alpha(0.3)
+    
+    img = StringIO() 
+    plt.savefig(img,format='png',bbox_inches='tight')
+    plt.close()    
+    return img.getvalue()
+
+def chart_for_well(well,start=None,stop=None):
+    fig=plt.figure(figsize=(15,5))
+    ax=fig.gca()
+    datemin=start or datetime.datetime(2013,1,1)
+    datemax=stop or datetime.datetime(2017,1,1)
+    ax.set_xlim(datemin, datemax)
+    plt.grid(linestyle='-', color='0.9')
+    count = 0
+    y = []
+    x = []
+    for screen in well.screen_set.all():
+        data = screen.get_levels('nap',start=datemin,stop=datemax)
+        if len(data)>0:
+            x,y = zip(*data)
+            # resample to hour frequency (gaps representing missing data) 
+            s = pd.Series(y,index=x).asfreq('H')
+            y = s.tolist()
+            x = list(s.index)
+            plt.plot_date(x, y, '-', label=screen)
+            count += 1
+
+        hand = screen.get_hand('nap')
+        if len(hand)>0:
+            x,y = zip(*hand)
+            plt.plot_date(x, y, 'ro', label='handpeiling')
+    x = [datemin,datemax]
+    y = [screen.well.maaiveld] * len(x)
+    plt.plot_date(x, y, '-', label='maaiveld')
 
     plt.title(well)
     plt.ylabel('m tov NAP')
@@ -181,6 +222,18 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
         series.unit = 'm tov NAP'
         series.make_thumbnail()
         series.save()
+
+def register_well(well):
+    # register well in acaciadata
+    project,created = Project.objects.get_or_create(name=well.network.name)
+    ploc, created = project.projectlocatie_set.get_or_create(name=well.name,defaults={'location': well.location})
+    mloc, created = ploc.meetlocatie_set.get_or_create(name=well.name,defaults={'location': well.location})
+
+def register_screen(screen):
+    # register screen in acaciadata
+    project,created = Project.objects.get_or_create(name=screen.well.network.name)
+    ploc, created = project.projectlocatie_set.get_or_create(name=screen.well.name,defaults={'location': screen.well.location})
+    mloc, created = ploc.meetlocatie_set.get_or_create(name=unicode(screen),defaults={'location': screen.well.location})
     
 def createmeteo(request, well):
     ''' Create datasources with meteo data for a well '''
@@ -300,23 +353,33 @@ def addmonfile(request,network,f):
     put = mon.location
     logger.info('Informatie uit MON file: Put={put}, diver={ser}'.format(put=put,ser=serial))
     
-    datalogger, created = Datalogger.objects.get_or_create(serial=serial,defaults={'model': mon.instrument_type})
-    if created:
-        logger.info('Nieuwe datalogger toegevoegd met serienummer {ser}'.format(ser=serial))
-    
     try:
         # find logger datasource by well/screen combination
-        well = network.well_set.get(name=put)
+        match = re.match(r'(\w+)[\.\-](\d{1,3}$)',put)
+        if match:
+            put = match.group(1)
+            filter = int(match.group(2))
+        else:
+            filter = 1
+        
+        try:
+            well = network.well_set.get(name__iexact=put)
+        except Well.DoesNotExist:
+            well = network.well_set.get(nitg__iexact=put)
+
         # TODO: find out screen number
-        filter = 1
         screen = well.screen_set.get(nr=filter)
 
+        datalogger, created = Datalogger.objects.get_or_create(serial=serial,defaults={'model': mon.instrument_type})
+        if created:
+            logger.info('Nieuwe datalogger toegevoegd met serienummer {ser}'.format(ser=serial))
+    
         # get installation depth from last existing logger
         existing_loggers = screen.loggerpos_set.all().order_by('start_date')
         last = existing_loggers.last()
         depth = last.depth if last else None
         
-        pos, created = datalogger.loggerpos_set.get_or_create(screen=screen,refpnt=screen.refpnt,defaults={'baro': well.baro, 'depth': depth, 'start_date': mon.start_date, 'end_date': mon.end_date})
+        pos, created = datalogger.loggerpos_set.get_or_create(screen=screen,refpnt=screen.refpnt,start_date=mon.start_date, defaults={'baro': well.baro, 'depth': depth, 'end_date': mon.end_date})
         if created:
             logger.info('Datalogger {log} gekoppeld aan filter {loc}'.format(log=serial,loc=unicode(screen)))
             if depth is None:
@@ -340,7 +403,7 @@ def addmonfile(request,network,f):
         try:
             loc = MeetLocatie.objects.get(name=unicode(screen))
         except MeetLocatie.DoesNotExist:
-            loc = MeetLocatie.objects.get(name='%s/%s' % (put,filter))
+            loc = MeetLocatie.objects.get(name='%s/%03d' % (well.nitg,filter))
 
         # get/create datasource for logger
         ds, created = LoggerDatasource.objects.get_or_create(name=datalogger.serial,meetlocatie=loc,
@@ -350,10 +413,10 @@ def addmonfile(request,network,f):
         try:
             well = None
             screen = None
-            ds = LoggerDatasource.objects.get(logger=datalogger)
+            ds = LoggerDatasource.objects.get(logger=Datalogger.objects.get(serial=serial))
             loc = ds.meetlocatie
             pos = None
-        except LoggerDatasource.DoesNotExist:
+        except (LoggerDatasource.DoesNotExist, Datalogger.DoesNotExist):
             logger.error('Gegevensbron/meetlocatie voor datalogger ontbreekt')
             return error
         except MultipleObjectsReturned:
@@ -390,11 +453,15 @@ def update_series(request,screen):
     series, created = Series.objects.get_or_create(name=name,defaults={'user':user})
     try:
         meetlocatie = MeetLocatie.objects.get(name=unicode(screen))
-        series.mlocatie = meetlocatie
-        series.save()
     except:
-        logger.exception('Meetlocatie niet gevonden voor filter {screen}'.format(screen=unicode(screen)))
-        return
+        try:
+            meetlocatie = MeetLocatie.objects.get(name='%s/%03d'% (unicode(screen.well.nitg), screen.nr))
+        except:
+            logger.exception('Meetlocatie niet gevonden voor filter {screen}'.format(screen=unicode(screen)))
+            return
+
+    series.mlocatie = meetlocatie
+    series.save()
 
     recomp(screen, series)
                  

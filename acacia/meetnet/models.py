@@ -29,6 +29,7 @@ class Network(models.Model):
         verbose_name_plural = 'netwerken'
 
 class Well(geo.Model):
+    #TODO: this class should inherit from acacia.data.models.MeetLocatie
     network = models.ForeignKey(Network, verbose_name = 'Meetnet')
     name = models.CharField(max_length=50, unique=True, verbose_name = 'naam')
     nitg = models.CharField(max_length=50, verbose_name = 'TNO/NITG nummer', blank=True)
@@ -160,11 +161,11 @@ class Screen(models.Model):
         levels.sort(key=bydate)
         return levels
 
-    def get_levels(self, ref='nap'):
-        return self.get_series(ref,kind='COMP')        
+    def get_levels(self, ref='nap', **kwargs):
+        return self.get_series(ref,kind='COMP',**kwargs)        
 
-    def get_hand(self, ref='nap'):
-        return self.get_series(ref,kind='HAND')        
+    def get_hand(self, ref='nap', **kwargs):
+        return self.get_series(ref,kind='HAND',**kwargs)        
         
     def get_monfiles(self):
         files = []
@@ -262,7 +263,7 @@ class LoggerPos(models.Model):
     
     class Meta:
         verbose_name = 'DataloggerInstallatie'
-        ordering = ['logger','start_date']
+        ordering = ['start_date','logger']
 
     def stats(self):
         df = self.screen.to_pandas(start=self.start_date, stop=self.end_date)

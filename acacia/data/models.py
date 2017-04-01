@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.core.urlresolvers import reverse
 from django.contrib.gis.db import models as geo
 from django.utils.text import slugify
-from acacia import settings
+from django.conf import settings
 import upload as up
 import numpy as np
 import pandas as pd
@@ -149,7 +149,7 @@ class MeetLocatie(geo.Model):
     name = models.CharField(max_length=100,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     image = models.ImageField(upload_to=up.meetlocatie_upload, blank = True, null = True)
-    location = geo.PointField(srid=util.RDNEW,verbose_name='locatie', help_text='Meetlocatie in Rijksdriehoekstelsel coordinaten')
+    location = geo.PointField(dim=2,srid=util.RDNEW,verbose_name='locatie', help_text='Meetlocatie in Rijksdriehoekstelsel coordinaten')
     objects = geo.GeoManager()
     webcam = models.ForeignKey(Webcam, null = True, blank=True)
 
@@ -183,41 +183,39 @@ class MeetLocatie(geo.Model):
         return sum([d.parametercount() or 0 for d in self.datasources.all()])
     
     def series(self):
-        ser = []
-#         for s in Series.objects.all():
-#             if s.meetlocatie() == self:
-#                 ser.append(s)
-        for f in self.datasources.all():
-            for p in f.parameter_set.all():
-                for s in p.series_set.all():
-                    ser.append(s)
-        if hasattr(self, 'series_set'):
-            for f in self.series_set.all():
-                ser.append(f)
-        # Ook berekende reeksen!
-        if hasattr(self, 'formula_set'):
-            for f in self.formula_set.all():
-                ser.append(f)
-        # en handmatige reeksen
-        if hasattr(self, 'manualseries_set'):
-            for m in self.manualseries_set.all():
-                ser.append(m)
-        if ser:
-            # remove duplicates (if any)
-            ser = list(set(ser))    
-        return ser
+        return self.series_set.all()
+        
+#     def series(self):
+#         ser = []
+#         for f in self.datasources.all():
+#             for p in f.parameter_set.all():
+#                 for s in p.series_set.all():
+#                     ser.append(s)
+#         if hasattr(self, 'series_set'):
+#             for f in self.series_set.all():
+#                 ser.append(f)
+#         # Ook berekende reeksen!
+#         if hasattr(self, 'formula_set'):
+#             for f in self.formula_set.all():
+#                 ser.append(f)
+#         # en handmatige reeksen
+#         if hasattr(self, 'manualseries_set'):
+#             for m in self.manualseries_set.all():
+#                 ser.append(m)
+#         if ser:
+#             # remove duplicates (if any)
+#             ser = list(set(ser))    
+#         return ser
 
     def getseries(self):
         return self.series()
     
     def charts(self):
         charts = []
-        for f in self.datasources.all():
-            for p in f.parameter_set.all():
-                for s in p.series_set.all():
-                    for c in s.chartseries_set.all():
-                        if not c in charts:
-                            charts.append(c)
+        for s in self.series():
+            for c in s.chartseries_set.all():
+                if not c in charts:
+                    charts.append(c)
         return charts
         
 def classForName( kls ):
@@ -439,15 +437,15 @@ class Datasource(models.Model, LoggerSourceMixin):
         logger = self.getLogger()
         gen = self.get_generator_instance(**kwargs)
         logger.debug('Getting data for datasource %s', self.name)
-        data = None
+        datadict = {}
         start = aware(kwargs.get('start', None))
         stop = aware(kwargs.get('stop', None))
         files = kwargs.get('files', None)
         if files is None:
             files = self.sourcefiles.all()
+
         for sourcefile in files:
-#             if sourcefile.rows == 0:
-#                 continue
+
             if start is not None:
                 sstop = aware(sourcefile.stop,self.timezone)
                 if sstop is not None and sstop < start:
@@ -456,21 +454,17 @@ class Datasource(models.Model, LoggerSourceMixin):
                 sstart = aware(sourcefile.start,self.timezone)
                 if sstart is not None and sstart > stop:
                     continue
+                
+            # retrieve dict of loc, dataframe for location(s) in sourcefile
             d = sourcefile.get_data(gen,**kwargs)
             if d:
-                if len(d)>1:
-                    # data for more than 1 location returned!
-                    # this is not yet allowed
-                    logger.error('Data for more than 1 location returned. Location filter missing?')
-                    return None
-                d=d.values()[0]
-                if data is None:
-                    data = d
-                else:
-                    data = data.append(d)
-        if data is not None:
-            if data.empty:
-                return None
+                for loc, data in d.iteritems():
+                    if not loc in datadict:
+                        datadict[loc] = data
+                    else:
+                        datadict[loc] = datadict[loc].append(data)
+                        
+        for loc, data in datadict.iteritems():
             date = np.array([aware(d, self.timezone) for d in data.index.to_pydatetime()])
             slicer = None
             if start is not None:
@@ -484,8 +478,8 @@ class Datasource(models.Model, LoggerSourceMixin):
                 data = data[slicer]
             if self.calibrationdata_set:
                 data = self.calibrate(data)
-            return data.sort()
-        return data
+            datadict[loc] = data.sort()
+        return datadict
 
     def get_locations(self,**kwargs):
         logger = self.getLogger()
@@ -725,22 +719,25 @@ class SourceFile(models.Model,LoggerSourceMixin):
             logger.error('Sourcefile %s has no associated file' % self.name)
             return None
         logger.debug('Getting data for sourcefile %s', self.name)
-        wasClosed = self.file.closed
+        closed = self.file.closed
         try:
-            self.file.open()
+            if closed:
+                self.file.open()
             data = gen.get_data(self.file,**kwargs)
         except Exception as e:
             logger.exception('Error retrieving data from %s: %s' % (filename, e))
             return None
         finally:
-            if wasClosed:
+            if closed:
                 self.file.close()
 
-        if data is None or data.empty:
+        if data is None:
             logger.warning('No data retrieved from %s' % filename)
         else:
             # generator may return single dataframe or dict with location as key
             if isinstance(data,pd.DataFrame):
+                if data.empty:
+                    logger.warning('No data retrieved from %s' % filename)
                 loc = kwargs.get('meetlocatie',self.meetlocatie())
                 data={loc:data}
             self.get_data_dimensions(data)
@@ -1050,13 +1047,13 @@ class Series(PolymorphicModel,LoggerSourceMixin):
             return series
  
         # remove duplicates
-        series = series.groupby(level=0).last()
+        series = series.groupby(series.index).last()
         if series.empty:
             return series
         
         if self.resample is not None and self.resample != '':
             try:
-                series = series.resample(self.resample,how=self.aggregate)
+                series = series.resample(how=self.aggregate, rule=self.resample)
                 if series.empty:
                     return series
             except Exception as e:
@@ -1115,23 +1112,33 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         else:
             return series[start:stop]
          
-    def get_series_data(self, dataframe, start=None, stop=None):
+    def get_series_data(self, data, start=None, stop=None):
         logger = self.getLogger()
        
         if self.parameter is None:
             #raise Exception('Parameter is None for series %s' % self.name)
             return None
+
         start = start or self.from_limit
         stop = stop or self.to_limit
-        if dataframe is None:
+
+        if data is None:
             dataframe = self.parameter.get_data(start=start,stop=stop,meetlocatie=self.mlocatie)
             if dataframe is None:
                 return None
-            
+        elif isinstance(data,pd.DataFrame):
+            dataframe = data
+        else:
+            # multiple locations
+            if self.mlocatie.name in data:
+                dataframe = data[self.mlocatie.name]
+            else:
+                logger.error('series %s: location % not found' % (self.name, self.mlocatie.name))
+                return None
         if not self.parameter.name in dataframe:
             # maybe datasource has stopped reporting about this parameter?
             msg = 'series %s: parameter %s not found' % (self.name, self.parameter.name)
-            logger.warning(msg)
+            logger.error(msg)
             return None
         
         series = dataframe[self.parameter.name]
@@ -1165,7 +1172,8 @@ class Series(PolymorphicModel,LoggerSourceMixin):
     
     def create(self, data=None, thumbnail=True):
         logger = self.getLogger()
-        tz = timezone.get_current_timezone()
+        #tz = timezone.get_current_timezone()
+        tz = pytz.utc
         logger.debug('Creating series %s' % self.name)
         series = self.get_series_data(data)
         if series is None:
@@ -1175,16 +1183,16 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         created = self.create_points(series, tz)
         num_created = len(created)
         logger.info('Series %s updated: %d points created, %d points skipped' % (self.name, num_created, series.count() - num_created))
-        if thumbnail:
+        if thumbnail and num_created > 0:
             self.make_thumbnail()
         self.save()
         return num_created
     
-    def replace(self):
+    def replace(self, data=None):
         logger = self.getLogger()
         logger.debug('Deleting all %d datapoints from series %s' % (self.datapoints.count(), self.name))
         self.datapoints.all().delete()
-        return self.create()
+        return self.create(data)
 
     def update(self, data=None, start=None, thumbnail=True):
         logger = self.getLogger()
@@ -1435,7 +1443,7 @@ class Formula(Series):
         variables = {var.name: var.series.to_pandas() for var in self.formula_variables.all()}
         if self.resample is not None and len(self.resample)>0:
             for name,series in variables.iteritems():
-                variables[name] = series.resample(self.resample, how=self.aggregate)
+                variables[name] = series.resample(rule=self.resample, how=self.aggregate)
         
         # add all series into a single dataframe 
         df = pd.DataFrame(variables)

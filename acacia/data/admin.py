@@ -115,7 +115,7 @@ class DatasourceAdmin(admin.ModelAdmin):
     form = DatasourceForm
     inlines = [CalibrationInline, SourceFileInline] # takes VERY long for decagon with more than 1000 files
     search_fields = ['name',]
-    actions = [actions.upload_datasource, actions.update_parameters, actions.datasource_dimensions,actions.generate_locations]
+    actions = [actions.upload_datasource, actions.update_parameters, actions.datasource_dimensions,actions.generate_locations,actions.generate_datasource_series]
     list_filter = ('meetlocatie','meetlocatie__projectlocatie','meetlocatie__projectlocatie__project','generator')
     list_display = ('name', 'description', 'meetlocatie', 'generator', 'last_download', 'filecount', 'locationcount', 'parametercount', 'seriescount', 'calibcount','start', 'stop', 'rows',)
     fieldsets = (

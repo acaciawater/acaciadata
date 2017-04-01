@@ -171,6 +171,7 @@ class WellChartView(TemplateView):
                             'data': hand,
                             'zIndex': 3,
                             'marker': {'symbol': 'circle', 'radius': 6, 'lineColor': 'white', 'lineWidth': 2, 'fillColor': 'red'},
+                            'tooltip': {'xDateFormat': '%Y-%m-%d'}
                             })
 
         if len(xydata)>0:

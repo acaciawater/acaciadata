@@ -144,7 +144,7 @@ class Command(BaseCommand):
                         try:
                             # replace timeseries or update after beforelast datapoint
                             start = last.get(s,None)
-                            changes = s.replace() if replace else s.update(data,start=start,thumbnail=thumb) 
+                            changes = s.replace(data) if replace else s.update(data,start=start,thumbnail=thumb) 
                             if changes:
                                 updated += 1
                                 logger.debug('%d datapoints updated for %s' % (changes, s.name))    

@@ -56,7 +56,7 @@ a img {
 <tr>
 <td>{%for f in object.photo_set.all %}<a href="/media/{{f.photo.name}}"><img src="/media/{{f.photo.name}}"/></a>{%endfor%}</td>
 <td>
-{% if object.has_data %}
+{% if 1 %}
 <div class="grafiek">
 	<a href="{% url 'meetnet:chart-detail' object.id %}" target="_blank">
 		<img src="{{chart}}" alt='grafiek' title='Klik voor interactieve grafiek in aparte tab'/>

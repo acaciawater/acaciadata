@@ -61,4 +61,7 @@ docs/_build/
 target/
 /server_install.txt
 /.gitignore~
+<<<<<<< HEAD
 /logs/
+=======
+>>>>>>> master
