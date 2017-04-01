@@ -138,7 +138,7 @@ class WellAdmin(admin.ModelAdmin):
     list_select_related = True
     fieldsets = (
                  ('Algemeen', {'classes': ('grp-collapse', 'grp-open'),
-                               'fields':('network', 'name', 'nitg', 'bro', 'maaiveld', 'baro', 'date', 'log')}),
+                               'fields':('network', 'name', 'nitg', 'bro', 'maaiveld', 'baro', 'date', 'log', 'chart')}),
                  ('Locatie', {'classes': ('grp-collapse', 'grp-closed'),
                               'fields':(('straat', 'huisnummer'), ('postcode', 'plaats'),('location','g'),'description')}),
                 )
