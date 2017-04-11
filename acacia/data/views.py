@@ -346,7 +346,6 @@ class ChartBaseView(TemplateView):
 
         for _,s in enumerate(chart.series.all()):
             ser = s.series
-<<<<<<< HEAD
             if tmin:
                 tmin = min(tmin,s.t0 or ser.van() or chart.start)
             else:
@@ -367,27 +366,7 @@ class ChartBaseView(TemplateView):
             try:
                 deltat = (ser.tot()-ser.van()).total_seconds() / ser.aantal() * 1000
             except:
-                deltat = 24 * 3600000 # 1 day
-=======
-            if ser.aantal() > 0:
-                if tmin:
-                    tmin = min(tmin,s.t0 or ser.van())
-                else:
-                    tmin = s.t0 or ser.van()
-                if tmax:
-                    tmax = max(tmax,s.t1 or ser.tot())
-                else:
-                    tmax = s.t1 or ser.tot()
-                if ymin:
-                    ymin = min(ymin,s.y0 or ser.minimum())
-                else:
-                    ymin = s.y0 or ser.minimum()
-                if ymax:
-                    ymax = max(ymax,s.y1 or ser.maximum())
-                else:
-                    ymax = s.y1 or ser.maximum()
->>>>>>> master
-                
+                deltat = 24 * 3600000 # 1 day                
             title = s.label #ser.name if len(ser.unit)==0 else '%s [%s]' % (ser.name, ser.unit) if chart.series.count()>1 else ser.unit
             options['yAxis'].append({
                                      'title': {'text': title},
