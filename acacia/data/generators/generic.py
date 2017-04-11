@@ -13,7 +13,8 @@ class Generic(Generator):
         self.header = kwargs.get('header', None)
         self.dayfirst = kwargs.get('dayfirst', False)
         self.separator = kwargs.get('separator', ',')
-
+        self.decimal = kwargs.get('decimal','.')
+        
     def set_labels(self,data):
         if self.header is None:
             # provide default column labels
@@ -24,7 +25,7 @@ class Generic(Generator):
 
     def get_data(self, f, **kwargs):
         f.seek(0)
-        data = self.read_csv(f, sep = self.separator, parse_dates = True, index_col = 0, header = self.header, dayfirst = self.dayfirst)
+        data = self.read_csv(f, sep = self.separator, parse_dates = True, index_col = 0, header = self.header, dayfirst = self.dayfirst, decimal = self.decimal)
         self.set_labels(data)
         if not isinstance(data.index,pd.DatetimeIndex):
             # for some reason dateutil.parser.parse not always recognizes valid dates?
@@ -35,7 +36,7 @@ class Generic(Generator):
 
     def get_parameters(self, f):
         f.seek(0)
-        data = self.read_csv(f, sep = self.separator, parse_dates = [0], nrows=1, index_col = 0, header = self.header, dayfirst = self.dayfirst)
+        data = self.read_csv(f, sep = self.separator, parse_dates = [0], nrows=1, index_col = 0, header = self.header, dayfirst = self.dayfirst, decimal = self.decimal)
         self.set_labels(data)
         params = {}
         colno = 1
