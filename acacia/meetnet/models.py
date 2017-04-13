@@ -7,7 +7,8 @@ import os, pandas as pd, numpy as np
 from django.db import models
 from django.contrib.gis.db import models as geo
 from django.core.urlresolvers import reverse
-from acacia.data.models import Datasource, Series, SourceFile
+from acacia.data.models import Datasource, Series, SourceFile, ProjectLocatie,\
+    MeetLocatie, ManualSeries
 from acacia.data import util
 
 class Network(models.Model):
@@ -29,7 +30,8 @@ class Network(models.Model):
         verbose_name_plural = 'netwerken'
 
 class Well(geo.Model):
-    #TODO: this class should inherit from acacia.data.models.MeetLocatie
+    #TODO: this class should inherit from acacia.data.models.ProjectLocatie
+    ploc = models.ForeignKey(ProjectLocatie, null=True, blank=True)
     network = models.ForeignKey(Network, verbose_name = 'Meetnet')
     name = models.CharField(max_length=50, unique=True, verbose_name = 'naam')
     nitg = models.CharField(max_length=50, verbose_name = 'TNO/NITG nummer', blank=True)
@@ -118,6 +120,7 @@ MATERIALS = (
              ('ms', 'Staal'),
              )                  
 class Screen(models.Model):
+    mloc = models.ForeignKey(MeetLocatie, null=True, blank=True)
     well = models.ForeignKey(Well, verbose_name = 'put')
     nr = models.IntegerField(default=1, verbose_name = 'filternummer')
     density = models.FloatField(default=1000.0,verbose_name='dichtheid',help_text='dichtheid van het water in de peilbuis in kg/m3')
@@ -174,23 +177,27 @@ class Screen(models.Model):
         return files
 
     def num_files(self):
-        files = self.get_monfiles()
-        return len(files)
+        return self.mloc.datasource().sourcefiles().count()
+#         files = self.get_monfiles()
+#         return len(files)
     
     def num_standen(self):
-        files = self.get_monfiles()
-        return sum([f.rows for f in files]) if len(files)> 0 else 0
+        return sum([s.aantal() for s in self.mloc.series()])>0
+#         files = self.get_monfiles()
+#         return sum([f.rows for f in files]) if len(files)> 0 else 0
 
     def has_data(self):
-        return self.num_standen() > 0
+        return self.num_standen()>0
 
     def start(self):
-        files = self.get_monfiles()
-        return min([f.start for f in files]) if len(files) > 0 else None
+        return min([d.start() for d in self.mloc.datasource_set.all()])
+#         files = self.get_monfiles()
+#         return min([f.start for f in files]) if len(files) > 0 else None
 
     def stop(self):
-        files = self.get_monfiles()
-        return max([f.stop for f in files]) if len(files) > 0 else None
+        return max([d.stop() for d in self.mloc.datasource_set.all()])
+#         files = self.get_monfiles()
+#         return max([f.stop for f in files]) if len(files) > 0 else None
         
     def get_loggers(self):
         return [p.logger for p in self.loggerpos_set.all().group_by('logger').last()]
@@ -216,8 +223,22 @@ class Screen(models.Model):
             y = []
         return pd.Series(index=x, data=y, name=unicode(self))
         
+    def get_manual_series(self, **kwargs):
+        # Handpeilingen ophalen
+        for s in self.mloc.series():
+            if s.name.endswith('HAND') or isinstance(s,ManualSeries):
+                return s.to_pandas(**kwargs)
+        return None
+            
+    def get_compensated_series(self, **kwargs):
+        # Gecompenseerde tijdreeksen (tov NAP) ophalen
+        for s in self.mloc.series():
+            if s.name.endswith('COMP') or s.name.startswith('Waterstand'):
+                return s.to_pandas(**kwargs)
+        return None
+    
     def stats(self):
-        df = self.to_pandas()
+        df = self.get_compensated_series()
         s = df.describe(percentiles=[.1,.5,.9])
         s['p10'] = None if np.isnan(s['10%']) else s['10%']
         s['p50'] = None if np.isnan(s['50%']) else s['50%']
@@ -266,7 +287,7 @@ class LoggerPos(models.Model):
         ordering = ['start_date','logger']
 
     def stats(self):
-        df = self.screen.to_pandas(start=self.start_date, stop=self.end_date)
+        df = self.screen.get_compensated_series(start=self.start_date, stop=self.end_date)
         s = df.describe(percentiles=[.1,.5,.9])
         s['p10'] = None if np.isnan(s['10%']) else s['10%']
         s['p50'] = None if np.isnan(s['50%']) else s['50%']

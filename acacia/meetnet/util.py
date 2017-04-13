@@ -60,32 +60,53 @@ def chart_for_screen(screen):
     plt.close()    
     return img.getvalue()
 
-def chart_for_well1(well):
-    fig=plt.figure(figsize=THUMB_SIZE)
+def chart_for_well(well,start=None,stop=None):
+    fig=plt.figure(figsize=(15,5))
     ax=fig.gca()
-    plt.grid(linestyle='-', color='0.9')
+    datemin=start
+    datemax=stop
+    #ax.set_xlim(datemin, datemax)
+    #plt.grid(linestyle='-', color='0.9')
     count = 0
     y = []
     x = []
     for screen in well.screen_set.all():
-        data = screen.get_levels('nap')
-        n = len(data) / (THUMB_SIZE[0]*THUMB_DPI)
-        if n > 1:
-            #use data thinning: take very nth row
-            data = data[::n]
-        if len(data)>0:
-            x,y = zip(*data)
+        series = screen.get_compensated_series()
+        if series is not None:
+            # resample to hour frequency (gaps representing missing data) 
+            s = series.asfreq('H')
+            y = s.tolist()
+            x = list(s.index)
             plt.plot_date(x, y, '-', label=screen)
             count += 1
+            if datemin:
+                datemin = min(datemin,min(x))
+            else:
+                datemin = min(x)
+            if datemax:
+                datemax = max(datemax,max(x))
+            else:
+                datemax = max(x)
 
-        hand = screen.get_hand('nap')
-        if len(hand)>0:
-            x,y = zip(*hand)
-            plt.plot_date(x, y, 'ro', label='handpeiling')
-            
-    if len(x):
-        y = [screen.well.maaiveld] * len(x)
-        plt.plot_date(x, y, '-', label='maaiveld')
+        series = screen.get_manual_series(start=datemin,stop=datemax)
+        if series is not None:
+            hand = series.to_array(start=datemin,stop=datemax)
+            if hand is not None:
+                y = hand.tolist()
+                x = list(hand.index)
+                plt.plot_date(x, y, 'ro', label='handpeiling')
+                if datemin:
+                    datemin = min(datemin,min(x))
+                else:
+                    datemin = min(x)
+                if datemax:
+                    datemax = max(datemax,max(x))
+                else:
+                    datemax = max(x)
+    
+    x = [datemin,datemax]
+    y = [screen.well.maaiveld] * len(x)
+    plt.plot_date(x, y, '-', label='maaiveld')
 
     plt.title(well)
     plt.ylabel('m tov NAP')
@@ -98,7 +119,7 @@ def chart_for_well1(well):
     plt.close()    
     return img.getvalue()
 
-def chart_for_well(well,start=None,stop=None):
+def chart_for_well_old(well,start=None,stop=None):
     fig=plt.figure(figsize=(15,5))
     ax=fig.gca()
     datemin=start or datetime.datetime(2013,1,1)
