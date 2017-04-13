@@ -8,7 +8,7 @@ from django.db import models
 from django.contrib.gis.db import models as geo
 from django.core.urlresolvers import reverse
 from acacia.data.models import Datasource, Series, SourceFile, ProjectLocatie,\
-    MeetLocatie, ManualSeries
+    MeetLocatie
 from acacia.data import util
 
 class Network(models.Model):
@@ -136,18 +136,12 @@ class Screen(models.Model):
         def bydate(record):
             return record[0]
 
-        levels = []
         # luchtdruk gecompenseerde standen (tov NAP) ophalen
-        name = '%s %s' % (unicode(self), kind)
-        try:
-            series = Series.objects.get(name=name)
-        except Series.DoesNotExist:
-            # try old naming convention
-            name = '%s/%03d %s' % (self.well.nitg, self.nr, kind)
-            try:
-                series = Series.objects.get(name=name)
-            except:
-                return levels
+        series = self.get_manual_series() if kind == 'HAND' else self.get_compensated_series()
+        if series is None:
+            return []
+
+        levels = []
         for dp in series.filter_points(**kwargs):
             try:
                 if ref == 'nap':
@@ -178,26 +172,18 @@ class Screen(models.Model):
 
     def num_files(self):
         return self.mloc.datasource().sourcefiles().count()
-#         files = self.get_monfiles()
-#         return len(files)
     
     def num_standen(self):
         return sum([s.aantal() for s in self.mloc.series()])>0
-#         files = self.get_monfiles()
-#         return sum([f.rows for f in files]) if len(files)> 0 else 0
 
     def has_data(self):
         return self.num_standen()>0
 
     def start(self):
         return min([d.start() for d in self.mloc.datasource_set.all()])
-#         files = self.get_monfiles()
-#         return min([f.start for f in files]) if len(files) > 0 else None
 
     def stop(self):
         return max([d.stop() for d in self.mloc.datasource_set.all()])
-#         files = self.get_monfiles()
-#         return max([f.stop for f in files]) if len(files) > 0 else None
         
     def get_loggers(self):
         return [p.logger for p in self.loggerpos_set.all().group_by('logger').last()]
@@ -225,13 +211,14 @@ class Screen(models.Model):
         
     def get_manual_series(self, **kwargs):
         # Handpeilingen ophalen
-        for s in self.mloc.series():
-            if s.name.endswith('HAND') or isinstance(s,ManualSeries):
-                return s.to_pandas(**kwargs)
+        if hasattr(self.mloc, 'manualseries_set'):
+            for s in self.mloc.manualseries_set.all():
+                if s.name.endswith('HAND'):
+                    return s.to_pandas(**kwargs)
         return None
             
     def get_compensated_series(self, **kwargs):
-        # Gecompenseerde tijdreeksen (tov NAP) ophalen
+        # Gecompenseerde tijdreeksen (tov NAP) ophalen (Alleen voor Divers and Leiderdorp Instruments)
         for s in self.mloc.series():
             if s.name.endswith('COMP') or s.name.startswith('Waterstand'):
                 return s.to_pandas(**kwargs)
@@ -257,12 +244,14 @@ DIVER_TYPES = (
                ('ctd','CTD-Diver'),
                ('16','Cera-Diver'),
                ('14','Mini-Diver'),
-               ('baro','Baro-Diver')
+               ('baro','Baro-Diver'),
+               ('etd','ElliTrack-D'),
+               ('etd2','ElliTrack-D2'), # voor in straatpot
                )
 class Datalogger(models.Model):
     serial = models.CharField(max_length=50,verbose_name = 'serienummer',unique=True)
     model = models.CharField(max_length=50,verbose_name = 'type', default='14', choices=DIVER_TYPES)
-
+    
     def __unicode__(self):
         return self.serial
  
@@ -300,6 +289,13 @@ class LoggerDatasource(Datasource):
     class Meta:
         verbose_name = 'Loggerdata'
         verbose_name_plural = 'Loggerdata'
+        
+    def build_download_options(self, start=None):
+        # add logger name to download options
+        options = Datasource.build_download_options(self, start=start)
+        if options is not None:
+            options['logger'] = unicode(self.logger)
+        return options
 
 class MonFile(SourceFile):
     company = models.CharField(max_length=50)
