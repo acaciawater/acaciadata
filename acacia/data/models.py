@@ -1131,14 +1131,16 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         stop = stop or self.to_limit
 
         if data is None:
-            dataframe = self.parameter.get_data(start=start,stop=stop,meetlocatie=self.mlocatie)
-            if dataframe is None:
+            data = self.parameter.get_data(start=start,stop=stop,meetlocatie=self.mlocatie)
+            if data is None:
                 return None
-        elif isinstance(data,pd.DataFrame):
+        if isinstance(data,pd.DataFrame):
             dataframe = data
         else:
             # multiple locations
-            if self.mlocatie.name in data:
+            if self.mlocatie in data:
+                dataframe = data[self.mlocatie]
+            elif self.mlocatie.name in data:
                 dataframe = data[self.mlocatie.name]
             else:
                 logger.error('series %s: location % not found' % (self.name, self.mlocatie.name))
@@ -1302,10 +1304,13 @@ class Series(PolymorphicModel,LoggerSourceMixin):
             stop = self.tot()
         return self.datapoints.filter(date__range=[start,stop])
     
-    def to_pandas(self, **kwargs):
+    def to_array(self, **kwargs):
         points = self.filter_points(**kwargs)
-        dates = [dp.date for dp in points]
-        values = [dp.value for dp in points]
+        return [(dp.date,dp.value) for dp in points]
+
+    def to_pandas(self, **kwargs):
+        arr = self.to_array(**kwargs)
+        dates,values = zip(*arr)
         return pd.Series(values,index=dates,name=self.name).sort_index()
     
     def to_csv(self, **kwargs):
