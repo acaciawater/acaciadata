@@ -247,15 +247,20 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
 def register_well(well):
     # register well in acaciadata
     project,created = Project.objects.get_or_create(name=well.network.name)
-    ploc, created = project.projectlocatie_set.get_or_create(name=well.name,defaults={'location': well.location})
-    mloc, created = ploc.meetlocatie_set.get_or_create(name=well.name,defaults={'location': well.location})
+    well.ploc, created = project.projectlocatie_set.get_or_create(name=well.name,defaults={'location': well.location})
+    if created:
+        well.save()
+    #mloc, created = ploc.meetlocatie_set.get_or_create(name=well.name,defaults={'location': well.location})
 
 def register_screen(screen):
     # register screen in acaciadata
     project,created = Project.objects.get_or_create(name=screen.well.network.name)
-    ploc, created = project.projectlocatie_set.get_or_create(name=screen.well.name,defaults={'location': screen.well.location})
-    mloc, created = ploc.meetlocatie_set.get_or_create(name=unicode(screen),defaults={'location': screen.well.location})
-    
+    screen.well.ploc, created = project.projectlocatie_set.get_or_create(name=screen.well.name,defaults={'location': screen.well.location})
+    if created:
+        screen.well.save()
+    screen.mloc, created = screen.well.ploc.meetlocatie_set.get_or_create(name=unicode(screen),defaults={'location': screen.well.location})
+    screen.save()
+
 def createmeteo(request, well):
     ''' Create datasources with meteo data for a well '''
 
@@ -469,20 +474,15 @@ def addmonfile(request,network,f):
     return error
 
 def update_series(request,screen):
-    user=request.user
-    name = '%s COMP' % screen
-    series, created = Series.objects.get_or_create(name=name,defaults={'user':user})
-    try:
-        meetlocatie = MeetLocatie.objects.get(name=unicode(screen))
-    except:
-        try:
-            meetlocatie = MeetLocatie.objects.get(name='%s/%03d'% (unicode(screen.well.nitg), screen.nr))
-        except:
-            logger.exception('Meetlocatie niet gevonden voor filter {screen}'.format(screen=unicode(screen)))
-            return
 
-    series.mlocatie = meetlocatie
-    series.save()
+    user=request.user
+    series = screen.get_compensated_series()
+    if series is None:
+        # Make sure screen has been registered
+        register_screen(screen)
+        name = '%s COMP' % screen
+        series, created = Series.objects.get_or_create(name=name,mlocatie=screen.mloc,defaults={'user':user})
+        series.save()
 
     recomp(screen, series)
                  
@@ -495,10 +495,8 @@ def update_series(request,screen):
     chart.series.get_or_create(series=series, defaults={'label' : 'm tov NAP'})
 
     # handpeilingen toevoegen (als beschikbaar)
-    if hasattr(meetlocatie, 'manualseries_set'):
-        name = '%s HAND' % screen
-        for hand in meetlocatie.manualseries_set.filter(name=name):
-            chart.series.get_or_create(series=hand,defaults={'type':'scatter', 'order': 2})
+    for hand in screen.mloc.manualseries_set.all():
+        chart.series.get_or_create(series=hand,defaults={'type':'scatter', 'order': 2})
     
     make_chart(screen)
 
