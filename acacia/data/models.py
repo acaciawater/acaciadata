@@ -306,17 +306,8 @@ class Datasource(models.Model, LoggerSourceMixin):
                 return None
         return gen(**kwargs)
     
-    def download(self, start=None):
+    def build_download_options(self,start=None):
         logger = self.getLogger()
-        if self.generator is None:
-            logger.error('Cannot download datasource %s: no generator defined' % (self.name))
-            return None
-
-        gen = self.get_generator_instance()
-        if gen is None:
-            logger.error('Cannot download datasource %s: could not create instance of generator %s' % (self.name, self.generator))
-            return None
-
         options = {}
         
         if self.meetlocatie:
@@ -349,9 +340,26 @@ class Datasource(models.Model, LoggerSourceMixin):
             return None
 
         options['url']=url
-        
-        logger.info('Downloading datasource %s from %s' % (self.name, url))
 
+        return options
+            
+       
+    def download(self, start=None):
+        logger = self.getLogger()
+        if self.generator is None:
+            logger.error('Cannot download datasource %s: no generator defined' % (self.name))
+            return None
+
+        gen = self.get_generator_instance()
+        if gen is None:
+            logger.error('Cannot download datasource %s: could not create instance of generator %s' % (self.name, self.generator))
+            return None
+
+        options = self.build_download_options(start)
+        if options is None:
+            return None
+        
+        logger.info('Downloading datasource %s from %s' % (self.name, options['url']))
         try:
             
             files = []
