@@ -10,7 +10,7 @@ def setlocs(apps, schema_editor):
     for w in Well.objects.all():
         net = w.network
         prj = Project.objects.get(name=net.name)
-        w.ploc,created = prj.projectlocatie_set.get(name=w.name,defaults={'location': w.location})
+        w.ploc,created = prj.projectlocatie_set.get_or_create(name=w.name,defaults={'location': w.location})
         w.save()
         #print 'Well', w.name
         for s in w.screen_set.all():
