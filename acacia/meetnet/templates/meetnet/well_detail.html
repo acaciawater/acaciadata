@@ -28,6 +28,11 @@ a img {
 	height: 100%;
 }
 
+.foto {
+	max-width: 400px;
+	height: auto;
+}
+
 </style>
 {% endblock %}
 {% block content %}
@@ -54,7 +59,7 @@ a img {
 <tr><td>Filters</td><td>{{object.num_filters}}</td></tr>
 <tr><td>Laatste uitleesronde</td><td>{{object.last_measurement_date|default:'<i>onbekend</i>'}}</td></tr>
 <tr>
-<td>{%for f in object.photo_set.all %}<a href="/media/{{f.photo.name}}"><img src="/media/{{f.photo.name}}"/></a>{%endfor%}</td>
+<td>{%for f in object.photo_set.all %}<a href="/media/{{f.photo.name}}"><img class="foto" src="/media/{{f.photo.name}}"/></a>{%endfor%}</td>
 <td>
 {% if 1 %}
 <div class="grafiek">
