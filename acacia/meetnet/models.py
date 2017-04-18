@@ -137,22 +137,22 @@ class Screen(models.Model):
             return record[0]
 
         # luchtdruk gecompenseerde standen (tov NAP) ophalen
-        series = self.get_manual_series() if kind == 'HAND' else self.get_compensated_series()
+        series = self.get_manual_series(**kwargs) if kind == 'HAND' else self.get_compensated_series(**kwargs)
         if series is None:
             return []
 
         levels = []
-        for dp in series.filter_points(**kwargs):
+        for index,value in series.iteritems():
             try:
                 if ref == 'nap':
-                    level = dp.value
+                    level = value
                 elif ref == 'bkb':
-                    level = self.refpnt - dp.value
+                    level = self.refpnt - value
                 elif ref == 'mv':
-                    level = self.well.maaiveld - dp.value
+                    level = self.well.maaiveld - value
                 else:
                     raise 'Illegal reference for screen %s' % unicode(self)
-                levels.append((dp.date, level))
+                levels.append((index, level))
             except:
                 pass # refpnt, maaiveld or value is None
         levels.sort(key=bydate)
@@ -171,19 +171,31 @@ class Screen(models.Model):
         return files
 
     def num_files(self):
-        return self.mloc.datasource().sourcefiles().count()
+        try:
+            return self.mloc.datasource().sourcefiles().count()
+        except:
+            return 0
     
     def num_standen(self):
-        return sum([s.aantal() for s in self.mloc.series()])>0
+        try:
+            return sum([s.aantal() for s in self.mloc.series()])
+        except:
+            return 0
 
     def has_data(self):
         return self.num_standen()>0
 
     def start(self):
-        return min([d.start() for d in self.mloc.datasource_set.all()])
+        try:
+            return min([d.start() for d in self.mloc.datasource_set.all()])
+        except:
+            return None
 
     def stop(self):
-        return max([d.stop() for d in self.mloc.datasource_set.all()])
+        try:
+            return max([d.stop() for d in self.mloc.datasource_set.all()])
+        except:
+            return None
         
     def get_loggers(self):
         return [p.logger for p in self.loggerpos_set.all().group_by('logger').last()]
@@ -277,6 +289,8 @@ class LoggerPos(models.Model):
 
     def stats(self):
         df = self.screen.get_compensated_series(start=self.start_date, stop=self.end_date)
+        if df is None:
+            return None
         s = df.describe(percentiles=[.1,.5,.9])
         s['p10'] = None if np.isnan(s['10%']) else s['10%']
         s['p50'] = None if np.isnan(s['50%']) else s['50%']
