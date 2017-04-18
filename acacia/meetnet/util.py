@@ -61,58 +61,30 @@ def chart_for_screen(screen):
     return img.getvalue()
 
 def chart_for_well(well,start=None,stop=None):
-    fig=plt.figure(figsize=(15,5))
-    ax=fig.gca()
-    datemin=start
-    datemax=stop
-    #ax.set_xlim(datemin, datemax)
-    #plt.grid(linestyle='-', color='0.9')
-    count = 0
-    y = []
-    x = []
+    fig=plt.figure(figsize=THUMB_SIZE)
+    plt.grid(linestyle='-', color='0.9')
     for screen in well.screen_set.all():
-        series = screen.get_compensated_series()
-        if series is not None:
-            # resample to hour frequency (gaps representing missing data) 
-            s = series.asfreq('H')
-            y = s.tolist()
-            x = list(s.index)
-            plt.plot_date(x, y, '-', label=screen)
-            count += 1
-            if datemin:
-                datemin = min(datemin,min(x))
-            else:
-                datemin = min(x)
-            if datemax:
-                datemax = max(datemax,max(x))
-            else:
-                datemax = max(x)
-
-        series = screen.get_manual_series(start=datemin,stop=datemax)
-        if series is not None:
-            hand = series.to_array(start=datemin,stop=datemax)
-            if hand is not None:
-                y = hand.tolist()
-                x = list(hand.index)
-                plt.plot_date(x, y, 'ro', label='handpeiling')
-                if datemin:
-                    datemin = min(datemin,min(x))
-                else:
-                    datemin = min(x)
-                if datemax:
-                    datemax = max(datemax,max(x))
-                else:
-                    datemax = max(x)
+        data = screen.get_levels('nap')
+        n = len(data) / (THUMB_SIZE[0]*THUMB_DPI)
+        if n > 1:
+            #use data thinning: take very nth row
+            data = data[::n]
+        if len(data)>0:
+            x,y = zip(*data)
+            plt.plot_date(x, y, '-',label=unicode(screen))
     
-    x = [datemin,datemax]
-    y = [screen.well.maaiveld] * len(x)
-    plt.plot_date(x, y, '-', label='maaiveld')
+        hand = screen.get_hand('nap')
+        if len(hand)>0:
+            x,y = zip(*hand)
+            plt.plot_date(x, y, 'ro',label='handpeiling')
 
-    plt.title(well)
     plt.ylabel('m tov NAP')
-    if count > 0:
-        leg=plt.legend()
-        leg.get_frame().set_alpha(0.3)
+
+    plt.axhline(y=screen.well.maaiveld, linestyle='--', label='maaiveld')
+
+    leg = plt.legend()
+    leg.get_frame().set_alpha(0.3)
+    plt.title(well)
     
     img = StringIO() 
     plt.savefig(img,format='png',bbox_inches='tight')
