@@ -285,7 +285,8 @@ class SeriesView(DetailView):
         pts = [] #[[p.date,p.value] for p in ser.datapoints.all().order_by('date')]
         sop = {'name': ser.name,
                'type': ser.type,
-               'data': pts}
+               'data': pts,
+               'turboThreshold': 0}
         if ser.type == 'scatter':
             sop['tooltip'] = {'headerFormat': '<small>{point.key}</small><br/><table>',
                               'pointFormat': '<tr><td style="color:{series.color}">{series.name}</td>\
@@ -304,15 +305,6 @@ class ChartBaseView(TemplateView):
 
     def get_json(self, chart):
         options = {
-#             'rangeSelector': { 'enabled': True,
-#                               'inputEnabled': True,
-#                               'selected': 5,
-#                               },
-#            'navigator': {'adaptToUpdatedData': False, 'enabled': False},
-#             'loading': {'style': {'backgroundColor': 'white', 'fontFamily': 'Arial', 'fontSize': 'small'},
-#                         'labelStyle': {'fontWeight': 'normal'},
-#                         'hideDuration': 0,
-#                         },
             'chart': {'animation': False, 
                       'zoomType': 'x',
                       'events': {'load': None},
@@ -489,15 +481,15 @@ class ChartBaseView(TemplateView):
 class ChartView(ChartBaseView):
     template_name = 'data/chart_detail.html'
 
-    def get_context_data(self, **kwargs):
-        context = super(ChartView, self).get_context_data(**kwargs)
-        pk = context.get('pk',1)
-        if pk is not None:
-            chart = Chart.objects.get(pk=pk)
-            jop = self.get_json(chart)
-            context['options'] = jop
-            context['chart'] = chart
-        return context
+#     def get_context_data(self, **kwargs):
+#         context = super(ChartView, self).get_context_data(**kwargs)
+#         pk = context.get('pk',1)
+#         if pk is not None:
+#             chart = Chart.objects.get(pk=pk)
+#             jop = self.get_json(chart)
+#             context['options'] = jop
+#             context['chart'] = chart
+#         return context
     
 class DashView(TemplateView):
     template_name = 'data/dash.html'
