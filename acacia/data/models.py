@@ -1288,11 +1288,13 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         stop = kwargs.get('stop', None)
 
         queryset = self.datapoints
-        raw = kwargs.get('raw', True)
+        raw = kwargs.get('raw', False)
         if self.validated and not raw:
+            queryset = self.validation.validpoint_set.all()
             first = self.validation.invalid_points.first()
             if first:
-                queryset = self.validation.validpoint_set.filter(date__lt=first.date)
+                queryset = queryset.filter(date__lt=first.date)
+                
         if start is None and stop is None:
             return queryset.all()
         if start is None:
@@ -1302,9 +1304,12 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         return queryset.filter(date__range=[start,stop])
     
     def to_pandas(self, **kwargs):
-        index,data = zip(*self.filter_points(**kwargs).values_list('date','value'))
-        return pd.Series(data,index).sort_index()
-    
+        if self.aantal() > 0:
+            index,data = zip(*self.filter_points(**kwargs).values_list('date','value'))
+            return pd.Series(data,index).sort_index()
+        else:
+            return pd.Series()
+
     def to_csv(self, **kwargs):
         ser = self.to_pandas(**kwargs)
         io = StringIO.StringIO()
