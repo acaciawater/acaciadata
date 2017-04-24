@@ -75,6 +75,12 @@ class Command(BaseCommand):
             for d in datasources:
                 if not d.autoupdate and pk is None:
                     continue
+
+                # THK 24/4/2017: hack to get polymorphic loggerdatasource object (if any). 
+                # Needed to pass logger name to generator. See loggerdatasource.build_download_options()
+                if hasattr(d,'loggerdatasource'):
+                    d=d.loggerdatasource
+                    
                 logger.source = d
                 logger.info('Updating datasource %s' % d.name)
                 try:
