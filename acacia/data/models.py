@@ -1183,9 +1183,9 @@ class Series(PolymorphicModel,LoggerSourceMixin):
                 pts.append(DataPoint(series=self, date=date, value=value))
             except Exception as e:
                 self.getLogger().debug('Datapoint %s,%g: %s' % (str(date), value, e))
-        with open('/home/theo/texelmeet/hhnk/points.csv','w') as f:
-            for p in pts:
-                f.write('{},{}\n'.format(p.date,p.value)) 
+#         with open('/home/theo/texelmeet/hhnk/points.csv','w') as f:
+#             for p in pts:
+#                 f.write('{},{}\n'.format(p.date,p.value)) 
         return pts
     
     def create_points(self, series, tz):
