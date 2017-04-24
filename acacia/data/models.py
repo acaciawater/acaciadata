@@ -315,7 +315,7 @@ class Datasource(models.Model, LoggerSourceMixin):
             loc = MeetLocatie.objects.get(pk=self.meetlocatie.pk)
             lonlat = loc.latlon()
             options['lonlat'] = (lonlat.x,lonlat.y)
-            options['meetlocatie'] = unicode(loc)
+            options['meetlocatie'] = loc#.name
         if self.username:
             options['username'] = self.username
             options['password'] = self.password
@@ -1151,7 +1151,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
             elif self.mlocatie.name in data:
                 dataframe = data[self.mlocatie.name]
             else:
-                logger.error('series %s: location % not found' % (self.name, self.mlocatie.name))
+                logger.error('series %s: location %s not found' % (self.name, self.mlocatie.name))
                 return None
         if not self.parameter.name in dataframe:
             # maybe datasource has stopped reporting about this parameter?
