@@ -102,7 +102,7 @@ def chart_for_well(well,start=None,stop=None):
     fig=plt.figure(figsize=(15,5))
     ax=fig.gca()
     datemin=start or datetime.datetime(2013,1,1)
-    datemax=stop or datetime.datetime(2017,1,1)
+    datemax=stop or datetime.datetime(2017,5,1)
     ax.set_xlim(datemin, datemax)
     plt.grid(linestyle='-', color='0.9')
     count = 0
@@ -185,7 +185,7 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
             baro = baro.tz_convert(tz)
             baros[logpos.baro] = baro
         for mon in logpos.monfile_set.all().order_by('start_date'):
-            print ' ', logpos.logger, mon
+            print ' ', logpos.logger, logpos.start_date, mon
             mondata = mon.get_data()
             if isinstance(mondata,dict):
                 # Nov 2016: new signature for get_data 
@@ -199,8 +199,8 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
             data = data - abaro
             data.dropna(inplace=True)
 
-            #clear datapoints with less than 10 cm of water
-            data[data<10] = np.nan
+            #clear datapoints with less than 30 cm of water
+            data[data<30] = np.nan
             
             data = data / 100 + (logpos.refpnt - logpos.depth)
             if seriesdata is None:
@@ -209,7 +209,7 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
                 seriesdata = seriesdata.append(data)
                 
     if seriesdata is not None:
-        seriesdata = seriesdata.groupby(level=0).last()
+        seriesdata = seriesdata.groupby(seriesdata.index).last()
         seriesdata.sort(inplace=True)
         datapoints=[]
         for date,value in seriesdata.iteritems():
