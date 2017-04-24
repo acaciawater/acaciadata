@@ -199,8 +199,8 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
             data = data - abaro
             data.dropna(inplace=True)
 
-            #clear datapoints with less than 30 cm of water
-            data[data<30] = np.nan
+            #clear datapoints with less than 10 cm of water
+            data[data<10] = np.nan
             
             data = data / 100 + (logpos.refpnt - logpos.depth)
             if seriesdata is None:
