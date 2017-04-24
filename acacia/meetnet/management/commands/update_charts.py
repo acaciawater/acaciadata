@@ -26,7 +26,6 @@ class Command(BaseCommand):
         with SourceAdapter(logging.getLogger(__name__)) as logger:
             logger.source = ''
             logger.info('***UPDATE ELLITRACK CHARTS***')
-            count = 0
             elli = Generator.objects.get(name='Ellitrack')
             pk = options.get('pk', None)
             if pk is None:
