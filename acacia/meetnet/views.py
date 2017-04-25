@@ -7,19 +7,22 @@ from django.views.generic import DetailView, FormView, TemplateView
 from django.template.loader import render_to_string
 from django.http import HttpResponse
 from django.core.urlresolvers import reverse
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django.core.files.storage import default_storage
 from django.conf import settings
+from django.contrib.auth.decorators import login_required
 
 from acacia.data.knmi.models import Station
 
 from .models import Network, Well, Screen
 from .forms import UploadFileForm
+from .actions import download_well_nitg
 
 import os, json, logging, time
 import pandas as pd
 
 from util import handle_uploaded_files
+from acacia.meetnet import actions
 
 logger = logging.getLogger(__name__)
 
@@ -338,10 +341,20 @@ def get_series(screen):
     except:
         return None
 
+@login_required
+def DownloadSeriesAsNITG(request,source,series):
+    ''' Tijdreeksen downloaden als zip file '''
+    download_well_nitg(None, request, series) # reuse method from admin.actions. Runs in separate thread
+    return redirect(request.META.get('HTTP_REFERER','/'))
+
 def EmailNetworkSeries(request,pk):
     net = get_object_or_404(Network, pk=pk)
     series = [get_series(s) for w in net.well_set.all() for s in w.screen_set.all()]
     return DownloadSeriesAsZip(request, unicode(net), series)
+
+def EmailNetworkNITG(request, pk):
+    net = get_object_or_404(Network, pk=pk)
+    return DownloadSeriesAsNITG(request, unicode(net), net.well_set.all())
     
 def EmailWellSeries(request,pk):
     well = get_object_or_404(Well, pk=pk)
@@ -352,7 +365,7 @@ def EmailScreenSeries(request,pk):
     screen = get_object_or_404(Screen,pk=pk)
     series = get_series(screen)
     return DownloadSeriesAsZip(request, unicode(screen), series)
-                            
+
 class UploadDoneView(TemplateView):
     template_name = 'upload_done.html'
 
