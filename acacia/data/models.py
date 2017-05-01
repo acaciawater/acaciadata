@@ -1318,9 +1318,12 @@ class Series(PolymorphicModel,LoggerSourceMixin):
 
     def to_pandas(self, **kwargs):
         arr = self.to_array(**kwargs)
-        dates,values = zip(*arr)
-        return pd.Series(values,index=dates,name=self.name).sort_index()
-    
+        if arr:
+            dates,values = zip(*arr)
+            return pd.Series(values,index=dates,name=self.name).sort_index()
+        else:
+            return pd.Series(name=self.name)
+            
     def to_csv(self, **kwargs):
         ser = self.to_pandas(**kwargs)
         io = StringIO.StringIO()
