@@ -219,13 +219,16 @@ class ValidationView(FormView):
       
 @gzip_page
 def ValToJson(request, pk):
-    ''' return two series: raw and validated '''
+    ''' return three series: raw, validated and invalid '''
     validation = get_object_or_404(Validation,pk=pk)
     options = {'start': request.GET.get('start', None),
                'stop': request.GET.get('stop', None)}
-    raw = validation.series.to_pandas(**options)
-    
+
+    raw_options = options
+    raw_options['raw'] = True
+    raw = validation.series.to_pandas(**raw_options)
     val = validation.to_pandas(**options)
+    
     if val.size == 0:
         val = pd.Series(data=np.nan,index=raw.index)
         hasval = False
