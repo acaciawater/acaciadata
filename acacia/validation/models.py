@@ -234,6 +234,7 @@ class Validation(models.Model):
     def is_valid(self):
         return not self.invalid_points.exists()
     is_valid.boolean = True
+    is_valid.short_description = 'valide'
     
     def apply(self, **kwargs):
         ''' apply validation and return validated points '''
