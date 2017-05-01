@@ -198,22 +198,23 @@ class WellChartView(TemplateView):
             name = 'Meteostation {} (dagwaarden)'.format(closest.naam)
             neerslag = Series.objects.get(name='RH',mlocatie__name=name)
             data = neerslag.to_pandas(start=xydata[0][0], stop=xydata[-1][0]) / 10.0 # 0.1 mm -> mm
-            data = zip(data.index.to_pydatetime(), data.values)
-            series.append({'name': 'Neerslag '+ closest.naam,
-                        'type': 'column',
-                        'data': data,
-                        'yAxis': 1,
-                        'pointRange': 24 * 3600 * 1000, # 1 day
-                        'pointPadding': 0.01,
-                        'pointPlacement': 0.5,
-                        'zIndex': 1,
-                        'color': 'orange', 
-                        'borderColor': '#cc6600', 
-                        })
-            options['yAxis'].append({'title': {'text': 'Neerslag (mm)'},
-                                     'opposite': 1,
-                                     'min': 0,
-                                     })
+            if not data.empty:
+                data = zip(data.index.to_pydatetime(), data.values)
+                series.append({'name': 'Neerslag '+ closest.naam,
+                            'type': 'column',
+                            'data': data,
+                            'yAxis': 1,
+                            'pointRange': 24 * 3600 * 1000, # 1 day
+                            'pointPadding': 0.01,
+                            'pointPlacement': 0.5,
+                            'zIndex': 1,
+                            'color': 'orange', 
+                            'borderColor': '#cc6600', 
+                            })
+                options['yAxis'].append({'title': {'text': 'Neerslag (mm)'},
+                                         'opposite': 1,
+                                         'min': 0,
+                                         })
         except:
             pass
         options['series'] = series
