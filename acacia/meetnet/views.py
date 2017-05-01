@@ -149,7 +149,6 @@ class WellChartView(TemplateView):
                         'type': 'line',
                         'data': xydata,
                         'lineWidth': 1,
-                        'color': '#0066FF',
                         'zIndex': 2,
                         })
             mean = pd.expanding_mean(data)
@@ -161,7 +160,6 @@ class WellChartView(TemplateView):
                         'data': ranges,
                         'type': 'arearange',
                         'lineWidth': 0,
-                        'color': '#0066FF',
                         'fillOpacity': 0.2,
                         'linkedTo' : ':previous',
                         'zIndex': 0,
