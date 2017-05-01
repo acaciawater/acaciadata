@@ -61,8 +61,10 @@ class SeriesRule(BaseRule):
     factor = models.FloatField(default=1)
     
     def apply(self,target):
-        ''' apply this rule on a target series '''
-        return (target,self.compare(abs(target * self.factor - self.series), self.constant))
+        series = self.series.to_pandas()
+        series = series.reindex(target.index,method='nearest')
+        return (target,self.compare(abs(target * self.factor + self.constant), series))
+        #return (target,self.compare(abs(target * self.factor - self.series), self.constant))
 
 SLOT_CHOICES = (
     ('T', 'minuut'),
@@ -268,14 +270,7 @@ class Validation(models.Model):
         series = series.where(result,other=None)
         valid_points = [ValidPoint(validation=self,date=p[0],value=p[1]) for p in series.iteritems()]
         if numinvalid:
-            # find first invalid point
-            first = (x for x in valid_points if x.value is None).next()
-            # find corresponding point in original time series
-#             try:
-#                 original = self.series.datapoints.get(date=first.date)
-#             except DataPoint.DoesNotExist:
-#                 original = None
-            logger.warning('Validation failed for {}, first occurrence = {}'.format(self.series, first.date))
+            logger.warning('Validation failed for {}, first occurrence = {}'.format(self.series, invalid.index[0]))
         else:
             logger.info('Validation {} passed'.format(self.series))
         return valid_points
