@@ -226,6 +226,14 @@ class Validation(models.Model):
     @property        
     def invalid_points(self):
         return self.validpoint_set.filter(value__isnull=True)
+
+    @property        
+    def num_invalid_points(self):
+        return self.invalid_points.count()
+
+    def is_valid(self):
+        return not self.invalid_points.exists()
+    is_valid.boolean = True
     
     def apply(self, **kwargs):
         ''' apply validation and return validated points '''
