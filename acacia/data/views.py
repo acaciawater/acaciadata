@@ -321,7 +321,19 @@ class ChartBaseView(TemplateView):
             'credits': {'enabled': True, 
                         'text': 'acaciawater.com', 
                         'href': 'http://www.acaciawater.com',
-                       }
+                       },
+            'exporting' :{
+                    'sourceWidth': 500,
+                    'sourceHeight': 350,
+                    'scale': 2,
+                    'chartOptions' :{
+                        'title': {'style': {'fontSize': 0 }},                 # 0 gemaakt omdat titel niet wordt overgenomen
+                        'xAxis': {'labels': {'style': {'fontSize': 15 }}},
+                        'yAxis': {'labels': {'style': {'fontSize': 15 }}},
+                        'legend': {'itemStyle': {'fontSize': 15 },'padding': 1,},           
+                        'credits': {'enabled': False}
+                    },
+                }
             }
         if chart.start:
             options['xAxis']['min'] = tojs(chart.start)
