@@ -70,7 +70,7 @@ def write_data(f,screen,**kwargs):
     values = (screen.refpnt - series) * 100 # has to be in cm below measuring point
     well = screen.well
     for date,value in values.iteritems():
-        f.write('{nitg};{filt:03d};{date:%Y/%m/%d};{time:%H:%M:%S};{value:.1f};;;;\n'.format(
+        f.write('{nitg};{filt:03d};{date:%Y/%m/%d};{time:%H:%M:%S};{value:.0f};;;;\n'.format(
             nitg = well.nitg,
             filt = screen.nr,
             date = date.date(),
