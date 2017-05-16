@@ -1123,18 +1123,21 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         stop = stop or self.to_limit
 
         if data is None:
-            dataframe = self.parameter.get_data(start=start,stop=stop,meetlocatie=self.mlocatie)
-            if dataframe is None:
+            data = self.parameter.get_data(start=start,stop=stop,meetlocatie=self.mlocatie)
+            if data is None:
                 return None
-        elif isinstance(data,pd.DataFrame):
+        if isinstance(data,pd.DataFrame):
             dataframe = data
         else:
             # multiple locations
-            if self.mlocatie.name in data:
+            if self.mlocatie in data: 
+                dataframe = data[self.mlocatie]
+            elif self.mlocatie.name in data: 
                 dataframe = data[self.mlocatie.name]
             else:
-                logger.error('series %s: location % not found' % (self.name, self.mlocatie.name))
+                logger.error('series %s: location %s not found' % (self.name, self.mlocatie))
                 return None
+
         if not self.parameter.name in dataframe:
             # maybe datasource has stopped reporting about this parameter?
             msg = 'series %s: parameter %s not found' % (self.name, self.parameter.name)
