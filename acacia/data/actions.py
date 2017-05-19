@@ -80,14 +80,19 @@ def generate_series(modeladmin, request, queryset):
             
             # create series for all locations
             for loc in locs:
-                if loc.name in data:
-                    logger.debug('Creating series {} for location {}'.format(p.name, loc.name))
-                    series, created = p.series_set.get_or_create(mlocatie = loc, name = p.name, 
-                                                             defaults= {'description': p.description, 'unit': p.unit, 'user': request.user})
-                    try:
-                        series.replace(data[loc.name])
-                    except Exception as e:
-                        logger.error('ERROR creating series %s for location %s: %s' % (p.name, loc.name, e))
+                if loc in data:
+                    df = data[loc]
+                elif loc.name in data:
+                    df = data[loc.name]
+                else:
+                    continue
+                logger.debug('Creating series {} for location {}'.format(p.name, loc.name))
+                series, created = p.series_set.get_or_create(mlocatie = loc, name = p.name, 
+                                                         defaults= {'description': p.description, 'unit': p.unit, 'user': request.user})
+                try:
+                    series.replace(df)
+                except Exception as e:
+                    logger.error('ERROR creating series %s for location %s: %s' % (p.name, loc.name, e))
         except Exception as e:
             logger.error('ERROR creating series %s: %s' % (p.name, e))
 generate_series.short_description = 'Standaard tijdreeksen aanmaken voor geselecteerde parameters'
