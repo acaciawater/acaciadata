@@ -33,8 +33,8 @@ class Well(geo.Model):
     #TODO: this class should inherit from acacia.data.models.ProjectLocatie
     ploc = models.ForeignKey(ProjectLocatie, null=True, blank=True)
     network = models.ForeignKey(Network, verbose_name = 'Meetnet')
-    name = models.CharField(max_length=50, unique=True, verbose_name = 'naam')
-    nitg = models.CharField(max_length=50, verbose_name = 'TNO/NITG nummer', blank=True)
+    name = models.CharField(max_length=50, verbose_name = 'naam')
+    nitg = models.CharField(max_length=50, unique=True, verbose_name = 'TNO/NITG nummer', blank=True)
     bro = models.CharField(max_length=50, verbose_name = 'BRO nummer', blank=True)
     location = geo.PointField(srid=28992,verbose_name='locatie',help_text='locatie in rijksdriehoeksstelsel coordinaten')
     description = models.TextField(verbose_name='locatieomschrijving',blank=True)
@@ -90,7 +90,7 @@ class Well(geo.Model):
     class Meta:
         verbose_name = 'put'
         verbose_name_plural = 'putten'
-        ordering = ['name',]
+        ordering = ['nitg','name']
 
 class Photo(models.Model): 
     well = models.ForeignKey(Well)
@@ -207,7 +207,8 @@ class Screen(models.Model):
     
     def __unicode__(self):
         #return '%s/%03d' % (self.well.nitg, self.nr)
-        return '%s/%03d' % (self.well, self.nr)
+        wid = self.well.nitg or self.well.name
+        return '%s/%03d' % (wid, self.nr)
 
     def get_absolute_url(self):
         return reverse('meetnet:screen-detail', args=[self.id])
