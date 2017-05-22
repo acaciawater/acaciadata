@@ -39,6 +39,7 @@ class Well(geo.Model):
     location = geo.PointField(srid=28992,verbose_name='locatie',help_text='locatie in rijksdriehoeksstelsel coordinaten')
     description = models.TextField(verbose_name='locatieomschrijving',blank=True)
     maaiveld = models.FloatField(null=True, blank=True, verbose_name = 'maaiveld', help_text = 'maaiveld in meter tov NAP')
+    ahn3 = models.DecimalField(null=True, blank=True, decimal_places=2, max_digits=10, verbose_name = 'AHN3 maaiveld', help_text = 'AHN3-maaiveld in meter tov NAP')
     date = models.DateField(null=True, blank=True, verbose_name = 'constructiedatum')
     straat = models.CharField(max_length=60, blank=True)
     huisnummer = models.CharField(max_length=6, blank=True)

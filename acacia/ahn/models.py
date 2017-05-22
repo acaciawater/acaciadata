@@ -40,7 +40,7 @@ class AHN(models.Model):
             for f in features:
                 props = f['properties']
                 z = props['GRAY_INDEX']
-                if z > 1e30:
+                if z > 1e30 or z < -32767:
                     z = None
                 return z
         else:

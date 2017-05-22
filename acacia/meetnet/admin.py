@@ -126,9 +126,14 @@ from django import forms
 #class WellAdmin(geo.OSMGeoAdmin):
 class WellAdmin(admin.ModelAdmin):
     formfield_overrides = {models.PointField:{'widget': forms.TextInput(attrs={'size': '100'})}}
-    actions = [actions.make_wellcharts,actions.recomp_wells,actions.add_meteo_for_wells,actions.register_wells,actions.download_well_nitg]
+    actions = [actions.make_wellcharts,
+               actions.recomp_wells,
+               actions.add_meteo_for_wells,
+               actions.register_wells,
+               actions.download_well_nitg,
+               actions.elevation_from_ahn]
     inlines = [ ScreenInline, PhotoInline]
-    list_display = ('name','nitg','network','maaiveld', 'baro', 'num_filters', 'num_photos', 'straat', 'plaats')
+    list_display = ('name','nitg','network','maaiveld', 'ahn3', 'baro', 'num_filters', 'num_photos', 'straat', 'plaats')
     #list_editable = ('location',)
     #list_per_page = 4
     ordering = ('network', 'name',)

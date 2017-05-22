@@ -9,8 +9,22 @@ from .util import make_chart, recomp, createmeteo
 from acacia.data.models import Series, Project, ProjectLocatie, MeetLocatie
 import nitg
 from acacia.data import actions
+from acacia.ahn.models import AHN
+from django.contrib.gis.geos import Point
+from django.shortcuts import get_object_or_404
+
 import StringIO
 logger = logging.getLogger(__name__)
+
+def elevation_from_ahn(modeladmin, request, queryset):
+    """ get elevation from AHN3 """
+    ahn = get_object_or_404(AHN,name='AHN3 0.5m DTM')
+    for mp in queryset:
+        x = mp.location.x
+        y = mp.location.y
+        mp.ahn3 = ahn.get_elevation(x,y)
+        mp.save()
+elevation_from_ahn.short_description = 'Bepaal NAP hoogte adhv AHN3'        
 
 def store_screens_nitg(queryset, zf):
     ''' store series as NITG format in zip file'''
