@@ -63,6 +63,7 @@ class NetworkView(DetailView):
             content.append({'network': network.id,
                             'well': well.id,
                             'name': well.name,
+                            'nitg': well.nitg,
                             'lat': pos.y,
                             'lon': pos.x,
                             'url': reverse('meetnet:well-info', args=[well.id]),
