@@ -377,6 +377,9 @@ class UploadDoneView(TemplateView):
 
 def save_file(file_obj,folder):
     path = default_storage.path(os.path.join(folder,file_obj.name))
+    dirname = os.path.dirname(path)
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
     with open(path, 'wb') as destination:
         for chunk in file_obj.chunks():
             destination.write(chunk)

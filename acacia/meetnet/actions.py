@@ -17,14 +17,18 @@ import StringIO
 logger = logging.getLogger(__name__)
 
 def elevation_from_ahn(modeladmin, request, queryset):
-    """ get elevation from AHN3 """
-    ahn = get_object_or_404(AHN,name='AHN3 0.5m DTM')
+    """ get elevation from AHN """
+    ahn3 = get_object_or_404(AHN,name='AHN3 0.5m DTM')
+    ahn2 = get_object_or_404(AHN,name='AHN2 0.5m geinterpoleerd')
     for mp in queryset:
         x = mp.location.x
         y = mp.location.y
-        mp.ahn3 = ahn.get_elevation(x,y)
+        mp.ahn = ahn3.get_elevation(x,y)
+        if mp.ahn is None:
+            # try AHN2
+            mp.ahn = ahn2.get_elevation(x,y)
         mp.save()
-elevation_from_ahn.short_description = 'Bepaal NAP hoogte adhv AHN3'        
+elevation_from_ahn.short_description = 'Bepaal maaiveldhoogte in NAP adhv AHN'        
 
 def store_screens_nitg(queryset, zf):
     ''' store series as NITG format in zip file'''

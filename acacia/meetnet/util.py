@@ -6,6 +6,7 @@ Created on Jun 3, 2014
 import logging
 import matplotlib
 from django.core.exceptions import MultipleObjectsReturned
+from django.core.mail.message import EmailMessage
 matplotlib.use('agg')
 import matplotlib.pylab as plt
 from matplotlib import rcParams
@@ -467,8 +468,9 @@ def update_series(request,screen):
     chart.series.get_or_create(series=series, defaults={'label' : 'm tov NAP'})
 
     # handpeilingen toevoegen (als beschikbaar)
-    for hand in screen.mloc.manualseries_set.all():
-        chart.series.get_or_create(series=hand,defaults={'type':'scatter', 'order': 2})
+    if hasattr(screen.mloc, 'manualseries_set'):
+        for hand in screen.mloc.manualseries_set.all():
+            chart.series.get_or_create(series=hand,defaults={'type':'scatter', 'order': 2})
     
     make_chart(screen)
 
@@ -536,6 +538,13 @@ def handle_uploaded_files(request, network, localfiles):
             name=request.user.first_name or request.user.username
             html_message = render_to_string('notify_email_nl.html', {'name': name, 'network': network, 'result': result, 'logrecords': logbuffer})
             message = render_to_string('notify_email_nl.txt', {'name': name, 'network': network, 'result': result, 'logrecords': logbuffer})
-            request.user.email_user(subject='Meetnet {net}: bestanden verwerkt'.format(net=network), message=message, html_message = html_message)
+            if len(html_message) < 5000:
+                request.user.email_user(subject='Meetnet {net}: bestanden verwerkt'.format(net=network), message=message, html_message = html_message)
+            else:
+                from django.conf import settings
+                msg = EmailMessage(subject='Meetnet {net}: bestanden verwerkt'.format(net=network), 
+                                   body=message, 
+                                   from_email=settings.DEFAULT_FROM_EMAL, 
+                                   to=request.user.email)
     finally:
         logger.removeHandler(buffer)

@@ -133,7 +133,7 @@ class WellAdmin(admin.ModelAdmin):
                actions.download_well_nitg,
                actions.elevation_from_ahn]
     inlines = [ ScreenInline, PhotoInline]
-    list_display = ('name','nitg','network','maaiveld', 'ahn3', 'baro', 'num_filters', 'num_photos', 'straat', 'plaats')
+    list_display = ('name','nitg','network','maaiveld', 'ahn', 'baro', 'num_filters', 'num_photos', 'straat', 'plaats')
     #list_editable = ('location',)
     #list_per_page = 4
     ordering = ('network', 'name',)
