@@ -12,7 +12,7 @@ The prediction is based on the following:
     - Precipitation data from field measurements [mm day-1]
     - Predictions of precipitation for next period [mm day-1]
     
-Created on Fri Mar  3 16:58:11 2017
+Created on Fri May 30 10:58:11 2017
 
 @author: Maarten Waterloo
 '''
@@ -101,7 +101,8 @@ def predict_irrigation(dtnow, psi_data, ev24_data, px_min, px_max, crop_factor,\
                        ForecastDays, P_today, cf_today, irr_mult, irr_eff,crop_type):
     '''
     Function to calculate water needs for irrigation based on soil pF status,
-    predicted precipitation en expected changes in pF values.
+    predicted precipitation en expected changes in pF values derived from the 
+    hindcastperiod.
     
     '''
 
@@ -124,14 +125,16 @@ def predict_irrigation(dtnow, psi_data, ev24_data, px_min, px_max, crop_factor,\
 
     pF_ini= pF_init
     
-    # If today's rainfall is higher than ETm, no need to irrigate next day
-    j=0    
+    # If today's rainfall is higher than ETm corrected for crop factor and 
+    # irrigation efficiency and pF is close to dritical limit, no need to
+    # irrigate on the next day
+    j=0
     if P_today > irr_mult * cf_today * mean_dryETm and pF_init < 3:
         df_irrpred.loc[dtnow + datetime.timedelta(1),'irr_min'] = 0.
         df_irrpred.loc[dtnow + datetime.timedelta(1),'irr_max'] = 0.
         pF_ini = pF_ini + pF_fall
         df_irrpred.loc[dtnow + datetime.timedelta(1),'pF_min'] = pF_ini
-        df_irrpred.loc[dtnow + datetime.timedelta(1),'pF_min'] = pF_ini
+        df_irrpred.loc[dtnow + datetime.timedelta(1),'pF_max'] = pF_ini
         df_irrpred.loc[dtnow + datetime.timedelta(1),'p_min'] = \
         df_pred_minP.loc[dtnow + datetime.timedelta(1)]
         df_irrpred.loc[dtnow + datetime.timedelta(1),'p_max'] = \
@@ -144,29 +147,53 @@ def predict_irrigation(dtnow, psi_data, ev24_data, px_min, px_max, crop_factor,\
         df_irrpred.loc[date,'p_min'] = df_pred_minP.loc[date]
         # Check if the current pF value plus expected rise are above critical
         # value and see if predicted minumum precipitation would be enough to
-        # compensate for evapotranspiration, if not then irrigate    
+        # compensate for evapotranspiration, if not then irrigate!    
         if pF_ini > pF_crit and df_pred_minP.loc[date] < \
         (df_cf.loc[date] * mean_dryETm): 
             df_irrpred.loc[date,'irr_min'] = irr_mult * (df_cf.loc[date] *\
             mean_dryETm) / irr_eff
-            pF_ini = pF_ini + pF_fall
+            pF_ini = pF_ini + pF_fall # pF goes down by daily fall
+            if pF_ini < 2:
+                pF_ini = 2
             df_irrpred.loc[date,'pF_min'] = pF_ini
+        # If pF is still below critical but expected to rise above critical
+        # on the next day and predicted min. precipitation is less then
+        # evaporative losses, we irrigate
         elif pF_ini + pF_rise > pF_crit and df_pred_minP.loc[date] < \
         (df_cf.loc[date] * mean_dryETm):
             df_irrpred.loc[date,'irr_min'] = (df_cf.loc[date] * mean_dryETm) / \
             irr_eff
-            pF_ini = pF_ini
+            pF_ini = pF_ini # no change in pF value
             df_irrpred.loc[date,'pF_min'] = pF_ini
+        # If pF is still below critical but expected to rise above critical
+        # on the next day and predicted min. precipitation is more then
+        # evaporative losses, we do not irrigate
         elif pF_ini + pF_rise > pF_crit and df_pred_minP.loc[date] > \
         (df_cf.loc[date] * mean_dryETm):
             df_irrpred.loc[date,'irr_min']  = 0.
-            pF_ini = pF_ini + pF_fall
+            pF_ini = pF_ini + pF_fall # precipitation causes fall in pF
+            if pF_ini < 2:
+                pF_ini = 2
             df_irrpred.loc[date,'pF_min'] = pF_ini
+        # pF is below critical and there is sufficient rainfall predicted, no
+        # irrigation needed
         elif pF_init + pF_rise < pF_crit and df_pred_minP.loc[date] > \
         irr_mult * (df_cf.loc[date] * mean_dryETm):
             df_irrpred.loc[date,'irr_min']  = 0.
-            pF_ini = pF_ini + pF_fall
+            pF_ini = pF_ini + pF_fall # precipitation causes fall in pF
+            if pF_ini < 2:
+                pF_ini = 2
             df_irrpred.loc[date,'pF_min'] = pF_ini
+        # If pF is still too high, irrigate
+        elif pF_ini > pF_crit:
+            df_irrpred.loc[date,'irr_min'] = irr_mult * (df_cf.loc[date] *\
+            mean_dryETm) / irr_eff
+            pF_ini = pF_ini + pF_fall
+            if pF_ini < 1:
+                pF_ini = 1
+            df_irrpred.loc[date,'pF_min'] = pF_ini
+        # In all other cases where pF is much less than critical, we do not
+        # irrigate and pF rises with the daily rise from hindcastperiod 
         else:
             df_irrpred.loc[date,'irr_min']  = 0.
             pF_ini = pF_ini + pF_rise
@@ -186,23 +213,47 @@ def predict_irrigation(dtnow, psi_data, ev24_data, px_min, px_max, crop_factor,\
             df_irrpred.loc[date,'irr_max'] = irr_mult * (df_cf.loc[date] *\
                           mean_dryETm) / irr_eff
             pF_ini = pF_ini + pF_fall
+            if pF_ini < 2:
+                pF_ini = 2
             df_irrpred.loc[date,'pF_max'] = pF_ini
+        # If pF is still below critical but expected to rise above critical
+        # on the next day and predicted max. precipitation is less then
+        # evaporative losses, we irrigate
         elif pF_ini + pF_rise > pF_crit and df_pred_maxP.loc[date] < \
         (df_cf.loc[date] * mean_dryETm):
             df_irrpred.loc[date,'irr_max'] = (df_cf.loc[date] * mean_dryETm) /\
             irr_eff
             pF_ini = pF_ini
             df_irrpred.loc[date,'pF_max'] = pF_ini
+        # If pF is still below critical but expected to rise above critical
+        # on the next day and predicted max. precipitation is more then
+        # evaporative losses, we do not irrigate
         elif pF_ini + pF_rise > pF_crit and df_pred_maxP.loc[date] > \
         (df_cf.loc[date] * mean_dryETm):
             df_irrpred.loc[date,'irr_max']  = 0.
             pF_ini = pF_ini + pF_fall
+        if pF_ini < 2:
+            pF_ini = 2
             df_irrpred.loc[date,'pF_max'] = pF_ini
+        # pF is below critical and there is sufficient rainfall predicted, no
+        # irrigation needed
         elif pF_ini + pF_rise < pF_crit and df_pred_maxP.loc[date] > \
         irr_mult * (df_cf.loc[date] * mean_dryETm):
             df_irrpred.loc[date,'irr_max']  = 0.
             pF_ini = pF_ini + pF_fall
+            if pF_ini < 2:
+                pF_ini = 2
             df_irrpred.loc[date,'pF_max'] = pF_ini
+        # If pF is still too high, irrigate
+        elif pF_ini > pF_crit:
+            df_irrpred.loc[date,'irr_max'] = irr_mult * (df_cf.loc[date] *\
+            mean_dryETm) / irr_eff
+            pF_ini = pF_ini + pF_fall
+            if pF_ini < 1:
+                pF_ini = 1
+            df_irrpred.loc[date,'pF_max'] = pF_ini
+        # In all other cases where pF is much less than critical, we do not
+        # irrigate and pF rises with the daily rise from hindcastperiod 
         else:
             df_irrpred.loc[date,'irr_max']  = 0.
             pF_ini = pF_ini + pF_rise
@@ -210,7 +261,8 @@ def predict_irrigation(dtnow, psi_data, ev24_data, px_min, px_max, crop_factor,\
             
     return df_irrpred
             
-def run(psi_data, ev24_data, p_data, px_mean, px_max, px_min, crop_factor, dtnow = datetime.date.today()):
+def run(psi_data, ev24_data, p_data, px_mean, px_max, px_min, crop_factor, \
+        dtnow = datetime.date.today()):
     # Change to data driectory    
 #     os.chdir('../data')
     
@@ -259,16 +311,18 @@ def run(psi_data, ev24_data, p_data, px_mean, px_max, px_min, crop_factor, dtnow
     
     # calculate statistics from hindcast period data
     pF_rise,mean_dryETm,pF_fall,mean_wetETm,P_today,cf_today,df_data = \
-    process_data(dtnow, psi_data, p_data, ev24_data, crop_factor,HindcastDays, P_crit,\
-                 dpF_ini,crop_type)
+    process_data(dtnow, psi_data, p_data, ev24_data, crop_factor,HindcastDays,\
+                 P_crit, dpF_ini,crop_type)
     
     df_irrigate = predict_irrigation(dtnow, psi_data, ev24_data, px_min, \
-                                     px_max, crop_factor, pF_rise, pF_fall, mean_dryETm,\
-                                     df_irrpred, pF_crit, ForecastDays, P_today, cf_today,\
+                                     px_max, crop_factor, pF_rise, pF_fall, \
+                                     mean_dryETm, df_irrpred, pF_crit,\
+                                     ForecastDays, P_today, cf_today,\
                                      irr_mult, irr_eff,crop_type)
 
     df_alldata=pd.merge(df_data,df_irrigate,how='outer',left_index=True,\
                         right_index=True)
+    
     return df_alldata
 
 #    print(df_alldata)

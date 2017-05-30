@@ -7,7 +7,7 @@ from acacia.data.models import MeetLocatie
 from acacia.data.generators.generic import GenericCSV
 import datetime
 from StringIO import StringIO
-import waterloo2 as waterloo
+import waterloo3 as waterloo
 import pandas as pd
 import pytz
 
