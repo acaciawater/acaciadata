@@ -38,7 +38,7 @@ class Gift(GenericCSV):
         px_mean = pd.DataFrame({'p_mean': px_mean})
         crop_factor = pd.DataFrame({'Potato': potato})
 
-        dtnow = datetime.datetime(2016,6,10,tzinfo=pytz.UTC)
+        dtnow = datetime.datetime.utcnow()#(2016,6,10,tzinfo=pytz.UTC)
         filename = 'gift{:%y%m%d}.csv'.format(dtnow)
         response =  waterloo.run(psi_data, ev24_data, p_data, px_mean, px_max, px_min, crop_factor, dtnow = dtnow)
         
