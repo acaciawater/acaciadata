@@ -54,18 +54,17 @@ def process_data(dtnow, psi_data, p_data, ev24_data, crop_factor, HindcastDays,
     #Get daily means of pF for hindcast period
     df_psi = psi_data.resample('D').mean()
     df_psi = df_psi.reindex(HCPeriod)
-#    df_psi = df_psi.loc[HCPeriod]
     
     #Calculate the difference between daily means
     df_psi['delta_pF']= df_psi['pF'].diff(1)
     
     #Calculate daily precipitation totals for hindcast period
     df_p = p_data.resample('D').sum()
-    df_p = df_p.loc[HCPeriod]
+    df_p = df_p.reindex(HCPeriod)
     P_today = df_p.loc[dtnow,'P']
     
     #Calculate daily reference evaporation totals for hindcast period
-    df_ev24 = ev24_data.loc[HCPeriod]
+    df_ev24 = ev24_data.reindex(HCPeriod)
     
     #Get crop factor for today
     cf_today = crop_factor.loc[dtnow,crop_type]
