@@ -20,6 +20,7 @@ import pandas as pd
 
 from django.template.loader import render_to_string
 from django.core.files.base import ContentFile
+from django.conf import settings
 
 from acacia.data.models import Project, ProjectLocatie, Generator, DataPoint, MeetLocatie, SourceFile, Chart, Series
 from acacia.data.generators import sws
@@ -223,7 +224,6 @@ def register_well(well):
     well.ploc, created = project.projectlocatie_set.get_or_create(name=well.name,defaults={'location': well.location})
     if created:
         well.save()
-    #mloc, created = ploc.meetlocatie_set.get_or_create(name=well.name,defaults={'location': well.location})
 
 def register_screen(screen):
     # register screen in acaciadata
@@ -403,12 +403,16 @@ def addmonfile(request,network,f):
             loc = MeetLocatie.objects.get(name=unicode(screen))
         except MeetLocatie.DoesNotExist:
             loc = MeetLocatie.objects.get(name='%s/%03d' % (well.nitg,filter))
+        except MultipleObjectsReturned:
+            logger.error('Meerdere meetlocaties gevonden voor dit filter')
+            return error
 
         # get/create datasource for logger
         ds, created = LoggerDatasource.objects.get_or_create(name=datalogger.serial,meetlocatie=loc,
                                                                  defaults = {'logger': datalogger, 'generator': generator, 'user': user, 'timezone': 'CET'})
     except Well.DoesNotExist:
-        # this maybe a baro logger, not installed in a well
+        # this may be a baro logger, not installed in a well
+        logger.error('Put niet gevonden: {}'.format(put))
         try:
             well = None
             screen = None
@@ -538,13 +542,11 @@ def handle_uploaded_files(request, network, localfiles):
             name=request.user.first_name or request.user.username
             html_message = render_to_string('notify_email_nl.html', {'name': name, 'network': network, 'result': result, 'logrecords': logbuffer})
             message = render_to_string('notify_email_nl.txt', {'name': name, 'network': network, 'result': result, 'logrecords': logbuffer})
-            if len(html_message) < 5000:
-                request.user.email_user(subject='Meetnet {net}: bestanden verwerkt'.format(net=network), message=message, html_message = html_message)
-            else:
-                from django.conf import settings
-                msg = EmailMessage(subject='Meetnet {net}: bestanden verwerkt'.format(net=network), 
+            msg = EmailMessage(subject='Meetnet {net}: bestanden verwerkt'.format(net=network), 
                                    body=message, 
-                                   from_email=settings.DEFAULT_FROM_EMAL, 
-                                   to=request.user.email)
+                                   from_email=settings.DEFAULT_FROM_EMAIL, 
+                                   to=[request.user.email],
+                                   attachments=[('report.html',html_message,'text/html')])
+            msg.send()
     finally:
         logger.removeHandler(buffer)
