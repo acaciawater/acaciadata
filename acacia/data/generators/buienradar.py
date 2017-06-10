@@ -33,7 +33,7 @@ class Forecast5(Generator):
         tree.parse(fil)
         root=tree.getroot()
         datum = root.find('.//datum').text
-        date = dateutil.parser.parse(datum,dayfirst=True)
+        date = dateutil.parser.parse(datum)
         date = date.replace(hour=0,minute=0,second=0,tzinfo=pytz.utc)
         verwachting = root.find('weergegevens/verwachting_meerdaags')
         data = []
