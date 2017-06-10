@@ -105,8 +105,12 @@ class Command(BaseCommand):
                         logger.info('Got %d new files' % newfilecount)
 
                     # for update use newfiles AND the existing sourcefiles that contain data for aggregation
+
+                    # TODO: adjust after to overwrite subsequent forecasts
                     if last:
                         after = min(last.values())
+                        today = datetime.now().replace(hour=0,minute=0,second=0)
+                        after = min(after, aware(today))
                         candidates = d.sourcefiles.filter(stop__gte=after)
                     else:
                         after = None
