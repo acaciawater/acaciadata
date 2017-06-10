@@ -531,7 +531,12 @@ class Datasource(models.Model, LoggerSourceMixin):
         df = self.get_data()
         if df is None:
             return None
-        df.to_csv(io, index_label='Datum/tijd')
+        num = len(df)
+        for loc, frame in df.items():
+            if num > 1:
+                # add name of location to dataframe
+                frame['location'] = unicode(loc)
+            frame.to_csv(io, index_label='Datum/tijd')
         return io.getvalue()
 
     def parametercount(self):
