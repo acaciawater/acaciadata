@@ -7,6 +7,7 @@ import logging
 import matplotlib
 from django.core.exceptions import MultipleObjectsReturned
 from django.core.mail.message import EmailMessage
+
 matplotlib.use('agg')
 import matplotlib.pylab as plt
 from matplotlib import rcParams
@@ -17,6 +18,7 @@ import datetime
 import binascii
 import numpy as np
 import pandas as pd
+import zipfile
 
 from django.template.loader import render_to_string
 from django.core.files.base import ContentFile
@@ -453,13 +455,18 @@ def addmonfile(request,network,f):
 def update_series(request,screen):
 
     user=request.user
-    series = screen.get_compensated_series()
+    
+    series = None
+    for s in screen.mloc.series():
+        if s.name.endswith('COMP') or s.name.startswith('Waterstand'):
+            series = s
+            break
+    
     if series is None:
         # Make sure screen has been registered
         register_screen(screen)
         name = '%s COMP' % screen
         series, created = Series.objects.get_or_create(name=name,mlocatie=screen.mloc,defaults={'user':user})
-        series.save()
 
     recomp(screen, series)
                  
@@ -478,10 +485,38 @@ def update_series(request,screen):
     
     make_chart(screen)
 
+   
 def handle_uploaded_files(request, network, localfiles):
+    
     num = len(localfiles)
     if num == 0:
         return
+
+    def process_file(f, name):
+        mon,screen = addmonfile(request,network, f)
+        if not mon or not screen:
+            logger.warning('Bestand {name} overgeslagen'.format(name=name))
+            return False
+        else:
+            screens.add(screen)
+            wells.add(screen.well)
+            return True
+    
+    def process_zipfile(pathname):
+        z = zipfile.ZipFile(pathname,'r')
+        result = {}
+        for name in z.namelist():
+            if name.lower().endswith('.mon'):
+                bytes = z.read(name)
+                io = StringIO(bytes)
+                io.name = name
+                result[name] = 'Success' if process_file(io, name) else 'Niet gebruikt'
+        return result
+
+    def process_plainfile(pathname):
+        with open(pathname) as f:
+            return 'Success' if process_file(f, os.path.basename(pathname)) else 'Niet gebruikt'
+        
     #incstall handler that buffers logrecords to be sent by email 
     buffer=logging.handlers.BufferingHandler(20000)
     logger.addHandler(buffer)
@@ -491,25 +526,19 @@ def handle_uploaded_files(request, network, localfiles):
         wells = set()
         result = {}
         for pathname in localfiles:
-            msg = []
+            filename = os.path.basename(pathname)
             try:
-                filename = os.path.basename(pathname)
-                with open(pathname) as f:
-                    mon,screen = addmonfile(request,network, f)
-                if not mon:
-                    msg.append('Niet gebruikt')
-                    logger.warning('Bestand {name} overgeslagen'.format(name=filename))
+                if zipfile.is_zipfile(pathname): 
+                    msg = process_zipfile(pathname)
+                    result.update(msg) 
+                    #result.update({filename+'-'+key: val for key,val in msg.iteritems()}) 
                 else:
-                    msg.append('Succes')
-                    if screen:
-                        screens.add(screen)
-                        wells.add(screen.well)
+                    result[filename] = process_plainfile(pathname)
             except Exception as e:
                 logger.exception('Probleem met bestand {name}: {error}'.format(name=filename,error=e))
                 msg.append('Fout: '+unicode(e))
                 continue
-            result[filename] = ', '.join(msg)
-    
+            
         logger.info('Bijwerken van tijdreeksen')
         num = 0
         for s in screens:
