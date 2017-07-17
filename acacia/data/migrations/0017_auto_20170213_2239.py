@@ -15,6 +15,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='meetlocatie',
             name='location',
-            field=django.contrib.gis.db.models.fields.PointField(help_text=b'Meetlocatie in Rijksdriehoekstelsel coordinaten', srid=28992, verbose_name=b'locatie', dim=3),
+            field=django.contrib.gis.db.models.fields.PointField(help_text=b'Meetlocatie in Rijksdriehoekstelsel coordinaten', srid=28992, verbose_name=b'locatie', dim=2),
         ),
     ]
