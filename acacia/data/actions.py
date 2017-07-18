@@ -81,16 +81,16 @@ def generate_series(modeladmin, request, queryset):
             # create series for all locations
             for loc in locs:
                 if loc in data:
-                    key = loc
+                    df = data[loc]
                 elif loc.name in data:
-                    key = loc.name
+                    df = data[loc.name]
                 else:
                     continue
                 logger.debug('Creating series {} for location {}'.format(p.name, loc.name))
                 series, created = p.series_set.get_or_create(mlocatie = loc, name = p.name, 
                                                          defaults= {'description': p.description, 'unit': p.unit, 'user': request.user})
                 try:
-                    series.replace(data[key])
+                    series.replace(df)
                 except Exception as e:
                     logger.error('ERROR creating series %s for location %s: %s' % (p.name, loc.name, e))
         except Exception as e:

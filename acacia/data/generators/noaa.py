@@ -75,7 +75,7 @@ class GEFS(GenericCSV):
         # download df with ensemnble data for requested variables
         dataframe = None
         for var in vars:
-            print var
+            #print var
             grid = dataset[var]
             missing_value = grid.attributes['missing_value']
             ens = grid.ens

@@ -111,9 +111,12 @@ class Command(BaseCommand):
                         logger.info('Got %d new files' % newfilecount)
 
                     # for update use newfiles AND the existing sourcefiles that contain data for aggregation
+                    today = aware(datetime.now().replace(hour=0,minute=0,second=0))
+                    after=None
                     if last:
                         after = min(last.values())
-                        candidates = d.sourcefiles.filter(start__gte=after)
+                        after = min(after, today)
+                        candidates = d.sourcefiles.filter(stop__gte=after)
                     else:
                         after = None
                         candidates = d.sourcefiles.all()
@@ -150,6 +153,9 @@ class Command(BaseCommand):
                         try:
                             # replace timeseries or update after beforelast datapoint
                             start = last.get(s,None)
+                            if start:
+                                # always replace forecast data 
+                                start = min(start,after)
                             changes = s.replace(data) if replace else s.update(data,start=start,thumbnail=thumb) 
                             if changes:
                                 updated += 1

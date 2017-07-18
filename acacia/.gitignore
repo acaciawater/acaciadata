@@ -1,7 +1,13 @@
+<<<<<<< HEAD
+*.pyc
+./secrets.py
+
+=======
 /__init__.pyc
 /celery.pyc
 /settings.pyc
 /urls.pyc
 /views.pyc
 /wsgi.pyc
+>>>>>>> master
 /.gitignore~

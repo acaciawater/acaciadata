@@ -7,7 +7,7 @@ from django.template import RequestContext
 from django.template.loader import render_to_string
 from django.shortcuts import get_object_or_404, redirect, render_to_response
 from django.http import HttpResponse
-from .models import Project, ProjectLocatie, MeetLocatie, Datasource, Series, Chart, Grid, Dashboard, TabGroup, KeyFigure
+from .models import Project, ProjectLocatie, MeetLocatie, Datasource, Series, Chart, Grid, Dashboard, TabGroup, KeyFigure, Formula
 from .util import datasource_as_zip, datasource_as_csv, meetlocatie_as_zip, series_as_csv, chart_as_csv
 from .actions import download_series_zip
 from django.views.decorators.gzip import gzip_page
@@ -16,6 +16,8 @@ from django.contrib.auth.decorators import login_required
 from dateutil.parser import parse
 import dateutil
 from acacia.data.models import aware
+import pandas as pd
+from acacia.data.util import resample_rule
 
 logger = logging.getLogger(__name__)
 
@@ -77,15 +79,34 @@ def SeriesToDict(request, pk):
 @gzip_page
 def ChartToJson(request, pk):
     c = get_object_or_404(Chart,pk=pk)
-    start = c.auto_start()
+    start = request.GET.get('start', c.auto_start())
+    stop = request.GET.get('stop', c.stop)
+    maxpts = int(request.GET.get('max',0))
     data = {}
     for cs in c.series.all():
         
         def getseriesdata(s):
-            if c.stop is None:
-                pts = [[p.date,p.value] for p in s.datapoints.filter(date__gte=start).order_by('date')]
+            queryset = s.datapoints
+            if s.validated:
+                # series has been validated. Take up to first invalid point
+                queryset = s.validation.validpoint_set 
+                first = s.validation.invalid_points.first()
+                if first:
+                    queryset = queryset.filter(date__lt=first.date)
+            if stop is None:
+                pts = [(p.date,p.value) for p in queryset.filter(date__gte=start).order_by('date')]
             else:
-                pts = [[p.date,p.value] for p in s.datapoints.filter(date__gte=start, date__lte=c.stop).order_by('date')]
+                pts = [(p.date,p.value) for p in queryset.filter(date__gte=start, date__lte=stop).order_by('date')]
+            if maxpts>0:
+                num = len(pts)
+                if num > maxpts:
+                    # thin series
+                    date_range = pts[-1][0] - pts[0][0]
+                    delta = date_range / maxpts
+                    rule = resample_rule(delta)
+                    x,y = zip(*pts)
+                    resampled = pd.Series(data=y,index=x).resample(rule)
+                    pts = zip(resampled.index,resampled.values)
             return pts
 
         pts = getseriesdata(cs.series)
@@ -263,7 +284,8 @@ class SeriesView(DetailView):
         pts = [] #[[p.date,p.value] for p in ser.datapoints.all().order_by('date')]
         sop = {'name': ser.name,
                'type': ser.type,
-               'data': pts}
+               'data': pts,
+               'turboThreshold': 0}
         if ser.type == 'scatter':
             sop['tooltip'] = {'headerFormat': '<small>{point.key}</small><br/><table>',
                               'pointFormat': '<tr><td style="color:{series.color}">{series.name}</td>\
@@ -282,15 +304,6 @@ class ChartBaseView(TemplateView):
 
     def get_json(self, chart):
         options = {
-#             'rangeSelector': { 'enabled': True,
-#                               'inputEnabled': True,
-#                               'selected': 5,
-#                               },
-#            'navigator': {'adaptToUpdatedData': False, 'enabled': False},
-#             'loading': {'style': {'backgroundColor': 'white', 'fontFamily': 'Arial', 'fontSize': 'small'},
-#                         'labelStyle': {'fontWeight': 'normal'},
-#                         'hideDuration': 0,
-#                         },
             'chart': {'animation': False, 
                       'zoomType': 'x',
                       'events': {'load': None},
@@ -307,7 +320,19 @@ class ChartBaseView(TemplateView):
             'credits': {'enabled': True, 
                         'text': 'acaciawater.com', 
                         'href': 'http://www.acaciawater.com',
-                       }
+                       },
+            'exporting' :{
+                    'sourceWidth': 500,
+                    'sourceHeight': 350,
+                    'scale': 2,
+                    'chartOptions' :{
+                        'title': {'style': {'fontSize': 0 }},                 # 0 gemaakt omdat titel niet wordt overgenomen
+                        'xAxis': {'labels': {'style': {'fontSize': 15 }}},
+                        'yAxis': {'labels': {'style': {'fontSize': 15 }}},
+                        'legend': {'itemStyle': {'fontSize': 15 },'padding': 1,},           
+                        'credits': {'enabled': False}
+                    },
+                }
             }
         if chart.start:
             options['xAxis']['min'] = tojs(chart.start)
@@ -320,26 +345,31 @@ class ChartBaseView(TemplateView):
         ymin = None
         ymax = None 
         
+        num_series = chart.series.count()
+
         for _,s in enumerate(chart.series.all()):
             ser = s.series
-            if ser.aantal() > 0:
-                if tmin:
-                    tmin = min(tmin,s.t0 or ser.van())
-                else:
-                    tmin = s.t0 or ser.van()
-                if tmax:
-                    tmax = max(tmax,s.t1 or ser.tot())
-                else:
-                    tmax = s.t1 or ser.tot()
-                if ymin:
-                    ymin = min(ymin,s.y0 or ser.minimum())
-                else:
-                    ymin = s.y0 or ser.minimum()
-                if ymax:
-                    ymax = max(ymax,s.y1 or ser.maximum())
-                else:
-                    ymax = s.y1 or ser.maximum()
-                
+            if tmin:
+                tmin = min(tmin,s.t0 or ser.van() or chart.start)
+            else:
+                tmin = s.t0 or ser.van() or chart.start
+            if tmax:
+                tmax = max(tmax,s.t1 or ser.tot() or chart.stop)
+            else:
+                tmax = s.t1 or ser.tot() or chart.stop
+            if ymin:
+                ymin = min(ymin,s.y0 or ser.minimum())
+            else:
+                ymin = s.y0 or ser.minimum()
+            if ymax:
+                ymax = max(ymax,s.y1 or ser.maximum())
+            else:
+                ymax = s.y1 or ser.maximum()
+            
+            try:
+                deltat = (ser.tot()-ser.van()).total_seconds() / ser.aantal() * 1000
+            except:
+                deltat = 24 * 3600000 # 1 day                
             title = s.label #ser.name if len(ser.unit)==0 else '%s [%s]' % (ser.name, ser.unit) if chart.series.count()>1 else ser.unit
             options['yAxis'].append({
                                      'title': {'text': title},
@@ -351,6 +381,17 @@ class ChartBaseView(TemplateView):
             name = s.name
             if name is None or name == '':
                 name = ser.name
+                
+            if not ser.validated:
+                # append asterisk to name when series has not been validated
+                if isinstance(ser,Formula):
+                    for dep in ser.get_dependencies():
+                        if not dep.validated:
+                            name += '*'
+                            break
+                else:
+                    name += '*'
+                 
             sop = {'name': name,
                    'id': 'series_%d' % ser.id,
                    'type': s.type,
@@ -366,8 +407,11 @@ class ChartBaseView(TemplateView):
             
             else:
                 sop['tooltip'] = {'valueSuffix': ' ' + ser.unit}                           
-            if s.type == 'column' and s.stack is not None:
-                sop['stacking'] = s.stack
+            if s.type == 'column':
+                if s.stack is not None:
+                    sop['stacking'] = s.stack
+                if num_series > 1:
+                    sop['pointRange'] = deltat
             if s.type == 'area' and s.series2:
                 sop['type'] = 'arearange'
                 sop['fillOpacity'] = 0.3
@@ -448,15 +492,15 @@ class ChartBaseView(TemplateView):
 class ChartView(ChartBaseView):
     template_name = 'data/chart_detail.html'
 
-    def get_context_data(self, **kwargs):
-        context = super(ChartView, self).get_context_data(**kwargs)
-        pk = context.get('pk',1)
-        if pk is not None:
-            chart = Chart.objects.get(pk=pk)
-            jop = self.get_json(chart)
-            context['options'] = jop
-            context['chart'] = chart
-        return context
+#     def get_context_data(self, **kwargs):
+#         context = super(ChartView, self).get_context_data(**kwargs)
+#         pk = context.get('pk',1)
+#         if pk is not None:
+#             chart = Chart.objects.get(pk=pk)
+#             jop = self.get_json(chart)
+#             context['options'] = jop
+#             context['chart'] = chart
+#         return context
     
 class DashView(TemplateView):
     template_name = 'data/dash.html'
