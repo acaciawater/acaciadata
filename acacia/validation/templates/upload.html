@@ -1,0 +1,97 @@
+{% load staticfiles %}
+{% load l10n %}
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+<link href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+.btn-file {
+	position: relative;
+	overflow: hidden;
+}
+
+.btn-file input[type=file] {
+	position: absolute;
+	top: 0;
+	right: 0;
+	min-width: 100%;
+	min-height: 100%;
+	font-size: 100px;
+	text-align: right;
+	filter: alpha(opacity = 0);
+	opacity: 0;
+	background: red;
+	cursor: inherit;
+	display: block;
+}
+
+input[readonly] {
+	background-color: white !important;
+	cursor: text !important;
+}
+</style>
+
+<script>
+	$(document).on(
+			'change',
+			'.btn-file :file',
+			function() {
+				var input = $(this), numFiles = input.get(0).files ? input
+						.get(0).files.length : 1, label = input.val().replace(
+						/\\/g, '/').replace(/.*\//, '');
+				input.trigger('fileselect', [ numFiles, label ]);
+			});
+
+	$(document).ready(
+			function() {
+				$('.btn-file :file').on(
+						'fileselect',
+						function(event, numFiles, label) {
+							var input = $(this).parents('.input-group').find(
+									':text'), log = numFiles > 1 ? numFiles
+									+ ' bestanden geselecteerd' : label;
+
+							if (input.length) {
+								input.val(log);
+							} else {
+								if (log)
+									alert(log);
+							}
+						});
+			});
+</script>
+</head>
+<body>
+	<div class='container container-fluid'>
+		<div class='row'>
+			<h4>Upload van gevalideerde tijdreeks</h4>
+		</div>
+		<div class="row">
+			<form action="" method="post" enctype="multipart/form-data">
+				{% csrf_token %}
+				{{form.errors}}
+				<div class="col-sm-6">
+					<div class="input-group">
+						<span class="input-group-btn">
+ 							<span class="btn btn-primary btn-file"> Browse&hellip; {{form.filename}} </span>
+						</span>
+						<input type="text" id="text1" class="form-control" readonly>
+					</div>
+				</div>
+				<div class="col-sm-1">
+					<button type="submit" class="btn btn-primary">Upload</button>
+				</div>
+			</form>
+		</div>
+		<br>
+		<div class="row">
+			<p class="text-muted small">
+			<i>Klik op Browse&hellip; om een gevalideerd Excel bestand te selecteren. Door op Upload te klikken wordt de geselecteerde bestanden naar de server gekopieerd en verder verwerkt.</i>
+			</p>
+		</div>
+	</div>
+</body>
+</html>

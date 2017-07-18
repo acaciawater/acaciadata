@@ -1,0 +1,193 @@
+{% extends 'bootbase.html' %}
+{% load staticfiles %}
+{% load l10n %}
+{% block title %}Validation {{object}}{% endblock title %}
+{% block breadcrumbs %}{% endblock %}
+{% block brandname %}{% endblock %}
+{% block extrastyle %}	
+<style>
+.icon-stack {
+    position: relative;
+}
+.icon-stack .glyphicon {
+    position: absolute; 
+}
+
+.badge {
+  padding: 1px 9px 2px;
+  font-size: 12.025px;
+  font-weight: bold;
+  white-space: nowrap;
+  color: #ffffff;
+  background-color: #999999;
+  -webkit-border-radius: 9px;
+  -moz-border-radius: 9px;
+  border-radius: 9px;
+}
+.badge:hover {
+  color: #ffffff;
+  text-decoration: none;
+  cursor: pointer;
+}
+.badge-error {
+  background-color: #b94a48;
+}
+.badge-error:hover {
+  background-color: #953b39;
+}
+.badge-warning {
+  background-color: #f89406;
+}
+.badge-warning:hover {
+  background-color: #c67605;
+}
+.badge-success {
+  background-color: #468847;
+}
+.badge-success:hover {
+  background-color: #356635;
+}
+.badge-info {
+  background-color: #3a87ad;
+}
+.badge-info:hover {
+  background-color: #2d6987;
+}
+.badge-inverse {
+  background-color: #333333;
+}
+.badge-inverse:hover {
+  background-color: #1a1a1a;
+}
+
+div img {
+	height: 16px;
+}
+
+.addrule {
+  margin-top: 12px;
+  margin-left: 12px;
+  font-size: 1.5em;
+  color: #3a87ad;
+}
+.red {
+	color: red;
+}
+a:hover {
+   text-decoration: none;
+}
+
+</style>
+{% endblock extrastyle %}
+{% block script %}
+{{ block.super }}
+<!-- <script src= {% static "dropzone.js" %}></script>  -->
+<!-- <link rel="stylesheet" href= {% static "dropzone.css" %}/> -->
+<script>
+  function opladen() {
+	  var up = $("upload");
+	  up.toggle();
+	  return false;
+  }
+</script>
+{% endblock script %}
+{% block content %}
+	<div class='container-fluid'>
+		<div class='row'>
+			<div class="col-md-12">
+			{% with validation.series as s %}
+				<h4>{{s.mlocatie}}, Tijdreeks {{s.name}} (#{{s.id}})</h4>
+			{% endwith %}
+			</div>
+		</div>
+		<div class="row">
+			<div class="col-md-12">
+				<iframe src="show/{{validation.id}}" height="400px" width="100%" marginwidth="0" seamless="seamless" frameborder="0"></iframe>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col-md-6">
+				<div class="list-group">
+					<h3>Validatieregels</h3>
+						{% for sub in validation.subresult_set.all %}
+						<div class="list-group-item">
+							<span class="badge badge-success" title="aantal geldige metingen">{{sub.valid}}</span>
+							{%if sub.invalid %}<span class="badge badge-error" title = "aantal ongeldige metingen">{{sub.invalid}}</span>{% endif %}
+							<h4 class="list-group-item-heading">{{sub.rule}}</h4>
+							<p class="list-group-item-text">{{sub.rule.description}}</p>
+						</div>
+						{% endfor %}
+					<div>
+						<a href="{% url 'validation:remove_points' validation.id %}" class="addrule pull-right glyphicon glyphicon-remove" title="Gevalideerde data verwijderen"></a>
+						<a href="{% url 'admin:validation_validation_change' validation.id %}?next={{next}}" class="addrule pull-right glyphicon glyphicon-pencil" title="Validatie wijzigen"></a>
+						<a href="" class="addrule pull-right glyphicon glyphicon-envelope" title="Email notificatie"></a>
+						<a href="{% url 'validation:validate' validation.id %}" class="addrule pull-right glyphicon glyphicon-refresh" title="Hervalideren"></a>
+					</div>
+				</div>
+			</div>
+			<div class="col-md-6">
+				<div class="list-group">
+					<h3>Resultaten</h3>
+					{% with validation.series as s %}
+					<div class="list-group-item">
+						<h4 class="list-group-item-heading">Tijdreeks <a href="{{s.get_absolute_url}}">{{s}}</a>
+						<a href="{% url 'validation:stats' validation.id %}" class="addrule pull-right glyphicon small glyphicon-refresh" title="Statistiek verversen"></a>
+						</h4>
+						<p class="list-group-item-text">Aantal metingen: {{s.aantal}}</p>
+						<p class="list-group-item-text">Periode: {{s.van}} t/m {{s.tot}}</p>
+						<p class="list-group-item-text">Min/max: {{s.minimum}} - {{s.maximum}}</p>
+						<p class="list-group-item-text">Gemiddelde: {{s.gemiddelde}}</p>
+						<p class="list-group-item-text">Standaardafwijking: {{s.stddev}}</p>
+					</div>
+					{% endwith %}
+					
+					{% with ivp=validation.invalid_points result=validation.result %}
+					  {% with ivp.count as aantal %}
+						  {% if aantal %}
+							<div class="list-group-item list-group-item-danger">
+								<img class="pull-right" src="{% static "warning64.png" %}"/>
+								<h4 class="list-group-item-heading">Validatie</h4>
+								{% if result %}
+									<p class="list-group-item-text">Validatiebestand: <a href = "{{result.xlfile}}">{{result.xlfile.name}}</a></p>
+									<p class="list-group-item-text">Upload op {{result.date}} door {{result.user.get_full_name|default:result.user}}</a></p>
+								{% endif %}
+								<p class="list-group-item-text">Aantal ongeldige metingen: {{aantal}}</p>
+								<p class="list-group-item-text">Eerste ongeldige meting: {{ivp.first.date}}</p>
+							</div>
+						  {% else %}
+							<div class="list-group-item list-group-item-success">
+								<img class="pull-right" src="{% static "camera_test.png" %}"/>
+								<h4 class="list-group-item-heading">Validatie</h4>
+								{% if result %}
+									{% if result.xlfile %}
+										<p class="list-group-item-text">Validatiebestand: <a href = "{{result.xlfile}}">{{result.xlfile.name}}</a></p>
+										<p class="list-group-item-text">Upload op {{result.date}} door {{result.user.get_full_name|default:result.user}}</a></p>
+									{% else %}
+										<p class="list-group-item-text">Geaccepteerd op {{result.date}} door {{result.user.get_full_name|default:result.user}}</a></p>
+									{% endif %}
+								{% endif %}									
+								<p class="list-group-item-text">Geen ongeldige metingen</p>
+								<p></p>
+							</div>
+						  {% endif %}
+					   {% endwith %}
+					{% endwith %}
+					{% with validation.result as result %}
+					{% if result %} <a href="{% url 'validation:remove_result' result.id %}" class="addrule red pull-right glyphicon glyphicon-remove" title="Validatiebestand verwijderen"></a> {% endif %}
+					<a href="{% url 'validation:upload' validation.id %}?next={{next}}" class="addrule pull-right glyphicon glyphicon-upload" title="Upload validatiebestand"></a> 
+					<a href="{% url 'validation:download' validation.id %}" class="addrule pull-right glyphicon glyphicon-download" title="Download validatiebestand"></a>
+					<a href="{% url 'validation:accept' validation.id %}" class="addrule pull-right glyphicon glyphicon-ok" title="Alle ongeldige punten verwijderen"></a> 
+					<input id=upload type="file" style="display:none"/>
+					{% endwith %}
+				</div>
+			</div>
+		</div>
+		<a data-toggle="modal" href="#uploadModal">Upload</a>
+		{% include "upload_modal.html" %}
+<!-- 		<div class="row"> -->
+<!-- 			<div class="col-md-6"></div> -->
+<!-- 			<iframe class="col-md-6" src="up/{{validation.id}}" width="100%" marginwidth="0" seamless="seamless" frameborder="0"></iframe> -->
+<!-- 		</div> -->
+	</div>
+	
+{% endblock content %}

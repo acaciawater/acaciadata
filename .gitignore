@@ -49,7 +49,7 @@ coverage.xml
 
 # Django stuff:
 *.log
-secrets.py
+secrets.*
 
 #eclipse:
 .settings/
@@ -61,3 +61,7 @@ docs/_build/
 target/
 /server_install.txt
 /.gitignore~
+<<<<<<< HEAD
+/logs/
+=======
+>>>>>>> master

@@ -15,6 +15,8 @@ import numpy as np
 import pandas as pd
 import json,util,StringIO,pytz,logging
 import dateutil
+from django.db.models.aggregates import StdDev
+from django.core.exceptions import ObjectDoesNotExist
 
 THEME_CHOICES = ((None,'standaard'),
                  ('dark-blue','blauw'),
@@ -315,7 +317,7 @@ class Datasource(models.Model, LoggerSourceMixin):
             loc = MeetLocatie.objects.get(pk=self.meetlocatie.pk)
             lonlat = loc.latlon()
             options['lonlat'] = (lonlat.x,lonlat.y)
-            options['meetlocatie'] = loc#.name
+            options['meetlocatie'] = unicode(loc)
         if self.username:
             options['username'] = self.username
             options['password'] = self.password
@@ -547,7 +549,12 @@ class Datasource(models.Model, LoggerSourceMixin):
         df = self.get_data()
         if df is None:
             return None
-        df.to_csv(io, index_label='Datum/tijd')
+        num = len(df)
+        for loc, frame in df.items():
+            if num > 1:
+                # add name of location to dataframe
+                frame['location'] = unicode(loc)
+            frame.to_csv(io, index_label='Datum/tijd')
         return io.getvalue()
 
     def parametercount(self):
@@ -1233,14 +1240,21 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         if pts == []:
             logger.warning('No valid datapoints found in series %s' % self.name)
             return 0;
-
-        # get points to delete
-        query = self.datapoints.filter(date__gte=start)
-        # delete properties first to avoid foreignkey constraint failure
-        self.properties.delete()
-        deleted = query.delete()
-        num_deleted = len(deleted) if deleted else 0
         
+        count = self.datapoints.count()
+        if count>0:
+            # delete properties first to avoid foreignkey constraint failure
+            try:
+                self.properties.delete()
+            except:
+                pass
+            values = ["(%d,'%s')" % (self.id, datetime.datetime.strftime(p.date, '%Y-%m-%d %H:%M:%S')) for p in pts]
+            values = '(' + ','.join(values) + ')'
+            sql = 'DELETE from {table} WHERE (`series_id`,`date`) IN {values}'.format(table=DataPoint._meta.db_table, values=values)
+            cursor = connection.cursor()
+            num_deleted = cursor.execute(sql)
+        else:
+            num_deleted = 0    
         created = self.datapoints.bulk_create(pts)
         num_created = len(created) - num_deleted
         num_updated = num_deleted
@@ -1275,6 +1289,9 @@ class Series(PolymorphicModel,LoggerSourceMixin):
  
     def gemiddelde(self):
         return self.getproperties().gemiddelde
+
+    def stddev(self):
+        return self.getproperties().stddev
  
     def laatste(self):
         return self.getproperties().laatste
@@ -1297,13 +1314,22 @@ class Series(PolymorphicModel,LoggerSourceMixin):
     def filter_points(self, **kwargs):
         start = kwargs.get('start', None)
         stop = kwargs.get('stop', None)
+
+        queryset = self.datapoints
+        raw = kwargs.get('raw', False)
+        if self.validated and not raw:
+            queryset = self.validation.validpoint_set.all()
+            first = self.validation.invalid_points.first()
+            if first:
+                queryset = queryset.filter(date__lt=first.date)
+                
         if start is None and stop is None:
-            return self.datapoints.all()
+            return queryset.all()
         if start is None:
             start = self.van()
         if stop is None:
             stop = self.tot()
-        return self.datapoints.filter(date__range=[start,stop])
+        return queryset.filter(date__range=[start,stop])
     
     def to_array(self, **kwargs):
         points = self.filter_points(**kwargs)
@@ -1343,6 +1369,31 @@ class Series(PolymorphicModel,LoggerSourceMixin):
             logger.exception('Error generating thumbnail: %s' % e)
         return self.thumbnail
 
+    @property
+    def validpoints(self):
+        try:
+            for v in self.validation.validpoint_set.all():
+                if v.value is None:
+                    break
+                yield v
+        except ObjectDoesNotExist:
+            # no validation available
+            pass
+        
+    @property
+    def is_valid(self):
+        try:
+            return self.validation.result.valid 
+        except ObjectDoesNotExist:
+            # no validation or no validation.result
+            return False
+    @property
+    def validated(self):
+        try:
+            return self.validation.validpoint_set.count() > 0
+        except:
+            return False
+        
 # cache series properties to speed up loading admin page for series
 class SeriesProperties(models.Model):
     series = models.OneToOneField(Series,related_name='properties')
@@ -1352,18 +1403,20 @@ class SeriesProperties(models.Model):
     van = models.DateTimeField(null = True)
     tot = models.DateTimeField(null = True)
     gemiddelde = models.FloatField(default = 0, null = True)
+    stddev = models.FloatField(default = 0, null = True)
     eerste = models.ForeignKey('DataPoint',null = True, related_name='first')
     laatste = models.ForeignKey('DataPoint',null = True, related_name='last')
     beforelast = models.ForeignKey('DataPoint', null = True, related_name='beforelast')  
 
     def update(self, save = True):
-        agg = self.series.datapoints.aggregate(van=Min('date'), tot=Max('date'), min=Min('value'), max=Max('value'), avg=Avg('value'))
+        agg = self.series.datapoints.aggregate(van=Min('date'), tot=Max('date'), min=Min('value'), max=Max('value'), avg=Avg('value'), std = StdDev('value'))
         self.aantal = self.series.datapoints.count()
         self.van = agg.get('van', datetime.datetime.now())
         self.tot = agg.get('tot', datetime.datetime.now())
         self.min = agg.get('min', 0)
         self.max = agg.get('max', 0)
         self.gemiddelde = agg.get('avg', 0)
+        self.stddev = agg.get('std', 0)
         if self.aantal == 0:
             self.eerste = None
             self.laatste = None
@@ -1437,7 +1490,12 @@ class Formula(Series):
             # using intersecting time interval only (no extrapolation)
             start = max([v.index.min() for v in variables.values()])
             stop = min([v.index.max() for v in variables.values()])
-            df = df[start:stop]
+            try:
+                # sometimes strange errors occur:
+                # cannot do slice indexing on <class 'pandas.indexes.range.RangeIndex'> with these indexers [2014-02-20 00:00:00+00:00] of <class 'pandas.tslib.Timestamp'>
+                df = df[start:stop]
+            except:
+                pass
 
         # interpolate missing values
         df = df.interpolate(method='time')
@@ -1571,13 +1629,13 @@ class Chart(PolymorphicModel):
             return start
         return self.start
 
-    def to_pandas(self):
-        s = { unicode(cd.series): cd.series.to_pandas() for cd in self.series.all() }
+    def to_pandas(self,**kwargs):
+        s = { unicode(cd.series)+('' if cd.series.validated else '*'): cd.series.to_pandas(**kwargs) for cd in self.series.all() }
         return pd.DataFrame(s)
     
-    def to_csv(self):
+    def to_csv(self,**kwargs):
         io = StringIO.StringIO()
-        df = self.to_pandas()
+        df = self.to_pandas(**kwargs)
         df.to_csv(io,index_label='Datum/tijd')
         return io.getvalue()
         
