@@ -73,6 +73,7 @@ class Generator(object):
                 urllib2.install_opener(opener)
 
             try:
+                logger.debug('Downloading '+url)
                 response = urllib2.urlopen(url)
             except urllib2.URLError as e:
                 logger.exception('ERROR opening {url}: {reason}'.format(url=url,reason=e.reason))
