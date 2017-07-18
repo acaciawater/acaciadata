@@ -1391,7 +1391,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
     def validated(self):
         try:
             return self.validation.validpoint_set.count() > 0
-        except ObjectDoesNotExist:
+        except:
             return False
         
 # cache series properties to speed up loading admin page for series
