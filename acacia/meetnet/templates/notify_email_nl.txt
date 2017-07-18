@@ -3,14 +3,11 @@ Beste {{name}},
 De verwerking van de aangeboden bestanden voor meetnet {{network}} is gereed.
 
 Samenvatting:
-Bestand			Resultaat{% for key,val in result.items %}
+{% for key,val in result.items %}
 {{key}}:	{{val}}
 {% endfor %}
 
-Details:
-Tijd			Bericht{% for r in logrecords %}
-{{r.asctime|slice:":-4"}}	{{r.message}
-{% endfor %}
+Details over de verwerking vindt u de bijlage
 
 Met vriendelijke groet,
 Acacia Water    

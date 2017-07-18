@@ -7,7 +7,8 @@ import os, pandas as pd, numpy as np
 from django.db import models
 from django.contrib.gis.db import models as geo
 from django.core.urlresolvers import reverse
-from acacia.data.models import Datasource, Series, SourceFile
+from acacia.data.models import Datasource, Series, SourceFile, ProjectLocatie,\
+    MeetLocatie
 from acacia.data import util
 
 class Network(models.Model):
@@ -29,14 +30,16 @@ class Network(models.Model):
         verbose_name_plural = 'netwerken'
 
 class Well(geo.Model):
-    #TODO: this class should inherit from acacia.data.models.MeetLocatie
+    #TODO: this class should inherit from acacia.data.models.ProjectLocatie
+    ploc = models.ForeignKey(ProjectLocatie, null=True, blank=True)
     network = models.ForeignKey(Network, verbose_name = 'Meetnet')
-    name = models.CharField(max_length=50, unique=True, verbose_name = 'naam')
-    nitg = models.CharField(max_length=50, verbose_name = 'TNO/NITG nummer', blank=True)
+    name = models.CharField(max_length=50, verbose_name = 'naam')
+    nitg = models.CharField(max_length=50, unique=True, verbose_name = 'TNO/NITG nummer', blank=True)
     bro = models.CharField(max_length=50, verbose_name = 'BRO nummer', blank=True)
     location = geo.PointField(srid=28992,verbose_name='locatie',help_text='locatie in rijksdriehoeksstelsel coordinaten')
     description = models.TextField(verbose_name='locatieomschrijving',blank=True)
     maaiveld = models.FloatField(null=True, blank=True, verbose_name = 'maaiveld', help_text = 'maaiveld in meter tov NAP')
+    ahn = models.DecimalField(null=True, blank=True, decimal_places=2, max_digits=10, verbose_name = 'AHN maaiveld', help_text = 'AHN-maaiveld in meter tov NAP')
     date = models.DateField(null=True, blank=True, verbose_name = 'constructiedatum')
     straat = models.CharField(max_length=60, blank=True)
     huisnummer = models.CharField(max_length=6, blank=True)
@@ -88,7 +91,7 @@ class Well(geo.Model):
     class Meta:
         verbose_name = 'put'
         verbose_name_plural = 'putten'
-        ordering = ['name',]
+        ordering = ['nitg','name']
 
 class Photo(models.Model): 
     well = models.ForeignKey(Well)
@@ -118,6 +121,7 @@ MATERIALS = (
              ('ms', 'Staal'),
              )                  
 class Screen(models.Model):
+    mloc = models.ForeignKey(MeetLocatie, null=True, blank=True)
     well = models.ForeignKey(Well, verbose_name = 'put')
     nr = models.IntegerField(default=1, verbose_name = 'filternummer')
     density = models.FloatField(default=1000.0,verbose_name='dichtheid',help_text='dichtheid van het water in de peilbuis in kg/m3')
@@ -133,29 +137,23 @@ class Screen(models.Model):
         def bydate(record):
             return record[0]
 
-        levels = []
         # luchtdruk gecompenseerde standen (tov NAP) ophalen
-        name = '%s %s' % (unicode(self), kind)
-        try:
-            series = Series.objects.get(name=name)
-        except Series.DoesNotExist:
-            # try old naming convention
-            name = '%s/%03d %s' % (self.well.nitg, self.nr, kind)
-            try:
-                series = Series.objects.get(name=name)
-            except:
-                return levels
-        for dp in series.filter_points(**kwargs):
+        series = self.get_manual_series(**kwargs) if kind == 'HAND' else self.get_compensated_series(**kwargs)
+        if series is None:
+            return []
+
+        levels = []
+        for index,value in series.iteritems():
             try:
                 if ref == 'nap':
-                    level = dp.value
+                    level = value
                 elif ref == 'bkb':
-                    level = self.refpnt - dp.value
+                    level = self.refpnt - value
                 elif ref == 'mv':
-                    level = self.well.maaiveld - dp.value
+                    level = self.well.maaiveld - value
                 else:
                     raise 'Illegal reference for screen %s' % unicode(self)
-                levels.append((dp.date, level))
+                levels.append((index, level))
             except:
                 pass # refpnt, maaiveld or value is None
         levels.sort(key=bydate)
@@ -174,23 +172,31 @@ class Screen(models.Model):
         return files
 
     def num_files(self):
-        files = self.get_monfiles()
-        return len(files)
+        try:
+            return self.mloc.datasource().sourcefiles().count()
+        except:
+            return 0
     
     def num_standen(self):
-        files = self.get_monfiles()
-        return sum([f.rows for f in files]) if len(files)> 0 else 0
+        try:
+            return sum([s.aantal() for s in self.mloc.series()])
+        except:
+            return 0
 
     def has_data(self):
-        return self.num_standen() > 0
+        return self.num_standen()>0
 
     def start(self):
-        files = self.get_monfiles()
-        return min([f.start for f in files]) if len(files) > 0 else None
+        try:
+            return min([d.start() for d in self.mloc.datasource_set.all()])
+        except:
+            return None
 
     def stop(self):
-        files = self.get_monfiles()
-        return max([f.stop for f in files]) if len(files) > 0 else None
+        try:
+            return max([d.stop() for d in self.mloc.datasource_set.all()])
+        except:
+            return None
         
     def get_loggers(self):
         return [p.logger for p in self.loggerpos_set.all().group_by('logger').last()]
@@ -202,7 +208,8 @@ class Screen(models.Model):
     
     def __unicode__(self):
         #return '%s/%03d' % (self.well.nitg, self.nr)
-        return '%s/%03d' % (self.well, self.nr)
+        wid = self.well.nitg or self.well.name
+        return '%s/%03d' % (wid, self.nr)
 
     def get_absolute_url(self):
         return reverse('meetnet:screen-detail', args=[self.id])
@@ -216,8 +223,23 @@ class Screen(models.Model):
             y = []
         return pd.Series(index=x, data=y, name=unicode(self))
         
+    def get_manual_series(self, **kwargs):
+        # Handpeilingen ophalen
+        if hasattr(self.mloc, 'manualseries_set'):
+            for s in self.mloc.manualseries_set.all():
+                if s.name.endswith('HAND'):
+                    return s.to_pandas(**kwargs)
+        return None
+            
+    def get_compensated_series(self, **kwargs):
+        # Gecompenseerde tijdreeksen (tov NAP) ophalen (Alleen voor Divers and Leiderdorp Instruments)
+        for s in self.mloc.series():
+            if s.name.endswith('COMP') or s.name.startswith('Waterstand'):
+                return s.to_pandas(**kwargs)
+        return None
+    
     def stats(self):
-        df = self.to_pandas()
+        df = self.get_compensated_series()
         s = df.describe(percentiles=[.1,.5,.9])
         s['p10'] = None if np.isnan(s['10%']) else s['10%']
         s['p50'] = None if np.isnan(s['50%']) else s['50%']
@@ -236,12 +258,14 @@ DIVER_TYPES = (
                ('ctd','CTD-Diver'),
                ('16','Cera-Diver'),
                ('14','Mini-Diver'),
-               ('baro','Baro-Diver')
+               ('baro','Baro-Diver'),
+               ('etd','ElliTrack-D'),
+               ('etd2','ElliTrack-D2'), # voor in straatpot
                )
 class Datalogger(models.Model):
     serial = models.CharField(max_length=50,verbose_name = 'serienummer',unique=True)
     model = models.CharField(max_length=50,verbose_name = 'type', default='14', choices=DIVER_TYPES)
-
+    
     def __unicode__(self):
         return self.serial
  
@@ -266,7 +290,9 @@ class LoggerPos(models.Model):
         ordering = ['start_date','logger']
 
     def stats(self):
-        df = self.screen.to_pandas(start=self.start_date, stop=self.end_date)
+        df = self.screen.get_compensated_series(start=self.start_date, stop=self.end_date)
+        if df is None:
+            return None
         s = df.describe(percentiles=[.1,.5,.9])
         s['p10'] = None if np.isnan(s['10%']) else s['10%']
         s['p50'] = None if np.isnan(s['50%']) else s['50%']
@@ -279,6 +305,13 @@ class LoggerDatasource(Datasource):
     class Meta:
         verbose_name = 'Loggerdata'
         verbose_name_plural = 'Loggerdata'
+        
+    def build_download_options(self, start=None):
+        # add logger name to download options
+        options = Datasource.build_download_options(self, start=start)
+        if options is not None:
+            options['logger'] = unicode(self.logger)
+        return options
 
 class MonFile(SourceFile):
     company = models.CharField(max_length=50)

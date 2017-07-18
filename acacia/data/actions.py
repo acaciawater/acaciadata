@@ -80,14 +80,19 @@ def generate_series(modeladmin, request, queryset):
             
             # create series for all locations
             for loc in locs:
-                if loc.name in data:
-                    logger.debug('Creating series {} for location {}'.format(p.name, loc.name))
-                    series, created = p.series_set.get_or_create(mlocatie = loc, name = p.name, 
-                                                             defaults= {'description': p.description, 'unit': p.unit, 'user': request.user})
-                    try:
-                        series.replace(data[loc.name])
-                    except Exception as e:
-                        logger.error('ERROR creating series %s for location %s: %s' % (p.name, loc.name, e))
+                if loc in data:
+                    key = loc
+                elif loc.name in data:
+                    key = loc.name
+                else:
+                    continue
+                logger.debug('Creating series {} for location {}'.format(p.name, loc.name))
+                series, created = p.series_set.get_or_create(mlocatie = loc, name = p.name, 
+                                                         defaults= {'description': p.description, 'unit': p.unit, 'user': request.user})
+                try:
+                    series.replace(data[key])
+                except Exception as e:
+                    logger.error('ERROR creating series %s for location %s: %s' % (p.name, loc.name, e))
         except Exception as e:
             logger.error('ERROR creating series %s: %s' % (p.name, e))
 generate_series.short_description = 'Standaard tijdreeksen aanmaken voor geselecteerde parameters'
@@ -139,7 +144,14 @@ from datetime import datetime, timedelta
 from django.template.loader import render_to_string
 from django.contrib.sites.models import Site
 
-def email_series_zip(request, queryset, zf):
+def store_series_zip(queryset, zf):
+    for series in queryset:
+        filename = slugify(unicode(series)) + '.csv'
+        logger.debug('adding %s' % filename)
+        csv = series.to_csv()
+        zf.writestr(filename,csv)
+
+def email_series_zip(request, queryset, zf, store=store_series_zip):
     if not queryset:
         logger.warning('Not sending emails: empty queryset')
     elif not request.user.email:
@@ -147,11 +159,7 @@ def email_series_zip(request, queryset, zf):
     else:
         url = request.build_absolute_uri(settings.EXPORT_URL+os.path.basename(zf.filename))
         logger.debug('Preparing zip file %s' % url)
-        for series in queryset:
-            filename = slugify(unicode(series)) + '.csv'
-            logger.debug('adding %s' % filename)
-            csv = series.to_csv()
-            zf.writestr(filename,csv)
+        store(queryset, zf)
         zf.close()
         name = request.user.get_full_name() or request.user.username
         logger.debug('Done, sending email with link to %s (%s)' % (name, request.user.email))
@@ -167,13 +175,13 @@ def email_series_zip(request, queryset, zf):
         else:
             logger.debug('Email sent')
 
-def download_series_zip(modeladmin, request, queryset):
+def download_series_zip(modeladmin, request, queryset, store=store_series_zip):
     if not os.path.exists(settings.EXPORT_ROOT):
         os.mkdir(settings.EXPORT_ROOT)
     tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.zip', dir=settings.EXPORT_ROOT, delete=False)
     zipfile = ZipFile(tmp,'w')
     series = list(queryset)
-    t = Thread(target=email_series_zip, args=(request,series,zipfile))
+    t = Thread(target=email_series_zip, args=(request,series,zipfile,store))
     t.start()
     
 download_series_zip.short_description = 'Geselecteerde tijdreeksen converteren naar csv en link naar zip bestand emailen'

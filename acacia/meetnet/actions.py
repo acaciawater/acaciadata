@@ -3,11 +3,61 @@ Created on Jul 8, 2014
 
 @author: theo
 '''
-import os
+import os, sys, logging
 from django.utils.text import slugify
 from .util import make_chart, recomp, createmeteo
 from acacia.data.models import Series, Project, ProjectLocatie, MeetLocatie
- 
+import nitg
+from acacia.data import actions
+from acacia.ahn.models import AHN
+from django.contrib.gis.geos import Point
+from django.shortcuts import get_object_or_404
+
+import StringIO
+logger = logging.getLogger(__name__)
+
+def elevation_from_ahn(modeladmin, request, queryset):
+    """ get elevation from AHN """
+    ahn3 = get_object_or_404(AHN,name='AHN3 0.5m DTM')
+    ahn2 = get_object_or_404(AHN,name='AHN2 0.5m geinterpoleerd')
+    for mp in queryset:
+        x = mp.location.x
+        y = mp.location.y
+        mp.ahn = ahn3.get_elevation(x,y)
+        if mp.ahn is None:
+            # try AHN2
+            mp.ahn = ahn2.get_elevation(x,y)
+        mp.save()
+elevation_from_ahn.short_description = 'Bepaal maaiveldhoogte in NAP adhv AHN'        
+
+def store_screens_nitg(queryset, zf):
+    ''' store series as NITG format in zip file'''
+    for screen in queryset:
+        if screen.has_data():
+            if screen.well.nitg:
+                filename = '{}_{:03d}.nitg'.format(screen.well.nitg, screen.nr)
+            else:
+                filename = '{}_{:03d}.nitg'.format(screen.well.name, screen.nr)
+            logger.debug('adding %s' % filename)
+            io = StringIO.StringIO()
+            nitg.write_header(io, source=screen.well.network.name)
+            nitg.write_data(io, screen)
+            zf.writestr(filename,io.getvalue())
+
+def store_wells_nitg(queryset, zf):
+    ''' store series as NITG format in zip file'''
+    for well in queryset:
+        if well.has_data():
+            store_screens_nitg(well.screen_set.all(), zf)
+            
+def download_screen_nitg(modeladmin, request, queryset):
+    actions.download_series_zip(modeladmin, request, queryset, store_screens_nitg)
+download_screen_nitg.short_description='NITG Export'
+    
+def download_well_nitg(modeladmin, request, queryset):
+    actions.download_series_zip(modeladmin, request, queryset, store_wells_nitg)
+download_well_nitg.short_description='NITG Export'
+
 def make_wellcharts(modeladmin, request, queryset):
     for w in queryset:
         if not w.has_data():

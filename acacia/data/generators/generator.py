@@ -5,7 +5,6 @@ import acacia.data.util as util
 from django.utils import timezone
 from django.core.files.base import File
 import pandas as pd
-
 import logging
 logger = logging.getLogger(__name__)
 
@@ -85,6 +84,7 @@ class Generator(object):
                 content = response.read()
                 if util.is_dirlist(content):
                     # download all files in directory listing
+                    pattern = kwargs['pattern',None] # search pattern
                     dirlist = util.get_dirlist(content)
                     tz = timezone.get_current_timezone()
                     for f in dirlist:
@@ -94,6 +94,10 @@ class Generator(object):
                             if date < start:
                                 continue
                         filename = f['file']
+                        if pattern:
+                            match = re.search(pattern, filename)
+                            if match is None:
+                                continue
                         urlfile = url + '/' + filename
                         try:
                             response = urllib2.urlopen(urlfile)

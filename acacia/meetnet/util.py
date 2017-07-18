@@ -6,6 +6,8 @@ Created on Jun 3, 2014
 import logging
 import matplotlib
 from django.core.exceptions import MultipleObjectsReturned
+from django.core.mail.message import EmailMessage
+
 matplotlib.use('agg')
 import matplotlib.pylab as plt
 from matplotlib import rcParams
@@ -16,9 +18,11 @@ import datetime
 import binascii
 import numpy as np
 import pandas as pd
+import zipfile
 
 from django.template.loader import render_to_string
 from django.core.files.base import ContentFile
+from django.conf import settings
 
 from acacia.data.models import Project, ProjectLocatie, Generator, DataPoint, MeetLocatie, SourceFile, Chart, Series
 from acacia.data.generators import sws
@@ -60,13 +64,9 @@ def chart_for_screen(screen):
     plt.close()    
     return img.getvalue()
 
-def chart_for_well1(well):
+def chart_for_well(well,start=None,stop=None):
     fig=plt.figure(figsize=THUMB_SIZE)
-    ax=fig.gca()
     plt.grid(linestyle='-', color='0.9')
-    count = 0
-    y = []
-    x = []
     for screen in well.screen_set.all():
         data = screen.get_levels('nap')
         n = len(data) / (THUMB_SIZE[0]*THUMB_DPI)
@@ -75,30 +75,27 @@ def chart_for_well1(well):
             data = data[::n]
         if len(data)>0:
             x,y = zip(*data)
-            plt.plot_date(x, y, '-', label=screen)
-            count += 1
-
+            plt.plot_date(x, y, '-',label=unicode(screen))
+    
         hand = screen.get_hand('nap')
         if len(hand)>0:
             x,y = zip(*hand)
-            plt.plot_date(x, y, 'ro', label='handpeiling')
-            
-    if len(x):
-        y = [screen.well.maaiveld] * len(x)
-        plt.plot_date(x, y, '-', label='maaiveld')
+            plt.plot_date(x, y, 'ro',label='handpeiling')
 
-    plt.title(well)
     plt.ylabel('m tov NAP')
-    if count > 0:
-        leg=plt.legend()
-        leg.get_frame().set_alpha(0.3)
+
+    plt.axhline(y=screen.well.maaiveld, linestyle='--', label='maaiveld')
+
+    leg = plt.legend()
+    leg.get_frame().set_alpha(0.3)
+    plt.title(well)
     
     img = StringIO() 
     plt.savefig(img,format='png',bbox_inches='tight')
     plt.close()    
     return img.getvalue()
 
-def chart_for_well(well,start=None,stop=None):
+def chart_for_well_old(well,start=None,stop=None):
     fig=plt.figure(figsize=(15,5))
     ax=fig.gca()
     datemin=start or datetime.datetime(2013,1,1)
@@ -226,15 +223,19 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
 def register_well(well):
     # register well in acaciadata
     project,created = Project.objects.get_or_create(name=well.network.name)
-    ploc, created = project.projectlocatie_set.get_or_create(name=well.name,defaults={'location': well.location})
-    mloc, created = ploc.meetlocatie_set.get_or_create(name=well.name,defaults={'location': well.location})
+    well.ploc, created = project.projectlocatie_set.get_or_create(name=well.name,defaults={'location': well.location})
+    if created:
+        well.save()
 
 def register_screen(screen):
     # register screen in acaciadata
     project,created = Project.objects.get_or_create(name=screen.well.network.name)
-    ploc, created = project.projectlocatie_set.get_or_create(name=screen.well.name,defaults={'location': screen.well.location})
-    mloc, created = ploc.meetlocatie_set.get_or_create(name=unicode(screen),defaults={'location': screen.well.location})
-    
+    screen.well.ploc, created = project.projectlocatie_set.get_or_create(name=screen.well.name,defaults={'location': screen.well.location})
+    if created:
+        screen.well.save()
+    screen.mloc, created = screen.well.ploc.meetlocatie_set.get_or_create(name=unicode(screen),defaults={'location': screen.well.location})
+    screen.save()
+
 def createmeteo(request, well):
     ''' Create datasources with meteo data for a well '''
 
@@ -404,12 +405,16 @@ def addmonfile(request,network,f):
             loc = MeetLocatie.objects.get(name=unicode(screen))
         except MeetLocatie.DoesNotExist:
             loc = MeetLocatie.objects.get(name='%s/%03d' % (well.nitg,filter))
+        except MultipleObjectsReturned:
+            logger.error('Meerdere meetlocaties gevonden voor dit filter')
+            return error
 
         # get/create datasource for logger
         ds, created = LoggerDatasource.objects.get_or_create(name=datalogger.serial,meetlocatie=loc,
                                                                  defaults = {'logger': datalogger, 'generator': generator, 'user': user, 'timezone': 'CET'})
     except Well.DoesNotExist:
-        # this maybe a baro logger, not installed in a well
+        # this may be a baro logger, not installed in a well
+        logger.error('Put niet gevonden: {}'.format(put))
         try:
             well = None
             screen = None
@@ -448,20 +453,20 @@ def addmonfile(request,network,f):
     return error
 
 def update_series(request,screen):
-    user=request.user
-    name = '%s COMP' % screen
-    series, created = Series.objects.get_or_create(name=name,defaults={'user':user})
-    try:
-        meetlocatie = MeetLocatie.objects.get(name=unicode(screen))
-    except:
-        try:
-            meetlocatie = MeetLocatie.objects.get(name='%s/%03d'% (unicode(screen.well.nitg), screen.nr))
-        except:
-            logger.exception('Meetlocatie niet gevonden voor filter {screen}'.format(screen=unicode(screen)))
-            return
 
-    series.mlocatie = meetlocatie
-    series.save()
+    user=request.user
+    
+    series = None
+    for s in screen.mloc.series():
+        if s.name.endswith('COMP') or s.name.startswith('Waterstand'):
+            series = s
+            break
+    
+    if series is None:
+        # Make sure screen has been registered
+        register_screen(screen)
+        name = '%s COMP' % screen
+        series, created = Series.objects.get_or_create(name=name,mlocatie=screen.mloc,defaults={'user':user})
 
     recomp(screen, series)
                  
@@ -474,17 +479,44 @@ def update_series(request,screen):
     chart.series.get_or_create(series=series, defaults={'label' : 'm tov NAP'})
 
     # handpeilingen toevoegen (als beschikbaar)
-    if hasattr(meetlocatie, 'manualseries_set'):
-        name = '%s HAND' % screen
-        for hand in meetlocatie.manualseries_set.filter(name=name):
+    if hasattr(screen.mloc, 'manualseries_set'):
+        for hand in screen.mloc.manualseries_set.all():
             chart.series.get_or_create(series=hand,defaults={'type':'scatter', 'order': 2})
     
     make_chart(screen)
 
+   
 def handle_uploaded_files(request, network, localfiles):
+    
     num = len(localfiles)
     if num == 0:
         return
+
+    def process_file(f, name):
+        mon,screen = addmonfile(request,network, f)
+        if not mon or not screen:
+            logger.warning('Bestand {name} overgeslagen'.format(name=name))
+            return False
+        else:
+            screens.add(screen)
+            wells.add(screen.well)
+            return True
+    
+    def process_zipfile(pathname):
+        z = zipfile.ZipFile(pathname,'r')
+        result = {}
+        for name in z.namelist():
+            if name.lower().endswith('.mon'):
+                bytes = z.read(name)
+                io = StringIO(bytes)
+                io.name = name
+                result[name] = 'Success' if process_file(io, name) else 'Niet gebruikt'
+        return result
+
+    def process_plainfile(pathname):
+        with open(pathname) as f:
+            return 'Success' if process_file(f, os.path.basename(pathname)) else 'Niet gebruikt'
+        
     #incstall handler that buffers logrecords to be sent by email 
     buffer=logging.handlers.BufferingHandler(20000)
     logger.addHandler(buffer)
@@ -494,25 +526,19 @@ def handle_uploaded_files(request, network, localfiles):
         wells = set()
         result = {}
         for pathname in localfiles:
-            msg = []
+            filename = os.path.basename(pathname)
             try:
-                filename = os.path.basename(pathname)
-                with open(pathname) as f:
-                    mon,screen = addmonfile(request,network, f)
-                if not mon:
-                    msg.append('Niet gebruikt')
-                    logger.warning('Bestand {name} overgeslagen'.format(name=filename))
+                if zipfile.is_zipfile(pathname): 
+                    msg = process_zipfile(pathname)
+                    result.update(msg) 
+                    #result.update({filename+'-'+key: val for key,val in msg.iteritems()}) 
                 else:
-                    msg.append('Succes')
-                    if screen:
-                        screens.add(screen)
-                        wells.add(screen.well)
+                    result[filename] = process_plainfile(pathname)
             except Exception as e:
                 logger.exception('Probleem met bestand {name}: {error}'.format(name=filename,error=e))
                 msg.append('Fout: '+unicode(e))
                 continue
-            result[filename] = ', '.join(msg)
-    
+            
         logger.info('Bijwerken van tijdreeksen')
         num = 0
         for s in screens:
@@ -545,6 +571,11 @@ def handle_uploaded_files(request, network, localfiles):
             name=request.user.first_name or request.user.username
             html_message = render_to_string('notify_email_nl.html', {'name': name, 'network': network, 'result': result, 'logrecords': logbuffer})
             message = render_to_string('notify_email_nl.txt', {'name': name, 'network': network, 'result': result, 'logrecords': logbuffer})
-            request.user.email_user(subject='Meetnet {net}: bestanden verwerkt'.format(net=network), message=message, html_message = html_message)
+            msg = EmailMessage(subject='Meetnet {net}: bestanden verwerkt'.format(net=network), 
+                                   body=message, 
+                                   from_email=settings.DEFAULT_FROM_EMAIL, 
+                                   to=[request.user.email],
+                                   attachments=[('report.html',html_message,'text/html')])
+            msg.send()
     finally:
         logger.removeHandler(buffer)

@@ -306,17 +306,8 @@ class Datasource(models.Model, LoggerSourceMixin):
                 return None
         return gen(**kwargs)
     
-    def download(self, start=None):
+    def build_download_options(self,start=None):
         logger = self.getLogger()
-        if self.generator is None:
-            logger.error('Cannot download datasource %s: no generator defined' % (self.name))
-            return None
-
-        gen = self.get_generator_instance()
-        if gen is None:
-            logger.error('Cannot download datasource %s: could not create instance of generator %s' % (self.name, self.generator))
-            return None
-
         options = {}
         
         if self.meetlocatie:
@@ -324,7 +315,7 @@ class Datasource(models.Model, LoggerSourceMixin):
             loc = MeetLocatie.objects.get(pk=self.meetlocatie.pk)
             lonlat = loc.latlon()
             options['lonlat'] = (lonlat.x,lonlat.y)
-            options['meetlocatie'] = unicode(loc)
+            options['meetlocatie'] = loc#.name
         if self.username:
             options['username'] = self.username
             options['password'] = self.password
@@ -349,9 +340,26 @@ class Datasource(models.Model, LoggerSourceMixin):
             return None
 
         options['url']=url
-        
-        logger.info('Downloading datasource %s from %s' % (self.name, url))
 
+        return options
+            
+       
+    def download(self, start=None):
+        logger = self.getLogger()
+        if self.generator is None:
+            logger.error('Cannot download datasource %s: no generator defined' % (self.name))
+            return None
+
+        gen = self.get_generator_instance()
+        if gen is None:
+            logger.error('Cannot download datasource %s: could not create instance of generator %s' % (self.name, self.generator))
+            return None
+
+        options = self.build_download_options(start)
+        if options is None:
+            return None
+        
+        logger.info('Downloading datasource %s from %s' % (self.name, options['url']))
         try:
             
             files = []
@@ -1131,17 +1139,19 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         stop = stop or self.to_limit
 
         if data is None:
-            dataframe = self.parameter.get_data(start=start,stop=stop,meetlocatie=self.mlocatie)
-            if dataframe is None:
+            data = self.parameter.get_data(start=start,stop=stop,meetlocatie=self.mlocatie)
+            if data is None:
                 return None
-        elif isinstance(data,pd.DataFrame):
+        if isinstance(data,pd.DataFrame):
             dataframe = data
         else:
             # multiple locations
-            if self.mlocatie.name in data:
+            if self.mlocatie in data:
+                dataframe = data[self.mlocatie]
+            elif self.mlocatie.name in data:
                 dataframe = data[self.mlocatie.name]
             else:
-                logger.error('series %s: location % not found' % (self.name, self.mlocatie.name))
+                logger.error('series %s: location %s not found' % (self.name, self.mlocatie.name))
                 return None
         if not self.parameter.name in dataframe:
             # maybe datasource has stopped reporting about this parameter?
@@ -1173,9 +1183,9 @@ class Series(PolymorphicModel,LoggerSourceMixin):
                 pts.append(DataPoint(series=self, date=date, value=value))
             except Exception as e:
                 self.getLogger().debug('Datapoint %s,%g: %s' % (str(date), value, e))
-        with open('/home/theo/texelmeet/hhnk/points.csv','w') as f:
-            for p in pts:
-                f.write('{},{}\n'.format(p.date,p.value)) 
+#         with open('/home/theo/texelmeet/hhnk/points.csv','w') as f:
+#             for p in pts:
+#                 f.write('{},{}\n'.format(p.date,p.value)) 
         return pts
     
     def create_points(self, series, tz):
@@ -1218,26 +1228,19 @@ class Series(PolymorphicModel,LoggerSourceMixin):
             logger.warning('No datapoints found in series %s' % self.name)
             return 0;
 
-        # timezone as to be utc for mysql bulk delete
+        # timezone has to be utc for mysql bulk delete
         pts = self.prepare_points(series, timezone.utc)
         if pts == []:
             logger.warning('No valid datapoints found in series %s' % self.name)
             return 0;
+
+        # get points to delete
+        query = self.datapoints.filter(date__gte=start)
+        # delete properties first to avoid foreignkey constraint failure
+        self.properties.delete()
+        deleted = query.delete()
+        num_deleted = len(deleted) if deleted else 0
         
-        count = self.datapoints.count()
-        if count>0:
-            # delete properties first to avoid foreignkey constraint failure
-            try:
-                self.properties.delete()
-            except:
-                pass
-            values = ["(%d,'%s')" % (self.id, datetime.datetime.strftime(p.date, '%Y-%m-%d %H:%M:%S')) for p in pts]
-            values = '(' + ','.join(values) + ')'
-            sql = 'DELETE from {table} WHERE (`series_id`,`date`) IN {values}'.format(table=DataPoint._meta.db_table, values=values)
-            cursor = connection.cursor()
-            num_deleted = cursor.execute(sql)
-        else:
-            num_deleted = 0    
         created = self.datapoints.bulk_create(pts)
         num_created = len(created) - num_deleted
         num_updated = num_deleted
@@ -1302,12 +1305,18 @@ class Series(PolymorphicModel,LoggerSourceMixin):
             stop = self.tot()
         return self.datapoints.filter(date__range=[start,stop])
     
-    def to_pandas(self, **kwargs):
+    def to_array(self, **kwargs):
         points = self.filter_points(**kwargs)
-        dates = [dp.date for dp in points]
-        values = [dp.value for dp in points]
-        return pd.Series(values,index=dates,name=self.name).sort_index()
-    
+        return [(dp.date,dp.value) for dp in points]
+
+    def to_pandas(self, **kwargs):
+        arr = self.to_array(**kwargs)
+        if arr:
+            dates,values = zip(*arr)
+            return pd.Series(values,index=dates,name=self.name).sort_index()
+        else:
+            return pd.Series(name=self.name)
+            
     def to_csv(self, **kwargs):
         ser = self.to_pandas(**kwargs)
         io = StringIO.StringIO()
