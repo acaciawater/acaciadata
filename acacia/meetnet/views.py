@@ -143,7 +143,7 @@ class WellChartView(TemplateView):
         for screen in well.screen_set.all():
             name = unicode(screen)
             data = screen.get_compensated_series()
-            if data is None:
+            if data is None or data.empty:
                 continue
             xydata = zip(data.index.to_pydatetime(), data.values)
             series.append({'name': name,
