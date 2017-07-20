@@ -10,6 +10,7 @@ from django.core.urlresolvers import reverse
 from acacia.data.models import Datasource, Series, SourceFile, ProjectLocatie,\
     MeetLocatie
 from acacia.data import util
+from django.db.models.aggregates import Count, Sum
 
 class Network(models.Model):
     name = models.CharField(max_length=50, unique=True, verbose_name = 'naam')
@@ -173,13 +174,15 @@ class Screen(models.Model):
 
     def num_files(self):
         try:
-            return self.mloc.datasource().sourcefiles().count()
+            query = self.mloc.datasource_set.aggregate(Count('sourcefiles'))
+            return query['sourcefiles__count']
         except:
             return 0
     
     def num_standen(self):
         try:
-            return sum([s.aantal() for s in self.mloc.series()])
+            query = self.mloc.datasource_set.aggregate(Sum('sourcefiles__rows'))
+            return query['sourcefiles__rows__sum']
         except:
             return 0
 
