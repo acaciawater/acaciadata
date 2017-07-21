@@ -66,9 +66,14 @@ def chart_for_screen(screen):
 
 def chart_for_well(well,start=None,stop=None):
     fig=plt.figure(figsize=THUMB_SIZE)
+    ax=fig.gca()
+    datemin=start or datetime.datetime(2013,1,1)
+    datemax=stop or datetime.datetime(2016,12,31)
+    ax.set_xlim(datemin, datemax)
     plt.grid(linestyle='-', color='0.9')
+    ncol = 0
     for screen in well.screen_set.all():
-        data = screen.get_levels('nap')
+        data = screen.get_levels('nap',rule='H')
         n = len(data) / (THUMB_SIZE[0]*THUMB_DPI)
         if n > 1:
             #use data thinning: take very nth row
@@ -76,18 +81,21 @@ def chart_for_well(well,start=None,stop=None):
         if len(data)>0:
             x,y = zip(*data)
             plt.plot_date(x, y, '-',label=unicode(screen))
-    
+            ncol += 1
+
         hand = screen.get_hand('nap')
         if len(hand)>0:
             x,y = zip(*hand)
             plt.plot_date(x, y, 'ro',label='handpeiling')
-
+            ncol += 1
+            
     plt.ylabel('m tov NAP')
 
     plt.axhline(y=screen.well.maaiveld, linestyle='--', label='maaiveld')
+    ncol += 1
 
-    leg = plt.legend()
-    leg.get_frame().set_alpha(0.3)
+    leg = plt.legend(bbox_to_anchor=(0.5, -0.1), loc='upper center',ncol=ncol,frameon=False)
+    #leg.get_frame().set_alpha(0.3)
     plt.title(well)
     
     img = StringIO() 
@@ -183,10 +191,19 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
             baros[logpos.baro] = baro
         for mon in logpos.monfile_set.all().order_by('start_date'):
             print ' ', logpos.logger, logpos.start_date, mon
-            mondata = mon.get_data()
+            try:
+                mondata = mon.get_data()
+            except Exception as e:
+                logger.error('Error reading {}: {}'.format(mon,e))
+                continue
+            if not mondata:
+                logger.error('No data found in {}'.format(mon))
+                continue
+
             if isinstance(mondata,dict):
                 # Nov 2016: new signature for get_data 
                 mondata = mondata.itervalues().next()
+
             data = mondata['PRESSURE']
             data = series.do_postprocess(data).tz_localize(tz)
             
