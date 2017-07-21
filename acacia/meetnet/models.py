@@ -70,7 +70,7 @@ class Well(geo.Model):
         return reverse('meetnet:well-detail', args=[self.id])
 
     def __unicode__(self):
-        return self.name
+        return self.nitg or self.name
     
     def has_data(self):
         for s in self.screen_set.all():
@@ -139,14 +139,22 @@ class Screen(models.Model):
             return record[0]
 
         # luchtdruk gecompenseerde standen (tov NAP) ophalen
+        rule = kwargs.pop('rule',None)
         series = self.get_manual_series(**kwargs) if kind == 'HAND' else self.get_compensated_series(**kwargs)
-        if series is None:
+        if series is None or series.empty:
             return []
+
+        if rule:
+            # resample timeseries
+            series = series.resample(rule=rule).mean()
+            nans = series[pd.isnull(series)]
 
         levels = []
         for index,value in series.iteritems():
             try:
-                if ref == 'nap':
+                if pd.isnull(value):
+                    level = None
+                elif ref == 'nap':
                     level = value
                 elif ref == 'bkb':
                     level = self.refpnt - value
