@@ -8,7 +8,7 @@ from django.db import models
 from django.contrib.gis.db import models as geo
 from django.core.urlresolvers import reverse
 from acacia.data.models import Datasource, Series, SourceFile, ProjectLocatie,\
-    MeetLocatie
+    MeetLocatie, ManualSeries
 from acacia.data import util
 from django.db.models.aggregates import Count, Sum
 
@@ -234,12 +234,19 @@ class Screen(models.Model):
             y = []
         return pd.Series(index=x, data=y, name=unicode(self))
         
-    def get_manual_series(self, **kwargs):
+    def get_manual_series_old(self, **kwargs):
         # Handpeilingen ophalen
         if hasattr(self.mloc, 'manualseries_set'):
             for s in self.mloc.manualseries_set.all():
                 if s.name.endswith('HAND'):
                     return s.to_pandas(**kwargs)
+        return None
+
+    def get_manual_series(self, **kwargs):
+        # Handpeilingen ophalen
+        for s in self.mloc.series_set.instance_of(ManualSeries):
+            if s.name.endswith('HAND'):
+                return s.to_pandas(**kwargs)
         return None
             
     def get_compensated_series(self, **kwargs):
