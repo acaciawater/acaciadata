@@ -49,7 +49,7 @@ class Well(geo.Model):
     log = models.ImageField(null=True,blank=True,upload_to='logs',verbose_name = 'boorstaat')
     chart = models.ImageField(null=True,blank=True, upload_to='charts', verbose_name='grafiek')
     g = models.FloatField(default=9.80665,verbose_name='valversnelling', help_text='valversnelling in m/s2')
-    baro = models.ForeignKey(Series, blank=True, null=True, verbose_name='luchtdruk', help_text = 'tijdreeks voor luchtdruk compensatie')
+    baro = models.ForeignKey(Series, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='luchtdruk', help_text = 'tijdreeks voor luchtdruk compensatie')
     objects = geo.GeoManager()
 
     def latlon(self):
@@ -297,7 +297,7 @@ class LoggerPos(models.Model):
     end_date = models.DateTimeField(verbose_name = 'stop', blank=True, null=True, help_text = 'Tijdstrip van stoppen datalogger')   
     refpnt = models.FloatField(verbose_name = 'referentiepunt', blank=True, null=True, help_text = 'ophangpunt in meter tov NAP')
     depth = models.FloatField(verbose_name = 'kabellengte', blank=True, null=True, help_text = 'lengte van ophangkabel in meter')
-    baro = models.ForeignKey(Series, blank=True, null=True, verbose_name='luchtdruk', help_text = 'tijdreeks voor luchtdruk compensatie')
+    baro = models.ForeignKey(Series, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='luchtdruk', help_text = 'tijdreeks voor luchtdruk compensatie')
     remarks = models.TextField(verbose_name='opmerkingen', blank=True) 
 
     def __unicode__(self):
