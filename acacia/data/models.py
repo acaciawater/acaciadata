@@ -496,7 +496,7 @@ class Datasource(models.Model, LoggerSourceMixin):
                 data = data[slicer]
             if self.calibrationdata_set:
                 data = self.calibrate(data)
-            datadict[loc] = data.sort()
+            datadict[loc] = data.sort_index()
         return datadict
 
     def get_locations(self,**kwargs):
