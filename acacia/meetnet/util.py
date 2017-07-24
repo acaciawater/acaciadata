@@ -229,7 +229,7 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
                 
     if seriesdata is not None:
         seriesdata = seriesdata.groupby(seriesdata.index).last()
-        seriesdata.sort(inplace=True)
+        seriesdata.sort_index(inplace=True)
         datapoints=[]
         for date,value in seriesdata.iteritems():
             value = float(value)
