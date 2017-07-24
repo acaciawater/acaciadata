@@ -19,10 +19,8 @@ from .forms import UploadFileForm
 from .actions import download_well_nitg
 
 import os, json, logging, time
-import pandas as pd
 
 from util import handle_uploaded_files
-from acacia.meetnet import actions
 
 logger = logging.getLogger(__name__)
 
@@ -117,11 +115,6 @@ class WellChartView(TemplateView):
         context = super(WellChartView, self).get_context_data(**kwargs)
         well = Well.objects.get(pk=context['pk'])
         name = unicode(well)
-
-        def screencolor(screen):
-            colors = ['red', 'green', 'blue', 'black', 'orange', 'purple', 'brown', 'grey' ]
-            index = (screen.nr-1) % len(colors) 
-            return colors[index]
          
         options = {
              'rangeSelector': { 'enabled': True,
@@ -189,7 +182,7 @@ class WellChartView(TemplateView):
                             },
                         })
 
-        if len(xydata)>0:
+        if screen.well.maaiveld:
             import datetime
             mv = []
             mv.append((datetime.datetime(2013,1,1), screen.well.maaiveld))
@@ -233,118 +226,8 @@ class WellChartView(TemplateView):
         context['object'] = well
         return context
 
-class WellChartViewOld(TemplateView):
-    template_name = 'plain_chart.html'
-    
-    def get_context_data(self, **kwargs):
-        context = super(WellChartView, self).get_context_data(**kwargs)
-        well = Well.objects.get(pk=context['pk'])
-        name = unicode(well)
-        options = {
-             'rangeSelector': { 'enabled': True,
-                               'inputEnabled': True,
-                               },
-            'navigator': {'adaptToUpdatedData': True, 'enabled': True},
-            'chart': {'type': 'arearange', 'zoomType': 'x'},
-            'title': {'text': name},
-            'xAxis': {'type': 'datetime'},
-            'yAxis': [{'title': {'text': 'Grondwaterstand\n(m tov NAP)'}}
-                      ],
-            'tooltip': {'valueSuffix': ' m',
-                        'valueDecimals': 2,
-                        'shared': True,
-                       }, 
-            'legend': {'enabled': True},
-            'plotOptions': {'line': {'marker': {'enabled': False}}},            
-            'credits': {'enabled': True, 
-                        'text': 'acaciawater.com', 
-                        'href': 'http://www.acaciawater.com',
-                       },
-            }
-        series = []
-        xydata = []
-        for screen in well.screen_set.all():
-            name = unicode(screen)
-            data = screen.to_pandas(ref='nap')
-            if data.size > 0:
-                xydata = zip(data.index.to_pydatetime(), data.values)
-                series.append({'name': name,
-                            'type': 'line',
-                            'data': xydata,
-                            'lineWidth': 1,
-                            'color': '#0066FF',
-                            'zIndex': 2,
-                            })
-                mean = pd.expanding_mean(data)
-                std = pd.expanding_std(data)
-                a = (mean - std).dropna()
-                b = (mean + std).dropna()
-                ranges = zip(a.index.to_pydatetime(), a.values, b.values)
-                series.append({'name': 'spreiding',
-                            'data': ranges,
-                            'type': 'arearange',
-                            'lineWidth': 0,
-                            'color': '#0066FF',
-                            'fillOpacity': 0.2,
-                            'linkedTo' : ':previous',
-                            'zIndex': 0,
-                            })
-
-            data = screen.to_pandas(ref='nap',kind='HAND')
-            if data.size > 0:
-                hand = zip(data.index.to_pydatetime(), data.values)
-                series.append({'name': 'handpeiling',
-                            'type': 'scatter',
-                            'data': hand,
-                            'zIndex': 3,
-                            'marker': {'symbol': 'circle', 'radius': 6, 'lineColor': 'white', 'lineWidth': 2, 'fillColor': 'red'},
-                            'tooltip': {'xDateFormat': '%Y-%m-%d'}
-                            })
-
-        if len(xydata)>0:
-            mv = []
-            mv.append((xydata[0][0], screen.well.maaiveld))
-            mv.append((xydata[-1][0], screen.well.maaiveld))
-            series.append({'name': 'maaiveld',
-                        'type': 'line',
-                        'lineWidth': 2,
-                        'color': '#009900',
-                        'dashStyle': 'Dash',
-                        'data': mv,
-                        'zIndex': 4,
-                        })
-
-        # neerslag toevoegen
-        try:
-            closest = Station.closest(well.location)
-            name = 'Meteostation {} (dagwaarden)'.format(closest.naam)
-            neerslag = Series.objects.get(name='RH',mlocatie__name=name)
-            data = neerslag.to_pandas(start=xydata[0][0], stop=xydata[-1][0]) / 10.0 # 0.1 mm -> mm
-            data = zip(data.index.to_pydatetime(), data.values)
-            series.append({'name': 'Neerslag '+ closest.naam,
-                        'type': 'column',
-                        'data': data,
-                        'yAxis': 1,
-                        'pointRange': 24 * 3600 * 1000, # 1 day
-                        'pointPadding': 0.01,
-                        'pointPlacement': 0.5,
-                        'zIndex': 1,
-                        'color': 'orange', 
-                        'borderColor': '#cc6600', 
-                        })
-            options['yAxis'].append({'title': {'text': 'Neerslag (mm)'},
-                                     'opposite': 1,
-                                     'min': 0,
-                                     })
-        except:
-            pass
-        options['series'] = series
-        context['options'] = json.dumps(options, default=lambda x: int(time.mktime(x.timetuple())*1000))
-        context['object'] = well
-        return context
-
 from acacia.data.views import DownloadSeriesAsZip
-from acacia.data.models import Series, Datasource
+from acacia.data.models import Series
 
 def get_series(screen):
     name = '%s COMP' % unicode(screen)
