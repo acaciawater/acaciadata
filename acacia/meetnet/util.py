@@ -38,6 +38,11 @@ logger = logging.getLogger(__name__)
 THUMB_DPI=72
 THUMB_SIZE=(9,3) # inch
 
+def screencolor(screen):
+    colors = ['red', 'green', 'blue', 'black', 'orange', 'purple', 'brown', 'grey' ]
+    index = (screen.nr-1) % len(colors) 
+    return colors[index]
+
 def chart_for_screen(screen):
     plt.figure(figsize=THUMB_SIZE)
     plt.grid(linestyle='-', color='0.9')
@@ -48,14 +53,15 @@ def chart_for_screen(screen):
         data = data[::n]
     if len(data)>0:
         x,y = zip(*data)
-        plt.plot_date(x, y, '-')
+        plt.plot_date(x, y, '-',color=screencolor(screen))
         y = [screen.well.maaiveld] * len(x)
         plt.plot_date(x, y, '-')
 
     hand = screen.get_hand('nap')
     if len(hand)>0:
         x,y = zip(*hand)
-        plt.plot_date(x, y, 'ro',label='handpeiling')
+        plt.plot_date(x, y, 'o',label='handpeiling',color=screencolor(screen))
+        
 
     plt.title(screen)
     plt.ylabel('m tov NAP')
@@ -80,22 +86,21 @@ def chart_for_well(well,start=None,stop=None):
             data = data[::n]
         if len(data)>0:
             x,y = zip(*data)
-            plt.plot_date(x, y, '-',label=unicode(screen))
+            plt.plot_date(x, y, '-',label=unicode(screen),color=screencolor(screen))
             ncol += 1
 
         hand = screen.get_hand('nap')
         if len(hand)>0:
             x,y = zip(*hand)
-            plt.plot_date(x, y, 'ro',label='handpeiling')
+            plt.plot_date(x, y, 'o',color=screencolor(screen))
             ncol += 1
             
     plt.ylabel('m tov NAP')
 
-    plt.axhline(y=screen.well.maaiveld, linestyle='--', label='maaiveld')
+    plt.axhline(y=screen.well.maaiveld, linestyle='--', label='maaiveld',color='green')
     ncol += 1
 
-    leg = plt.legend(bbox_to_anchor=(0.5, -0.1), loc='upper center',ncol=ncol,frameon=False)
-    #leg.get_frame().set_alpha(0.3)
+    plt.legend(bbox_to_anchor=(0.5, -0.1), loc='upper center',ncol=min(ncol,5),frameon=False)
     plt.title(well)
     
     img = StringIO() 
