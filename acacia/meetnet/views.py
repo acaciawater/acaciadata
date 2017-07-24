@@ -112,11 +112,17 @@ class ScreenChartView(TemplateView):
 
 class WellChartView(TemplateView):
     template_name = 'plain_chart.html'
-    
+        
     def get_context_data(self, **kwargs):
         context = super(WellChartView, self).get_context_data(**kwargs)
         well = Well.objects.get(pk=context['pk'])
         name = unicode(well)
+
+        def screencolor(screen):
+            colors = ['red', 'green', 'blue', 'black', 'orange', 'purple', 'brown', 'grey' ]
+            index = (screen.nr-1) % len(colors) 
+            return colors[index]
+         
         options = {
              'rangeSelector': { 'enabled': True,
                                'inputEnabled': True,
@@ -150,6 +156,7 @@ class WellChartView(TemplateView):
                         'type': 'line',
                         'data': xydata,
                         'lineWidth': 1,
+                        #'lineColor' : screencolor(screen),
                         'zIndex': 2,
                         })
             mean = pd.expanding_mean(data)
@@ -170,18 +177,23 @@ class WellChartView(TemplateView):
             if data is None:
                 continue
             hand = zip(data.index.to_pydatetime(), data.values)
-            series.append({'name': 'handpeiling',
+            series.append({'name': 'handpeiling filter {}'.format(screen.nr),
                         'type': 'scatter',
                         'data': hand,
                         'zIndex': 3,
-                        'marker': {'symbol': 'circle', 'radius': 6, 'lineColor': 'white', 'lineWidth': 2, 'fillColor': 'red'},
-                        'tooltip': {'xDateFormat': '%Y-%m-%d'}
+                        'marker': {'symbol': 'circle', 'radius': 6, 'lineColor': 'white', 'lineWidth': 2, },#'fillColor': screencolor(screen)},
+                        'tooltip': {
+                                'headerFormat': '<span style="font-size:10px">{point.x:%A %e %B %Y %H:%k }</span><br/><table>',
+                                'pointFormat': '<tr><td style="color:{series.color};padding:0;font-size:11px;">{series.name}: </td><td style="padding:0"><b>{point.y:,.2f}</b></td></tr>',
+                                'useHTML': True
+                            },
                         })
 
         if len(xydata)>0:
+            import datetime
             mv = []
-            mv.append((xydata[0][0], screen.well.maaiveld))
-            mv.append((xydata[-1][0], screen.well.maaiveld))
+            mv.append((datetime.datetime(2013,1,1), screen.well.maaiveld))
+            mv.append((datetime.datetime(2016,12,31,23,59), screen.well.maaiveld))
             series.append({'name': 'maaiveld',
                         'type': 'line',
                         'lineWidth': 2,
