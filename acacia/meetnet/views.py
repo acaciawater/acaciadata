@@ -206,8 +206,8 @@ class WellChartView(TemplateView):
         # neerslag toevoegen
         try:
             closest = Station.closest(well.location)
-            name = 'Meteostation {} (dagwaarden)'.format(closest.naam)
-            neerslag = Series.objects.get(name='RH',mlocatie__name=name)
+            #name = 'Meteostation {} (dagwaarden)'.format(closest.naam)
+            neerslag = Series.objects.get(name='RH',mlocatie__name__icontains=closest.naam)
             data = neerslag.to_pandas(start=xydata[0][0], stop=xydata[-1][0]) / 10.0 # 0.1 mm -> mm
             if not data.empty:
                 data = zip(data.index.to_pydatetime(), data.values)
