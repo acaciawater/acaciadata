@@ -66,6 +66,7 @@ class ProjectLocatieAdmin(admin.ModelAdmin):
     actions = [actions.meetlocatie_aanmaken,]
     list_display = ('name','project','location_count',)
     list_filter = ('project',)
+    search_fields = ['name',]
     exclude = ['image']
     formfield_overrides = {models.PointField:{'widget': forms.TextInput(attrs={'width': '40px'})},
                            models.TextField: {'widget': forms.Textarea(attrs={'class': 'htmleditor'})}}
