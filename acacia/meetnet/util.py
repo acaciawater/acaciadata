@@ -273,12 +273,12 @@ def createmeteo(request, well):
             ds.download()
             ds.update_parameters()
             
-            for p in ds.parameter_set.filter(name__in=candidates):
-                try:
-                    series, created = p.series_set.get_or_create(name = p.name, description = p.description, unit = p.unit, user = request.user)
-                    series.replace()
-                except Exception as e:
-                    logger.error('ERROR creating series %s: %s' % (p.name, e))
+        for p in ds.parameter_set.filter(name__in=candidates):
+            try:
+                series, created = p.series_set.get_or_create(name = p.name, mloc = mloc, description = p.description, unit = p.unit, user = request.user)
+                series.replace()
+            except Exception as e:
+                logger.error('ERROR creating series %s: %s' % (p.name, e))
     
     user = request.user
 
@@ -288,19 +288,22 @@ def createmeteo(request, well):
     project = ploc.project
     
     gen = Generator.objects.get(classname__icontains='KNMI.meteo')
-    closest = Station.closest(well.location)
-    name = 'Meteostation {} (dagwaarden)'.format(closest.naam)
-    docreate(name,closest,gen,'20140501')
+    closest3 = Station.closest(well.location,3)
+    for closest in closest3:
+        name = 'Meteostation {} (dagwaarden)'.format(closest.naam)
+        docreate(name,closest,gen,'20130101')
 
     gen = Generator.objects.get(classname__icontains='KNMI.neerslag')
-    closest = NeerslagStation.closest(well.location)
-    name = 'Neerslagstation {}'.format(closest.naam)
-    docreate(name,closest,gen,'20140501')
+    closest3 = NeerslagStation.closest(well.location,3)
+    for closest in closest3:
+        name = 'Neerslagstation {}'.format(closest.naam)
+        docreate(name,closest,gen,'20130101')
 
     gen = Generator.objects.get(classname__icontains='KNMI.uur')
-    closest = Station.closest(well.location)
-    name = 'Meteostation {} (uurwaarden)'.format(closest.naam)
-    docreate(name,closest,gen,'2014050101')
+    closest3 = Station.closest(well.location,3)
+    for closest in closest3:
+        name = 'Meteostation {} (uurwaarden)'.format(closest.naam)
+        docreate(name,closest,gen,'2013010101')
 
 
 logger = logging.getLogger('upload')
