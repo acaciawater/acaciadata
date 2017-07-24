@@ -159,19 +159,19 @@ class WellChartView(TemplateView):
                         #'lineColor' : screencolor(screen),
                         'zIndex': 2,
                         })
-            mean = pd.expanding_mean(data)
-            std = pd.expanding_std(data)
-            a = (mean - std).dropna()
-            b = (mean + std).dropna()
-            ranges = zip(a.index.to_pydatetime(), a.values, b.values)
-            series.append({'name': 'spreiding',
-                        'data': ranges,
-                        'type': 'arearange',
-                        'lineWidth': 0,
-                        'fillOpacity': 0.2,
-                        'linkedTo' : ':previous',
-                        'zIndex': 0,
-                        })
+#             mean = pd.expanding_mean(data)
+#             std = pd.expanding_std(data)
+#             a = (mean - std).dropna()
+#             b = (mean + std).dropna()
+#             ranges = zip(a.index.to_pydatetime(), a.values, b.values)
+#             series.append({'name': 'spreiding',
+#                         'data': ranges,
+#                         'type': 'arearange',
+#                         'lineWidth': 0,
+#                         'fillOpacity': 0.2,
+#                         'linkedTo' : ':previous',
+#                         'zIndex': 0,
+#                         })
 
             data = screen.get_manual_series()
             if data is None:
