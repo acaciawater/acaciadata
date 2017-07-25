@@ -25,10 +25,10 @@ from django.template.loader import render_to_string
 from django.core.files.base import ContentFile
 from django.conf import settings
 
-from acacia.data.models import Project, ProjectLocatie, Generator, DataPoint, MeetLocatie, SourceFile, Chart, Series,\
+from acacia.data.models import Project, Generator, DataPoint, MeetLocatie, SourceFile, Chart, Series,\
     Parameter
 from acacia.data.generators import sws
-from acacia.data.knmi.models import NeerslagStation, Station
+from acacia.data.knmi.models import Station
 from .models import Well, Screen, Datalogger, MonFile, Channel, LoggerDatasource
 
 rcParams['font.family'] = 'sans-serif'
@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 # thumbnail size and resolution
 THUMB_DPI=72
-THUMB_SIZE=(9,3) # inch
+THUMB_SIZE=(12,5) # inch
 
 def screencolor(screen):
     colors = ['red', 'green', 'blue', 'black', 'orange', 'purple', 'brown', 'grey' ]
@@ -260,12 +260,6 @@ def register_screen(screen):
         screen.well.save()
     screen.mloc, created = screen.well.ploc.meetlocatie_set.get_or_create(name=unicode(screen),defaults={'location': screen.well.location})
     screen.save()
-
-def baro2meteo():
-    """ copy baro to meteo model of well """
-    for w in Well.objects.all():
-        print w
-        MeteoData.objects.get_or_create(well=w,defaults={'baro':w.baro}) 
         
 def createmeteo(request, well):
     ''' Create datasources with meteo data for a well '''
