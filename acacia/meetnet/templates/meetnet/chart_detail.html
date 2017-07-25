@@ -1,5 +1,31 @@
 {% extends 'highchart.html' %}
 {% block title %}Grafiek {{object}}{% endblock title %}
+{% block script %}
+{{ block.super }}
+<script>
+function fetchSeries(id) {
+    $.getJSON('/net/data/'+id.toString(), function (data) {
+	  	var chart = $('#container').highcharts();
+	  	$.each(data,function(key,values) {
+	  		var series = chart.get(key);
+			series.setData(values);
+	  	});
+    });
+}
+
+function fetchAll() {
+{% for s in object.screen_set.all %}
+	fetchSeries({{s.pk}});
+{% endfor %}
+}
+$(function () {
+  var opt = {{options|safe}};
+  opt.chart.events.load = fetchAll;
+  chart = $('#container').highcharts(opt);
+});
+</script>
+{% endblock %}
+
 {% block content %}
 {{ block.super }}
 {% endblock %}

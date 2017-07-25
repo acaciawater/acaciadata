@@ -11,8 +11,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.core.files.storage import default_storage
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-
-from acacia.data.knmi.models import Station
+import numpy as np
 
 from .models import Network, Well, Screen
 from .forms import UploadFileForm
@@ -108,8 +107,14 @@ class ScreenChartView(TemplateView):
         context['screen'] = filt
         return context
 
+def json_series(request, pk):
+    screen = get_object_or_404(Screen,pk=pk)
+    series = screen.get_compensated_series()
+    data = {'screen%s'%screen.nr: zip(series.index.astype(np.int64)//10**6, series.values)}
+    return HttpResponse(json.dumps(data),content_type='application/json')
+    
 class WellChartView(TemplateView):
-    template_name = 'plain_chart.html'
+    template_name = 'meetnet/chart_detail.html'
         
     def get_context_data(self, **kwargs):
         context = super(WellChartView, self).get_context_data(**kwargs)
@@ -121,7 +126,7 @@ class WellChartView(TemplateView):
                                'inputEnabled': True,
                                },
             'navigator': {'adaptToUpdatedData': True, 'enabled': True},
-            'chart': {'type': 'arearange', 'zoomType': 'x'},
+            'chart': {'type': 'arearange', 'zoomType': 'x','events':{'load':None}},
             'title': {'text': name},
             'xAxis': {'type': 'datetime'},
             'yAxis': [{'title': {'text': 'Grondwaterstand\n(m tov NAP)'}}
@@ -141,16 +146,18 @@ class WellChartView(TemplateView):
         xydata = []
         for screen in well.screen_set.all():
             name = unicode(screen)
-            data = screen.get_compensated_series()
-            if data is None or data.empty:
-                continue
-            xydata = zip(data.index.to_pydatetime(), data.values)
+#             data = screen.get_compensated_series()
+#             if data is None or data.empty:
+#                 continue
+#             xydata = zip(data.index.to_pydatetime(), data.values)
+            xydata = None
             series.append({'name': name,
                         'type': 'line',
                         'data': xydata,
                         'lineWidth': 1,
                         #'lineColor' : screencolor(screen),
                         'zIndex': 2,
+                        'id': 'screen%d' % screen.nr
                         })
 #             mean = pd.expanding_mean(data)
 #             std = pd.expanding_std(data)
