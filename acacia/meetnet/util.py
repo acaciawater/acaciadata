@@ -7,6 +7,7 @@ import logging
 import matplotlib
 from django.core.exceptions import MultipleObjectsReturned
 from django.core.mail.message import EmailMessage
+from acacia.meetnet.models import MeteoData
 
 matplotlib.use('agg')
 import matplotlib.pylab as plt
@@ -24,7 +25,8 @@ from django.template.loader import render_to_string
 from django.core.files.base import ContentFile
 from django.conf import settings
 
-from acacia.data.models import Project, ProjectLocatie, Generator, DataPoint, MeetLocatie, SourceFile, Chart, Series
+from acacia.data.models import Project, ProjectLocatie, Generator, DataPoint, MeetLocatie, SourceFile, Chart, Series,\
+    Parameter
 from acacia.data.generators import sws
 from acacia.data.knmi.models import NeerslagStation, Station
 from .models import Well, Screen, Datalogger, MonFile, Channel, LoggerDatasource
@@ -165,6 +167,28 @@ def make_encoded_chart(obj):
 def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
     ''' re-compensate timeseries for screen '''
 
+    well = screen.well
+    if not hasattr(well,'meteo') or well.meteo.baro is None:
+        logger.error('Luchtdruk ontbreekt voor put {well}'.format(well=well))
+        return
+    baroseries = well.meteo.baro
+    logger.info('Compenseren voor luchtdrukreeks {}'.format(baroseries))
+    if baroseries in baros:
+        baro = baros[baroseries]
+    else:
+        baro = baroseries.to_pandas()
+
+        # if baro datasource = KNMI then convert from hPa to cm H2O
+        dsbaro = baroseries.datasource()
+        if dsbaro:
+            gen = dsbaro.generator
+            if 'knmi' in gen.name.lower() or 'knmi' in gen.classname.lower():
+                # TODO: use g at  baro location, not well location
+                baro = baro / (screen.well.g or 9.80638)
+        
+        baro = baro.tz_convert(tz)
+        baros[baroseries] = baro
+        
     seriesdata = None
     for logpos in screen.loggerpos_set.all().order_by('start_date'):
         if logpos.refpnt is None:
@@ -173,27 +197,6 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
         if logpos.depth is None:
             logger.warning('Inhangdiepte ontbreekt voor {pos}'.format(pos=logpos))
             continue
-        if logpos.baro is None:
-            logger.warning('Barometer ontbreekt voor {pos}'.format(pos=logpos))
-            continue
-        if seriesdata is None:
-            meteo = logpos.baro
-            logger.info('Compenseren voor luchtdrukreeks {}'.format(meteo))
-        if logpos.baro in baros:
-            baro = baros[logpos.baro]
-        else:
-            baro = logpos.baro.to_pandas()
-
-            # if baro datasource = KNMI then convert from hPa to cm H2O
-            dsbaro = logpos.baro.datasource()
-            if dsbaro:
-                gen = dsbaro.generator
-                if 'knmi' in gen.name.lower() or 'knmi' in gen.classname.lower():
-                    # TODO: use g at  baro location, not well location
-                    baro = baro / (screen.well.g or 9.80638)
-            
-            baro = baro.tz_convert(tz)
-            baros[logpos.baro] = baro
         for mon in logpos.monfile_set.all().order_by('start_date'):
             print ' ', logpos.logger, logpos.start_date, mon
             try:
@@ -258,12 +261,18 @@ def register_screen(screen):
     screen.mloc, created = screen.well.ploc.meetlocatie_set.get_or_create(name=unicode(screen),defaults={'location': screen.well.location})
     screen.save()
 
+def baro2meteo():
+    """ copy baro to meteo model of well """
+    for w in Well.objects.all():
+        print w
+        MeteoData.objects.get_or_create(well=w,defaults={'baro':w.baro}) 
+        
 def createmeteo(request, well):
     ''' Create datasources with meteo data for a well '''
 
-    def docreate(name,closest,gen,start):
+    def docreate(name,closest,gen,start,candidates):
         instance = gen.get_class()()
-        ploc, created = project.projectlocatie_set.get_or_create(name = name, defaults = {'description': name, 'location': closest.location})
+        ploc, created = well.ploc.project.projectlocatie_set.get_or_create(name = name, defaults = {'description': name, 'location': closest.location})
         mloc, created = ploc.meetlocatie_set.get_or_create(name = name, defaults = {'description': name, 'location': closest.location})
         if created:
             logger.info('Meetlocatie {} aangemaakt'.format(name))   
@@ -273,39 +282,47 @@ def createmeteo(request, well):
             ds.download()
             ds.update_parameters()
             
-        for p in ds.parameter_set.filter(name__in=candidates):
+        series_set = []
+        for key in candidates:
             try:
-                series, created = p.series_set.get_or_create(name = p.name, mloc = mloc, description = p.description, unit = p.unit, user = request.user)
+                series = None
+                p = ds.parameter_set.get(name=key)
+                series, created = p.series_set.get_or_create(name = p.name, mloc = mloc, defaults = 
+                        {'description': p.description, 'unit': p.unit, 'user': request.user})
                 series.replace()
+            except Parameter.DoesNotExist:
+                logger.warning('Parameter %s not found in datasource %s' % (p.name, ds.name))
             except Exception as e:
                 logger.error('ERROR creating series %s: %s' % (p.name, e))
-    
+            series_set.append(series)
+        return series_set
+
     user = request.user
 
-    candidates = ['PG', 'EV24', 'RD', 'RH', 'P', 'T']
-    
-    ploc = ProjectLocatie.objects.get(name=well.name)
-    project = ploc.project
-    
-    gen = Generator.objects.get(classname__icontains='KNMI.meteo')
-    closest3 = Station.closest(well.location,3)
-    for closest in closest3:
-        name = 'Meteostation {} (dagwaarden)'.format(closest.naam)
-        docreate(name,closest,gen,'20130101')
+    #candidates = ['PG', 'EV24', 'RD', 'RH', 'P', 'T']
+ 
+    if not hasattr(well,'meteo'):
+        MeteoData.objects.create(well=well)
 
-    gen = Generator.objects.get(classname__icontains='KNMI.neerslag')
-    closest3 = NeerslagStation.closest(well.location,3)
-    for closest in closest3:
-        name = 'Neerslagstation {}'.format(closest.naam)
-        docreate(name,closest,gen,'20130101')
+    meteo = well.meteo
+    gen = Generator.objects.get(classname__icontains='KNMI.meteo')
+    closest = Station.closest(well.location)
+    name = 'Meteostation {} (dagwaarden)'.format(closest.naam)
+    meteo.temperatuur,meteo.neerslag,meteo.verdamping = docreate(name,closest,gen,'20130101',['T','RH','EV24'])
+
+#     gen = Generator.objects.get(classname__icontains='KNMI.neerslag')
+#     closest3 = NeerslagStation.closest(well.location,3)
+#     for closest in closest3:
+#         name = 'Neerslagstation {}'.format(closest.naam)
+#         docreate(name,closest,gen,'20130101',['RD'])
 
     gen = Generator.objects.get(classname__icontains='KNMI.uur')
-    closest3 = Station.closest(well.location,3)
-    for closest in closest3:
-        name = 'Meteostation {} (uurwaarden)'.format(closest.naam)
-        docreate(name,closest,gen,'2013010101')
+    closest = Station.closest(well.location)
+    name = 'Meteostation {} (uurwaarden)'.format(closest.naam)
+    meteo.baro = docreate(name,closest,gen,'2013010101',['P'])
 
-
+    meteo.save()
+    
 logger = logging.getLogger('upload')
 
 # l=logging.getLogger('acacia.data').addHandler(h)
@@ -405,7 +422,7 @@ def addmonfile(request,network,f):
         last = existing_loggers.last()
         depth = last.depth if last else None
         
-        pos, created = datalogger.loggerpos_set.get_or_create(screen=screen,refpnt=screen.refpnt,start_date=mon.start_date, defaults={'baro': well.baro, 'depth': depth, 'end_date': mon.end_date})
+        pos, created = datalogger.loggerpos_set.get_or_create(screen=screen,refpnt=screen.refpnt,start_date=mon.start_date, defaults={'depth': depth, 'end_date': mon.end_date})
         if created:
             logger.info('Datalogger {log} gekoppeld aan filter {loc}'.format(log=serial,loc=unicode(screen)))
             if depth is None:

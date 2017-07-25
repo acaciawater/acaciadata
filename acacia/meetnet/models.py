@@ -30,6 +30,7 @@ class Network(models.Model):
         verbose_name = 'netwerk'
         verbose_name_plural = 'netwerken'
 
+
 class Well(geo.Model):
     #TODO: this class should inherit from acacia.data.models.ProjectLocatie
     ploc = models.ForeignKey(ProjectLocatie, null=True, blank=True)
@@ -49,9 +50,9 @@ class Well(geo.Model):
     log = models.ImageField(null=True,blank=True,upload_to='logs',verbose_name = 'boorstaat')
     chart = models.ImageField(null=True,blank=True, upload_to='charts', verbose_name='grafiek')
     g = models.FloatField(default=9.80665,verbose_name='valversnelling', help_text='valversnelling in m/s2')
-    baro = models.ForeignKey(Series, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='luchtdruk', help_text = 'tijdreeks voor luchtdruk compensatie')
+    #baro = models.ForeignKey(Series, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='luchtdruk', help_text = 'tijdreeks voor luchtdruk compensatie')
     objects = geo.GeoManager()
-
+    
     def latlon(self):
         return util.toWGS84(self.location)
 
@@ -93,6 +94,24 @@ class Well(geo.Model):
         verbose_name = 'put'
         verbose_name_plural = 'putten'
         ordering = ['nitg','name']
+
+def limitKNMI():
+    return {'parameter__datasource__generator__classname__icontains':'KNMI'}
+
+class MeteoData(models.Model):
+    """ meteo data for a well """
+    well = models.OneToOneField(Well,related_name='meteo',verbose_name='put')
+    baro = models.ForeignKey(Series,on_delete=models.SET_NULL,blank=True,null=True,related_name='well_baro',limit_choices_to=limitKNMI,verbose_name='Luchtdruk')
+    neerslag = models.ForeignKey(Series,on_delete=models.SET_NULL,blank=True,null=True,related_name='well_p',limit_choices_to=limitKNMI)
+    verdamping = models.ForeignKey(Series,on_delete=models.SET_NULL,blank=True,null=True,related_name='well_ev24',limit_choices_to=limitKNMI)
+    temperatuur = models.ForeignKey(Series,on_delete=models.SET_NULL,blank=True,null=True,related_name='well_temp',limit_choices_to=limitKNMI)
+
+    def __unicode__(self):
+        return unicode(self.well)
+    
+    class Meta:
+        verbose_name = 'Meteo'
+        verbose_name_plural = 'Meteo'
 
 class Photo(models.Model): 
     well = models.ForeignKey(Well)
@@ -297,7 +316,7 @@ class LoggerPos(models.Model):
     end_date = models.DateTimeField(verbose_name = 'stop', blank=True, null=True, help_text = 'Tijdstrip van stoppen datalogger')   
     refpnt = models.FloatField(verbose_name = 'referentiepunt', blank=True, null=True, help_text = 'ophangpunt in meter tov NAP')
     depth = models.FloatField(verbose_name = 'kabellengte', blank=True, null=True, help_text = 'lengte van ophangkabel in meter')
-    baro = models.ForeignKey(Series, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='luchtdruk', help_text = 'tijdreeks voor luchtdruk compensatie')
+    #baro = models.ForeignKey(Series, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='luchtdruk', help_text = 'tijdreeks voor luchtdruk compensatie')
     remarks = models.TextField(verbose_name='opmerkingen', blank=True) 
 
     def __unicode__(self):

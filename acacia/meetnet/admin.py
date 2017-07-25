@@ -7,6 +7,7 @@ from .models import Network, Well, Photo, Screen, Datalogger, LoggerPos, LoggerD
 from acacia.data.admin import DatasourceAdmin, SourceFileAdmin
 from django.conf import settings
 from django.contrib import admin
+from acacia.meetnet.models import MeteoData
 
 USE_GOOGLE_TERRAIN_TILES = False
 
@@ -61,8 +62,8 @@ class MonFileInline(admin.TabularInline):
     
 class LoggerPosAdmin(admin.ModelAdmin):
     model = LoggerPos
-    list_display = ('logger', 'screen', 'start_date', 'end_date', 'refpnt', 'depth', 'baro', 'remarks')
-    list_filter = ('screen__well', 'screen', 'baro')
+    list_display = ('logger', 'screen', 'start_date', 'end_date', 'refpnt', 'depth', 'remarks')
+    list_filter = ('screen__well', 'screen',)
     search_fields = ('logger__serial','screen__well__name')
     inlines = [MonFileInline]
     
@@ -112,6 +113,11 @@ class MonFileAdmin(SourceFileAdmin):
                                          'serial_number','instrument_number','location','sample_period','sample_method','start_date','end_date', 'num_channels', 'num_points')}),
                 )
 
+class MeteoInline(admin.StackedInline):
+    model = MeteoData
+    extra = 0
+    classes = ('grp-collapse', )
+        
 class ScreenInline(admin.TabularInline):
     model = Screen
     extra = 0
@@ -136,8 +142,8 @@ class WellAdmin(admin.ModelAdmin):
                actions.register_wells,
                actions.download_well_nitg,
                actions.elevation_from_ahn]
-    inlines = [ ScreenInline, PhotoInline]
-    list_display = ('name','nitg','network','maaiveld', 'ahn', 'baro', 'num_filters', 'num_photos', 'straat', 'plaats')
+    inlines = [ScreenInline, MeteoInline, PhotoInline ]
+    list_display = ('name','nitg','network','maaiveld', 'ahn', 'num_filters', 'num_photos', 'straat', 'plaats')
     #list_editable = ('location',)
     #list_per_page = 4
     ordering = ('network', 'name',)
@@ -147,7 +153,7 @@ class WellAdmin(admin.ModelAdmin):
     list_select_related = True
     fieldsets = (
                  ('Algemeen', {'classes': ('grp-collapse', 'grp-open'),
-                               'fields':('network', 'name', 'nitg', 'bro', 'maaiveld', 'baro', 'date', 'log', 'chart')}),
+                               'fields':('network', 'name', 'nitg', 'bro', 'maaiveld', 'date', 'log', 'chart')}),
                  ('Locatie', {'classes': ('grp-collapse', 'grp-closed'),
                               'fields':(('straat', 'huisnummer'), ('postcode', 'plaats'),('location','g'),'description')}),
                 )
@@ -191,10 +197,16 @@ class WellAdmin(admin.ModelAdmin):
     #debug = False
     #widget = OpenLayersWidget
 
+class MeteoDataAdmin(admin.ModelAdmin):
+    model = MeteoData
+    search_fields = ('well__nitg','baro__name')
+    list_filter = ('well','baro','neerslag','verdamping','temperatuur')
+    
 admin.site.register(Network)
 admin.site.register(Well, WellAdmin)
 admin.site.register(Screen, ScreenAdmin)
 admin.site.register(Photo,PhotoAdmin)
+admin.site.register(MeteoData, MeteoDataAdmin)
 
 admin.site.register(Datalogger, DataloggerAdmin)
 admin.site.register(LoggerPos, LoggerPosAdmin)

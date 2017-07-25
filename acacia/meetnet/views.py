@@ -182,11 +182,11 @@ class WellChartView(TemplateView):
                             },
                         })
 
-        if screen.well.maaiveld:
+        if well.maaiveld:
             import datetime
             mv = []
-            mv.append((datetime.datetime(2013,1,1), screen.well.maaiveld))
-            mv.append((datetime.datetime(2016,12,31,23,59), screen.well.maaiveld))
+            mv.append((datetime.datetime(2013,1,1), well.maaiveld))
+            mv.append((datetime.datetime(2016,12,31,23,59), well.maaiveld))
             series.append({'name': 'maaiveld',
                         'type': 'line',
                         'lineWidth': 2,
@@ -197,30 +197,27 @@ class WellChartView(TemplateView):
                         })
 
         # neerslag toevoegen
-        try:
-            closest = Station.closest(well.location)
-            #name = 'Meteostation {} (dagwaarden)'.format(closest.naam)
-            neerslag = Series.objects.get(name='RH',mlocatie__name__icontains=closest.naam)
-            data = neerslag.to_pandas(start=xydata[0][0], stop=xydata[-1][0]) / 10.0 # 0.1 mm -> mm
-            if not data.empty:
-                data = zip(data.index.to_pydatetime(), data.values)
-                series.append({'name': 'Neerslag '+ closest.naam,
-                            'type': 'column',
-                            'data': data,
-                            'yAxis': 1,
-                            'pointRange': 24 * 3600 * 1000, # 1 day
-                            'pointPadding': 0.01,
-                            'pointPlacement': 0.5,
-                            'zIndex': 1,
-                            'color': 'orange', 
-                            'borderColor': '#cc6600', 
-                            })
-                options['yAxis'].append({'title': {'text': 'Neerslag (mm)'},
-                                         'opposite': 1,
-                                         'min': 0,
-                                         })
-        except:
-            pass
+        if hasattr(well,'meteo'):
+            neerslag = well.meteo.neerslag
+            if neerslag:
+                data = neerslag.to_pandas(start=xydata[0][0], stop=xydata[-1][0]) / 10.0 # 0.1 mm -> mm
+                if not data.empty:
+                    data = zip(data.index.to_pydatetime(), data.values)
+                    series.append({'name': 'Neerslag '+ neerslag.datasource.name,
+                                'type': 'column',
+                                'data': data,
+                                'yAxis': 1,
+                                'pointRange': 24 * 3600 * 1000, # 1 day
+                                'pointPadding': 0.01,
+                                'pointPlacement': 0.5,
+                                'zIndex': 1,
+                                'color': 'orange', 
+                                'borderColor': '#cc6600', 
+                                })
+                    options['yAxis'].append({'title': {'text': 'Neerslag (mm)'},
+                                             'opposite': 1,
+                                             'min': 0,
+                                             })
         options['series'] = series
         context['options'] = json.dumps(options, default=lambda x: int(time.mktime(x.timetuple())*1000))
         context['object'] = well
