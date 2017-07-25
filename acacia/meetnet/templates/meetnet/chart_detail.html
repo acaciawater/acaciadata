@@ -3,19 +3,30 @@
 {% block script %}
 {{ block.super }}
 <script>
-function fetchSeries(id) {
-    $.getJSON('/net/data/'+id.toString(), function (data) {
+function fetchSeries(name,id) {
+	var html = '<div id="screen'+id+'">Laden filter ' + name + '&hellip;</div>';
+	$("#container").append(html);
+    $.getJSON('/net/data/'+id, function (data) {
 	  	var chart = $('#container').highcharts();
 	  	$.each(data,function(key,values) {
 	  		var series = chart.get(key);
 			series.setData(values);
-	  	});
+	  	})
+    })
+    .done(function() {
+		$("#screen"+id).append('Klaar');
+    })
+    .fail(function() {
+		$("#screen"+id).append('Geen gegevens');
+    })
+    .always(function(){
+		setTimeout(function(){$("#screen"+id).remove();},2000);
     });
 }
 
 function fetchAll() {
 {% for s in object.screen_set.all %}
-	fetchSeries({{s.pk}});
+	fetchSeries("{{s}}","{{s.pk}}");
 {% endfor %}
 }
 $(function () {
