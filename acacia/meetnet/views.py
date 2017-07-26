@@ -110,7 +110,11 @@ class ScreenChartView(TemplateView):
 def json_series(request, pk):
     screen = get_object_or_404(Screen,pk=pk)
     series = screen.get_compensated_series()
-    data = {'screen%s'%screen.nr: zip(series.index.astype(np.int64)//10**6, series.values)}
+    if series is None or series.empty:
+        values = []
+    else:
+        values = zip(series.index.astype(np.int64)//10**6, series.values)
+    data = {'screen%s'%screen.nr: values}
     return HttpResponse(json.dumps(data),content_type='application/json')
     
 class WellChartView(TemplateView):
