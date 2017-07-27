@@ -43,7 +43,7 @@ def get_locations_and_timeseries(headers, string):
                     ml_ds_name = x['name']+' '+x['location']['name']
                     ml_latlon = x['location']['geometry']['coordinates']
                     rd = Point(x=ml_latlon[0],y=ml_latlon[1],srid=WGS84)  
-                    rd = toRD(rd)                  
+                    #rd = toRD(rd)                  
                     ml_ds_unit = x['parameter_referenced_unit']['referenced_unit_short_display_name']
                     ml_ds_url = x['url']
                     datasource = [{ml_ds_name:{'descrition':ml_ds_desc,'unit':ml_ds_unit,'url':ml_ds_url}}]
@@ -78,7 +78,7 @@ class Command(BaseCommand):
         # create projectlocatie 
         pl_name = 'HHNK_HQ'
         HHNK_HQ_loc = Point(x=4.8232246, y=52.6691314, srid=WGS84)
-        HHNK_HQ_loc = toRD(HHNK_HQ_loc)
+        #HHNK_HQ_loc = toRD(HHNK_HQ_loc)
         HHNK_HQ_descr = 'Hoofdkantoor HHNK'
         ploc, created = project.projectlocatie_set.get_or_create(name = pl_name, description=HHNK_HQ_descr, defaults = {'location': HHNK_HQ_loc })
         # create meetlocatie

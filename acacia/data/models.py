@@ -116,7 +116,7 @@ class ProjectLocatie(geo.Model):
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     description.allow_tags=True
     image = models.ImageField(upload_to=up.locatie_upload, blank = True, null = True)
-    location = geo.PointField(srid=util.RDNEW,verbose_name='locatie', help_text='Projectlocatie in Rijksdriehoekstelsel coordinaten')
+    location = geo.PointField(srid=util.WGS84,verbose_name='locatie', help_text='Projectlocatie in geografische coordinaten')
     objects = geo.GeoManager()
     webcam = models.ForeignKey(Webcam, null = True, blank=True)
     dashboard = models.ForeignKey('TabGroup', blank=True, null=True, verbose_name = 'Standaard dashboard')
@@ -124,15 +124,18 @@ class ProjectLocatie(geo.Model):
     def get_absolute_url(self):
         return reverse('acacia:projectlocatie-detail', args=[self.id])
 
+    def latlon(self):
+        return self.location
+
+    def RD(self):
+        return util.toRD(self.location)
+
     def location_count(self):
         return self.meetlocatie_set.count()
     location_count.short_description='Aantal meetlocaties'
 
     def __unicode__(self):
         return self.name
-
-    def latlon(self):
-        return util.toWGS84(self.location)
 
     def series(self):
         s = []
@@ -149,7 +152,7 @@ class MeetLocatie(geo.Model):
     name = models.CharField(max_length=100,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     image = models.ImageField(upload_to=up.meetlocatie_upload, blank = True, null = True)
-    location = geo.PointField(dim=2,srid=util.RDNEW,verbose_name='locatie', help_text='Meetlocatie in Rijksdriehoekstelsel coordinaten')
+    location = geo.PointField(dim=2,srid=util.WGS84,verbose_name='locatie', help_text='Meetlocatie in geografische coordinaten')
     objects = geo.GeoManager()
     webcam = models.ForeignKey(Webcam, null = True, blank=True)
 
@@ -158,6 +161,9 @@ class MeetLocatie(geo.Model):
         
     def latlon(self):
         return util.toWGS84(self.location)
+
+    def RD(self):
+        return util.toRD(self.location)
 
     def datasourcecount(self):
         return self.datasources.count()

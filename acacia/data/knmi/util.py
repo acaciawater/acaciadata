@@ -5,17 +5,20 @@ Created on Sep 17, 2015
 '''
 
 import math
+from acacia.data.util import toGoogle
 
-def distance(obj, pnt):
-    dx = obj.location.x - pnt.x
-    dy = obj.location.y - pnt.y
+def distance(p1,p2):
+    dx = p1.x - p2.x
+    dy = p1.y - p2.y
     return math.sqrt(dx*dx+dy*dy)
 
 def closest_object(query,target):
     closest = None
     dist = 1e99
+    p2 = toGoogle(target)
     for obj in query:
-        d = distance(obj, target)
+        p1 = toGoogle(obj.location)
+        d = distance(p1,p2)
         if d < dist:
             closest = obj
             dist = d
@@ -23,8 +26,10 @@ def closest_object(query,target):
 
 def sort_objects(query,target):
     objs = []
+    p2 = toGoogle(target)
     for obj in query:
-        obj.distance = distance(obj, target)
+        p1 = toGoogle(obj.location)
+        obj.distance = distance(p1,p2)
         objs.append(obj)
     return sorted(objs, key=lambda x: x.distance)
 

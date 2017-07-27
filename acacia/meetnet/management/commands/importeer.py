@@ -10,6 +10,7 @@ from ...models import Network, Well
 #from ...dino import Dino
 from acacia.data.generators.dino import Dino
 from django.contrib.gis.geos import Point
+from acacia.data import util
 
 def parsenum(text,num=float,default=0):
     try:
@@ -52,7 +53,7 @@ class Command(BaseCommand):
                         datum = datetime.date.today()
                     x = float(d['X-coordinaat'])
                     y = float(d['Y-coordinaat'])
-                    loc = Point(x,y)
+                    loc = util.toWGS84(Point(x,y,srid=util.RDNEW))
                     maaiveld = parsenum(d['Maaiveld (cm t.o.v. NAP)']) / 100
                     refpnt = parsenum(d['Meetpunt (cm t.o.v. NAP)']) / 100
                     # replace existing well

@@ -3,6 +3,7 @@ from .models import Chart, Series, Grid, ManualSeries
 
 import logging, re
 from django.contrib.gis.geos.point import Point
+from acacia.data.util import toWGS84
 logger = logging.getLogger(__name__)
 
 def sourcefile_dimensions(modeladmin, request, queryset):
@@ -319,7 +320,7 @@ def generate_locations(modeladmin, request, queryset):
         for key,values in locs.iteritems():
             desc = values.get('description',None)
             loc = Point(values['coords'],srid=values['srid'])
-            loc = toRD(loc)
+            loc = toWGS84(loc)
             try:
                 mloc, created = projectlocatie.meetlocatie_set.get_or_create(name=key,defaults={'description': desc,'location':loc})
                 if created:

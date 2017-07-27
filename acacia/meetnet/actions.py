@@ -21,8 +21,9 @@ def elevation_from_ahn(modeladmin, request, queryset):
     ahn3 = get_object_or_404(AHN,name='AHN3 0.5m DTM')
     ahn2 = get_object_or_404(AHN,name='AHN2 0.5m geinterpoleerd')
     for mp in queryset:
-        x = mp.location.x
-        y = mp.location.y
+        p = mp.RD()
+        x = p.x
+        y = p.y
         mp.ahn = ahn3.get_elevation(x,y)
         if mp.ahn is None:
             # try AHN2

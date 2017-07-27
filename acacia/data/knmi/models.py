@@ -17,7 +17,6 @@ class Station(models.Model):
     
     @classmethod
     def closest(cls, coords, n=1):
-        ''' coords in rdnew projection ''' 
         return closestn(cls,coords,n)
 
     class Meta:
@@ -38,7 +37,6 @@ class NeerslagStation(models.Model):
 
     @classmethod
     def closest(cls, coords, n=1):
-        ''' coords in rdnew projection ''' 
         return closestn(cls,coords,n)
 
     class Meta:
