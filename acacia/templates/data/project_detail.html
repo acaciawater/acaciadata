@@ -14,7 +14,7 @@
 {% block script %}
 {{ block.super }}
 {% localize off %}
-<script src="https://maps.googleapis.com/maps/api/js?key={{apikey}}"></script>
+<script src="//maps.googleapis.com/maps/api/js?key={{apikey}}"></script>
 <script>
 
 // function getcam(id,url) {
@@ -85,7 +85,7 @@ $(function(){initialize();});
 </td>
 </tr>
 {% empty %}
-    <div>Geen locaties gevonden</div>
+    <p class="alert alert-danger"><b>Waarschuwing:</b> Geen locaties gevonden</p>
 {% endfor %}
 </tbody>
 </table>
