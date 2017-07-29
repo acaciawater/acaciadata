@@ -1875,17 +1875,12 @@ class CalibrationData(models.Model):
         verbose_name = 'IJkpunt'        
         verbose_name_plural = 'IJkset'
 
-#from smart_selects.db_fields import ChainedManyToManyField
-
 class KeyFigure(models.Model):
     ''' Net zoiets als een Formula, maar dan met een scalar als resultaat'''
     locatie = models.ForeignKey(MeetLocatie)
     name = models.CharField(max_length=200, verbose_name = 'naam')
     description = models.TextField(blank=True, null = True, verbose_name = 'omschrijving')
     variables = models.ManyToManyField(Variable,verbose_name = 'variabelen')
-#     variables = ChainedManyToManyField(Variable,verbose_name = 'variabelen',
-#             chained_field = locatie,
-#             chained_model_field = 'locatie')
     formula = models.TextField(blank=True,null=True,verbose_name = 'berekening')
     last_update = models.DateTimeField(auto_now = True, verbose_name = 'bijgewerkt')
     startDate = models.DateField(blank=True, null=True)
