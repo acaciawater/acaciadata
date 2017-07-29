@@ -11,6 +11,8 @@ import pytz
 from django.utils import timezone
 
 from acacia import settings
+from acacia.data.util import slugify
+from acacia.data import util
 
 logger = logging.getLogger(__name__)
 
@@ -474,6 +476,17 @@ class Dataservice(Generator):
 
         return result
     
+    def get_locations(self,fil):
+        ''' return dict of all locations in the datafile '''
+        fil.seek(0)
+        tree = ET.ElementTree()
+        tree.parse(f)
+        location = tree.find('Device/Configuration/Location')
+        lat = location.get('lat')
+        lon = location.get('lon')
+        name = location.get('locname')
+        return {slugify(name):dict(coords=[float(lon),float(lat)], description=name,srid=util.WGS84)}
+
     def get_data(self, f, **kwargs):
         f.seek(0)
         tree = ET.ElementTree()
