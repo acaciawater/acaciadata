@@ -3,9 +3,8 @@ import datetime,time,json,re,logging
 from django.views.generic.list import ListView
 from django.views.generic import DetailView
 from django.views.generic.base import TemplateView
-from django.template import RequestContext
 from django.template.loader import render_to_string
-from django.shortcuts import get_object_or_404, redirect, render_to_response
+from django.shortcuts import get_object_or_404, redirect
 from django.http import HttpResponse
 from .models import Project, ProjectLocatie, MeetLocatie, Datasource, Series, Chart, Grid, Dashboard, TabGroup, KeyFigure, Formula
 from .util import datasource_as_zip, datasource_as_csv, meetlocatie_as_zip, series_as_csv, chart_as_csv
@@ -14,7 +13,6 @@ from django.views.decorators.gzip import gzip_page
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from dateutil.parser import parse
-import dateutil
 from acacia.data.models import aware
 import pandas as pd
 from acacia.data.util import resample_rule
@@ -208,6 +206,7 @@ class ProjectDetailView(DetailView):
         for loc in project.projectlocatie_set.all():
             pos = loc.latlon()
             content.append({
+                            'id': loc.id,
                             'name': loc.name,
                             'lat': pos.y,
                             'lon': pos.x,
