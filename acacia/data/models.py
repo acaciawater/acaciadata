@@ -1196,9 +1196,6 @@ class Series(PolymorphicModel,LoggerSourceMixin):
                 pts.append(DataPoint(series=self, date=date, value=value))
             except Exception as e:
                 self.getLogger().debug('Datapoint %s,%g: %s' % (str(date), value, e))
-#         with open('/home/theo/texelmeet/hhnk/points.csv','w') as f:
-#             for p in pts:
-#                 f.write('{},{}\n'.format(p.date,p.value)) 
         return pts
     
     def create_points(self, series, tz):
@@ -1247,20 +1244,16 @@ class Series(PolymorphicModel,LoggerSourceMixin):
             logger.warning('No valid datapoints found in series %s' % self.name)
             return 0;
         
-        count = self.datapoints.count()
-        if count>0:
-            # delete properties first to avoid foreignkey constraint failure
-            try:
-                self.properties.delete()
-            except:
-                pass
-            values = ["(%d,'%s')" % (self.id, datetime.datetime.strftime(p.date, '%Y-%m-%d %H:%M:%S')) for p in pts]
-            values = '(' + ','.join(values) + ')'
-            sql = 'DELETE from {table} WHERE (`series_id`,`date`) IN {values}'.format(table=DataPoint._meta.db_table, values=values)
-            cursor = connection.cursor()
-            num_deleted = cursor.execute(sql)
-        else:
-            num_deleted = 0    
+        # delete properties first to avoid foreignkey constraint failure
+        self.properties.delete()
+
+        # delete the points
+        if start is None:
+            start = min([p.date for p in pts])
+        query = self.datapoints.filter(date__gte=start)
+        deleted = query.delete()
+        num_deleted = len(deleted) if deleted else 0
+
         created = self.datapoints.bulk_create(pts)
         num_created = len(created) - num_deleted
         num_updated = num_deleted
