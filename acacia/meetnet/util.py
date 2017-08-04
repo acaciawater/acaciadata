@@ -77,7 +77,8 @@ def chart_for_well(well,start=None,stop=None):
     ax=fig.gca()
     datemin=start or datetime.datetime(2013,1,1)
     datemax=stop or datetime.datetime(2016,12,31)
-    ax.set_xlim(datemin, datemax)
+    if start or stop:
+        ax.set_xlim(datemin, datemax)
     plt.grid(linestyle='-', color='0.9')
     ncol = 0
     for screen in well.screen_set.all():
@@ -88,7 +89,7 @@ def chart_for_well(well,start=None,stop=None):
             data = data[::n]
         if len(data)>0:
             x,y = zip(*data)
-            plt.plot_date(x, y, '-',label=unicode(screen),color=screencolor(screen))
+            plt.plot_date(x, y, '-',label='filter {}'.format(screen.nr),color=screencolor(screen))
             ncol += 1
 
             hand = screen.get_hand('nap')
