@@ -168,24 +168,6 @@ def UpdateDatasource(request,pk):
     nxt = request.GET['next']
     update_datasource(pk)
     return redirect(nxt)
-# 
-# from celery.result import AsyncResult
-# 
-# def poll_state(request):
-#     """ A view to report progress """
-#     if 'job' in request.GET:
-#         job_id = request.GET['job']
-#     else:
-#         return HttpResponse('No job id given.')
-# 
-#     job = AsyncResult(job_id)
-#     data = {'state':job.state, 'result': job.result}
-#     return HttpResponse(json.dumps(data), mimetype='application/json')
-# 
-# def StartUpdateDatasource(request,pk):
-#     #job = update_datasource.delay(pk)
-#     job = longjob.delay(pk)
-#     return render_to_response('data/poll_view.html', {'job': job.id }, context_instance=RequestContext(request))
 
 class DatasourceDetailView(DetailView):
     model = Datasource
