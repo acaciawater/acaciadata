@@ -10,7 +10,7 @@ import StringIO
 import pytz
 from django.utils import timezone
 
-from acacia import settings
+from django.conf import settings
 from acacia.data.util import slugify
 from acacia.data import util
 
@@ -350,13 +350,8 @@ def decatime(dt):
     try:
         timestamp = float(dt)+DECATIME_OFFSET
         # timestamp is in local timezone, synced by GSM network
-        dt = datetime.datetime.utcfromtimestamp(timestamp)
-
-        # temp workaround for invalid dates
-        if dt.date() > datetime.date.today():
-            return None
-        
-        return timezone.make_aware(dt,tz)
+        dt = tz.localize(datetime.datetime.utcfromtimestamp(timestamp))
+        return None if dt.date() > datetime.date.today() else dt
     except:
         return None
 
