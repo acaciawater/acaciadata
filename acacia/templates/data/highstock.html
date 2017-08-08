@@ -15,6 +15,7 @@
 {% if theme %}
 <script src="{% static theme %}"></script>
 {% endif %}
+{% block global %}
 <script>
 Highcharts.setOptions({
 	  global: {
@@ -32,6 +33,7 @@ Highcharts.setOptions({
 	  }
 	});
 </script>
+{% endblock %}
 {% block chartloader %}
 <script>
 $(function () {
