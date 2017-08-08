@@ -86,7 +86,7 @@ class Well(geo.Model):
                 stop = s.stop()
                 if last is None:
                     last = stop
-                else:
+                elif stop:
                     last = max(last,stop)
         return last.date() if last else None
     
