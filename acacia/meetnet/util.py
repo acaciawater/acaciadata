@@ -413,10 +413,14 @@ def addmonfile(request,network,f):
             logger.info('Nieuwe datalogger toegevoegd met serienummer {ser}'.format(ser=serial))
     
         # get installation depth from last existing logger
-        existing_loggers = screen.loggerpos_set.all().order_by('start_date')
-        last = existing_loggers.last()
-        depth = last.depth if last else None
+#         existing_loggers = screen.loggerpos_set.all().order_by('start_date')
+#         last = existing_loggers.last()
+#         depth = last.depth if last else None
         
+        # get installation depth from previous logger
+        prev = screen.loggerpos_set.filter(end_date__lte=mon.start_date)
+        depth = prev.latest('date').depth if prev else None
+            
         pos, created = datalogger.loggerpos_set.get_or_create(screen=screen,refpnt=screen.refpnt,start_date=mon.start_date, defaults={'depth': depth, 'end_date': mon.end_date})
         if created:
             logger.info('Datalogger {log} gekoppeld aan filter {loc}'.format(log=serial,loc=unicode(screen)))
