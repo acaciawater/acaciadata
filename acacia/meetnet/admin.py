@@ -199,6 +199,7 @@ class WellAdmin(admin.ModelAdmin):
 
 class MeteoDataAdmin(admin.ModelAdmin):
     model = MeteoData
+    list_display = ('well','baro')
     search_fields = ('well__nitg','baro__name')
     list_filter = ('well','baro','neerslag','verdamping','temperatuur')
     
