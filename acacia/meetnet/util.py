@@ -48,7 +48,7 @@ def screencolor(screen):
 def chart_for_screen(screen):
     plt.figure(figsize=THUMB_SIZE)
     plt.grid(linestyle='-', color='0.9')
-    data = screen.get_levels('nap')
+    data = screen.get_levels('nap',rule='H')
     n = len(data) / (THUMB_SIZE[0]*THUMB_DPI)
     if n > 1:
         #use data thinning: take very nth row
