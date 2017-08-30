@@ -191,6 +191,7 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
         baros[baroseries] = baro
         
     seriesdata = None
+    sumdry = 0
     for logpos in screen.loggerpos_set.all().order_by('start_date'):
         if logpos.refpnt is None:
             logger.warning('Referentiepunt ontbreekt voor {pos}'.format(pos=logpos))
@@ -222,8 +223,13 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
             data = data - abaro
             data.dropna(inplace=True)
 
-            #clear datapoints with less than 10 cm of water
-            data[data<10] = np.nan
+            #clear datapoints with less than 2 cm of water
+            data[data<2] = np.nan
+            # count dry values
+            dry = data.isnull().sum()
+            if dry:
+                logger.warning('Screen {}, MON file {}: {} out of {} measurements have less than 2 cm of water'.format(unicode(screen),mon,dry,data.size))
+            sumdry += dry
             
             data = data / 100 + (logpos.refpnt - logpos.depth)
             if seriesdata is None:
@@ -232,8 +238,12 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
                 seriesdata = seriesdata.append(data)
                 
     if seriesdata is not None:
+        # remove duplicates
         seriesdata = seriesdata.groupby(seriesdata.index).last()
+        # sort data
         seriesdata.sort_index(inplace=True)
+        if sumdry:
+            logger.warning('Screen {}: {} out of {} measurements have less than 2 cm of water'.format(unicode(screen),sumdry,seriesdata.size))
         datapoints=[]
         for date,value in seriesdata.iteritems():
             value = float(value)
@@ -318,8 +328,6 @@ def createmeteo(request, well):
 
     meteo.save()
     
-logger = logging.getLogger('upload')
-
 # l=logging.getLogger('acacia.data').addHandler(h)
 
 def createmonfile(source, generator=sws.Diver()):
@@ -377,6 +385,8 @@ def createmonfile(source, generator=sws.Diver()):
 
 def addmonfile(request,network,f):
     ''' add monfile to database and create related tables '''
+    logger = logging.getLogger('upload')
+
     filename = f.name    
     basename = os.path.basename(filename)
     logger.info('Verwerken van bestand ' + basename)
@@ -419,7 +429,7 @@ def addmonfile(request,network,f):
         
         # get installation depth from previous logger
         prev = screen.loggerpos_set.filter(end_date__lte=mon.start_date)
-        depth = prev.latest('date').depth if prev else None
+        depth = prev.latest('end_date').depth if prev else None
             
         pos, created = datalogger.loggerpos_set.get_or_create(screen=screen,refpnt=screen.refpnt,start_date=mon.start_date, defaults={'depth': depth, 'end_date': mon.end_date})
         if created:
