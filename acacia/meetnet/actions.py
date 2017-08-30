@@ -14,6 +14,7 @@ from django.contrib.gis.geos import Point
 from django.shortcuts import get_object_or_404
 
 import StringIO
+from acacia.meetnet.util import register_screen, register_well
 logger = logging.getLogger(__name__)
 
 def elevation_from_ahn(modeladmin, request, queryset):
@@ -91,13 +92,16 @@ make_screencharts.short_description = "Grafieken vernieuwen van geselecteerde fi
 
 def recomp_screens(modeladmin, request, queryset):
     for screen in queryset:
+        register_screen(screen)
         name = '%s COMP' % unicode(screen)
-        series, created = Series.objects.get_or_create(name=name,user=request.user)
+        series, created = Series.objects.get_or_create(name=name,defaults={'user':request.user,'mlocatie':screen.mloc})
         recomp(screen, series)
+    make_screencharts(modeladmin, request, queryset)
 recomp_screens.short_description = "Gecompenseerde tijdreeksen opnieuw aanmaken voor geselecteerde filters"
         
 def recomp_wells(modeladmin, request, queryset):
     for well in queryset:
+        register_well(well)
         recomp_screens(modeladmin,request,well.screen_set.all())
     make_wellcharts(modeladmin, request, queryset)
 recomp_wells.short_description = "Gecompenseerde tijdreeksen opnieuw aanmaken voor geselecteerde putten"
