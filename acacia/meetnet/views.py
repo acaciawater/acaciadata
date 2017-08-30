@@ -12,6 +12,7 @@ from django.core.files.storage import default_storage
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 import numpy as np
+import pandas as pd
 
 from .models import Network, Well, Screen
 from .forms import UploadFileForm
@@ -109,7 +110,31 @@ class ScreenChartView(TemplateView):
 
 def json_series(request, pk):
     screen = get_object_or_404(Screen,pk=pk)
-    series = screen.get_compensated_series()
+    what = request.GET.get('mode','comp') # choices: comp, hand
+    if what == 'comp':
+        series = screen.get_compensated_series()
+    elif what == 'hand':
+        series = screen.get_manual_series()
+    else:
+        raise 'Illegal series type requested'
+    
+    ref = request.GET.get('ref','nap') # choices: nap, bkb, mv, cm
+    if ref == 'nap':
+        pass
+    elif ref =='bkb':
+        series = screen.refpnt - series
+    elif ref == 'mv':
+        series = screen.well.maaiveld - series
+    elif ref == 'cm':
+        # converteren naar cm boven sensor
+        depths = screen.loggerpos_set.order_by('start_date').values_list('start_date','depth')
+        if len(depths)>0:
+            x,y = zip(*depths)
+            nap = (screen.refpnt - pd.Series(index = x, data = y))
+            nap = nap.reindex(series.index,method='pad')
+            series = (series - nap) * 100
+        else:
+            series = pd.Series()
     if series is None or series.empty:
         values = []
     else:
