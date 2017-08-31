@@ -48,25 +48,50 @@ def screencolor(screen):
 def chart_for_screen(screen):
     plt.figure(figsize=THUMB_SIZE)
     plt.grid(linestyle='-', color='0.9')
+    ncol = 0
+
+    # sensor positie tov NAP berekenen en aan grafiek toevoegen
+    if screen.refpnt is not None:
+        depths = screen.loggerpos_set.filter(depth__isnull=False).order_by('start_date').values_list('start_date','end_date','depth')
+        if len(depths)>0:
+            data = []
+            last = None
+            for start,end,depth in depths:
+                if last:
+                    data.append((start,last))
+                value = screen.refpnt - depth
+                data.append((start,value))
+                last = value
+            data.append((end,last))    
+            x,y = zip(*data)
+            plt.plot_date(x,y,'--',label='diverpositie',color='orange')
+            ncol += 1
+
     data = screen.get_levels('nap',rule='H')
-    n = len(data) / (THUMB_SIZE[0]*THUMB_DPI)
-    if n > 1:
-        #use data thinning: take very nth row
-        data = data[::n]
+#    n = len(data) / (THUMB_SIZE[0]*THUMB_DPI)
+#     if n > 1:
+#         #use data thinning: take very nth row
+#         data = data[::n]
     if len(data)>0:
         x,y = zip(*data)
-        plt.plot_date(x, y, '-',color=screencolor(screen))
-        y = [screen.well.maaiveld] * len(x)
-        plt.plot_date(x, y, '-')
+        plt.plot_date(x, y, '-', label='loggerdata',color='blue')
+        ncol += 1
 
+    # handpeilingen toevoegen
     hand = screen.get_hand('nap')
     if len(hand)>0:
         x,y = zip(*hand)
-        plt.plot_date(x, y, 'o',label='handpeiling',color=screencolor(screen))
+        plt.plot_date(x, y, 'o',label='handpeiling',color='red')
+        ncol += 1
         
+    # maaiveld toevoegen
+    plt.axhline(y=screen.well.maaiveld, linestyle='--', label='maaiveld',color='green')
+    ncol += 1
 
     plt.title(screen)
     plt.ylabel('m tov NAP')
+    plt.legend(bbox_to_anchor=(0.5, -0.1), loc='upper center',ncol=ncol,frameon=False)
+    
     img = StringIO() 
     plt.savefig(img,bbox_inches='tight', format='png')
     plt.close()    
