@@ -18,7 +18,7 @@ from .models import Network, Well, Screen
 from .forms import UploadFileForm
 from .actions import download_well_nitg
 
-import os, json, logging, time
+import os, json, logging, time, datetime
 
 from util import handle_uploaded_files
 
@@ -174,39 +174,44 @@ class WellChartView(TemplateView):
         series = []
         xydata = []
         for screen in well.screen_set.all():
-            name = unicode(screen)
-#             data = screen.get_compensated_series()
-#             if data is None or data.empty:
-#                 continue
-#             xydata = zip(data.index.to_pydatetime(), data.values)
-            xydata = None
-            series.append({'name': name,
-                        'type': 'line',
-                        'data': xydata,
-                        'lineWidth': 1,
-                        #'lineColor' : screencolor(screen),
-                        'zIndex': 2,
-                        'id': 'screen%d' % screen.nr
-                        })
-#             mean = pd.expanding_mean(data)
-#             std = pd.expanding_std(data)
-#             a = (mean - std).dropna()
-#             b = (mean + std).dropna()
-#             ranges = zip(a.index.to_pydatetime(), a.values, b.values)
-#             series.append({'name': 'spreiding',
-#                         'data': ranges,
-#                         'type': 'arearange',
-#                         'lineWidth': 0,
-#                         'fillOpacity': 0.2,
-#                         'linkedTo' : ':previous',
-#                         'zIndex': 0,
+            if screen.has_data():
+                xydata = None
+                series.append({'name': 'filter {}'.format(screen.nr),
+                            'type': 'line',
+                            'data': xydata,
+                            'lineWidth': 1,
+                            'zIndex': 2,
+                            'id': 'screen%d' % screen.nr
+                            })
+
+            # sensor positie tov NAP
+#             data = []
+#             depths = screen.loggerpos_set.order_by('start_date').values_list('start_date','depth')
+#             if len(depths)>0:
+#                 last = None
+#                 for date,value in depths:
+#                     if last:
+#                         data.append((date,last))
+#                     value = screen.refpnt - value
+#                     data.append((date,value))
+#                     last = value
+# #                 date = datetime.datetime(2017,2,1)
+# #                 last_date = int(time.mktime(date.timetuple())*1000)
+# #                 data.append((last_date,last))
+#             if data:
+#                 series.append({'name': 'diver {}'.format(screen.nr),
+#                         'type': 'line',
+#                         'data': data,
+#                         'zIndex': 1,
+#                         'id': 'diver%d' % screen.nr
 #                         })
+            
 
             data = screen.get_manual_series()
             if data is None:
                 continue
             hand = zip(data.index.to_pydatetime(), data.values)
-            series.append({'name': 'handpeiling filter {}'.format(screen.nr),
+            series.append({'name': 'peiling {}'.format(screen.nr),
                         'type': 'scatter',
                         'data': hand,
                         'zIndex': 3,
@@ -217,9 +222,8 @@ class WellChartView(TemplateView):
                                 'useHTML': True
                             },
                         })
-
+            
         if well.maaiveld:
-            import datetime
             mv = []
             mv.append((datetime.datetime(2013,1,1), well.maaiveld))
             mv.append((datetime.datetime(2016,12,31,23,59), well.maaiveld))
