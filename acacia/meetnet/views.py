@@ -56,19 +56,20 @@ class NetworkView(DetailView):
         context = super(NetworkView, self).get_context_data(**kwargs)
         network = self.get_object()
         content = []
-        for well in network.well_set.all():
-            pos = well.latlon()
-            content.append({'network': network.id,
-                            'well': well.id,
-                            'name': well.name,
-                            'nitg': well.nitg,
-                            'lat': pos.y,
-                            'lon': pos.x,
-                            'url': reverse('meetnet:well-info', args=[well.id]),
-                            })
-        context['content'] = json.dumps(content)
-        if not network.bound is None:
-            context['boundary'] = network.bound
+        if network:
+            if not network.bound is None:
+                context['boundary'] = network.bound
+            for well in network.well_set.all():
+                pos = well.latlon()
+                content.append({'network': network.id,
+                                'well': well.id,
+                                'name': well.name,
+                                'nitg': well.nitg,
+                                'lat': pos.y,
+                                'lon': pos.x,
+                                'url': reverse('meetnet:well-info', args=[well.id]),
+                                })
+        context['content'] = json.dumps(content) if content else None
         context['maptype'] = 'ROADMAP'
         context['apikey'] = settings.GOOGLE_MAPS_API_KEY
         return context
