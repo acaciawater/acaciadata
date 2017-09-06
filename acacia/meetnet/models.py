@@ -67,6 +67,21 @@ class Well(geo.Model):
         return self.photo_set.count()
     num_photos.short_description='aantal fotos'
 
+    def full_address(self,sep=', '):
+        def add(a,b,sep):
+            if b:
+                if a:
+                    a += sep
+                    a += b
+                else:
+                    a = b
+            return a
+        
+        adres = add(self.straat,self.huisnummer,' ')
+        adres = add(adres, self.postcode, ', ')
+        adres = add(adres, self.plaats, ' ')
+        return adres
+    
     def get_absolute_url(self):
         return reverse('meetnet:well-detail', args=[self.id])
 
