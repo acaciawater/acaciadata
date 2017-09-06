@@ -1,0 +1,52 @@
+[
+	{
+		"fields": {
+			"url": "http://geodata.nationaalgeoregister.nl/ahn2/wms",
+			"layer": "ahn2_05m_int",
+			"resolution": 0.5,
+			"name": "AHN2 0.5m geinterpoleerd"
+		},
+		"model": "ahn.ahn",
+		"pk": 1
+	},
+	{
+		"fields": {
+			"url": "https://geodata.nationaalgeoregister.nl/ahn3/wms",
+			"layer": "ahn3_05m_dtm",
+			"resolution": 0.5,
+			"name": "AHN3 0.5m DTM"
+		},
+		"model": "ahn.ahn",
+		"pk": 2
+	},
+	{
+		"fields": {
+			"url": "http://geodata.nationaalgeoregister.nl/ahn2/wms",
+			"layer": "ahn2_5m",
+			"resolution": 5.0,
+			"name": "AHN2 5m"
+		},
+		"model": "ahn.ahn",
+		"pk": 3
+	},
+	{
+		"fields": {
+			"url": "http://geodata.nationaalgeoregister.nl/ahn2/wms",
+			"layer": "ahn2_05m_ruw",
+			"resolution": 0.5,
+			"name": "AHN2 0.5m ruw"
+		},
+		"model": "ahn.ahn",
+		"pk": 4
+	},
+	{
+		"fields": {
+			"url": "https://geodata.nationaalgeoregister.nl/ahn3/wms",
+			"layer": "ahn3_05m_dsm",
+			"resolution": 0.5,
+			"name": "AHN3 0.5m DSM"
+		},
+		"model": "ahn.ahn",
+		"pk": 5
+	}
+]
