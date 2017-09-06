@@ -5,10 +5,17 @@
   <li><a href="/">Home</a></li>
 </ol>
 {% endblock breadcrumbs %}
-{% block brandname %}<div class="navbar-brand"><img style="margin-top: -7px;max-width: 100px;" src="/media/{{object.network.logo}}"/></div>{% endblock %}
+{% block brandname %}<div class="navbar-brand"><a href="{{object.homepage}}"><img src="/media/{{object.network.logo}}"/></a></div>{% endblock %}
 {% block extrastyle %}
 <style>
+
 html, body {height: 100%;margin:0;padding:0;}
+
+.navbar-brand a img {
+	margin-top: -7px;
+	max-height: 32px;
+}
+
 a img {
 	float: left;
 	height: 474px;
