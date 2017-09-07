@@ -11,11 +11,11 @@ logger = generator.logger
 from ftplib import FTP
 from urlparse import urlparse
 from django.utils import timezone
-import dateutil, cgi, os
+import dateutil
 
 class ElliTrack(GenericCSV):
     def __init__(self,*args,**kwargs):
-        kwargs['separator'] = '\t'
+        kwargs['separator'] = '\\t'
         return super(ElliTrack,self).__init__(*args,**kwargs)
     
     def get_data(self, f, **kwargs):
