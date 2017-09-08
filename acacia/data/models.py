@@ -17,6 +17,7 @@ import json,util,StringIO,pytz,logging
 import dateutil
 from django.db.models.aggregates import StdDev
 from django.core.exceptions import ObjectDoesNotExist
+from django.utils.timezone import get_current_timezone
 
 THEME_CHOICES = ((None,'standaard'),
                  ('dark-blue','blauw'),
@@ -1181,18 +1182,10 @@ class Series(PolymorphicModel,LoggerSourceMixin):
                 value = float(value)
                 if math.isnan(value) or date is None:
                     continue
-                if not timezone.is_aware(date):
-                    # set timezone for naive datetime
-                    date = date.replace(tzinfo=tz)
-                else:
-                    # convert datetime to given timezone
-                    date = date.astimezone(tz)
+                date = aware(date,tz)
                 pts.append(DataPoint(series=self, date=date, value=value))
             except Exception as e:
                 self.getLogger().debug('Datapoint %s,%g: %s' % (str(date), value, e))
-#         with open('/home/theo/texelmeet/hhnk/points.csv','w') as f:
-#             for p in pts:
-#                 f.write('{},{}\n'.format(p.date,p.value)) 
         return pts
     
     def create_points(self, series, tz):
@@ -1200,8 +1193,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
     
     def create(self, data=None, thumbnail=True):
         logger = self.getLogger()
-        #tz = timezone.get_current_timezone()
-        tz = pytz.utc
+        tz = timezone.get_current_timezone()
         logger.debug('Creating series %s' % self.name)
         series = self.get_series_data(data)
         if series is None:
@@ -1236,7 +1228,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
             return 0;
 
         # timezone has to be utc for mysql bulk delete
-        pts = self.prepare_points(series, timezone.utc)
+        pts = self.prepare_points(series, timezone.get_current_timezone())
         if pts == []:
             logger.warning('No valid datapoints found in series %s' % self.name)
             return 0;
@@ -1244,15 +1236,14 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         count = self.datapoints.count()
         if count>0:
             # delete properties first to avoid foreignkey constraint failure
-            try:
-                self.properties.delete()
-            except:
-                pass
-            values = ["(%d,'%s')" % (self.id, datetime.datetime.strftime(p.date, '%Y-%m-%d %H:%M:%S')) for p in pts]
-            values = '(' + ','.join(values) + ')'
-            sql = 'DELETE from {table} WHERE (`series_id`,`date`) IN {values}'.format(table=DataPoint._meta.db_table, values=values)
-            cursor = connection.cursor()
-            num_deleted = cursor.execute(sql)
+            self.properties.delete()
+    
+            # delete the points
+            if start is None:
+                start = min([p.date for p in pts])
+            query = self.datapoints.filter(date__gte=start)
+            deleted = query.delete()
+            num_deleted = len(deleted) if deleted else 0
         else:
             num_deleted = 0    
         created = self.datapoints.bulk_create(pts)
@@ -1339,7 +1330,10 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         arr = self.to_array(**kwargs)
         if arr:
             dates,values = zip(*arr)
-            return pd.Series(values,index=dates,name=self.name).sort_index()
+            series = pd.Series(values,index=dates,name=self.name).sort_index()
+            # change timezone for correct display in highcharts
+            series.index = series.index.tz_convert(get_current_timezone())
+            return series
         else:
             return pd.Series(name=self.name)
             
