@@ -30,6 +30,12 @@ class ElliTrack(GenericCSV):
                 data['Waterstand'] = data['Waterstand'] / 100
         return data
 
+    def get_parameters(self, f):
+        return {'Waterstand' : {'description' : 'Waterstand', 'unit': 'cm' },
+            'Temp_water': {'description' : 'Temperatuur water', 'unit': 'oC' },
+            'Temp_intern': {'description' : 'Temperatuur intern', 'unit': 'oC' }
+        } 
+
     def download(self, **kwargs):
  
         # Custom FTP download filtering on logger name
