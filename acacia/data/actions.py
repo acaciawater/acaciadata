@@ -125,6 +125,15 @@ def generate_datasource_series(modeladmin, request, queryset):
                 logger.error('ERROR creating series %s: %s' % (p.name, e))
 
 generate_datasource_series.short_description = 'Standaard tijdreeksen aanmaken voor alle parameters in geselecteerde gegevensbronnen'
+
+def update_datasource_series(modeladmin, request, queryset):
+    for ds in queryset:
+        series = ds.getseries()
+        oldest = min(s.tot() for s in series)
+        data = ds.get_data(start=oldest)
+        for s in ds.getseries():
+            s.update(data=data)
+update_datasource_series.short_description = 'Tijdreeksen actualiseren voor geselecteerde gegevensbronnen'
         
 def download_series(modeladmin, request, queryset):
     ds = set([series.datasource() for series in queryset])
