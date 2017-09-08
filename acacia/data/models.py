@@ -946,7 +946,7 @@ from polymorphic.manager import PolymorphicManager
 from polymorphic.models import PolymorphicModel
 
 class Series(PolymorphicModel,LoggerSourceMixin):
-    mlocatie = models.ForeignKey(MeetLocatie,null=True,verbose_name='meetlocatie')
+    mlocatie = models.ForeignKey(MeetLocatie,null=True,blank=True,verbose_name='meetlocatie')
     name = models.CharField(max_length=100,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     unit = models.CharField(max_length=10, blank=True, null=True, verbose_name='eenheid')
