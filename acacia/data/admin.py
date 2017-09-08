@@ -363,6 +363,7 @@ class ParameterSeriesAdmin(PolymorphicChildModelAdmin):
     )
 
     def save_model(self, request, obj, form, change):
+        obj.mlocatie = obj.parameter.meetlocatie()
         obj.user = request.user
         obj.save()
 
@@ -467,6 +468,7 @@ class SeriesAdmin(PolymorphicParentModelAdmin):
     )
 
     def save_model(self, request, obj, form, change):
+        obj.mlocatie = obj.parameter.meetlocatie()
         obj.user = request.user
         obj.save()
 
