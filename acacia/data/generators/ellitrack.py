@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 '''
 Created on Mar 30, 2017
 
@@ -30,11 +31,19 @@ class ElliTrack(GenericCSV):
                 data['Waterstand'] = data['Waterstand'] / 100
         return data
 
+#     def get_parameters(self, f):
+#         return {'Waterstand' : {'description' : 'Waterstand', 'unit': 'cm' },
+#             'Temp_water': {'description' : 'Temperatuur water', 'unit': 'oC' },
+#             'Temp_intern': {'description' : 'Temperatuur intern', 'unit': 'oC' }
+#         } 
     def get_parameters(self, f):
-        return {'Waterstand' : {'description' : 'Waterstand', 'unit': 'cm' },
-            'Temp_water': {'description' : 'Temperatuur water', 'unit': 'oC' },
-            'Temp_intern': {'description' : 'Temperatuur intern', 'unit': 'oC' }
-        } 
+        f.seek(0)
+        data = pd.read_table(f, parse_dates = True, index_col = 0, header = self.header, dayfirst = self.dayfirst, decimal = self.decimal)
+        self.set_labels(data)
+        params = {}
+        for col in data.columns:
+            params[col] = {'description' : col, 'unit': 'm' if col.endswith('stand') else '°C'}
+        return params
 
     def download(self, **kwargs):
  
