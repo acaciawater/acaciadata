@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import os,datetime,math,binascii
-from django.db import connection
 from django.db import models
 from django.db.models import Avg, Max, Min, Sum
 from django.contrib.auth.models import User
@@ -10,6 +9,7 @@ from django.core.urlresolvers import reverse
 from django.contrib.gis.db import models as geo
 from django.utils.text import slugify
 from django.conf import settings
+from six import string_types
 import upload as up
 import numpy as np
 import pandas as pd
@@ -313,8 +313,9 @@ class Datasource(models.Model, LoggerSourceMixin):
                 logger.error('Configuration error in generator %s: %s' % (self.generator, err))
                 return None
         return gen(**kwargs)
-    
-    def build_download_options(self,start=None):
+
+    def build_download_options(self,start,gen):
+        
         logger = self.getLogger()
         options = {}
         
@@ -341,17 +342,25 @@ class Datasource(models.Model, LoggerSourceMixin):
         elif not 'start' in options:
             # incremental download
             options['start'] = self.stop()
-
+        
         url = self.url or self.generator.url
         if not url:
-            logger.error('Cannot download datasource %s: no default url available' % (self.name))
-            return None
+            if hasattr(gen, 'url'):
+                # use default url from generator instance
+                url = getattr(gen, 'url')
+            else:
+                logger.error('Cannot download datasource %s: no default url available' % (self.name))
+                return None
 
         options['url']=url
 
+        # make sure start is datetime
+        start = options['start']
+        if isinstance(start, string_types):
+            start = dateutil.parser.parse(start)
+            options['start'] = aware(start)
         return options
             
-       
     def download(self, start=None):
         logger = self.getLogger()
         if self.generator is None:
@@ -363,7 +372,7 @@ class Datasource(models.Model, LoggerSourceMixin):
             logger.error('Cannot download datasource %s: could not create instance of generator %s' % (self.name, self.generator))
             return None
 
-        options = self.build_download_options(start)
+        options = self.build_download_options(start,gen)
         if options is None:
             return None
         
