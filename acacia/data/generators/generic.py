@@ -25,7 +25,7 @@ class Generic(Generator):
 
     def get_data(self, f, **kwargs):
         f.seek(0)
-        data = self.read_csv(f, sep = self.separator, parse_dates = True, index_col = 0, header = self.header, dayfirst = self.dayfirst, decimal = self.decimal)
+        data = self.read_csv(f, sep = self.separator, parse_dates = True, index_col = 0, header = self.header, dayfirst = self.dayfirst, decimal = self.decimal, na_values = ['None', 'none'])
         self.set_labels(data)
         if not isinstance(data.index,pd.DatetimeIndex):
             # for some reason dateutil.parser.parse not always recognizes valid dates?
