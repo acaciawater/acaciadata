@@ -3,9 +3,8 @@ import datetime,time,json,re,logging
 from django.views.generic.list import ListView
 from django.views.generic import DetailView
 from django.views.generic.base import TemplateView
-from django.template import RequestContext
 from django.template.loader import render_to_string
-from django.shortcuts import get_object_or_404, redirect, render_to_response
+from django.shortcuts import get_object_or_404, redirect
 from django.http import HttpResponse
 from .models import Project, ProjectLocatie, MeetLocatie, Datasource, Series, Chart, Grid, Dashboard, TabGroup, KeyFigure, Formula
 from .util import datasource_as_zip, datasource_as_csv, meetlocatie_as_zip, series_as_csv, chart_as_csv
@@ -93,10 +92,18 @@ def ChartToJson(request, pk):
                 first = s.validation.invalid_points.first()
                 if first:
                     queryset = queryset.filter(date__lt=first.date)
-            if stop is None:
-                pts = [(p.date,p.value) for p in queryset.filter(date__gte=start).order_by('date')]
-            else:
-                pts = [(p.date,p.value) for p in queryset.filter(date__gte=start, date__lte=stop).order_by('date')]
+            queryset = queryset.filter(date__gte=start).order_by('date')
+            if stop:
+                queryset = queryset.filter(date__lte=stop)
+            pts = list(queryset.values_list('date','value'))
+            
+            #resample test
+#             if cs.type == 'line':
+#                 x,y = zip(*pts)
+#                 f = pd.Series(data=y,index=x).resample(rule='H').mean()
+#                 f[pd.isnull(f)]=''
+#                 pts = zip(f.index,f.values)
+
             if maxpts>0:
                 num = len(pts)
                 if num > maxpts:
