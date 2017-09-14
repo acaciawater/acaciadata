@@ -226,12 +226,12 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
             data = data - abaro
             data.dropna(inplace=True)
 
-            #clear datapoints with less than 2 cm of water
-            data[data<2] = np.nan
+            #clear datapoints with less than 5 cm of water
+            data[data<5] = np.nan
             # count dry values
             dry = data.isnull().sum()
             if dry:
-                logger.warning('Screen {}, MON file {}: {} out of {} measurements have less than 2 cm of water'.format(unicode(screen),mon,dry,data.size))
+                logger.warning('Logger {}, MON file {}: {} out of {} measurements have less than 5 cm of water'.format(unicode(logpos),mon,dry,data.size))
             sumdry += dry
             
             data = data / 100 + (logpos.refpnt - logpos.depth)
@@ -245,8 +245,8 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
         seriesdata = seriesdata.groupby(seriesdata.index).last()
         # sort data
         seriesdata.sort_index(inplace=True)
-        if sumdry:
-            logger.warning('Screen {}: {} out of {} measurements have less than 2 cm of water'.format(unicode(screen),sumdry,seriesdata.size))
+#         if sumdry:
+#             logger.warning('Screen {}: {} out of {} measurements have less than 5 cm of water'.format(unicode(screen),sumdry,seriesdata.size))
         datapoints=[]
         for date,value in seriesdata.iteritems():
             value = float(value)
