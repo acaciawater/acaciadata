@@ -24,11 +24,14 @@ def elevation_from_ahn(modeladmin, request, queryset):
     for mp in queryset:
         x = mp.location.x
         y = mp.location.y
-        mp.ahn = ahn3.get_elevation(x,y)
-        if mp.ahn is None:
-            # try AHN2
-            mp.ahn = ahn2.get_elevation(x,y)
-        mp.save()
+        try:
+            mp.ahn = ahn3.get_elevation(x,y)
+            if mp.ahn is None:
+                # try AHN2
+                mp.ahn = ahn2.get_elevation(x,y)
+            mp.save()
+        except:
+            pass
 elevation_from_ahn.short_description = 'Bepaal maaiveldhoogte in NAP adhv AHN'        
 
 def store_screens_nitg(queryset, zf):
