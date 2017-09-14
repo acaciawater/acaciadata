@@ -18,7 +18,6 @@ import os,re
 import datetime
 import binascii
 import numpy as np
-import pandas as pd
 import zipfile
 
 from django.template.loader import render_to_string
@@ -40,10 +39,13 @@ logger = logging.getLogger(__name__)
 THUMB_DPI=72
 THUMB_SIZE=(12,5) # inch
 
-def screencolor(screen):
-    colors = ['red', 'green', 'blue', 'black', 'orange', 'purple', 'brown', 'grey' ]
-    index = (screen.nr-1) % len(colors) 
+def getcolor(index):
+    colors = ['blue', 'red', 'green', 'black', 'orange', 'purple', 'brown', 'grey' ]
+    index = index % len(colors) 
     return colors[index]
+
+def screencolor(screen):
+    return getcolor(screen.nr-1)
 
 def chart_for_screen(screen):
     plt.figure(figsize=THUMB_SIZE)
@@ -106,22 +108,28 @@ def chart_for_well(well,start=None,stop=None):
         ax.set_xlim(datemin, datemax)
     plt.grid(linestyle='-', color='0.9')
     ncol = 0
+    index = 0
     for screen in well.screen_set.all():
         data = screen.get_levels('nap',rule='H')
-        n = len(data) / (THUMB_SIZE[0]*THUMB_DPI)
-        if n > 1:
-            #use data thinning: take very nth row
-            data = data[::n]
+#         n = len(data) / (THUMB_SIZE[0]*THUMB_DPI)
+#         if n > 1:
+#             #use data thinning: take very nth row
+#             data = data[::n]
         if len(data)>0:
             x,y = zip(*data)
-            plt.plot_date(x, y, '-',label='filter {}'.format(screen.nr),color=screencolor(screen))
+            color=getcolor(index)
+            plt.plot_date(x, y, '-',label='filter {}'.format(screen.nr),color=color)
             ncol += 1
 
             hand = screen.get_hand('nap')
             if len(hand)>0:
                 x,y = zip(*hand)
-                plt.plot_date(x, y, 'o',color=screencolor(screen))
+                if well.screen_set.count() == 1:
+                    color = 'red'
+                plt.plot_date(x, y, 'o', color=color)
                 ncol += 1
+
+            index += 1
             
     plt.ylabel('m tov NAP')
 
@@ -130,46 +138,6 @@ def chart_for_well(well,start=None,stop=None):
 
     plt.legend(bbox_to_anchor=(0.5, -0.1), loc='upper center',ncol=min(ncol,5),frameon=False)
     plt.title(well)
-    
-    img = StringIO() 
-    plt.savefig(img,format='png',bbox_inches='tight')
-    plt.close()    
-    return img.getvalue()
-
-def chart_for_well_old(well,start=None,stop=None):
-    fig=plt.figure(figsize=(15,5))
-    ax=fig.gca()
-    datemin=start or datetime.datetime(2013,1,1)
-    datemax=stop or datetime.datetime(2017,5,1)
-    ax.set_xlim(datemin, datemax)
-    plt.grid(linestyle='-', color='0.9')
-    count = 0
-    y = []
-    x = []
-    for screen in well.screen_set.all():
-        data = screen.get_levels('nap',start=datemin,stop=datemax)
-        if len(data)>0:
-            x,y = zip(*data)
-            # resample to hour frequency (gaps representing missing data) 
-            s = pd.Series(y,index=x).asfreq('H')
-            y = s.tolist()
-            x = list(s.index)
-            plt.plot_date(x, y, '-', label=screen)
-            count += 1
-
-        hand = screen.get_hand('nap')
-        if len(hand)>0:
-            x,y = zip(*hand)
-            plt.plot_date(x, y, 'ro', label='handpeiling')
-    x = [datemin,datemax]
-    y = [screen.well.maaiveld] * len(x)
-    plt.plot_date(x, y, '-', label='maaiveld')
-
-    plt.title(well)
-    plt.ylabel('m tov NAP')
-    if count > 0:
-        leg=plt.legend()
-        leg.get_frame().set_alpha(0.3)
     
     img = StringIO() 
     plt.savefig(img,format='png',bbox_inches='tight')
@@ -242,6 +210,16 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
             data = mondata['PRESSURE']
             data = series.do_postprocess(data).tz_localize(tz)
             
+            # issue warning if data has points beyond timespan of barometer
+            barostart = baro.index[0]
+            if data.index[0] < barostart:
+                logger.warning('Geen luchtdruk gegevens beschikbaar voor {}'.format(barostart))
+                continue
+            baroend = baro.index[-1]
+            if data.index[-1] > baroend:
+                logger.warning('Geen luchtdruk gegevens beschikbaar na {}'.format(baroend))
+                continue
+
             adata, abaro = data.align(baro)
             abaro = abaro.interpolate(method='time')
             abaro = abaro.reindex(data.index)
