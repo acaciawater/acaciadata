@@ -76,7 +76,7 @@
 		  var opt = {{options|safe}};
 		  opt.chart.events.load = function() {
 			  fetchSeries();
-			  posx = this.chartWidth - 32;
+			  posx = 32;
 			  posy = 8;
 			  this.renderer.image('/static/acacia/img/fullscreen3.png',posx,posy,16,16)
 	 		    .on('click', function() {
