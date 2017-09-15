@@ -98,11 +98,11 @@ def ChartToJson(request, pk):
             pts = list(queryset.values_list('date','value'))
             
             #resample test
-#             if cs.type == 'line':
-#                 x,y = zip(*pts)
-#                 f = pd.Series(data=y,index=x).resample(rule='H').mean()
-#                 f[pd.isnull(f)]=''
-#                 pts = zip(f.index,f.values)
+            if cs.type == 'line':
+                x,y = zip(*pts)
+                f = pd.Series(data=y,index=x).resample(rule='H').mean()
+                f[pd.isnull(f)]=''
+                pts = zip(f.index,f.values)
 
             if maxpts>0:
                 num = len(pts)
@@ -329,16 +329,16 @@ class ChartBaseView(TemplateView):
                         'href': 'http://www.acaciawater.com',
                        },
             'exporting' :{
-                    'sourceWidth': 500,
-                    'sourceHeight': 350,
-                    'scale': 2,
-                    'chartOptions' :{
-                        'title': {'style': {'fontSize': 0 }},                 # 0 gemaakt omdat titel niet wordt overgenomen
-                        'xAxis': {'labels': {'style': {'fontSize': 15 }}},
-                        'yAxis': {'labels': {'style': {'fontSize': 15 }}},
-                        'legend': {'itemStyle': {'fontSize': 15 },'padding': 1,},           
-                        'credits': {'enabled': False}
-                    },
+                    'sourceWidth': 1080,
+                    'sourceHeight': 600,
+#                     'scale': 2,
+#                     'chartOptions' :{
+#                         'title': {'style': {'fontSize': 0 }},                 # 0 gemaakt omdat titel niet wordt overgenomen
+#                         'xAxis': {'labels': {'style': {'fontSize': 15 }}},
+#                         'yAxis': {'labels': {'style': {'fontSize': 15 }}},
+#                         'legend': {'itemStyle': {'fontSize': 15 },'padding': 1,},           
+#                         'credits': {'enabled': False}
+#                    },
                 }
             }
         if chart.start:
