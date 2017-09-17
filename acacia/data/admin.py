@@ -118,7 +118,7 @@ class DatasourceAdmin(admin.ModelAdmin):
     search_fields = ['name',]
     actions = [actions.upload_datasource, actions.update_parameters, actions.datasource_dimensions,actions.generate_locations,actions.generate_datasource_series]
     list_filter = ('meetlocatie','meetlocatie__projectlocatie','meetlocatie__projectlocatie__project','generator')
-    list_display = ('name', 'description', 'meetlocatie', 'generator', 'last_download', 'filecount', 'locationcount', 'parametercount', 'seriescount', 'calibcount','start', 'stop', 'rows',)
+    list_display = ('name', 'description', 'meetlocatie', 'generator', 'last_download', 'filecount', 'locationcount', 'parametercount', 'seriescount', 'calibcount','timezone','start', 'stop', 'rows',)
     fieldsets = (
                  ('Algemeen', {'fields': ('name', 'description', 'timezone', 'meetlocatie','locations'),
                                'classes': ('grp-collapse grp-open',),
