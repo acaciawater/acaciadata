@@ -17,6 +17,7 @@ import json,util,StringIO,pytz,logging
 import dateutil
 from django.db.models.aggregates import StdDev
 from django.core.exceptions import ObjectDoesNotExist
+from django.utils.timezone import get_current_timezone
 
 THEME_CHOICES = ((None,'standaard'),
                  ('dark-blue','blauw'),
@@ -29,11 +30,11 @@ def aware(d,tz=None):
     ''' utility function to ensure datetime object is offset-aware '''
     if d is not None:
         if isinstance(d, (datetime.datetime, datetime.date,)):
+            if tz is None or tz == '':
+                tz = settings.TIME_ZONE
+            if not isinstance(tz, timezone.tzinfo):
+                tz = pytz.timezone(tz)
             if timezone.is_naive(d):
-                if tz is None or tz == '':
-                    tz = settings.TIME_ZONE
-                if not isinstance(tz, timezone.tzinfo):
-                    tz = pytz.timezone(tz)
                 try:
                     return timezone.make_aware(d, tz)            
                 except:
@@ -41,7 +42,9 @@ def aware(d,tz=None):
                     try:
                         return timezone.make_aware(d, pytz.utc)
                     except:
-                        pass            
+                        pass
+            else:
+                return d.astimezone(tz)
     return d
 
 from django.utils.deconstruct import deconstructible
@@ -274,7 +277,7 @@ class Datasource(models.Model, LoggerSourceMixin):
     config=models.TextField(blank=True,null=True,default='{}',verbose_name = 'Additionele configuraties',help_text='Geldige JSON dictionary')
     username=models.CharField(max_length=50, blank=True, null=True, default='anonymous', verbose_name='Gebuikersnaam',help_text='Gebruikersnaam voor downloads')
     password=models.CharField(max_length=50, blank=True, null=True, verbose_name='Wachtwoord',help_text='Wachtwoord voor downloads')
-    timezone=models.CharField(max_length=50, blank=True, verbose_name = 'Tijzone', default=settings.TIME_ZONE)
+    timezone=models.CharField(max_length=50, blank=True, verbose_name = 'Tijdzone', default=settings.TIME_ZONE)
 
     class Meta:
         ordering = ['name',]
@@ -476,7 +479,8 @@ class Datasource(models.Model, LoggerSourceMixin):
             # retrieve dict of loc, dataframe for location(s) in sourcefile
             d = sourcefile.get_data(gen,**kwargs)
             if d:
-                for loc, data in d.iteritems():
+                for loc, data in d.iteritems():                # change timezone
+
                     if not loc in datadict:
                         datadict[loc] = data
                     else:
@@ -705,7 +709,7 @@ class SourceFile(models.Model,LoggerSourceMixin):
     filetag.short_description='bestand'
 
     def get_data_dimensions(self, data):
-        tz = timezone.get_current_timezone()
+        tz = self.datasource.timezone
         numrows=0
         cols=set()
         begin=None
@@ -765,6 +769,15 @@ class SourceFile(models.Model,LoggerSourceMixin):
                 data={loc:data}
             self.get_data_dimensions(data)
             logger.debug('Got %d locations, %d rows, %d columns', self.locs,self.rows,self.cols)
+
+        # set timezone of data
+        # data should have a datetimeindex
+        tz = self.datasource.timezone or get_current_timezone()
+        for k,v in data.items():
+            if v.index.tz:
+                data[k]=v.tz_convert(tz)
+            else:
+                data[k]=v.tz_localize(tz)
         return data
 
     def get_locations(self,gen=None):
@@ -1173,7 +1186,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         series = self.do_postprocess(series, start, stop)
         return series
     
-    def prepare_points(self, series, tz):
+    def prepare_points(self, series, tz=None):
         ''' return array of datapoints in given timezone from pandas series'''
         pts = []
         for date,value in series.iteritems():
@@ -1181,18 +1194,10 @@ class Series(PolymorphicModel,LoggerSourceMixin):
                 value = float(value)
                 if math.isnan(value) or date is None:
                     continue
-                if not timezone.is_aware(date):
-                    # set timezone for naive datetime
-                    date = date.replace(tzinfo=tz)
-                else:
-                    # convert datetime to given timezone
-                    date = date.astimezone(tz)
-                pts.append(DataPoint(series=self, date=date, value=value))
+                pts.append(DataPoint(series=self, date=aware(date,tz), value=value))
             except Exception as e:
                 self.getLogger().debug('Datapoint %s,%g: %s' % (str(date), value, e))
-#         with open('/home/theo/texelmeet/hhnk/points.csv','w') as f:
-#             for p in pts:
-#                 f.write('{},{}\n'.format(p.date,p.value)) 
+        # timezone conversion may result in duplicates
         return pts
     
     def create_points(self, series, tz):
@@ -1200,14 +1205,15 @@ class Series(PolymorphicModel,LoggerSourceMixin):
     
     def create(self, data=None, thumbnail=True):
         logger = self.getLogger()
-        #tz = timezone.get_current_timezone()
-        tz = pytz.utc
         logger.debug('Creating series %s' % self.name)
         series = self.get_series_data(data)
         if series is None:
             logger.error('Creation of series %s failed' % self.name)
             return 0
-        
+        if self.datasource():
+            tz = self.datasource().timezone
+        else:
+            tz = get_current_timezone()
         created = self.create_points(series, tz)
         num_created = len(created)
         logger.info('Series %s updated: %d points created, %d points skipped' % (self.name, num_created, series.count() - num_created))
@@ -1235,26 +1241,22 @@ class Series(PolymorphicModel,LoggerSourceMixin):
             logger.warning('No datapoints found in series %s' % self.name)
             return 0;
 
-        # timezone has to be utc for mysql bulk delete
-        pts = self.prepare_points(series, timezone.utc)
+        # MySQL need UTC to avoid duplicate index at DST transition 
+        pts = self.prepare_points(series,timezone.utc)
         if pts == []:
             logger.warning('No valid datapoints found in series %s' % self.name)
             return 0;
         
-        count = self.datapoints.count()
-        if count>0:
-            # delete properties first to avoid foreignkey constraint failure
-            try:
-                self.properties.delete()
-            except:
-                pass
-            values = ["(%d,'%s')" % (self.id, datetime.datetime.strftime(p.date, '%Y-%m-%d %H:%M:%S')) for p in pts]
-            values = '(' + ','.join(values) + ')'
-            sql = 'DELETE from {table} WHERE (`series_id`,`date`) IN {values}'.format(table=DataPoint._meta.db_table, values=values)
-            cursor = connection.cursor()
-            num_deleted = cursor.execute(sql)
-        else:
-            num_deleted = 0    
+        # delete properties first to avoid foreignkey constraint failure
+        self.properties.delete()
+
+        # delete the points
+        if start is None:
+            start = min([p.date for p in pts])
+        query = self.datapoints.filter(date__gte=start)
+        deleted = query.delete()
+        num_deleted = len(deleted) if deleted else 0
+
         created = self.datapoints.bulk_create(pts)
         num_created = len(created) - num_deleted
         num_updated = num_deleted
@@ -1263,6 +1265,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
             self.make_thumbnail()
         self.save()
         return num_created + num_updated
+
     
     def getproperties(self):
         try:
