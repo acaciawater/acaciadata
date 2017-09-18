@@ -771,8 +771,8 @@ class SourceFile(models.Model,LoggerSourceMixin):
                 self.locs = 0
                 self.start = None
                 self.stop = None
-        else:
-            self.get_data_dimensions(data)
+            else:
+                self.get_data_dimensions(data)
             
 from django.db.models.signals import pre_delete, pre_save, post_save
 from django.dispatch.dispatcher import receiver
