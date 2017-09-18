@@ -738,7 +738,7 @@ class SourceFile(models.Model,LoggerSourceMixin):
             if v.index.tz:
                 data[k]=v.tz_convert(tz)
             else:
-                data[k]=v.tz_localize(tz)
+                data[k]=v.tz_localize(tz,ambiguous='infer')
         return data
 
     def get_locations(self,gen=None):
@@ -1025,9 +1025,9 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         # align series and forward fill the missing data
         if is_naive(s1.index):
             if not is_naive(s2.index):
-                s1 = s1.tz_localize(s2.index.tz)
+                s1 = s1.tz_localize(s2.index.tz,ambiguous='infer')
         elif is_naive(s2.index):
-            s2 = s2.tz_localize(s1.index.tz)
+            s2 = s2.tz_localize(s1.index.tz,ambiguous='infer')
         else: 
             s1 = s1.tz_convert(s2.index.tz)
         a,b = s1.align(s2,method='pad')

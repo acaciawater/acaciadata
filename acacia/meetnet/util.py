@@ -212,19 +212,27 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
             
             # issue warning if data has points beyond timespan of barometer
             barostart = baro.index[0]
-            if data.index[0] < barostart:
+            dataend = data.index[0]
+            if dataend < barostart:
                 logger.warning('Geen luchtdruk gegevens beschikbaar voor {}'.format(barostart))
                 continue
             baroend = baro.index[-1]
-            if data.index[-1] > baroend:
+            datastart = data.index[0]
+            if datastart > baroend:
                 logger.warning('Geen luchtdruk gegevens beschikbaar na {}'.format(baroend))
                 continue
 
             adata, abaro = data.align(baro)
             abaro = abaro.interpolate(method='time')
             abaro = abaro.reindex(data.index)
+            abaro[:barostart] = np.NaN
+            abaro[baroend:] = np.NaN
             data = data - abaro
+
             data.dropna(inplace=True)
+            
+            # clip logger data on timerange of baros data
+            # data = data[max(barostart,datastart):min(baroend,dataend)]
 
             #clear datapoints with less than 5 cm of water
             data[data<5] = np.nan
