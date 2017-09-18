@@ -385,3 +385,16 @@ class Channel(models.Model):
     class Meta:
         verbose_name = 'Kanaal'
         verbose_name_plural = 'Kanalen'
+
+HAND_CHOICES=(
+    ('bkb','Bovenkant buis'),
+    ('nap','NAP'),
+    )
+
+class Handpeiling(ManualSeries):
+    refpnt = models.CharField(max_length=4,choices=HAND_CHOICES,verbose_name='referentie',default='bkb')
+
+    class Meta:
+        verbose_name = 'Handpeiling'
+        verbose_name_plural = 'Handpeilngen'
+    

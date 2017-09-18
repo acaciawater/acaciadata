@@ -13,7 +13,6 @@ from django.views.decorators.gzip import gzip_page
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from dateutil.parser import parse
-import dateutil
 from acacia.data.models import aware
 import pandas as pd
 from acacia.data.util import resample_rule

@@ -338,7 +338,6 @@ class ContentTypeFilter(admin.SimpleListFilter):
    
 class ParameterSeriesAdmin(PolymorphicChildModelAdmin):
     actions = [actions.copy_series, actions.download_series, actions.refresh_series, actions.replace_series, actions.series_thumbnails, actions.update_series_properties, actions.empty_series]
-    #list_display = ('name', 'thumbtag', 'parameter', 'datasource', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
     list_filter = ('mlocatie', 'parameter__datasource', 'parameter__datasource__meetlocatie__projectlocatie__project', ContentTypeFilter)
     base_model = Series
     #base_form = SeriesForm
@@ -351,7 +350,7 @@ class ParameterSeriesAdmin(PolymorphicChildModelAdmin):
     search_fields = ['name','parameter__name','parameter__datasource__name']
 
     fieldsets = (
-                 ('Algemeen', {'fields': ('parameter', 'name', ('unit', 'type'), 'description',),
+                 ('Algemeen', {'fields': ('parameter', 'name', ('unit', 'type'), 'description','timezone'),
                                'classes': ('grp-collapse grp-open',),
                                }),
                  ('Tijdsinterval', {'fields': ('from_limit','to_limit'),
@@ -370,13 +369,13 @@ class ParameterSeriesAdmin(PolymorphicChildModelAdmin):
 class ManualSeriesAdmin(PolymorphicChildModelAdmin):
     base_model = Series
     actions = [actions.copy_series, actions.series_thumbnails]
-    list_display = ('name', 'mlocatie', 'thumbtag', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
+    list_display = ('name', 'mlocatie', 'thumbtag', 'unit', 'timezone', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
     list_filter = ('mlocatie', 'parameter__datasource', 'parameter__datasource__meetlocatie__projectlocatie__project', ContentTypeFilter)
     exclude = ('user','parameter')
     inlines = [DataPointInline,]
     search_fields = ['name','locatie']
     fieldsets = (
-                 ('Algemeen', {'fields': ('mlocatie', 'name', ('unit', 'type'), 'description',),
+                 ('Algemeen', {'fields': ('mlocatie', 'name', ('unit', 'type'), 'description','timezone'),
                                'classes': ('grp-collapse grp-open',),
                                }),
     )
@@ -388,11 +387,9 @@ class ManualSeriesAdmin(PolymorphicChildModelAdmin):
 #class FormulaAdmin(SeriesAdmin):
 class FormulaSeriesAdmin(PolymorphicChildModelAdmin):
     base_model = Series
-    #list_display = ('name', 'thumbtag', 'locatie', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
-    #search_fields = ['name','locatie']
     list_filter = ('mlocatie', 'parameter__datasource', 'parameter__datasource__meetlocatie__projectlocatie__project', ContentTypeFilter)
     fieldsets = (
-                  ('Algemeen', {'fields': ('mlocatie', 'name', ('unit', 'type'), 'description',),
+                  ('Algemeen', {'fields': ('mlocatie', 'name', ('unit', 'type'), 'description','timezone'),
                                 'classes': ('grp-collapse grp-open',),
                                 }),
                  ('Tijdsinterval', {'fields': ('from_limit','to_limit'),
@@ -426,7 +423,7 @@ class FormulaSeriesAdmin(PolymorphicChildModelAdmin):
 #class SeriesAdmin(admin.ModelAdmin):
 class SeriesAdmin(PolymorphicParentModelAdmin):
     actions = [actions.create_grid, actions.copy_series, actions.download_series_zip, actions.refresh_series, actions.replace_series, actions.series_thumbnails, actions.update_series_properties, actions.empty_series]
-    list_display = ('name', 'thumbtag', 'typename', 'parameter', 'datasource', 'mlocatie', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
+    list_display = ('name', 'thumbtag', 'typename', 'parameter', 'datasource', 'mlocatie', 'timezone', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
     base_model = Series
     child_models = ((ManualSeries, ManualSeriesAdmin), (Formula, FormulaSeriesAdmin), (Series, ParameterSeriesAdmin))
     exclude = ('user',)
@@ -455,7 +452,7 @@ class SeriesAdmin(PolymorphicParentModelAdmin):
     search_fields = ['name','parameter__name','parameter__datasource__name']
 
     base_fieldsets = (
-                 ('Algemeen', {'fields': ('parameter', 'name', ('unit', 'type'), 'description',),
+                 ('Algemeen', {'fields': ('parameter', 'name', ('unit', 'type'), 'description','timezone'),
                                'classes': ('grp-collapse grp-open',),
                                }),
                  ('Tijdsinterval', {'fields': ('from_limit','to_limit'),
