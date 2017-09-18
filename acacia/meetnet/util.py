@@ -208,7 +208,7 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
                 mondata = mondata.itervalues().next()
 
             data = mondata['PRESSURE']
-            data = series.do_postprocess(data).tz_localize(tz)
+            data = series.do_postprocess(data)
             
             # issue warning if data has points beyond timespan of barometer
             barostart = baro.index[0]
