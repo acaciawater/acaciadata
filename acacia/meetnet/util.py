@@ -47,8 +47,15 @@ def getcolor(index):
 def screencolor(screen):
     return getcolor(screen.nr-1)
 
-def chart_for_screen(screen):
-    plt.figure(figsize=THUMB_SIZE)
+def chart_for_screen(screen,start=None,stop=None):
+    fig=plt.figure(figsize=THUMB_SIZE)
+    ax=fig.gca()
+
+    datemin=start or datetime.datetime(2013,1,1)
+    datemax=stop or datetime.datetime(2016,12,31)
+    if start or stop:
+        ax.set_xlim(datemin, datemax)
+
     plt.grid(linestyle='-', color='0.9')
     ncol = 0
 
@@ -344,8 +351,8 @@ def createmeteo(request, well):
 def createmonfile(source, generator=sws.Diver()):
     ''' parse .mon file and create MonFile instance '''
     
-    # default timeone for MON files = CET
-    CET = pytz.timezone('CET')
+    # default timeone for MON files = Etc/GMT-1
+    CET = pytz.timezone('Etc/GMT-1')
     
     headerdict = generator.get_header(source)
     mon = MonFile()
@@ -473,7 +480,7 @@ def addmonfile(request,network,f):
 
         # get/create datasource for logger
         ds, created = LoggerDatasource.objects.get_or_create(name=datalogger.serial,meetlocatie=loc,
-                                                                 defaults = {'logger': datalogger, 'generator': generator, 'user': user, 'timezone': 'CET'})
+                                                                 defaults = {'logger': datalogger, 'generator': generator, 'user': user, 'timezone': 'Etc/GMT-1'})
     except Well.DoesNotExist:
         # this may be a baro logger, not installed in a well
         logger.error('Put niet gevonden: {}'.format(put))
