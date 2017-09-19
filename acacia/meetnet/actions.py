@@ -3,14 +3,13 @@ Created on Jul 8, 2014
 
 @author: theo
 '''
-import os, sys, logging
+import os, logging
 from django.utils.text import slugify
 from .util import make_chart, recomp, createmeteo
-from acacia.data.models import Series, Project, ProjectLocatie, MeetLocatie
+from acacia.data.models import Series
 import nitg
 from acacia.data import actions
 from acacia.ahn.models import AHN
-from django.contrib.gis.geos import Point
 from django.shortcuts import get_object_or_404
 
 import StringIO
@@ -76,8 +75,7 @@ def make_wellcharts(modeladmin, request, queryset):
             f.write(make_chart(w))
         
 make_wellcharts.short_description = "Grafieken vernieuwen van geselecteerde putten"
-    
-    
+        
 def make_screencharts(modeladmin, request, queryset):
     for s in queryset:
         if not s.has_data():
