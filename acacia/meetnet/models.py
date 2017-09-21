@@ -359,7 +359,7 @@ class MonFile(SourceFile):
     instrument_type = models.CharField(max_length=50)
     status = models.CharField(max_length=50)
     serial_number = models.CharField(max_length=50)
-    instrument_number = models.CharField(max_length=50)
+    instrument_number = models.CharField(blank=True,null=True,max_length=50)
     location = models.CharField(max_length=50)
     sample_period = models.CharField(max_length=50)
     sample_method = models.CharField(max_length=10)
