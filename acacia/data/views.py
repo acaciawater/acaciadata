@@ -62,15 +62,14 @@ def EmailDatasource(request, pk):
 @gzip_page
 def SeriesToJson(request, pk):
     s = get_object_or_404(Series,pk=pk)
-    points = [[p.date,p.value] for p in s.datapoints.order_by('date')]
-        
+    pts = s.to_array()        
     # convert datetime to javascript datetime using unix timetamp conversion
-    j = json.dumps(points, default=lambda x: time.mktime(x.timetuple())*1000.0)
+    j = json.dumps(pts, default=lambda x: time.mktime(x.timetuple())*1000.0)
     return HttpResponse(j, content_type='application/json')
 
 def SeriesToDict(request, pk):
     s = get_object_or_404(Series,pk=pk)
-    points = [{'date':p.date.date(),'time': p.date.time(), 'value':p.value} for p in s.datapoints.order_by('date')]
+    points = [{'date':p.date.date(),'time': p.date.time(), 'value':p.value} for p in s.to_array()]
     j = json.dumps(points, default=lambda x: str(x))
     return HttpResponse(j, content_type='application/json')
 
@@ -84,18 +83,7 @@ def ChartToJson(request, pk):
     for cs in c.series.all():
         
         def getseriesdata(s):
-            queryset = s.datapoints
-            if s.validated:
-                # series has been validated. Take up to first invalid point
-                queryset = s.validation.validpoint_set 
-                first = s.validation.invalid_points.first()
-                if first:
-                    queryset = queryset.filter(date__lt=first.date)
-            queryset = queryset.filter(date__gte=start).order_by('date')
-            if stop:
-                queryset = queryset.filter(date__lte=stop)
-            pts = list(queryset.values_list('date','value'))
-            
+            pts = s.to_array(start,stop)
             #resample test
             if cs.type == 'line':
                 x,y = zip(*pts)

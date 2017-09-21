@@ -1288,7 +1288,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         queryset = self.datapoints
         raw = kwargs.get('raw', False)
         if self.validated and not raw:
-            queryset = self.validation.validpoint_set.all()
+            queryset = self.validation.validpoint_set.order_by('date')
             first = self.validation.invalid_points.first()
             if first:
                 queryset = queryset.filter(date__lt=first.date)
@@ -1353,14 +1353,14 @@ class Series(PolymorphicModel,LoggerSourceMixin):
     @property
     def is_valid(self):
         try:
-            return self.validation.validated 
+            return self.validation.valid 
         except ObjectDoesNotExist:
             # no validation
             return False
     @property
     def validated(self):
         try:
-            return self.validation.valid
+            return self.validation.validated
         except:
             return False
         
