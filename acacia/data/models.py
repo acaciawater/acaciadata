@@ -1353,14 +1353,14 @@ class Series(PolymorphicModel,LoggerSourceMixin):
     @property
     def is_valid(self):
         try:
-            return self.validation.result.valid 
+            return self.validation.validated 
         except ObjectDoesNotExist:
-            # no validation or no validation.result
+            # no validation
             return False
     @property
     def validated(self):
         try:
-            return self.validation.validpoint_set.count() > 0
+            return self.validation.valid
         except:
             return False
         
