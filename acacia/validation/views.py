@@ -29,9 +29,9 @@ def accept(request, pk):
         end = pts.last().date
         val.validpoint_set.filter(value__isnull=True).delete()
         defaults={'begin':begin,'end':end,'user':request.user,'xlfile':None,'valid':True, 'date': datetime.now(), 'remarks': 'Alles geaccepteerd'}
-    
         Result.objects.update_or_create(validation=val,defaults=defaults)
-
+        val.check_valid()
+        val.save()
     return redirect(val.get_absolute_url())
     
 def update_stats(request, pk):
