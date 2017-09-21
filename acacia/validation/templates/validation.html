@@ -96,7 +96,7 @@ a:hover {
 		<div class='row'>
 			<div class="col-md-12">
 			{% with validation.series as s %}
-				<h4>{{s.mlocatie}}, Tijdreeks {{s.name}} (#{{s.id}})</h4>
+				<h4>Tijdreeks {{s.name}} (#{{s.id}})</h4>
 			{% endwith %}
 			</div>
 		</div>
@@ -109,16 +109,18 @@ a:hover {
 			<div class="col-md-6">
 				<div class="list-group">
 					<h3>Validatieregels</h3>
-						{% for sub in validation.subresult_set.all %}
-						<div class="list-group-item">
-							<span class="badge badge-success" title="aantal geldige metingen">{{sub.valid}}</span>
-							{%if sub.invalid %}<span class="badge badge-error" title = "aantal ongeldige metingen">{{sub.invalid}}</span>{% endif %}
-							<h4 class="list-group-item-heading">{{sub.rule}}</h4>
-							<p class="list-group-item-text">{{sub.rule.description}}</p>
-						</div>
-						{% endfor %}
+						{% for rule, result in validation.results.items %}
+							<div class="list-group-item">
+								{% if result %}
+									<span class="badge badge-success" title="aantal geldige metingen">{{result.valid}}</span>
+									{%if result.invalid %}<span class="badge badge-error" title = "aantal ongeldige metingen">{{result.invalid}}</span>{% endif %}
+								{% endif %}
+								<h4 class="list-group-item-heading">{{rule}}</h4>
+								<p class="list-group-item-text small text-muted">{{rule.description}}</p>
+							</div>
+						{% endfor %}			    
 					<div>
-						<a href="{% url 'validation:remove_points' validation.id %}" class="addrule pull-right glyphicon glyphicon-remove" title="Gevalideerde data verwijderen"></a>
+						<a href="{% url 'validation:reset' validation.id %}" class="addrule pull-right glyphicon glyphicon-remove" title="Gevalideerde data verwijderen"></a>
 						<a href="{% url 'admin:validation_validation_change' validation.id %}?next={{next}}" class="addrule pull-right glyphicon glyphicon-pencil" title="Validatie wijzigen"></a>
 						<a href="" class="addrule pull-right glyphicon glyphicon-envelope" title="Email notificatie"></a>
 						<a href="{% url 'validation:validate' validation.id %}" class="addrule pull-right glyphicon glyphicon-refresh" title="Hervalideren"></a>
@@ -141,53 +143,55 @@ a:hover {
 					</div>
 					{% endwith %}
 					
-					{% with ivp=validation.invalid_points result=validation.result %}
-					  {% with ivp.count as aantal %}
-						  {% if aantal %}
-							<div class="list-group-item list-group-item-danger">
-								<img class="pull-right" src="{% static "warning64.png" %}"/>
-								<h4 class="list-group-item-heading">Validatie</h4>
-								{% if result %}
-									<p class="list-group-item-text">Validatiebestand: <a href = "{{result.xlfile}}">{{result.xlfile.name}}</a></p>
-									<p class="list-group-item-text">Upload op {{result.date}} door {{result.user.get_full_name|default:result.user}}</a></p>
-								{% endif %}
-								<p class="list-group-item-text">Aantal ongeldige metingen: {{aantal}}</p>
-								<p class="list-group-item-text">Eerste ongeldige meting: {{ivp.first.date}}</p>
-							</div>
-						  {% else %}
-							<div class="list-group-item list-group-item-success">
-								<img class="pull-right" src="{% static "camera_test.png" %}"/>
-								<h4 class="list-group-item-heading">Validatie</h4>
-								{% if result %}
+					{% with ivp=validation.invalid_points result=validation.result subresults=validation.subresult_set.all %}
+				      {% if subresults %}
+						  {% with ivp.count as aantal %}
+							  {% if aantal %}
+								<div class="list-group-item list-group-item-danger">
+									<img class="pull-right" src="{% static "warning64.png" %}"/>
+									<h4 class="list-group-item-heading">Validatie</h4>
 									{% if result.xlfile %}
 										<p class="list-group-item-text">Validatiebestand: <a href = "{{result.xlfile}}">{{result.xlfile.name}}</a></p>
 										<p class="list-group-item-text">Upload op {{result.date}} door {{result.user.get_full_name|default:result.user}}</a></p>
-									{% else %}
-										<p class="list-group-item-text">Geaccepteerd op {{result.date}} door {{result.user.get_full_name|default:result.user}}</a></p>
 									{% endif %}
-								{% endif %}									
-								<p class="list-group-item-text">Geen ongeldige metingen</p>
-								<p></p>
-							</div>
-						  {% endif %}
-					   {% endwith %}
-					{% endwith %}
-					{% with validation.result as result %}
-					{% if result %} <a href="{% url 'validation:remove_result' result.id %}" class="addrule red pull-right glyphicon glyphicon-remove" title="Validatiebestand verwijderen"></a> {% endif %}
-					<a href="{% url 'validation:upload' validation.id %}?next={{next}}" class="addrule pull-right glyphicon glyphicon-upload" title="Upload validatiebestand"></a> 
-					<a href="{% url 'validation:download' validation.id %}" class="addrule pull-right glyphicon glyphicon-download" title="Download validatiebestand"></a>
-					<a href="{% url 'validation:accept' validation.id %}" class="addrule pull-right glyphicon glyphicon-ok" title="Alle ongeldige punten verwijderen"></a> 
-					<input id=upload type="file" style="display:none"/>
+									<p class="list-group-item-text">Aantal ongeldige metingen: {{aantal}}</p>
+									<p class="list-group-item-text">Eerste ongeldige meting: {{ivp.first.date}}</p>
+								</div>
+							  {% else %}
+								<div class="list-group-item list-group-item-success">
+									<img class="pull-right" src="{% static "camera_test.png" %}"/>
+									<h4 class="list-group-item-heading">Validatie</h4>
+									{% if result %}
+										{% if result.xlfile %}
+											<p class="list-group-item-text">Validatiebestand: <a href = "{{result.xlfile}}">{{result.xlfile.name}}</a></p>
+											<p class="list-group-item-text">Upload op {{result.date}} door {{result.user.get_full_name|default:result.user}}</a></p>
+										{% else %}
+											<p class="list-group-item-text">Geaccepteerd op {{result.date}} door {{result.user.get_full_name|default:result.user}}</a></p>
+										{% endif %}
+									{% endif %}									
+									<p class="list-group-item-text">Geen ongeldige metingen</p>
+									<p></p>
+								</div>
+							  {% endif %}
+						  {% endwith %}
+						{% if result.xlfile %} <a href="{% url 'validation:remove_file' result.id %}" class="addrule pull-right glyphicon glyphicon-remove" title="Validatiebestand verwijderen"></a> {% endif %}
+<!-- 						<a href="{% url 'validation:upload' validation.id %}?next={{next}}" class="addrule pull-right glyphicon glyphicon-upload" title="Upload validatiebestand"></a>  -->
+						<a data-toggle="modal" href="#uploadModal"class="addrule pull-right glyphicon glyphicon-upload" title="Upload validatiebestand"></a>
+						<a href="{% url 'validation:download' validation.id %}" class="addrule pull-right glyphicon glyphicon-download" title="Download validatiebestand"></a>
+						<a href="{% url 'validation:accept' validation.id %}" class="addrule pull-right glyphicon glyphicon-ok" title="Alle ongeldige punten verwijderen"></a> 
+						<input id=upload type="file" style="display:none"/>
+					  {% else %}
+						<div class="list-group-item list-group-item-warning">
+							<h4 class="list-group-item-heading">Validatie</h4>
+							<p class="list-group-item-text">Geen validatie resultaat beschikbaar</p>
+						</div>
+					  {% endif %}
 					{% endwith %}
 				</div>
 			</div>
 		</div>
-		<a data-toggle="modal" href="#uploadModal">Upload</a>
+<!-- 		<a data-toggle="modal" href="#uploadModal">Upload</a> -->
 		{% include "upload_modal.html" %}
-<!-- 		<div class="row"> -->
-<!-- 			<div class="col-md-6"></div> -->
-<!-- 			<iframe class="col-md-6" src="up/{{validation.id}}" width="100%" marginwidth="0" seamless="seamless" frameborder="0"></iframe> -->
-<!-- 		</div> -->
 	</div>
 	
 {% endblock content %}

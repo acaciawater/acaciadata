@@ -1,4 +1,4 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from acacia.validation.models import Validation, Result,\
     BaseRule, ValueRule, SeriesRule, NoDataRule, OutlierRule, DiffRule,\
     ScriptRule, SlotRule, SubResult, RuleOrder
@@ -9,9 +9,11 @@ from polymorphic.admin.filters import PolymorphicChildModelFilter
 from django.shortcuts import redirect
 
 def test_validation(modeladmin, request, queryset):
+    count = queryset.count()
     for v in queryset:
         v.validpoint_set.all().delete()
         result = v.persist()
+    messages.success(request, '{} validaties uitgevoerd'.format(count))
 
 def download_validation(modeladmin, request, queryset):
     for v in queryset:
@@ -67,10 +69,10 @@ class RuleInline(admin.TabularInline):
 class ValidationAdmin(admin.ModelAdmin):
     actions = [test_validation,download_validation]
     inlines = [RuleInline]
-    exclude = ('users',)
+    exclude = ('users','validated','valid')
     #filter_horizontal = ('users',)
-    list_filter = ('series',)
-    list_display = ('series','is_valid')
+    list_filter = ('series','last_validation','valid')
+    list_display = ('series','last_validation','valid')
     raw_id_fields = ['series']
     autocomplete_lookup_fields = {
         'fk': ['series'],

@@ -30,10 +30,7 @@ def accept(request, pk):
         val.validpoint_set.filter(value__isnull=True).delete()
         defaults={'begin':begin,'end':end,'user':request.user,'xlfile':None,'valid':True, 'date': datetime.now(), 'remarks': 'Alles geaccepteerd'}
     
-        result,created = Result.objects.get_or_create(validation=val,defaults=defaults)
-        if not created:
-            result.__dict__.update(defaults)
-            result.save()
+        Result.objects.update_or_create(validation=val,defaults=defaults)
 
     return redirect(val.get_absolute_url())
     
@@ -43,20 +40,20 @@ def update_stats(request, pk):
     val.series.getproperties().update()
     return redirect(val.get_absolute_url())
     
-def remove_result(request, pk):
-    ''' removes validation result '''
+def remove_file(request, pk):
+    ''' removes uploaded excel validation file '''
     result = get_object_or_404(Result,pk=pk)
     val = result.validation
-    result.delete()
-    val.validpoint_set.all().delete()
-    val.persist()
+    if result.xlfile:
+        result.xlfile.delete()
+        # need to revalidate all
+        val.reset()
     return redirect(val.get_absolute_url())
 
-def remove_points(request, pk):
-    ''' removes validated points and subresults'''
+def reset(request, pk):
+    ''' removes validated points, subresults and final result'''
     val = get_object_or_404(Validation,pk=pk)
-    val.subresult_set.all().delete()
-    val.validpoint_set.all().delete()
+    val.reset()
     return redirect(val.get_absolute_url())
     
 def validate(request, pk):
@@ -309,9 +306,7 @@ class SeriesView(DetailView):
                 ]                 
 
         options['series'] = series
-        jop = json.dumps(options,default=date_handler)
-        # remove quotes around date stuff
-        jop = re.sub(r'\"(Date\.UTC\([\d,]+\))\"',r'\1', jop)
+        jop = json.dumps(options)
 
         context['options'] = jop
         context['theme'] = None
