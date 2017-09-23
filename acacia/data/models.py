@@ -1364,6 +1364,16 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         except:
             return False
         
+    def validate(self,reset=False):
+        try:
+            val = self.validation
+        except ObjectDoesNotExist:
+            # no validation
+            return
+        if reset:
+            val.reset()
+        val.persist()
+        
 # cache series properties to speed up loading admin page for series
 class SeriesProperties(models.Model):
     series = models.OneToOneField(Series,related_name='properties')
