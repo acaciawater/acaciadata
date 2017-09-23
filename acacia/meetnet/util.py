@@ -199,6 +199,10 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
         if logpos.depth is None:
             logger.warning('Inhangdiepte ontbreekt voor {pos}'.format(pos=logpos))
             continue
+
+        # invalidate statistics
+        logpos.clear_stats()
+        
         for mon in logpos.monfile_set.all().order_by('start_date'):
             print ' ', logpos.logger, logpos.start_date, mon
             try:
@@ -273,6 +277,8 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
         series.unit = 'm tov NAP'
         series.make_thumbnail()
         series.save()
+        
+        series.validate(reset=True)
 
 def register_well(well):
     # register well in acaciadata

@@ -11,6 +11,7 @@ from acacia.data.models import Datasource, Series, SourceFile, ProjectLocatie,\
     MeetLocatie, ManualSeries
 from acacia.data import util
 from django.db.models.aggregates import Count, Sum
+from django.core.exceptions import ObjectDoesNotExist
 
 class Network(models.Model):
     name = models.CharField(max_length=50, unique=True, verbose_name = 'naam')
@@ -327,15 +328,46 @@ class LoggerPos(models.Model):
         ordering = ['start_date','logger']
 
     def stats(self):
-        df = self.screen.get_compensated_series(start=self.start_date, stop=self.end_date)
-        if df is None:
-            return None
-        s = df.describe(percentiles=[.1,.5,.9])
-        s['p10'] = None if np.isnan(s['10%']) else s['10%']
-        s['p50'] = None if np.isnan(s['50%']) else s['50%']
-        s['p90'] = None if np.isnan(s['90%']) else s['90%']
+        try:
+            s = self.loggerstat
+        except ObjectDoesNotExist:
+            s = LoggerStat.objects.create(loggerpos = self)
+        if s.count == 0:
+            s.update()
         return s
-            
+    
+    def clear_stats(self):
+        try:
+            s = self.loggerstat
+            s.count = 0 # will cause automatic update
+            s.save()
+        except ObjectDoesNotExist:
+            pass
+        
+class LoggerStat(models.Model):
+    loggerpos = models.OneToOneField(LoggerPos)
+    count = models.PositiveIntegerField(default=0)
+    min = models.FloatField(default=0)
+    p10 = models.FloatField(default=0)
+    p50 = models.FloatField(default=0)
+    p90 = models.FloatField(default=0)
+    max = models.FloatField(default=0)
+    std = models.FloatField(default=0)
+
+    def update(self):
+        df = self.loggerpos.screen.get_compensated_series(start=self.loggerpos.start_date, stop = self.loggerpos.end_date)
+        if df is None or df.empty:
+            return
+        s = df.describe(percentiles=[.1,.5,.9])
+        self.count = s['count']
+        self.min = s['min']
+        self.p10 = None if np.isnan(s['10%']) else s['10%']
+        self.p50 = None if np.isnan(s['50%']) else s['50%']
+        self.p90 = None if np.isnan(s['90%']) else s['90%']
+        self.max = s['max']
+        self.std = s['std']
+        self.save()
+        
 class LoggerDatasource(Datasource):
     logger = models.ForeignKey(Datalogger, related_name = 'datasources')
      
