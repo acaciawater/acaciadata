@@ -22,6 +22,7 @@ class BaseRule(PolymorphicModel):
     ''' Basic validation rule (compares a time series with zero)'''
     class Meta:
         verbose_name = 'regel'
+        ordering = ('name',)
         
     name = models.CharField(max_length=50,verbose_name='naam')
     description = models.TextField(blank=True,verbose_name='omschrijving')
@@ -43,6 +44,7 @@ class BaseRule(PolymorphicModel):
     
     def __unicode__(self):
         return self.name
+    
     
 class ValueRule(BaseRule):
     ''' validation rule with set limits (compares a time series with fixed numeric value) '''
@@ -135,11 +137,25 @@ class OutlierRule(BaseRule):
         std = target.std() * self.tolerance
         dev = (target-target.mean()).abs()
         return (target,self.compare(dev,std))
+
+class RollingRule(OutlierRule):
+    ''' Finds  outliers based on rolling standard deviation and mean ''' 
+    class Meta:
+        verbose_name = 'Locale Uitbijter'
+
+    count = models.PositiveIntegerField(default=3,verbose_name='Aantal punten')
+    
+    def apply(self, target):
+        roll = target.rolling(window=self.count,center=True)
+        mean = roll.median().fillna(method='bfill').fillna(method='ffill')
+        std = target.std() * self.tolerance
+        dev = (target-mean).abs()
+        return (target,self.compare(dev,std))
  
 class DiffRule(BaseRule):
     ''' Finds local outliers based on difference between successive points and standard deviation ''' 
     class Meta:
-        verbose_name = 'Lokale uitbijter'
+        verbose_name = 'Lokale verandering'
     
     tolerance = models.FloatField(default=3,verbose_name = 'tolerantie', help_text = 'verschil plus of min x maal de standaardafwijking')
     
@@ -201,6 +217,7 @@ class Validation(models.Model):
     class Meta:
         verbose_name = 'validatie'
         verbose_name_plural = 'validaties'
+        ordering = ('series',)
         
     series = models.OneToOneField(Series,verbose_name = 'tijdreeks')
     rules = models.ManyToManyField(BaseRule, verbose_name = 'validatieregels',through='RuleOrder',related_name='validations')
