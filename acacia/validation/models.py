@@ -179,6 +179,17 @@ class ChangeRule(BaseRule):
         ch = target.pct_change(periods=self.periods,freq = self.freq)
         return (target,self.compare(ch,self.change))
 
+class RangeRule(BaseRule):
+    class Meta:
+        verbose_name = 'Bereik'
+    
+    upper = models.FloatField(verbose_name='Bovengrens')
+    lower = models.FloatField(verbose_name='Ondergrens')
+    inclusive = models.BooleanField(default=True,verbose_name='inclusief')
+
+    def apply(self, target):
+        return (target,target.between(left=self.lower,right=self.upper,inclusive=self.inclusive))
+    
 class ScriptRule(BaseRule):
     ''' Validation rule based on user defined python script.
     The script must set a local variable named result: 
@@ -234,11 +245,18 @@ class Validation(models.Model):
 
     def results(self):
         ''' returns dict with rules and results '''
-        results = {r:None for r in self.rules.all()}
+        from collections import OrderedDict
+        results = OrderedDict([(r,None) for r in self.rules.order_by('ruleorder__order')])
         for s in self.subresult_set.all():
             results[s.rule] = s
         return results
-    
+
+    def rule_names(self):
+        ''' return comma separated list of rules '''
+        rules = [unicode(r) for r in self.rules.all()]
+        return ','.join(rules) if rules else None
+    rule_names.short_description = 'regel'
+            
     def iter_exceptions(self):
         for v in self.validpoint_set.filter(value__isnull=True):
             yield v.point

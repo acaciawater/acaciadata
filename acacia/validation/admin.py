@@ -1,7 +1,7 @@
 from django.contrib import admin, messages
 from acacia.validation.models import Validation, Result,\
     BaseRule, ValueRule, SeriesRule, NoDataRule, OutlierRule, DiffRule,\
-    ScriptRule, SlotRule, SubResult, RuleOrder, RollingRule
+    ScriptRule, SlotRule, SubResult, RuleOrder, RollingRule, RangeRule
 from acacia.validation.views import download
 from polymorphic.admin.parentadmin import PolymorphicParentModelAdmin
 from polymorphic.admin.childadmin import PolymorphicChildModelAdmin
@@ -24,7 +24,7 @@ test_validation.short_description='Valideren'
 @admin.register(BaseRule)
 class BaseRuleAdmin(PolymorphicParentModelAdmin):
     base_model = BaseRule
-    child_models = (ValueRule, SeriesRule, NoDataRule, OutlierRule, DiffRule, ScriptRule, SlotRule, RollingRule)
+    child_models = (ValueRule, SeriesRule, NoDataRule, OutlierRule, DiffRule, ScriptRule, SlotRule, RollingRule, RangeRule)
     list_filter = (PolymorphicChildModelFilter,)
     search_fields = ('name','description')
 
@@ -64,10 +64,28 @@ class SlotRuleAdmin(NoDataRuleAdmin):
 @admin.register(RollingRule)
 class RollingRuleAdmin(NoDataRuleAdmin):
     base_model = RollingRule
+
+@admin.register(RangeRule)
+class RangeRuleAdmin(NoDataRuleAdmin):
+    base_model = RangeRule
+    exclude = ('comp',)
     
 class RuleInline(admin.TabularInline):
     model = RuleOrder
     extra = 1
+
+class RuleFilter(admin.SimpleListFilter):
+    title = 'Regel'
+    parameter_name = 'rule'
+
+    def lookups(self, request, modeladmin):
+
+        return [(r.id, r.name) for r in BaseRule.objects.all()]
+
+    def queryset(self, request, queryset):
+        if self.value() is not None:
+            return queryset.filter(rules__id = self.value())
+        return queryset
         
 @admin.register(Validation)
 class ValidationAdmin(admin.ModelAdmin):
@@ -75,8 +93,8 @@ class ValidationAdmin(admin.ModelAdmin):
     inlines = [RuleInline]
     exclude = ('users','validated','valid')
     #filter_horizontal = ('users',)
-    list_filter = ('series','last_validation','valid')
-    list_display = ('series','last_validation','valid')
+    list_filter = ('series','last_validation','valid',RuleFilter)
+    list_display = ('series','last_validation','valid','rule_names')
     raw_id_fields = ['series']
     autocomplete_lookup_fields = {
         'fk': ['series'],
