@@ -219,13 +219,13 @@ class Screen(models.Model):
 
     def start(self):
         try:
-            return min([d.start() for d in self.mloc.datasource_set.all()])
+            return min([d.start() for d in self.mloc.datasource_set.all() if d.start()])
         except:
             return None
 
     def stop(self):
         try:
-            return max([d.stop() for d in self.mloc.datasource_set.all()])
+            return max([d.stop() for d in self.mloc.datasource_set.all() if d.stop()])
         except:
             return None
         
@@ -359,13 +359,13 @@ class LoggerStat(models.Model):
         if df is None or df.empty:
             return
         s = df.describe(percentiles=[.1,.5,.9])
-        self.count = s['count']
-        self.min = s['min']
+        self.count = None if np.isnan(s['count']) else s['count']
+        self.min = None if np.isnan(s['min']) else s['min']
         self.p10 = None if np.isnan(s['10%']) else s['10%']
         self.p50 = None if np.isnan(s['50%']) else s['50%']
         self.p90 = None if np.isnan(s['90%']) else s['90%']
-        self.max = s['max']
-        self.std = s['std']
+        self.max = None if np.isnan(s['max']) else s['max']
+        self.std = None if np.isnan(s['std']) else s['std']
         self.save()
         
 class LoggerDatasource(Datasource):

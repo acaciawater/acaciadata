@@ -14,6 +14,8 @@ from django.shortcuts import get_object_or_404
 
 import StringIO
 from acacia.meetnet.util import register_screen, register_well
+from django.core.exceptions import ObjectDoesNotExist
+from acacia.meetnet.models import LoggerStat
 logger = logging.getLogger(__name__)
 
 def elevation_from_ahn(modeladmin, request, queryset):
@@ -60,6 +62,16 @@ download_screen_nitg.short_description='NITG Export'
 def download_well_nitg(modeladmin, request, queryset):
     actions.download_series_zip(modeladmin, request, queryset, store_wells_nitg)
 download_well_nitg.short_description='NITG Export'
+
+def update_statistics(modeladmin, request, queryset):
+    for lp in queryset:
+        try:
+            s = lp.loggerstat
+        except ObjectDoesNotExist:
+            s = LoggerStat.objects.create(loggerpos = lp)
+        print lp
+        s.update()
+update_statistics.short_description = 'statistiek vernieuwen'
 
 def make_wellcharts(modeladmin, request, queryset):
     for w in queryset:
