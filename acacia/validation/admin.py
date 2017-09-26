@@ -8,18 +8,27 @@ from polymorphic.admin.childadmin import PolymorphicChildModelAdmin
 from polymorphic.admin.filters import PolymorphicChildModelFilter
 from django.shortcuts import redirect
 
-def test_validation(modeladmin, request, queryset):
+def validate(modeladmin, request, queryset):
     count = queryset.count()
     for v in queryset:
-        v.validpoint_set.all().delete()
-        result = v.persist()
+        v.reset()
+        v.persist()
     messages.success(request, '{} validaties uitgevoerd'.format(count))
+validate.short_description='Valideren'
 
-def download_validation(modeladmin, request, queryset):
+def validate_and_accept(modeladmin, request, queryset):
+    count = queryset.count()
     for v in queryset:
-        download(request, pk = v.pk)
-        
-test_validation.short_description='Valideren'
+        v.apply_and_accept(request.user)
+    messages.success(request, '{} validaties uitgevoerd'.format(count))
+validate_and_accept.short_description='Valideren en accepteren'
+
+def accept(modeladmin, request, queryset):
+    count = queryset.count()
+    for v in queryset:
+        v.accept(request.user)
+    messages.success(request, '{} validaties geaccepteerd'.format(count))
+accept.short_description='Accepteren'
 
 @admin.register(BaseRule)
 class BaseRuleAdmin(PolymorphicParentModelAdmin):
@@ -89,7 +98,7 @@ class RuleFilter(admin.SimpleListFilter):
         
 @admin.register(Validation)
 class ValidationAdmin(admin.ModelAdmin):
-    actions = [test_validation,download_validation]
+    actions = [validate,accept,validate_and_accept]
     inlines = [RuleInline]
     exclude = ('users','validated','valid')
     #filter_horizontal = ('users',)

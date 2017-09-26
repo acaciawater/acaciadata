@@ -8,7 +8,7 @@ from polymorphic.models import PolymorphicModel
 import logging
 import datetime
 from django.core.exceptions import ObjectDoesNotExist
-from django.contrib.admin.templatetags.admin_list import results
+from django.utils.timezone import get_current_timezone, now
 
 logger = logging.getLogger(__name__)
 
@@ -155,15 +155,22 @@ class RollingRule(OutlierRule):
 class DiffRule(BaseRule):
     ''' Finds local outliers based on difference between successive points and standard deviation ''' 
     class Meta:
-        verbose_name = 'Lokale verandering'
+        verbose_name = 'Verschil'
     
     tolerance = models.FloatField(default=3,verbose_name = 'tolerantie', help_text = 'verschil plus of min x maal de standaardafwijking')
-    
+    direction = models.CharField(max_length = 1, default='b', choices=(('f','Vooruit'),('b','Achteruit')), verbose_name = 'kijkrichting')
+
     def apply(self, target):
         std = target.std() * self.tolerance
         dev = target.diff().abs()
         if dev.size > 0:
-            dev.iloc[0] = 0
+            if self.direction == 'b':
+                # compare with previous 
+                dev.iloc[0] = 0
+            else:
+                # compare with next 
+                dev = dev.shift(-1)
+                dev.iloc[-1] = 0
         return (target,self.compare(dev,std))
 
 class ChangeRule(BaseRule):
@@ -353,7 +360,7 @@ class Validation(models.Model):
             series = series.where(result,other=None)
             valid_points = [ValidPoint(validation=self,date=p[0],value=p[1]) for p in series.iteritems()]
             if numinvalid:
-                logger.warning('Validation failed for {}, first occurrence = {}'.format(self.series, invalid.index[0]))
+                logger.warning('Validation {} failed'.format(self.series))
             else:
                 logger.info('Validation {} passed'.format(self.series))
             return valid_points
@@ -378,11 +385,40 @@ class Validation(models.Model):
             # replace ALL validated points
             self.validpoint_set.all().delete()
             self.validpoint_set.bulk_create(pts)
-        self.last_validation = datetime.datetime.now()
+        self.last_validation = now()
         self.check_valid()
         self.save()
         return pts
     
+    def accept(self,user,daterange=None):
+        ''' accept validation. remove all invalid points and save result to database '''
+        q = self.validpoint_set.filter(value__isnull=True)
+        if daterange:
+            begin,end = daterange
+            q = q.filter(date__range=daterange)
+        else:
+            begin = self.series.van()
+            end = self.series.tot()
+        q.delete()
+        defaults={'begin':begin,'end':end,'user':user,'xlfile':None,'valid':True, 'date': now(), 'remarks': 'Alles geaccepteerd'}
+        Result.objects.update_or_create(validation=self,defaults=defaults)
+        self.check_valid()
+        self.save()
+        
+    def apply_and_accept(self, user):
+        ''' apply and auto accept validation '''
+        pts = self.persist()
+        if pts:
+            begin = pts[0].date
+            end = pts[-1].date
+            self.accept(user,[begin,end])
+        return pts
+    
+    def revalidate(self, user):
+        ''' redo entire validation, uploads are lost '''
+        self.reset()
+        self.apply_and_accept(user)
+
     def has_result(self):
         try:
             return self.result is not None
