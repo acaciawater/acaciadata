@@ -280,6 +280,43 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
         
         series.validate(reset=True)
 
+def drift_correct(series, manual):
+    ''' correct drift with manual measurements (both are pandas series)'''
+    # TODO: extrapolate series to manual 
+    # calculate differences
+    left,right=series.align(manual)
+    # interpolate values on index of manual measurements
+    left = left.interpolate(method='time')
+    left = left.interpolate(method='nearest')
+    # calculate difference at manual index
+    diff = left.reindex(manual.index) - manual
+    # interpolate differences to all measurements
+    left,right=series.align(diff)
+    right = right.interpolate(method='time')
+    drift = right.reindex(series.index)
+    drift = drift.fillna(0)
+    return series-drift
+
+def drift_correct_screen(screen,user):
+    series = screen.get_compensated_series()
+    manual = screen.get_manual_series()
+    data = drift_correct(series,manual)
+    name = unicode(screen) + 'CORR'
+    cor, created = Series.objects.get_or_create(name=name,mlocatie=screen.mloc,defaults={'user':user})
+    if created:
+        cor.unit = 'm tov NAP'
+    else:
+        cor.datapoints.all().delete()
+    datapoints=[]
+    for date,value in data.iteritems():
+        value = float(value)
+        if math.isnan(value) or date is None:
+            continue
+        datapoints.append(DataPoint(series=cor, date=date, value=value))
+    cor.datapoints.bulk_create(datapoints)
+    cor.make_thumbnail()
+    cor.save()
+    
 def register_well(well):
     # register well in acaciadata
     project,created = Project.objects.get_or_create(name=well.network.name)

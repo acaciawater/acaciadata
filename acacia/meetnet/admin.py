@@ -126,7 +126,7 @@ class ScreenInline(admin.TabularInline):
     classes = ('grp-collapse', 'grp-closed',)
         
 class ScreenAdmin(admin.ModelAdmin):
-    actions = [actions.make_screencharts,actions.recomp_screens,actions.register_screens,actions.download_screen_nitg]
+    actions = [actions.make_screencharts,actions.recomp_screens,actions.drift_screens,actions.register_screens,actions.download_screen_nitg]
     list_display = ('__unicode__', 'refpnt', 'top', 'bottom', 'num_files', 'num_standen', 'start', 'stop')
     search_fields = ('well__name', 'well__nitg')
     list_filter = ('well','well__network')

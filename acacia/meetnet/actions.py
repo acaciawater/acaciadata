@@ -13,7 +13,8 @@ from acacia.ahn.models import AHN
 from django.shortcuts import get_object_or_404
 
 import StringIO
-from acacia.meetnet.util import register_screen, register_well
+from acacia.meetnet.util import register_screen, register_well,\
+    drift_correct_screen
 from django.core.exceptions import ObjectDoesNotExist
 from acacia.meetnet.models import LoggerStat
 logger = logging.getLogger(__name__)
@@ -103,12 +104,18 @@ def make_screencharts(modeladmin, request, queryset):
         
 make_screencharts.short_description = "Grafieken vernieuwen van geselecteerde filters"
 
+def drift_screens(modeladmin, request, queryset):
+    for screen in queryset:
+        drift_correct_screen(screen,request.user)
+drift_screens.short_description = 'Filters corrigeren voor drift'
+
 def recomp_screens(modeladmin, request, queryset):
     for screen in queryset:
         register_screen(screen)
         name = '%s COMP' % unicode(screen)
         series, created = Series.objects.get_or_create(name=name,defaults={'user':request.user,'mlocatie':screen.mloc})
         recomp(screen, series)
+        # TODO: accept validation
     make_screencharts(modeladmin, request, queryset)
 recomp_screens.short_description = "Gecompenseerde tijdreeksen opnieuw aanmaken voor geselecteerde filters"
         
