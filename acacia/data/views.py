@@ -83,7 +83,7 @@ def ChartToJson(request, pk):
     for cs in c.series.all():
         
         def getseriesdata(s):
-            pts = s.to_array(start,stop)
+            pts = s.to_array(start=start,stop=stop)
             #resample test
             if cs.type == 'line':
                 x,y = zip(*pts)
