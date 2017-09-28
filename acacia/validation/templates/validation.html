@@ -179,7 +179,7 @@ a:hover {
 <!-- 						<a href="{% url 'validation:upload' validation.id %}?next={{next}}" class="addrule pull-right glyphicon glyphicon-upload" title="Upload validatiebestand"></a>  -->
 						<a data-toggle="modal" href="#uploadModal"class="addrule pull-right glyphicon glyphicon-upload" title="Upload validatiebestand"></a>
 						<a href="{% url 'validation:download' validation.id %}" class="addrule pull-right glyphicon glyphicon-download" title="Download validatiebestand"></a>
-						<a href="{% url 'validation:accept' validation.id %}" class="addrule pull-right glyphicon glyphicon-ok" title="Alle ongeldige punten verwijderen"></a> 
+						<a href="{% url 'validation:accept' validation.id %}" class="addrule pull-right glyphicon glyphicon-ok" title="Accepteren en ongeldige punten verwijderen"></a> 
 						<input id=upload type="file" style="display:none"/>
 					  {% else %}
 						<div class="list-group-item list-group-item-warning">
