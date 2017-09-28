@@ -22,16 +22,8 @@ logger = logging.getLogger(__name__)
 
 def accept(request, pk):
     ''' accept all and remove invalid points from validation '''
-    val = get_object_or_404(Validation,pk=pk)   
-    pts = val.validpoint_set
-    if pts:
-        begin = pts.first().date
-        end = pts.last().date
-        val.validpoint_set.filter(value__isnull=True).delete()
-        defaults={'begin':begin,'end':end,'user':request.user,'xlfile':None,'valid':True, 'date': datetime.now(), 'remarks': 'Alles geaccepteerd'}
-        Result.objects.update_or_create(validation=val,defaults=defaults)
-        val.check_valid()
-        val.save()
+    val = get_object_or_404(Validation,pk=pk)
+    val.accept(request.user)   
     return redirect(val.get_absolute_url())
     
 def update_stats(request, pk):
