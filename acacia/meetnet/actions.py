@@ -115,7 +115,8 @@ def recomp_screens(modeladmin, request, queryset):
         name = '%s COMP' % unicode(screen)
         series, created = Series.objects.get_or_create(name=name,defaults={'user':request.user,'mlocatie':screen.mloc})
         recomp(screen, series)
-        # TODO: accept validation
+        series.validate(reset=True, accept=True, user=request.user)
+
     make_screencharts(modeladmin, request, queryset)
 recomp_screens.short_description = "Gecompenseerde tijdreeksen opnieuw aanmaken voor geselecteerde filters"
         

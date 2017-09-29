@@ -1364,7 +1364,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         except:
             return False
         
-    def validate(self,reset=False, accept=False, accepted_by=None):
+    def validate(self,reset=False, accept=False, user=None):
         try:
             val = self.validation
         except ObjectDoesNotExist:
@@ -1373,8 +1373,8 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         if reset:
             val.reset()
         val.persist()
-        if accept and accepted_by:
-            val.accept(user=accepted_by)
+        if accept and user:
+            val.accept(user=user)
 
 # cache series properties to speed up loading admin page for series
 class SeriesProperties(models.Model):
