@@ -8,6 +8,7 @@ import matplotlib
 from django.core.exceptions import MultipleObjectsReturned
 from django.core.mail.message import EmailMessage
 from acacia.meetnet.models import MeteoData
+from django.utils.timezone import get_current_timezone
 
 matplotlib.use('agg')
 import matplotlib.pylab as plt
@@ -190,13 +191,46 @@ def make_chart(obj):
 def make_encoded_chart(obj):
     return encode_chart(make_chart(obj))
 
-def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
-    ''' re-compensate timeseries for screen '''
+def convert_to_nap(screen,series,tz=get_current_timezone()):
+    ''' offset timeseries from surface to NAP '''
+    seriesdata = None
+    for logpos in screen.loggerpos_set.all().order_by('start_date'):
+        if logpos.refpnt is None:
+            logger.warning('Referentiepunt ontbreekt voor {pos}'.format(pos=logpos))
+            continue
+        for src in logpos.logger.loggerdatasource_set.all().order_by('start_date'):
+            print ' ', logpos.logger, logpos.start_date, src
+            try:
+                data = src.get_data()
+            except Exception as e:
+                logger.error('Error reading {}: {}'.format(src,e))
+                continue
+            if not data:
+                logger.error('No data found in {}'.format(src))
+                continue
 
+            if isinstance(data,dict):
+                data = data.itervalues().next()
+
+            if not series.parameter.name in data:
+                logger.error('parameter {} not found in file {}'.format(series.parameter.name, src))
+            
+            data = data[series.parameter.name]
+            data = series.do_postprocess(data).tz_localize(tz)
+            data = data + logpos.refpnt
+            if seriesdata is None:
+                seriesdata = data
+            else:
+                seriesdata = seriesdata.append(data)
+    return seriesdata
+
+def compensate(screen,series,baros,tz=get_current_timezone()):
+    ''' compensate for air pressure '''
     well = screen.well
     if not hasattr(well,'meteo') or well.meteo.baro is None:
         logger.error('Luchtdruk ontbreekt voor put {well}'.format(well=well))
-        return
+        return None
+    
     baroseries = well.meteo.baro
     logger.info('Compenseren voor luchtdrukreeks {}'.format(baroseries))
     if baroseries in baros:
@@ -261,25 +295,48 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
                 seriesdata = data
             else:
                 seriesdata = seriesdata.append(data)
+    if sumdry:
+        logger.warning('Screen {}: {} out of {} measurements have less than 2 cm of water'.format(unicode(screen),sumdry,seriesdata.size))
                 
-    if seriesdata is not None:
-        # remove duplicates
-        seriesdata = seriesdata.groupby(seriesdata.index).last()
-        # sort data
-        seriesdata.sort_index(inplace=True)
-        if sumdry:
-            logger.warning('Screen {}: {} out of {} measurements have less than 2 cm of water'.format(unicode(screen),sumdry,seriesdata.size))
-        datapoints=[]
-        for date,value in seriesdata.iteritems():
-            value = float(value)
-            if math.isnan(value) or date is None:
-                continue
-            datapoints.append(DataPoint(series=series, date=date, value=value))
-        series.datapoints.all().delete()
-        series.datapoints.bulk_create(datapoints)
-        series.unit = 'm tov NAP'
-        series.make_thumbnail()
-        series.save()
+    return seriesdata
+
+def recomp(screen,series,baros={}):
+    ''' re-compensate timeseries for screen '''
+    loggers = screen.get_loggers()
+    data = None
+    for logger in loggers:
+        for ds in logger.loggerdatasource_set.all():
+            if ds:
+                gen = ds.generator.classname.lower()
+                if gen.contains('sws.diver'):
+                    data=compensate(screen, series, baros)
+                elif gen.contains('ellitrack'):
+                    data=convert_to_nap(screen, series)
+                else:
+                    logger.error('generator {} not supported'.format(gen))
+            else:
+                logger.error('no datasource for series {}'.format(series))
+                return
+    
+    if data is None:
+        logger.warning('No data for {}'.format(screen))
+        return
+
+    # remove duplicates
+    data = data.groupby(data.index).last()
+    # sort data
+    data.sort_index(inplace=True)
+    datapoints=[]
+    for date,value in data.iteritems():
+        value = float(value)
+        if math.isnan(value) or date is None:
+            continue
+        datapoints.append(DataPoint(series=series, date=date, value=value))
+    series.datapoints.all().delete()
+    series.datapoints.bulk_create(datapoints)
+    series.unit = 'm tov NAP'
+    series.make_thumbnail()
+    series.save()
 
 def register_well(well):
     # register well in acaciadata
