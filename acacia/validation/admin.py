@@ -1,28 +1,39 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from acacia.validation.models import Validation, Result,\
     BaseRule, ValueRule, SeriesRule, NoDataRule, OutlierRule, DiffRule,\
-    ScriptRule, SlotRule, SubResult, RuleOrder
+    ScriptRule, SlotRule, SubResult, RuleOrder, RollingRule, RangeRule
 from acacia.validation.views import download
 from polymorphic.admin.parentadmin import PolymorphicParentModelAdmin
 from polymorphic.admin.childadmin import PolymorphicChildModelAdmin
 from polymorphic.admin.filters import PolymorphicChildModelFilter
 from django.shortcuts import redirect
 
-def test_validation(modeladmin, request, queryset):
+def validate(modeladmin, request, queryset):
+    count = queryset.count()
     for v in queryset:
-        v.validpoint_set.all().delete()
-        result = v.persist()
+        v.reset()
+        v.persist()
+    messages.success(request, '{} validaties uitgevoerd'.format(count))
+validate.short_description='Valideren'
 
-def download_validation(modeladmin, request, queryset):
+def validate_and_accept(modeladmin, request, queryset):
+    count = queryset.count()
     for v in queryset:
-        download(request, pk = v.pk)
-        
-test_validation.short_description='Valideren'
+        v.apply_and_accept(request.user)
+    messages.success(request, '{} validaties uitgevoerd'.format(count))
+validate_and_accept.short_description='Valideren en accepteren'
+
+def accept(modeladmin, request, queryset):
+    count = queryset.count()
+    for v in queryset:
+        v.accept(request.user)
+    messages.success(request, '{} validaties geaccepteerd'.format(count))
+accept.short_description='Accepteren'
 
 @admin.register(BaseRule)
 class BaseRuleAdmin(PolymorphicParentModelAdmin):
     base_model = BaseRule
-    child_models = (ValueRule, SeriesRule, NoDataRule, OutlierRule, DiffRule, ScriptRule, SlotRule)
+    child_models = (ValueRule, SeriesRule, NoDataRule, OutlierRule, DiffRule, ScriptRule, SlotRule, RollingRule, RangeRule)
     list_filter = (PolymorphicChildModelFilter,)
     search_fields = ('name','description')
 
@@ -58,19 +69,41 @@ class ScriptRuleAdmin(NoDataRuleAdmin):
 class SlotRuleAdmin(NoDataRuleAdmin):
     base_model = SlotRule
     exclude=('comp',)
+
+@admin.register(RollingRule)
+class RollingRuleAdmin(NoDataRuleAdmin):
+    base_model = RollingRule
+
+@admin.register(RangeRule)
+class RangeRuleAdmin(NoDataRuleAdmin):
+    base_model = RangeRule
+    exclude = ('comp',)
     
 class RuleInline(admin.TabularInline):
     model = RuleOrder
     extra = 1
+
+class RuleFilter(admin.SimpleListFilter):
+    title = 'Regel'
+    parameter_name = 'rule'
+
+    def lookups(self, request, modeladmin):
+
+        return [(r.id, r.name) for r in BaseRule.objects.all()]
+
+    def queryset(self, request, queryset):
+        if self.value() is not None:
+            return queryset.filter(rules__id = self.value())
+        return queryset
         
 @admin.register(Validation)
 class ValidationAdmin(admin.ModelAdmin):
-    actions = [test_validation,download_validation]
+    actions = [validate,accept,validate_and_accept]
     inlines = [RuleInline]
-    exclude = ('users',)
+    exclude = ('users','validated','valid')
     #filter_horizontal = ('users',)
-    list_filter = ('series',)
-    list_display = ('series','is_valid')
+    list_filter = ('series','last_validation','valid',RuleFilter)
+    list_display = ('series','last_validation','valid','rule_names')
     raw_id_fields = ['series']
     autocomplete_lookup_fields = {
         'fk': ['series'],

@@ -8,7 +8,6 @@ import matplotlib
 from django.core.exceptions import MultipleObjectsReturned
 from django.core.mail.message import EmailMessage
 from acacia.meetnet.models import MeteoData
-from django.utils.timezone import get_current_timezone
 
 matplotlib.use('agg')
 import matplotlib.pylab as plt
@@ -19,7 +18,6 @@ import os,re
 import datetime
 import binascii
 import numpy as np
-import pandas as pd
 import zipfile
 
 from django.template.loader import render_to_string
@@ -41,13 +39,23 @@ logger = logging.getLogger(__name__)
 THUMB_DPI=72
 THUMB_SIZE=(12,5) # inch
 
-def screencolor(screen):
-    colors = ['red', 'green', 'blue', 'black', 'orange', 'purple', 'brown', 'grey' ]
-    index = (screen.nr-1) % len(colors) 
+def getcolor(index):
+    colors = ['blue', 'red', 'green', 'black', 'orange', 'purple', 'brown', 'grey' ]
+    index = index % len(colors) 
     return colors[index]
 
-def chart_for_screen(screen):
-    plt.figure(figsize=THUMB_SIZE)
+def screencolor(screen):
+    return getcolor(screen.nr-1)
+
+def chart_for_screen(screen,start=None,stop=None):
+    fig=plt.figure(figsize=THUMB_SIZE)
+    ax=fig.gca()
+
+    datemin=start or datetime.datetime(2013,1,1)
+    datemax=stop or datetime.datetime(2016,12,31)
+    if start or stop:
+        ax.set_xlim(datemin, datemax)
+
     plt.grid(linestyle='-', color='0.9')
     ncol = 0
 
@@ -107,22 +115,28 @@ def chart_for_well(well,start=None,stop=None):
         ax.set_xlim(datemin, datemax)
     plt.grid(linestyle='-', color='0.9')
     ncol = 0
+    index = 0
     for screen in well.screen_set.all():
         data = screen.get_levels('nap',rule='H')
-        n = len(data) / (THUMB_SIZE[0]*THUMB_DPI)
-        if n > 1:
-            #use data thinning: take very nth row
-            data = data[::n]
+#         n = len(data) / (THUMB_SIZE[0]*THUMB_DPI)
+#         if n > 1:
+#             #use data thinning: take very nth row
+#             data = data[::n]
         if len(data)>0:
             x,y = zip(*data)
-            plt.plot_date(x, y, '-',label='filter {}'.format(screen.nr),color=screencolor(screen))
+            color=getcolor(index)
+            plt.plot_date(x, y, '-',label='filter {}'.format(screen.nr),color=color)
             ncol += 1
 
             hand = screen.get_hand('nap')
             if len(hand)>0:
                 x,y = zip(*hand)
-                plt.plot_date(x, y, 'o',color=screencolor(screen))
+                if well.screen_set.count() == 1:
+                    color = 'red'
+                plt.plot_date(x, y, 'o', color=color)
                 ncol += 1
+
+            index += 1
             
     plt.ylabel('m tov NAP')
 
@@ -131,46 +145,6 @@ def chart_for_well(well,start=None,stop=None):
 
     plt.legend(bbox_to_anchor=(0.5, -0.1), loc='upper center',ncol=min(ncol,5),frameon=False)
     plt.title(well)
-    
-    img = StringIO() 
-    plt.savefig(img,format='png',bbox_inches='tight')
-    plt.close()    
-    return img.getvalue()
-
-def chart_for_well_old(well,start=None,stop=None):
-    fig=plt.figure(figsize=(15,5))
-    ax=fig.gca()
-    datemin=start or datetime.datetime(2013,1,1)
-    datemax=stop or datetime.datetime(2017,5,1)
-    ax.set_xlim(datemin, datemax)
-    plt.grid(linestyle='-', color='0.9')
-    count = 0
-    y = []
-    x = []
-    for screen in well.screen_set.all():
-        data = screen.get_levels('nap',start=datemin,stop=datemax)
-        if len(data)>0:
-            x,y = zip(*data)
-            # resample to hour frequency (gaps representing missing data) 
-            s = pd.Series(y,index=x).asfreq('H')
-            y = s.tolist()
-            x = list(s.index)
-            plt.plot_date(x, y, '-', label=screen)
-            count += 1
-
-        hand = screen.get_hand('nap')
-        if len(hand)>0:
-            x,y = zip(*hand)
-            plt.plot_date(x, y, 'ro', label='handpeiling')
-    x = [datemin,datemax]
-    y = [screen.well.maaiveld] * len(x)
-    plt.plot_date(x, y, '-', label='maaiveld')
-
-    plt.title(well)
-    plt.ylabel('m tov NAP')
-    if count > 0:
-        leg=plt.legend()
-        leg.get_frame().set_alpha(0.3)
     
     img = StringIO() 
     plt.savefig(img,format='png',bbox_inches='tight')
@@ -258,6 +232,10 @@ def compensate(screen,series,baros,tz=get_current_timezone()):
         if logpos.depth is None:
             logger.warning('Inhangdiepte ontbreekt voor {pos}'.format(pos=logpos))
             continue
+
+        # invalidate statistics
+        logpos.clear_stats()
+        
         for mon in logpos.monfile_set.all().order_by('start_date'):
             print ' ', logpos.logger, logpos.start_date, mon
             try:
@@ -274,20 +252,38 @@ def compensate(screen,series,baros,tz=get_current_timezone()):
                 mondata = mondata.itervalues().next()
 
             data = mondata['PRESSURE']
-            data = series.do_postprocess(data).tz_localize(tz)
+            data = series.do_postprocess(data)
             
+            # issue warning if data has points beyond timespan of barometer
+            barostart = baro.index[0]
+            dataend = data.index[0]
+            if dataend < barostart:
+                logger.warning('Geen luchtdruk gegevens beschikbaar voor {}'.format(barostart))
+                continue
+            baroend = baro.index[-1]
+            datastart = data.index[0]
+            if datastart > baroend:
+                logger.warning('Geen luchtdruk gegevens beschikbaar na {}'.format(baroend))
+                continue
+
             adata, abaro = data.align(baro)
             abaro = abaro.interpolate(method='time')
             abaro = abaro.reindex(data.index)
+            abaro[:barostart] = np.NaN
+            abaro[baroend:] = np.NaN
             data = data - abaro
-            data.dropna(inplace=True)
 
-            #clear datapoints with less than 2 cm of water
-            data[data<2] = np.nan
+            data.dropna(inplace=True)
+            
+            # clip logger data on timerange of baros data
+            # data = data[max(barostart,datastart):min(baroend,dataend)]
+
+            #clear datapoints with less than 5 cm of water
+            data[data<5] = np.nan
             # count dry values
             dry = data.isnull().sum()
             if dry:
-                logger.warning('Screen {}, MON file {}: {} out of {} measurements have less than 2 cm of water'.format(unicode(screen),mon,dry,data.size))
+                logger.warning('Logger {}, MON file {}: {} out of {} measurements have less than 5 cm of water'.format(unicode(logpos),mon,dry,data.size))
             sumdry += dry
             
             data = data / 100 + (logpos.refpnt - logpos.depth)
@@ -337,7 +333,46 @@ def recomp(screen,series,baros={}):
     series.unit = 'm tov NAP'
     series.make_thumbnail()
     series.save()
+        
+        series.validate(reset=True)
 
+def drift_correct(series, manual):
+    ''' correct drift with manual measurements (both are pandas series)'''
+    # TODO: extrapolate series to manual 
+    # calculate differences
+    left,right=series.align(manual)
+    # interpolate values on index of manual measurements
+    left = left.interpolate(method='time')
+    left = left.interpolate(method='nearest')
+    # calculate difference at manual index
+    diff = left.reindex(manual.index) - manual
+    # interpolate differences to all measurements
+    left,right=series.align(diff)
+    right = right.interpolate(method='time')
+    drift = right.reindex(series.index)
+    drift = drift.fillna(0)
+    return series-drift
+
+def drift_correct_screen(screen,user):
+    series = screen.get_compensated_series()
+    manual = screen.get_manual_series()
+    data = drift_correct(series,manual)
+    name = unicode(screen) + 'CORR'
+    cor, created = Series.objects.get_or_create(name=name,mlocatie=screen.mloc,defaults={'user':user})
+    if created:
+        cor.unit = 'm tov NAP'
+    else:
+        cor.datapoints.all().delete()
+    datapoints=[]
+    for date,value in data.iteritems():
+        value = float(value)
+        if math.isnan(value) or date is None:
+            continue
+        datapoints.append(DataPoint(series=cor, date=date, value=value))
+    cor.datapoints.bulk_create(datapoints)
+    cor.make_thumbnail()
+    cor.save()
+    
 def register_well(well):
     # register well in acaciadata
     project,created = Project.objects.get_or_create(name=well.network.name)
@@ -415,8 +450,8 @@ def createmeteo(request, well):
 def createmonfile(source, generator=sws.Diver()):
     ''' parse .mon file and create MonFile instance '''
     
-    # default timeone for MON files = CET
-    CET = pytz.timezone('CET')
+    # default timeone for MON files = Etc/GMT-1
+    CET = pytz.timezone('Etc/GMT-1')
     
     headerdict = generator.get_header(source)
     mon = MonFile()
@@ -544,7 +579,7 @@ def addmonfile(request,network,f):
 
         # get/create datasource for logger
         ds, created = LoggerDatasource.objects.get_or_create(name=datalogger.serial,meetlocatie=loc,
-                                                                 defaults = {'logger': datalogger, 'generator': generator, 'user': user, 'timezone': 'CET'})
+                                                                 defaults = {'logger': datalogger, 'generator': generator, 'user': user, 'timezone': 'Etc/GMT-1'})
     except Well.DoesNotExist:
         # this may be a baro logger, not installed in a well
         logger.error('Put niet gevonden: {}'.format(put))

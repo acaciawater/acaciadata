@@ -64,7 +64,7 @@ input[readonly] {
         <h4 class="modal-title">Upload validatiebestand</h4>
       </div>
       <div class="modal-body">
-			<form action="/validation/up/4" method="post" enctype="multipart/form-data">
+			<form action="{% url 'validation:upload' validation.id %}?next={{next}}" method="post" enctype="multipart/form-data">
 				{% csrf_token %}
 				{{form.errors}}
 				<div class="input-group">

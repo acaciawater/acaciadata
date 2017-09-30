@@ -3,18 +3,20 @@ Created on Jul 8, 2014
 
 @author: theo
 '''
-import os, sys, logging
+import os, logging
 from django.utils.text import slugify
 from .util import make_chart, recomp, createmeteo
-from acacia.data.models import Series, Project, ProjectLocatie, MeetLocatie
+from acacia.data.models import Series
 import nitg
 from acacia.data import actions
 from acacia.ahn.models import AHN
-from django.contrib.gis.geos import Point
 from django.shortcuts import get_object_or_404
 
 import StringIO
-from acacia.meetnet.util import register_screen, register_well
+from acacia.meetnet.util import register_screen, register_well,\
+    drift_correct_screen
+from django.core.exceptions import ObjectDoesNotExist
+from acacia.meetnet.models import LoggerStat
 logger = logging.getLogger(__name__)
 
 def elevation_from_ahn(modeladmin, request, queryset):
@@ -24,11 +26,14 @@ def elevation_from_ahn(modeladmin, request, queryset):
     for mp in queryset:
         x = mp.location.x
         y = mp.location.y
-        mp.ahn = ahn3.get_elevation(x,y)
-        if mp.ahn is None:
-            # try AHN2
-            mp.ahn = ahn2.get_elevation(x,y)
-        mp.save()
+        try:
+            mp.ahn = ahn3.get_elevation(x,y)
+            if mp.ahn is None:
+                # try AHN2
+                mp.ahn = ahn2.get_elevation(x,y)
+            mp.save()
+        except:
+            pass
 elevation_from_ahn.short_description = 'Bepaal maaiveldhoogte in NAP adhv AHN'        
 
 def store_screens_nitg(queryset, zf):
@@ -59,6 +64,16 @@ def download_well_nitg(modeladmin, request, queryset):
     actions.download_series_zip(modeladmin, request, queryset, store_wells_nitg)
 download_well_nitg.short_description='NITG Export'
 
+def update_statistics(modeladmin, request, queryset):
+    for lp in queryset:
+        try:
+            s = lp.loggerstat
+        except ObjectDoesNotExist:
+            s = LoggerStat.objects.create(loggerpos = lp)
+        print lp
+        s.update()
+update_statistics.short_description = 'statistiek vernieuwen'
+
 def make_wellcharts(modeladmin, request, queryset):
     for w in queryset:
         if not w.has_data():
@@ -73,8 +88,7 @@ def make_wellcharts(modeladmin, request, queryset):
             f.write(make_chart(w))
         
 make_wellcharts.short_description = "Grafieken vernieuwen van geselecteerde putten"
-    
-    
+        
 def make_screencharts(modeladmin, request, queryset):
     for s in queryset:
         if not s.has_data():
@@ -90,12 +104,19 @@ def make_screencharts(modeladmin, request, queryset):
         
 make_screencharts.short_description = "Grafieken vernieuwen van geselecteerde filters"
 
+def drift_screens(modeladmin, request, queryset):
+    for screen in queryset:
+        drift_correct_screen(screen,request.user)
+drift_screens.short_description = 'Filters corrigeren voor drift'
+
 def recomp_screens(modeladmin, request, queryset):
     for screen in queryset:
         register_screen(screen)
         name = '%s COMP' % unicode(screen)
         series, created = Series.objects.get_or_create(name=name,defaults={'user':request.user,'mlocatie':screen.mloc})
         recomp(screen, series)
+        series.validate(reset=True, accept=True, user=request.user)
+
     make_screencharts(modeladmin, request, queryset)
 recomp_screens.short_description = "Gecompenseerde tijdreeksen opnieuw aanmaken voor geselecteerde filters"
         

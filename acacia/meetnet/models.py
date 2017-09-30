@@ -11,6 +11,7 @@ from acacia.data.models import Datasource, Series, SourceFile, ProjectLocatie,\
     MeetLocatie, ManualSeries
 from acacia.data import util
 from django.db.models.aggregates import Count, Sum
+from django.core.exceptions import ObjectDoesNotExist
 
 class Network(models.Model):
     name = models.CharField(max_length=50, unique=True, verbose_name = 'naam')
@@ -234,13 +235,13 @@ class Screen(models.Model):
 
     def start(self):
         try:
-            return min([d.start() for d in self.mloc.datasource_set.all()])
+            return min([d.start() for d in self.mloc.datasource_set.all() if d.start()])
         except:
             return None
 
     def stop(self):
         try:
-            return max([d.stop() for d in self.mloc.datasource_set.all()])
+            return max([d.stop() for d in self.mloc.datasource_set.all() if d.stop()])
         except:
             return None
         
@@ -343,15 +344,46 @@ class LoggerPos(models.Model):
         ordering = ['start_date','logger']
 
     def stats(self):
-        df = self.screen.get_compensated_series(start=self.start_date, stop=self.end_date)
-        if df is None:
-            return None
-        s = df.describe(percentiles=[.1,.5,.9])
-        s['p10'] = None if np.isnan(s['10%']) else s['10%']
-        s['p50'] = None if np.isnan(s['50%']) else s['50%']
-        s['p90'] = None if np.isnan(s['90%']) else s['90%']
+        try:
+            s = self.loggerstat
+        except ObjectDoesNotExist:
+            s = LoggerStat.objects.create(loggerpos = self)
+        if s.count == 0:
+            s.update()
         return s
-            
+    
+    def clear_stats(self):
+        try:
+            s = self.loggerstat
+            s.count = 0 # will cause automatic update
+            s.save()
+        except ObjectDoesNotExist:
+            pass
+        
+class LoggerStat(models.Model):
+    loggerpos = models.OneToOneField(LoggerPos)
+    count = models.PositiveIntegerField(default=0)
+    min = models.FloatField(default=0)
+    p10 = models.FloatField(default=0)
+    p50 = models.FloatField(default=0)
+    p90 = models.FloatField(default=0)
+    max = models.FloatField(default=0)
+    std = models.FloatField(default=0)
+
+    def update(self):
+        df = self.loggerpos.screen.get_compensated_series(start=self.loggerpos.start_date, stop = self.loggerpos.end_date)
+        if df is None or df.empty:
+            return
+        s = df.describe(percentiles=[.1,.5,.9])
+        self.count = None if np.isnan(s['count']) else s['count']
+        self.min = None if np.isnan(s['min']) else s['min']
+        self.p10 = None if np.isnan(s['10%']) else s['10%']
+        self.p50 = None if np.isnan(s['50%']) else s['50%']
+        self.p90 = None if np.isnan(s['90%']) else s['90%']
+        self.max = None if np.isnan(s['max']) else s['max']
+        self.std = None if np.isnan(s['std']) else s['std']
+        self.save()
+        
 class LoggerDatasource(Datasource):
     logger = models.ForeignKey(Datalogger, related_name = 'datasources')
      
@@ -375,7 +407,7 @@ class MonFile(SourceFile):
     instrument_type = models.CharField(max_length=50)
     status = models.CharField(max_length=50)
     serial_number = models.CharField(max_length=50)
-    instrument_number = models.CharField(max_length=50)
+    instrument_number = models.CharField(blank=True,null=True,max_length=50)
     location = models.CharField(max_length=50)
     sample_period = models.CharField(max_length=50)
     sample_method = models.CharField(max_length=10)
@@ -401,3 +433,16 @@ class Channel(models.Model):
     class Meta:
         verbose_name = 'Kanaal'
         verbose_name_plural = 'Kanalen'
+
+HAND_CHOICES=(
+    ('bkb','Bovenkant buis'),
+    ('nap','NAP'),
+    )
+
+class Handpeiling(ManualSeries):
+    refpnt = models.CharField(max_length=4,choices=HAND_CHOICES,verbose_name='referentie',default='bkb')
+
+    class Meta:
+        verbose_name = 'Handpeiling'
+        verbose_name_plural = 'Handpeilngen'
+    

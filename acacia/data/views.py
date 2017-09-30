@@ -3,9 +3,8 @@ import datetime,time,json,re,logging
 from django.views.generic.list import ListView
 from django.views.generic import DetailView
 from django.views.generic.base import TemplateView
-from django.template import RequestContext
 from django.template.loader import render_to_string
-from django.shortcuts import get_object_or_404, redirect, render_to_response
+from django.shortcuts import get_object_or_404, redirect
 from django.http import HttpResponse
 from .models import Project, ProjectLocatie, MeetLocatie, Datasource, Series, Chart, Grid, Dashboard, TabGroup, KeyFigure, Formula
 from .util import datasource_as_zip, datasource_as_csv, meetlocatie_as_zip, series_as_csv, chart_as_csv
@@ -14,7 +13,6 @@ from django.views.decorators.gzip import gzip_page
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from dateutil.parser import parse
-import dateutil
 from acacia.data.models import aware
 import pandas as pd
 from acacia.data.util import resample_rule
@@ -64,15 +62,14 @@ def EmailDatasource(request, pk):
 @gzip_page
 def SeriesToJson(request, pk):
     s = get_object_or_404(Series,pk=pk)
-    points = [[p.date,p.value] for p in s.datapoints.order_by('date')]
-        
+    pts = s.to_array()        
     # convert datetime to javascript datetime using unix timetamp conversion
-    j = json.dumps(points, default=lambda x: time.mktime(x.timetuple())*1000.0)
+    j = json.dumps(pts, default=lambda x: time.mktime(x.timetuple())*1000.0)
     return HttpResponse(j, content_type='application/json')
 
 def SeriesToDict(request, pk):
     s = get_object_or_404(Series,pk=pk)
-    points = [{'date':p.date.date(),'time': p.date.time(), 'value':p.value} for p in s.datapoints.order_by('date')]
+    points = [{'date':p.date.date(),'time': p.date.time(), 'value':p.value} for p in s.to_array()]
     j = json.dumps(points, default=lambda x: str(x))
     return HttpResponse(j, content_type='application/json')
 
@@ -86,17 +83,14 @@ def ChartToJson(request, pk):
     for cs in c.series.all():
         
         def getseriesdata(s):
-            queryset = s.datapoints
-            if s.validated:
-                # series has been validated. Take up to first invalid point
-                queryset = s.validation.validpoint_set 
-                first = s.validation.invalid_points.first()
-                if first:
-                    queryset = queryset.filter(date__lt=first.date)
-            if stop is None:
-                pts = [(p.date,p.value) for p in queryset.filter(date__gte=start).order_by('date')]
-            else:
-                pts = [(p.date,p.value) for p in queryset.filter(date__gte=start, date__lte=stop).order_by('date')]
+            pts = s.to_array(start=start,stop=stop)
+            #resample test
+            if cs.type == 'line':
+                x,y = zip(*pts)
+                f = pd.Series(data=y,index=x).resample(rule='H').mean()
+                f[pd.isnull(f)]=''
+                pts = zip(f.index,f.values)
+
             if maxpts>0:
                 num = len(pts)
                 if num > maxpts:
@@ -322,16 +316,16 @@ class ChartBaseView(TemplateView):
                         'href': 'http://www.acaciawater.com',
                        },
             'exporting' :{
-                    'sourceWidth': 500,
-                    'sourceHeight': 350,
-                    'scale': 2,
-                    'chartOptions' :{
-                        'title': {'style': {'fontSize': 0 }},                 # 0 gemaakt omdat titel niet wordt overgenomen
-                        'xAxis': {'labels': {'style': {'fontSize': 15 }}},
-                        'yAxis': {'labels': {'style': {'fontSize': 15 }}},
-                        'legend': {'itemStyle': {'fontSize': 15 },'padding': 1,},           
-                        'credits': {'enabled': False}
-                    },
+                    'sourceWidth': 1080,
+                    'sourceHeight': 600,
+#                     'scale': 2,
+#                     'chartOptions' :{
+#                         'title': {'style': {'fontSize': 0 }},                 # 0 gemaakt omdat titel niet wordt overgenomen
+#                         'xAxis': {'labels': {'style': {'fontSize': 15 }}},
+#                         'yAxis': {'labels': {'style': {'fontSize': 15 }}},
+#                         'legend': {'itemStyle': {'fontSize': 15 },'padding': 1,},           
+#                         'credits': {'enabled': False}
+#                    },
                 }
             }
         if chart.start:

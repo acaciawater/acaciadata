@@ -8,6 +8,7 @@ from acacia.data.admin import DatasourceAdmin, SourceFileAdmin
 from django.conf import settings
 from django.contrib import admin
 from acacia.meetnet.models import MeteoData
+from acacia.meetnet.actions import update_statistics
 
 USE_GOOGLE_TERRAIN_TILES = False
 
@@ -62,6 +63,7 @@ class MonFileInline(admin.TabularInline):
     
 class LoggerPosAdmin(admin.ModelAdmin):
     model = LoggerPos
+    actions = [update_statistics]
     list_display = ('logger', 'screen', 'start_date', 'end_date', 'refpnt', 'depth', 'remarks')
     list_filter = ('screen__well', 'screen',)
     search_fields = ('logger__serial','screen__well__name')
@@ -124,7 +126,7 @@ class ScreenInline(admin.TabularInline):
     classes = ('grp-collapse', 'grp-closed',)
         
 class ScreenAdmin(admin.ModelAdmin):
-    actions = [actions.make_screencharts,actions.recomp_screens,actions.register_screens,actions.download_screen_nitg]
+    actions = [actions.make_screencharts,actions.recomp_screens,actions.drift_screens,actions.register_screens,actions.download_screen_nitg]
     list_display = ('__unicode__', 'refpnt', 'top', 'bottom', 'num_files', 'num_standen', 'start', 'stop')
     search_fields = ('well__name', 'well__nitg')
     list_filter = ('well','well__network')

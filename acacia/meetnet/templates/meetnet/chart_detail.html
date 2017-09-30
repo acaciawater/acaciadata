@@ -24,12 +24,21 @@ function fetchSeries(name,id) {
     $.getJSON('/net/data/'+id+'?{{request.GET.urlencode}}', function (data) {
 	  	var chart = $('#container').highcharts();
 	  	$.each(data,function(key,values) {
-	  		var series = chart.get(key);
-			series.setData(values);
+	  		if (values) {
+	  			if (values.length > 0) {
+			  		var series = chart.get(key);
+			  		if (series) {
+						series.setData(values);
+			  		}
+	  			}
+	  		}
 	  	})
     })
-    .done(function() {
-		$("#screen"+id).append('Klaar');
+    .done(function(key,values) {
+    	if (values.length == 0)
+			$("#screen"+id).append('Geen gegevens');
+    	else
+			$("#screen"+id).append('Klaar');
     })
     .fail(function() {
 		$("#screen"+id).append('Geen gegevens');
