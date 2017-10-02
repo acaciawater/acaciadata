@@ -259,6 +259,8 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
             else:
                 seriesdata = seriesdata.append(data)
                 
+    series.datapoints.all().delete()
+
     if seriesdata is not None:
         # remove duplicates
         seriesdata = seriesdata.groupby(seriesdata.index).last()
@@ -272,7 +274,6 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
             if math.isnan(value) or date is None:
                 continue
             datapoints.append(DataPoint(series=series, date=date, value=value))
-        series.datapoints.all().delete()
         series.datapoints.bulk_create(datapoints)
         series.unit = 'm tov NAP'
         series.make_thumbnail()
