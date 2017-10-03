@@ -13,7 +13,10 @@ def settz(apps, schema_editor):
     model = apps.get_model('data', 'Series')
     for m in model.objects.all():
         if not m.timezone:
-            m.timezone = m.parameter.datasource.timezone if m.parameter else get_current_timezone() 
+            try:
+                m.timezone = m.parameter.datasource.timezone
+            except:
+                m.timezone = get_current_timezone()
             m.save()
     model = apps.get_model('data', 'Chart')
     for m in model.objects.all():
