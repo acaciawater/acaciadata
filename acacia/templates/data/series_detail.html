@@ -1,7 +1,7 @@
 {% extends 'data/highstock.html' %}
 {% block title %}{{series.name}}{% endblock title %}
 {% block navbar %}{% endblock %}
-{% block admin_url %}series/{{object.id}}{% endblock %}
+{% block admin_url %}data/series/{{object.id}}{% endblock %}
 {% block chartloader %}
 	<script>
 		function fetchSeries() {
