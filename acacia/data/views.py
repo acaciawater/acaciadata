@@ -84,15 +84,16 @@ def ChartToJson(request, pk):
         
         def getseriesdata(s):
             pts = s.to_array(start=start,stop=stop)
+            num = len(pts)
+            
             #resample test
-            if cs.type == 'line':
+            if num>0 and cs.type == 'line':
                 x,y = zip(*pts)
                 f = pd.Series(data=y,index=x).resample(rule='H').mean()
                 f[pd.isnull(f)]=''
                 pts = zip(f.index,f.values)
 
             if maxpts>0:
-                num = len(pts)
                 if num > maxpts:
                     # thin series
                     date_range = pts[-1][0] - pts[0][0]
@@ -384,14 +385,13 @@ class ChartBaseView(TemplateView):
                 deltat = (ser.tot()-ser.van()).total_seconds() / ser.aantal() * 1000
             except:
                 deltat = 24 * 3600000 # 1 day                
-            title = s.label #ser.name if len(ser.unit)==0 else '%s [%s]' % (ser.name, ser.unit) if chart.series.count()>1 else ser.unit
             options['yAxis'].append({
-                                     'title': {'text': title},
+                                     'title': {'text': s.label},
                                      'opposite': 0 if s.axislr == 'l' else 1,
                                      'min': s.y0,
                                      'max': s.y1
                                      })
-            pts = [] #[[p.date,p.value] for p in ser.datapoints.filter(date__gte=start).order_by('date')]
+            pts = []
             name = s.name
             if name is None or name == '':
                 name = ser.name
@@ -497,16 +497,6 @@ class ChartBaseView(TemplateView):
         
 class ChartView(ChartBaseView):
     template_name = 'data/chart_detail.html'
-
-#     def get_context_data(self, **kwargs):
-#         context = super(ChartView, self).get_context_data(**kwargs)
-#         pk = context.get('pk',1)
-#         if pk is not None:
-#             chart = Chart.objects.get(pk=pk)
-#             jop = self.get_json(chart)
-#             context['options'] = jop
-#             context['chart'] = chart
-#         return context
     
 class DashView(TemplateView):
     template_name = 'data/dash.html'
