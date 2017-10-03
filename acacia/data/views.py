@@ -441,7 +441,15 @@ class ChartBaseView(TemplateView):
                 b = []
                 for i in range(20):
                     if lo < ymax:
-                        b.append({'color': band.style.fillcolor, 'borderWidth': band.style.borderwidth, 'borderColor': band.style.bordercolor, 'from': lo, 'to': hi, 'label': {'text':band.label}})
+                        b.append(
+                            {'color': band.style.fillcolor, 
+                             'borderWidth': band.style.borderwidth, 
+                             'borderColor': band.style.bordercolor, 
+                             'from': lo, 
+                             'to': hi, 
+                             'label': {'text':band.label},
+                             'zIndex': band.style.zIndex
+                             })
                         lo += every
                         hi += every
             else:
@@ -473,7 +481,8 @@ class ChartBaseView(TemplateView):
                 'dashStyle': line.style.dashstyle,
                 'label': {'text': line.label},
                 'value': line.value,
-                'width': line.style.width
+                'width': line.style.width,
+                'zIndex': line.style.zIndex
                 }
             if not 'plotLines' in ax:
                 ax['plotLines'] = []
