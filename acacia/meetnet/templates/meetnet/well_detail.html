@@ -1,5 +1,5 @@
 {% extends 'bootbase.html' %}
-{% block title %}Grondwaterput {{object.name}} {% endblock title %}
+{% block title %}Grondwaterput {{object.nitg}} {% endblock title %}
 {% block breadcrumbs %}
 <ol class="breadcrumb">
   <li><a href="/">Home</a></li>
@@ -17,7 +17,9 @@ a img {
 .log {
 	float:right;
 	padding-left: 0;
-	height: 474px;
+	height: auto;
+	width: auto;
+	max-width: 400px;
 }
 .grafiek {
 	width: 100%;
@@ -28,12 +30,17 @@ a img {
 	height: 100%;
 }
 
+.foto {
+	max-width: 400px;
+	height: auto;
+}
+
 </style>
 {% endblock %}
 {% block content %}
 <div id="content">
 <div class="container-fluid">
-<h4>Grondwaterput {{object.name}}</h4>
+<h4>Grondwaterput {{object.nitg|default:object.name}}</h4>
 <table class="table table-striped">
 <tr>
 	<td class="col-md-2">NITG code</td>
@@ -42,21 +49,22 @@ a img {
 	<td rowspan="10"><a href="/media/{{object.log}}"><img class="log" src="/media/{{object.log}}"/></a></td>
 	{% endif %}
 </tr>
-<tr><td>BRO id</td><td>{{object.bro|default:'<i>onbekend</i>'}}</td></tr>
-<tr>
-	<td>Adres</td>
-	<td>{%if object.straat %} {{object.straat}} {{object.huisnummer}}{%else%}<i>onbekend</i>{%endif%}</td>
-</tr>
-<tr><td>Plaats</td><td>{%if object.plaats %}{{object.postcode}} {{object.plaats}}{%else%}<i>onbekend</i>{%endif%}</td></tr>
+<tr><td class="col-md-2">OLGA code</td><td>{{object.name|default:'<i>geen</i>'}}</td></tr>
+<!-- <tr><td>BRO id</td><td>{{object.bro|default:'<i>onbekend</i>'}}</td></tr> -->
+{% if object.straat %}<tr><td>Adres</td><td>{{object.straat}} {{object.huisnummer}}</td></tr>{% endif %}
+{% if object.plaats %}<tr><td>Plaats</td><td>{{object.postcode}} {{object.plaats}}</td></tr>{% endif %}
 <tr><td>Coördinaten</div></td><td>({{object.RD.x|floatformat:2}}&nbsp;{{object.RD.y|floatformat:2}})</td></tr>
-<tr><td>Constructiedatum</div></td><td>{% if object.date %}{{object.date}}{%else%}<i>onbekend</i>{%endif%}</td></tr>
-<tr><td>Maaiveld</div></td><td>{%if object.maaiveld %}{{object.maaiveld|floatformat:2}} m NAP{%else%}<i>onbekend</i>{%endif%}</td></tr>
+{% if object.date %}<tr><td>Constructiedatum</div></td><td>{{object.date}}</td></tr>{% endif %}
+<tr><td>Maaiveld</div></td><td>{%if object.maaiveld %}{{object.maaiveld|floatformat:2}} m NAP{%else%}<i>onbekend</i>{%endif%}
+{% if object.ahn %} (AHN: {{object.ahn|floatformat:2}} m NAP) {% endif %}
+</td></tr>
+
 <tr><td>Filters</td><td>{{object.num_filters}}</td></tr>
 <tr><td>Laatste uitleesronde</td><td>{{object.last_measurement_date|default:'<i>onbekend</i>'}}</td></tr>
 <tr>
-<td>{%for f in object.photo_set.all %}<a href="/media/{{f.photo.name}}"><img src="/media/{{f.photo.name}}"/></a>{%endfor%}</td>
+<td>{%for f in object.photo_set.all %}<a href="/media/{{f.photo.name}}"><img class="foto" src="/media/{{f.photo.name}}"/></a>{%endfor%}</td>
 <td>
-{% if object.has_data %}
+{% if 1 %}
 <div class="grafiek">
 	<a href="{% url 'meetnet:chart-detail' object.id %}" target="_blank">
 		<img src="{{chart}}" alt='grafiek' title='Klik voor interactieve grafiek in aparte tab'/>
@@ -67,44 +75,61 @@ a img {
 <thead>
 <tr>
 	<th rowspan="2">Filter</th>
-	<th rowspan="2">Bovenkant<br>buis<br>(m tov NAP)</th>
 	<th colspan="2"><div class = "text-center">Filterstelling (m tov maaiveld)</div></th>
-	<th colspan="4"><div class = "text-center">Datalogger</div></th>
+	<th colspan="5"><div class = "text-center">Datalogger</div></th>
 	<th colspan="4"><div class = "text-center">Standen (m tov NAP)</div></th>
 </tr>
 <tr>
-	<th>Bovenkant</th>
-	<th>Onderkant</th>
-	<th>Serienr</th>
-	<th>Diepte</th>
-	<th>Start</th>
-	<th>Stop</th>
-	<th>Aantal</th>
-	<th>10%</th>
-	<th>50%</th>
-	<th>90%</th>
+	<th title="Bovenkant filter in m tov maaiveld">Bovenkant</th>
+	<th title="Onderkant filter in m tov maaiveld">Onderkant</th>
+	<th title="Serienummer van de datalogger">Serienr</th>
+	<th title="Ophangpunt in m tov NAP">Ophangpunt<br/>(m tov NAP)</th>
+	<th title="Kabellengte in m">Kabellengte<br/>(m)</th>
+	<th title="Startdatum meetreeks">Start</th>
+	<th title="Stopdatum meetreeks">Stop</th>
+	<th title="Aantal metingen">Aantal</th>
+	<th title="10-percentiel">10%</th>
+	<th title="50-percentiel (mediaan)">50%</th>
+	<th title="90-percentiel">90%</th>
 </tr>
 </thead>
 <tbody>
     {% for s in object.screen_set.all %}
-		{% for pos in s.loggerpos_set.all %}
 	<tr>
-    		{% with s.stats as stats %}
+		<td>{{s.nr}}</td>
+		<td>{{s.top|floatformat:2|default:'onbekend'}}</td>
+		<td>{{s.bottom|floatformat:2|default:'onbekend'}}</td>
+		{% for pos in s.loggerpos_set.all %}
+			{% if forloop.counter > 1 %}
+				</tr>
 				<td>{{s.nr}}</td>
-				<td>{{s.refpnt}}</td>
-				<td>{{s.top}}</td>
-				<td>{{s.bottom}}</td>
-				<td>{{pos.logger|default:''}}</td>
-				<td>{{pos.depth}}</td>
-				<td>{{s.start|date:'d M Y'}}</td>
-				<td>{{s.stop|date:'d M Y'}}</td>
-				<td>{{s.num_standen}}</td>
+				<td>{{s.top|floatformat:2|default:'onbekend'}}</td>
+				<td>{{s.bottom|floatformat:2|default:'onbekend'}}</td>
+			{% endif %}			
+			<td>{{pos.logger|default:''}}</td>
+			<td>{{pos.refpnt|floatformat:2|default:'onbekend'}}</td>
+			<td>{{pos.depth|floatformat:2|default:'onbekend'}}</td>
+			<td>{{pos.start_date|date:'d M Y'}}</td>
+			<td>{{pos.end_date|date:'d M Y'}}</td>
+    		{% with pos.stats as stats %}
+				<td>{{stats.count|floatformat:0|default:''}}</td>
 				<td>{{stats.p10|floatformat:3|default:''}}</td>
 				<td>{{stats.p50|floatformat:3|default:''}}</td>
 				<td>{{stats.p90|floatformat:3|default:''}}</td>
 			{% endwith %}
 	</tr>
+		{% empty %}
+			<td>(geen)</td>
+			<td></td>
+			<td></td>
+			<td></td>
+			<td></td>
+			<td>0</td>
+			<td></td>
+			<td></td>
+			<td></td>
 		{% endfor %}
+		
     {% endfor %} 
 </tbody>
 </table>

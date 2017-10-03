@@ -3,19 +3,19 @@ import datetime,time,json,re,logging
 from django.views.generic.list import ListView
 from django.views.generic import DetailView
 from django.views.generic.base import TemplateView
-from django.template import RequestContext
 from django.template.loader import render_to_string
-from django.shortcuts import get_object_or_404, redirect, render_to_response
+from django.shortcuts import get_object_or_404, redirect
 from django.http import HttpResponse
-from .models import Project, ProjectLocatie, MeetLocatie, Datasource, Series, Chart, Grid, Dashboard, TabGroup, KeyFigure
+from .models import Project, ProjectLocatie, MeetLocatie, Datasource, Series, Chart, Grid, Dashboard, TabGroup, KeyFigure, Formula
 from .util import datasource_as_zip, datasource_as_csv, meetlocatie_as_zip, series_as_csv, chart_as_csv
 from .actions import download_series_zip
 from django.views.decorators.gzip import gzip_page
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from dateutil.parser import parse
-import dateutil
 from acacia.data.models import aware
+import pandas as pd
+from acacia.data.util import resample_rule
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +42,6 @@ def DownloadSeriesAsZip(request,source,series):
     ''' Tijdreeksen downloaden als zip file '''
     download_series_zip(None, request, series) # reuse method from admin.actions. Runs in separate thread
     return redirect(request.META.get('HTTP_REFERER','/'))
-#    return render_to_response('data/sending_email.html', {'name': request.user.first_name or request.user.username, 'source': source }, context_instance=RequestContext(request))
 
 def EmailProject(request, pk):
     p = get_object_or_404(Project,pk=pk)
@@ -63,30 +62,45 @@ def EmailDatasource(request, pk):
 @gzip_page
 def SeriesToJson(request, pk):
     s = get_object_or_404(Series,pk=pk)
-    points = [[p.date,p.value] for p in s.datapoints.order_by('date')]
-        
+    pts = s.to_array()        
     # convert datetime to javascript datetime using unix timetamp conversion
-    j = json.dumps(points, default=lambda x: time.mktime(x.timetuple())*1000.0)
+    j = json.dumps(pts, default=lambda x: time.mktime(x.timetuple())*1000.0)
     return HttpResponse(j, content_type='application/json')
 
 def SeriesToDict(request, pk):
     s = get_object_or_404(Series,pk=pk)
-    points = [{'date':p.date.date(),'time': p.date.time(), 'value':p.value} for p in s.datapoints.order_by('date')]
+    points = [{'date':p.date.date(),'time': p.date.time(), 'value':p.value} for p in s.to_array()]
     j = json.dumps(points, default=lambda x: str(x))
     return HttpResponse(j, content_type='application/json')
 
 @gzip_page
 def ChartToJson(request, pk):
     c = get_object_or_404(Chart,pk=pk)
-    start = c.auto_start()
+    start = request.GET.get('start', c.auto_start())
+    stop = request.GET.get('stop', c.stop)
+    maxpts = int(request.GET.get('max',0))
     data = {}
     for cs in c.series.all():
         
         def getseriesdata(s):
-            if c.stop is None:
-                pts = [[p.date,p.value] for p in s.datapoints.filter(date__gte=start).order_by('date')]
-            else:
-                pts = [[p.date,p.value] for p in s.datapoints.filter(date__gte=start, date__lte=c.stop).order_by('date')]
+            pts = s.to_array(start=start,stop=stop)
+            #resample test
+            if cs.type == 'line':
+                x,y = zip(*pts)
+                f = pd.Series(data=y,index=x).resample(rule='H').mean()
+                f[pd.isnull(f)]=''
+                pts = zip(f.index,f.values)
+
+            if maxpts>0:
+                num = len(pts)
+                if num > maxpts:
+                    # thin series
+                    date_range = pts[-1][0] - pts[0][0]
+                    delta = date_range / maxpts
+                    rule = resample_rule(delta)
+                    x,y = zip(*pts)
+                    resampled = pd.Series(data=y,index=x).resample(rule)
+                    pts = zip(resampled.index,resampled.values)
             return pts
 
         pts = getseriesdata(cs.series)
@@ -264,7 +278,8 @@ class SeriesView(DetailView):
         pts = [] #[[p.date,p.value] for p in ser.datapoints.all().order_by('date')]
         sop = {'name': ser.name,
                'type': ser.type,
-               'data': pts}
+               'data': pts,
+               'turboThreshold': 0}
         if ser.type == 'scatter':
             sop['tooltip'] = {'headerFormat': '<small>{point.key}</small><br/><table>',
                               'pointFormat': '<tr><td style="color:{series.color}">{series.name}</td>\
@@ -278,20 +293,31 @@ class SeriesView(DetailView):
         context['theme'] = ' None' #ser.theme()
         return context
 
+def parserep(r):
+    from dateutil.relativedelta import relativedelta
+    pattern = r'(?P<rep>\d*)(?P<how>[hdwmy])'
+    match = re.match(pattern, r,re.IGNORECASE)
+    if match:
+        rep = match.group('rep') or 1
+        how = match.group('how')
+        if how == 'h':
+            delta = relativedelta(hours=int(rep))
+        elif how == 'd':
+            delta = relativedelta(days=int(rep))
+        elif how == 'w':
+            delta = relativedelta(weeks=int(rep))
+        elif how == 'm':
+            delta = relativedelta(months=int(rep))
+        elif how == 'y':
+            delta = relativedelta(years=int(rep))
+        return delta
+    return None
+
 class ChartBaseView(TemplateView):
     template_name = 'data/plain_chart.html'
 
     def get_json(self, chart):
         options = {
-#             'rangeSelector': { 'enabled': True,
-#                               'inputEnabled': True,
-#                               'selected': 5,
-#                               },
-#            'navigator': {'adaptToUpdatedData': False, 'enabled': False},
-#             'loading': {'style': {'backgroundColor': 'white', 'fontFamily': 'Arial', 'fontSize': 'small'},
-#                         'labelStyle': {'fontWeight': 'normal'},
-#                         'hideDuration': 0,
-#                         },
             'chart': {'animation': False, 
                       'zoomType': 'x',
                       'events': {'load': None},
@@ -308,7 +334,19 @@ class ChartBaseView(TemplateView):
             'credits': {'enabled': True, 
                         'text': 'acaciawater.com', 
                         'href': 'http://www.acaciawater.com',
-                       }
+                       },
+            'exporting' :{
+                    'sourceWidth': 1080,
+                    'sourceHeight': 600,
+#                     'scale': 2,
+#                     'chartOptions' :{
+#                         'title': {'style': {'fontSize': 0 }},                 # 0 gemaakt omdat titel niet wordt overgenomen
+#                         'xAxis': {'labels': {'style': {'fontSize': 15 }}},
+#                         'yAxis': {'labels': {'style': {'fontSize': 15 }}},
+#                         'legend': {'itemStyle': {'fontSize': 15 },'padding': 1,},           
+#                         'credits': {'enabled': False}
+#                    },
+                }
             }
         if chart.start:
             options['xAxis']['min'] = tojs(chart.start)
@@ -321,16 +359,18 @@ class ChartBaseView(TemplateView):
         ymin = None
         ymax = None 
         
+        num_series = chart.series.count()
+
         for _,s in enumerate(chart.series.all()):
             ser = s.series
             if tmin:
-                tmin = min(tmin,s.t0 or ser.van())
+                tmin = min(tmin,s.t0 or ser.van() or chart.start)
             else:
-                tmin = s.t0 or ser.van()
+                tmin = s.t0 or ser.van() or chart.start
             if tmax:
-                tmax = max(tmax,s.t1 or ser.tot())
+                tmax = max(tmax,s.t1 or ser.tot() or chart.stop)
             else:
-                tmax = s.t1 or ser.tot()
+                tmax = s.t1 or ser.tot() or chart.stop
             if ymin:
                 ymin = min(ymin,s.y0 or ser.minimum())
             else:
@@ -339,7 +379,11 @@ class ChartBaseView(TemplateView):
                 ymax = max(ymax,s.y1 or ser.maximum())
             else:
                 ymax = s.y1 or ser.maximum()
-                
+            
+            try:
+                deltat = (ser.tot()-ser.van()).total_seconds() / ser.aantal() * 1000
+            except:
+                deltat = 24 * 3600000 # 1 day                
             title = s.label #ser.name if len(ser.unit)==0 else '%s [%s]' % (ser.name, ser.unit) if chart.series.count()>1 else ser.unit
             options['yAxis'].append({
                                      'title': {'text': title},
@@ -351,6 +395,17 @@ class ChartBaseView(TemplateView):
             name = s.name
             if name is None or name == '':
                 name = ser.name
+                
+            if not ser.validated:
+                # append asterisk to name when series has not been validated
+                if isinstance(ser,Formula):
+                    for dep in ser.get_dependencies():
+                        if not dep.validated:
+                            name += '*'
+                            break
+                else:
+                    name += '*'
+                 
             sop = {'name': name,
                    'id': 'series_%d' % ser.id,
                    'type': s.type,
@@ -366,8 +421,11 @@ class ChartBaseView(TemplateView):
             
             else:
                 sop['tooltip'] = {'valueSuffix': ' ' + ser.unit}                           
-            if s.type == 'column' and s.stack is not None:
-                sop['stacking'] = s.stack
+            if s.type == 'column':
+                if s.stack is not None:
+                    sop['stacking'] = s.stack
+                if num_series > 1:
+                    sop['pointRange'] = deltat
             if s.type == 'area' and s.series2:
                 sop['type'] = 'arearange'
                 sop['fillOpacity'] = 0.3
@@ -391,26 +449,6 @@ class ChartBaseView(TemplateView):
                 lo = parse(band.low)
                 hi = parse(band.high)
                 
-                def parserep(r):
-                    from dateutil.relativedelta import relativedelta
-                    pattern = r'(?P<rep>\d*)(?P<how>[hdwmy])'
-                    match = re.match(pattern, r,re.IGNORECASE)
-                    if match:
-                        rep = match.group('rep') or 1
-                        how = match.group('how')
-                        if how == 'h':
-                            delta = relativedelta(hours=int(rep))
-                        elif how == 'd':
-                            delta = relativedelta(days=int(rep))
-                        elif how == 'w':
-                            delta = relativedelta(weeks=int(rep))
-                        elif how == 'm':
-                            delta = relativedelta(months=int(rep))
-                        elif how == 'y':
-                            delta = relativedelta(years=int(rep))
-                        return delta
-                    return None
-
                 delta = parserep(band.repetition)
                 
                 b = []
@@ -426,8 +464,20 @@ class ChartBaseView(TemplateView):
             ax['plotBands'].extend(b) 
         
         for line in chart.plotline_set.all():
-            pass
-        
+            if line.orientation == 'h':
+                ax = options['yAxis'][line.axis-1]
+            else:
+                ax = options['xAxis']
+            line_options = {
+                'color': line.style.color,
+                'dashStyle': line.style.dashstyle,
+                'label': {'text': line.label},
+                'value': line.value,
+                'width': line.style.width
+                }
+            if not 'plotLines' in ax:
+                ax['plotLines'] = []
+            ax['plotLines'].append(line_options) 
 
         jop = json.dumps(options,default=date_handler)
         # remove quotes around date stuff
@@ -448,15 +498,15 @@ class ChartBaseView(TemplateView):
 class ChartView(ChartBaseView):
     template_name = 'data/chart_detail.html'
 
-    def get_context_data(self, **kwargs):
-        context = super(ChartView, self).get_context_data(**kwargs)
-        pk = context.get('pk',1)
-        if pk is not None:
-            chart = Chart.objects.get(pk=pk)
-            jop = self.get_json(chart)
-            context['options'] = jop
-            context['chart'] = chart
-        return context
+#     def get_context_data(self, **kwargs):
+#         context = super(ChartView, self).get_context_data(**kwargs)
+#         pk = context.get('pk',1)
+#         if pk is not None:
+#             chart = Chart.objects.get(pk=pk)
+#             jop = self.get_json(chart)
+#             context['options'] = jop
+#             context['chart'] = chart
+#         return context
     
 class DashView(TemplateView):
     template_name = 'data/dash.html'

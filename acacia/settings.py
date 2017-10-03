@@ -34,7 +34,6 @@ INSTALLED_APPS = (
     'django.contrib.gis',
     'bootstrap3',
     'registration',
-    'south',
     'acacia',
     'acacia.data',
 )
@@ -164,4 +163,4 @@ LOGGING = {
     },
 }
 
-from secrets import *
+#from secrets import *

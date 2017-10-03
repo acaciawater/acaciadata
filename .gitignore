@@ -49,7 +49,7 @@ coverage.xml
 
 # Django stuff:
 *.log
-secrets.py
+secrets.*
 
 #eclipse:
 .settings/
@@ -60,3 +60,8 @@ docs/_build/
 # PyBuilder
 target/
 /server_install.txt
+/.gitignore~
+<<<<<<< HEAD
+/logs/
+=======
+>>>>>>> master

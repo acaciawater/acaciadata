@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import os,datetime,math,binascii
-from django.db import connection
 from django.db import models
 from django.db.models import Avg, Max, Min, Sum
 from django.contrib.auth.models import User
@@ -9,12 +8,15 @@ from django.utils import timezone
 from django.core.urlresolvers import reverse
 from django.contrib.gis.db import models as geo
 from django.utils.text import slugify
-from acacia import settings
+from django.conf import settings
 import upload as up
 import numpy as np
 import pandas as pd
 import json,util,StringIO,pytz,logging
 import dateutil
+from django.db.models.aggregates import StdDev
+from django.core.exceptions import ObjectDoesNotExist
+from django.utils.timezone import get_current_timezone, is_naive
 
 THEME_CHOICES = ((None,'standaard'),
                  ('dark-blue','blauw'),
@@ -24,14 +26,14 @@ THEME_CHOICES = ((None,'standaard'),
                  ('skies','wolken'),)
 
 def aware(d,tz=None):
-    ''' utility function to ensure datetime object is offset-aware '''
+    ''' utility function to ensure datetime object has requested timezone '''
     if d is not None:
         if isinstance(d, (datetime.datetime, datetime.date,)):
+            if tz is None or tz == '':
+                tz = settings.TIME_ZONE
+            if not isinstance(tz, timezone.tzinfo):
+                tz = pytz.timezone(tz)
             if timezone.is_naive(d):
-                if tz is None or tz == '':
-                    tz = settings.TIME_ZONE
-                if not isinstance(tz, timezone.tzinfo):
-                    tz = pytz.timezone(tz)
                 try:
                     return timezone.make_aware(d, tz)            
                 except:
@@ -39,7 +41,9 @@ def aware(d,tz=None):
                     try:
                         return timezone.make_aware(d, pytz.utc)
                     except:
-                        pass            
+                        pass
+            else:
+                return d.astimezone(tz)
     return d
 
 from django.utils.deconstruct import deconstructible
@@ -54,17 +58,6 @@ class LoggerSourceMixin(object):
     def getLogger(self,name=__name__): 
         logger = logging.getLogger(name)  
         return logging.LoggerAdapter(logger,extra={'source': self.getLoggerSource()})
-
-# @deconstructible
-# class DatasourceMixin(LoggerSourceMixin):
-#     def getLoggerSource(self):
-#         if isinstance(self, Datasource):
-#             return self
-#         if hasattr(self,'datasource'):
-#             datasource = getattr(self,'datasource')
-#             return datasource() if callable(datasource) else datasource
-#         else:
-#             return super(DatasourceMixin,self).getLoggerSource()
 
 class Project(models.Model):
     name = models.CharField(max_length=50, unique=True)
@@ -147,7 +140,7 @@ class MeetLocatie(geo.Model):
     name = models.CharField(max_length=100,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     image = models.ImageField(upload_to=up.meetlocatie_upload, blank = True, null = True)
-    location = geo.PointField(srid=util.RDNEW,verbose_name='locatie', help_text='Meetlocatie in Rijksdriehoekstelsel coordinaten')
+    location = geo.PointField(dim=2,srid=util.RDNEW,verbose_name='locatie', help_text='Meetlocatie in Rijksdriehoekstelsel coordinaten')
     objects = geo.GeoManager()
     webcam = models.ForeignKey(Webcam, null = True, blank=True)
 
@@ -179,43 +172,19 @@ class MeetLocatie(geo.Model):
 
     def paramcount(self):
         return sum([d.parametercount() or 0 for d in self.datasources.all()])
-    
-    def series(self):
-        ser = []
-#         for s in Series.objects.all():
-#             if s.meetlocatie() == self:
-#                 ser.append(s)
-        for f in self.datasources.all():
-            for p in f.parameter_set.all():
-                for s in p.series_set.all():
-                    ser.append(s)
-        if hasattr(self, 'series_set'):
-            for f in self.series_set.all():
-                ser.append(f)
-        # Ook berekende reeksen!
-        if hasattr(self, 'formula_set'):
-            for f in self.formula_set.all():
-                ser.append(f)
-        # en handmatige reeksen
-        if hasattr(self, 'manualseries_set'):
-            for m in self.manualseries_set.all():
-                ser.append(m)
-        if ser:
-            # remove duplicates (if any)
-            ser = list(set(ser))    
-        return ser
 
+    def series(self):
+        return self.series_set.all()
+        
     def getseries(self):
         return self.series()
     
     def charts(self):
         charts = []
-        for f in self.datasources.all():
-            for p in f.parameter_set.all():
-                for s in p.series_set.all():
-                    for c in s.chartseries_set.all():
-                        if not c in charts:
-                            charts.append(c)
+        for s in self.series():
+            for c in s.chartseries_set.all():
+                if not c in charts:
+                    charts.append(c)
         return charts
         
 def classForName( kls ):
@@ -250,6 +219,11 @@ LOGGING_CHOICES = (
 #                  ('CRITICAL', 'Alleen kritieke fouten'),
                   )
 
+def timezone_choices():
+    return [(tz,tz) for tz in pytz.all_timezones]
+
+TIMEZONE_CHOICES = timezone_choices()
+
 class Datasource(models.Model, LoggerSourceMixin):
     name = models.CharField(max_length=100,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
@@ -264,7 +238,7 @@ class Datasource(models.Model, LoggerSourceMixin):
     config=models.TextField(blank=True,null=True,default='{}',verbose_name = 'Additionele configuraties',help_text='Geldige JSON dictionary')
     username=models.CharField(max_length=50, blank=True, null=True, default='anonymous', verbose_name='Gebuikersnaam',help_text='Gebruikersnaam voor downloads')
     password=models.CharField(max_length=50, blank=True, null=True, verbose_name='Wachtwoord',help_text='Wachtwoord voor downloads')
-    timezone=models.CharField(max_length=50, blank=True, verbose_name = 'Tijzone', default=settings.TIME_ZONE)
+    timezone=models.CharField(max_length=50, blank=True, verbose_name = 'Tijdzone', default=settings.TIME_ZONE,choices=TIMEZONE_CHOICES)
 
     class Meta:
         ordering = ['name',]
@@ -298,17 +272,8 @@ class Datasource(models.Model, LoggerSourceMixin):
                 return None
         return gen(**kwargs)
     
-    def download(self, start=None):
+    def build_download_options(self,start=None):
         logger = self.getLogger()
-        if self.generator is None:
-            logger.error('Cannot download datasource %s: no generator defined' % (self.name))
-            return None
-
-        gen = self.get_generator_instance()
-        if gen is None:
-            logger.error('Cannot download datasource %s: could not create instance of generator %s' % (self.name, self.generator))
-            return None
-
         options = {}
         
         if self.meetlocatie:
@@ -341,9 +306,25 @@ class Datasource(models.Model, LoggerSourceMixin):
             return None
 
         options['url']=url
-        
-        logger.info('Downloading datasource %s from %s' % (self.name, url))
 
+        return options
+                   
+    def download(self, start=None):
+        logger = self.getLogger()
+        if self.generator is None:
+            logger.error('Cannot download datasource %s: no generator defined' % (self.name))
+            return None
+
+        gen = self.get_generator_instance()
+        if gen is None:
+            logger.error('Cannot download datasource %s: could not create instance of generator %s' % (self.name, self.generator))
+            return None
+
+        options = self.build_download_options(start)
+        if options is None:
+            return None
+        
+        logger.info('Downloading datasource %s from %s' % (self.name, options['url']))
         try:
             
             files = []
@@ -376,7 +357,7 @@ class Datasource(models.Model, LoggerSourceMixin):
             logger.exception('Error downloading datasource %s: %s' % (self.name, e))
             return None            
         logger.info('Download completed, got %s file(s)', len(results))
-        self.last_download = timezone.now()
+        self.last_download = aware(timezone.now(),self.timezone)
         self.save(update_fields=['last_download'])
         return files
         
@@ -437,15 +418,15 @@ class Datasource(models.Model, LoggerSourceMixin):
         logger = self.getLogger()
         gen = self.get_generator_instance(**kwargs)
         logger.debug('Getting data for datasource %s', self.name)
-        data = None
+        datadict = {}
         start = aware(kwargs.get('start', None))
         stop = aware(kwargs.get('stop', None))
         files = kwargs.get('files', None)
         if files is None:
             files = self.sourcefiles.all()
+
         for sourcefile in files:
-#             if sourcefile.rows == 0:
-#                 continue
+
             if start is not None:
                 sstop = aware(sourcefile.stop,self.timezone)
                 if sstop is not None and sstop < start:
@@ -454,21 +435,19 @@ class Datasource(models.Model, LoggerSourceMixin):
                 sstart = aware(sourcefile.start,self.timezone)
                 if sstart is not None and sstart > stop:
                     continue
+                
+            # retrieve dict of loc, dataframe for location(s) in sourcefile
             d = sourcefile.get_data(gen,**kwargs)
             if d:
-                if len(d)>1:
-                    # data for more than 1 location returned!
-                    # this is not yet allowed
-                    logger.error('Data for more than 1 location returned. Location filter missing?')
-                    return None
-                d=d.values()[0]
-                if data is None:
-                    data = d
-                else:
-                    data = data.append(d)
-        if data is not None:
-            if data.empty:
-                return None
+                for loc, data in d.iteritems():
+
+                    if not loc in datadict:
+                        datadict[loc] = data
+                    else:
+                        datadict[loc] = datadict[loc].append(data)
+                        
+        for loc, data in datadict.iteritems():
+            # sourcefile.get_data has already set the timezone, code below is redundant?
             date = np.array([aware(d, self.timezone) for d in data.index.to_pydatetime()])
             slicer = None
             if start is not None:
@@ -482,8 +461,8 @@ class Datasource(models.Model, LoggerSourceMixin):
                 data = data[slicer]
             if self.calibrationdata_set:
                 data = self.calibrate(data)
-            return data.sort()
-        return data
+            datadict[loc] = data.sort_index()
+        return datadict
 
     def get_locations(self,**kwargs):
         logger = self.getLogger()
@@ -535,7 +514,12 @@ class Datasource(models.Model, LoggerSourceMixin):
         df = self.get_data()
         if df is None:
             return None
-        df.to_csv(io, index_label='Datum/tijd')
+        num = len(df)
+        for loc, frame in df.items():
+            if num > 1:
+                # add name of location to dataframe
+                frame['location'] = unicode(loc)
+            frame.to_csv(io, index_label='Datum/tijd')
         return io.getvalue()
 
     def parametercount(self):
@@ -665,7 +649,7 @@ class SourceFile(models.Model,LoggerSourceMixin):
     def filedate(self):
         try:
             date = datetime.datetime.fromtimestamp(os.path.getmtime(self.filepath()))
-            date = aware(date,timezone.get_current_timezone())
+            date = aware(date,self.datasource.timezone or get_current_timezone())
             return date
         except:
             # file may not (yet) exist
@@ -686,7 +670,7 @@ class SourceFile(models.Model,LoggerSourceMixin):
     filetag.short_description='bestand'
 
     def get_data_dimensions(self, data):
-        tz = timezone.get_current_timezone()
+        tz = self.datasource.timezone or get_current_timezone()
         numrows=0
         cols=set()
         begin=None
@@ -723,24 +707,38 @@ class SourceFile(models.Model,LoggerSourceMixin):
             logger.error('Sourcefile %s has no associated file' % self.name)
             return None
         logger.debug('Getting data for sourcefile %s', self.name)
+        closed = self.file.closed
         try:
-            self.file.open()
+            if closed:
+                self.file.open()
             data = gen.get_data(self.file,**kwargs)
         except Exception as e:
             logger.exception('Error retrieving data from %s: %s' % (filename, e))
             return None
         finally:
-            self.file.close()
+            if closed:
+                self.file.close()
 
-        if data is None or data.empty:
+        if data is None:
             logger.warning('No data retrieved from %s' % filename)
         else:
             # generator may return single dataframe or dict with location as key
             if isinstance(data,pd.DataFrame):
+                if data.empty:
+                    logger.warning('No data retrieved from %s' % filename)
                 loc = kwargs.get('meetlocatie',self.meetlocatie())
                 data={loc:data}
             self.get_data_dimensions(data)
             logger.debug('Got %d locations, %d rows, %d columns', self.locs,self.rows,self.cols)
+
+        # set timezone of data
+        # data should have a datetimeindex
+        tz = self.datasource.timezone or get_current_timezone()
+        for k,v in data.items():
+            if v.index.tz:
+                data[k]=v.tz_convert(tz)
+            else:
+                data[k]=v.tz_localize(tz,ambiguous='infer')
         return data
 
     def get_locations(self,gen=None):
@@ -773,8 +771,8 @@ class SourceFile(models.Model,LoggerSourceMixin):
                 self.locs = 0
                 self.start = None
                 self.stop = None
-        else:
-            self.get_data_dimensions(data)
+            else:
+                self.get_data_dimensions(data)
             
 from django.db.models.signals import pre_delete, pre_save, post_save
 from django.dispatch.dispatcher import receiver
@@ -804,7 +802,7 @@ def sourcefile_delete(sender, instance, **kwargs):
 def sourcefile_save(sender, instance, **kwargs):
     logger = instance.getLogger()
     date = instance.filedate()
-    if date != '':
+    if date:
         if instance.uploaded is None or date > instance.uploaded:
             instance.uploaded = date
     try:
@@ -813,7 +811,7 @@ def sourcefile_save(sender, instance, **kwargs):
         logger.exception('Error getting dimensions while saving sourcefile %s: %s' % (instance, e))
     ds = instance.datasource
     if instance.uploaded is None:
-        instance.uploaded = timezone.now()
+        instance.uploaded = aware(timezone.now(),instance.dataset.timezone or get_current_timezone())
     if ds.last_download is None:
         ds.last_download = instance.uploaded
     elif ds.last_download < instance.uploaded:
@@ -921,7 +919,8 @@ from polymorphic.manager import PolymorphicManager
 from polymorphic.models import PolymorphicModel
 
 class Series(PolymorphicModel,LoggerSourceMixin):
-    mlocatie = models.ForeignKey(MeetLocatie,null=True,verbose_name='meetlocatie')
+    
+    mlocatie = models.ForeignKey(MeetLocatie,null=True,blank=True,verbose_name='meetlocatie')
     name = models.CharField(max_length=100,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     unit = models.CharField(max_length=10, blank=True, null=True, verbose_name='eenheid')
@@ -930,7 +929,8 @@ class Series(PolymorphicModel,LoggerSourceMixin):
     thumbnail = models.ImageField(upload_to=up.series_thumb_upload, max_length=200, blank=True, null=True)
     user=models.ForeignKey(User)
     objects = PolymorphicManager()
-    
+    timezone = models.CharField(max_length=20,blank=True,choices=TIMEZONE_CHOICES,verbose_name='tijdzone')
+
     # tijdsinterval
     limit_time = models.BooleanField(default = False,verbose_name='tijdsrestrictie',help_text='Beperk tijdreeks tot gegeven tijdsinterval')
     from_limit = models.DateTimeField(blank=True,null=True,verbose_name='Begintijd')
@@ -1001,6 +1001,13 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         p = self.parameter
         return 'line' if p is None else p.type
 
+    def default_timezone(self):
+        ds = self.datasource()
+        if ds:
+            return ds.timezone or get_current_timezone()
+        else:
+            return get_current_timezone()
+
     def __unicode__(self):
         ds = self.datasource()
         if ds:
@@ -1016,9 +1023,12 @@ class Series(PolymorphicModel,LoggerSourceMixin):
     def do_align(self, s1, s2):
         ''' align series s2 with s1 and fill missing values by padding'''
         # align series and forward fill the missing data
-        try:
-            s1 = s1.tz_localize(s2.index.tz)
-        except TypeError:
+        if is_naive(s1.index):
+            if not is_naive(s2.index):
+                s1 = s1.tz_localize(s2.index.tz,ambiguous='infer')
+        elif is_naive(s2.index):
+            s2 = s2.tz_localize(s1.index.tz,ambiguous='infer')
+        else: 
             s1 = s1.tz_convert(s2.index.tz)
         a,b = s1.align(s2,method='pad')
         # back fill na values (in case s2 starts after s1)
@@ -1046,7 +1056,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
             return series
  
         # remove duplicates
-        series = series.groupby(level=0).last()
+        series = series.groupby(series.index).last()
         if series.empty:
             return series
         
@@ -1111,23 +1121,35 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         else:
             return series[start:stop]
          
-    def get_series_data(self, dataframe, start=None, stop=None):
+    def get_series_data(self, data, start=None, stop=None):
         logger = self.getLogger()
        
         if self.parameter is None:
             #raise Exception('Parameter is None for series %s' % self.name)
             return None
+
         start = start or self.from_limit
         stop = stop or self.to_limit
-        if dataframe is None:
-            dataframe = self.parameter.get_data(start=start,stop=stop,meetlocatie=self.mlocatie)
-            if dataframe is None:
+
+        if data is None:
+            data = self.parameter.get_data(start=start,stop=stop,meetlocatie=self.mlocatie)
+            if data is None:
                 return None
-            
+        if isinstance(data,pd.DataFrame):
+            dataframe = data
+        else:
+            # multiple locations
+            if self.mlocatie in data:
+                dataframe = data[self.mlocatie]
+            elif self.mlocatie.name in data:
+                dataframe = data[self.mlocatie.name]
+            else:
+                logger.error('series %s: location %s not found' % (self.name, self.mlocatie.name))
+                return None
         if not self.parameter.name in dataframe:
             # maybe datasource has stopped reporting about this parameter?
             msg = 'series %s: parameter %s not found' % (self.name, self.parameter.name)
-            logger.warning(msg)
+            logger.error(msg)
             return None
         
         series = dataframe[self.parameter.name]
@@ -1137,7 +1159,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         series = self.do_postprocess(series, start, stop)
         return series
     
-    def prepare_points(self, series, tz):
+    def prepare_points(self, series, tz=None):
         ''' return array of datapoints in given timezone from pandas series'''
         pts = []
         for date,value in series.iteritems():
@@ -1145,13 +1167,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
                 value = float(value)
                 if math.isnan(value) or date is None:
                     continue
-                if not timezone.is_aware(date):
-                    # set timezone for naive datetime
-                    date = date.replace(tzinfo=tz)
-                else:
-                    # convert datetime to given timezone
-                    date = date.astimezone(tz)
-                pts.append(DataPoint(series=self, date=date, value=value))
+                pts.append(DataPoint(series=self, date=aware(date,tz), value=value))
             except Exception as e:
                 self.getLogger().debug('Datapoint %s,%g: %s' % (str(date), value, e))
         return pts
@@ -1161,26 +1177,24 @@ class Series(PolymorphicModel,LoggerSourceMixin):
     
     def create(self, data=None, thumbnail=True):
         logger = self.getLogger()
-        tz = timezone.get_current_timezone()
         logger.debug('Creating series %s' % self.name)
         series = self.get_series_data(data)
         if series is None:
             logger.error('Creation of series %s failed' % self.name)
             return 0
-        
-        created = self.create_points(series, tz)
+        created = self.create_points(series, self.timezone)
         num_created = len(created)
         logger.info('Series %s updated: %d points created, %d points skipped' % (self.name, num_created, series.count() - num_created))
-        if thumbnail:
+        if thumbnail and num_created > 0:
             self.make_thumbnail()
         self.save()
         return num_created
     
-    def replace(self):
+    def replace(self, data=None):
         logger = self.getLogger()
         logger.debug('Deleting all %d datapoints from series %s' % (self.datapoints.count(), self.name))
         self.datapoints.all().delete()
-        return self.create()
+        return self.create(data)
 
     def update(self, data=None, start=None, thumbnail=True):
         logger = self.getLogger()
@@ -1195,26 +1209,22 @@ class Series(PolymorphicModel,LoggerSourceMixin):
             logger.warning('No datapoints found in series %s' % self.name)
             return 0;
 
-        # timezone as to be utc for mysql bulk delete
-        pts = self.prepare_points(series, timezone.utc)
+        # MySQL needs UTC to avoid duplicate index at DST transition 
+        pts = self.prepare_points(series,timezone.utc)
         if pts == []:
             logger.warning('No valid datapoints found in series %s' % self.name)
             return 0;
         
-        count = self.datapoints.count()
-        if count>0:
-            # delete properties first to avoid foreignkey constraint failure
-            try:
-                self.properties.delete()
-            except:
-                pass
-            values = ["(%d,'%s')" % (self.id, datetime.datetime.strftime(p.date, '%Y-%m-%d %H:%M:%S')) for p in pts]
-            values = '(' + ','.join(values) + ')'
-            sql = 'DELETE from {table} WHERE (`series_id`,`date`) IN {values}'.format(table=DataPoint._meta.db_table, values=values)
-            cursor = connection.cursor()
-            num_deleted = cursor.execute(sql)
-        else:
-            num_deleted = 0    
+        # delete properties first to avoid foreignkey constraint failure
+        self.properties.delete()
+
+        # delete the points
+        if start is None:
+            start = min([p.date for p in pts])
+        query = self.datapoints.filter(date__gte=start)
+        deleted = query.delete()
+        num_deleted = len(deleted) if deleted else 0
+
         created = self.datapoints.bulk_create(pts)
         num_created = len(created) - num_deleted
         num_updated = num_deleted
@@ -1249,6 +1259,9 @@ class Series(PolymorphicModel,LoggerSourceMixin):
  
     def gemiddelde(self):
         return self.getproperties().gemiddelde
+
+    def stddev(self):
+        return self.getproperties().stddev
  
     def laatste(self):
         return self.getproperties().laatste
@@ -1271,20 +1284,35 @@ class Series(PolymorphicModel,LoggerSourceMixin):
     def filter_points(self, **kwargs):
         start = kwargs.get('start', None)
         stop = kwargs.get('stop', None)
+
+        queryset = self.datapoints
+        raw = kwargs.get('raw', False)
+        if self.validated and not raw:
+            queryset = self.validation.validpoint_set.order_by('date')
+            first = self.validation.invalid_points.first()
+            if first:
+                queryset = queryset.filter(date__lt=first.date)
+                
         if start is None and stop is None:
-            return self.datapoints.all()
+            return queryset.all()
         if start is None:
             start = self.van()
         if stop is None:
             stop = self.tot()
-        return self.datapoints.filter(date__range=[start,stop])
+        return queryset.filter(date__range=[start,stop])
     
-    def to_pandas(self, **kwargs):
+    def to_array(self, **kwargs):
         points = self.filter_points(**kwargs)
-        dates = [dp.date for dp in points]
-        values = [dp.value for dp in points]
-        return pd.Series(values,index=dates,name=self.name).sort_index()
-    
+        return [(dp.date,dp.value) for dp in points]
+
+    def to_pandas(self, **kwargs):
+        arr = self.to_array(**kwargs)
+        if arr:
+            dates,values = zip(*arr)
+            return pd.Series(values,index=dates,name=self.name).sort_index()
+        else:
+            return pd.Series(name=self.name)
+            
     def to_csv(self, **kwargs):
         ser = self.to_pandas(**kwargs)
         io = StringIO.StringIO()
@@ -1311,6 +1339,43 @@ class Series(PolymorphicModel,LoggerSourceMixin):
             logger.exception('Error generating thumbnail: %s' % e)
         return self.thumbnail
 
+    @property
+    def validpoints(self):
+        try:
+            for v in self.validation.validpoint_set.all():
+                if v.value is None:
+                    break
+                yield v
+        except ObjectDoesNotExist:
+            # no validation available
+            pass
+        
+    @property
+    def is_valid(self):
+        try:
+            return self.validation.valid 
+        except ObjectDoesNotExist:
+            # no validation
+            return False
+    @property
+    def validated(self):
+        try:
+            return self.validation.validated
+        except:
+            return False
+        
+    def validate(self,reset=False, accept=False, user=None):
+        try:
+            val = self.validation
+        except ObjectDoesNotExist:
+            # no validation
+            return
+        if reset:
+            val.reset()
+        val.persist()
+        if accept and user:
+            val.accept(user=user)
+
 # cache series properties to speed up loading admin page for series
 class SeriesProperties(models.Model):
     series = models.OneToOneField(Series,related_name='properties')
@@ -1320,18 +1385,20 @@ class SeriesProperties(models.Model):
     van = models.DateTimeField(null = True)
     tot = models.DateTimeField(null = True)
     gemiddelde = models.FloatField(default = 0, null = True)
+    stddev = models.FloatField(default = 0, null = True)
     eerste = models.ForeignKey('DataPoint',null = True, related_name='first')
     laatste = models.ForeignKey('DataPoint',null = True, related_name='last')
     beforelast = models.ForeignKey('DataPoint', null = True, related_name='beforelast')  
 
     def update(self, save = True):
-        agg = self.series.datapoints.aggregate(van=Min('date'), tot=Max('date'), min=Min('value'), max=Max('value'), avg=Avg('value'))
+        agg = self.series.datapoints.aggregate(van=Min('date'), tot=Max('date'), min=Min('value'), max=Max('value'), avg=Avg('value'), std = StdDev('value'))
         self.aantal = self.series.datapoints.count()
         self.van = agg.get('van', datetime.datetime.now())
         self.tot = agg.get('tot', datetime.datetime.now())
         self.min = agg.get('min', 0)
         self.max = agg.get('max', 0)
         self.gemiddelde = agg.get('avg', 0)
+        self.stddev = agg.get('std', 0)
         if self.aantal == 0:
             self.eerste = None
             self.laatste = None
@@ -1405,7 +1472,12 @@ class Formula(Series):
             # using intersecting time interval only (no extrapolation)
             start = max([v.index.min() for v in variables.values()])
             stop = min([v.index.max() for v in variables.values()])
-            df = df[start:stop]
+            try:
+                # sometimes strange errors occur:
+                # cannot do slice indexing on <class 'pandas.indexes.range.RangeIndex'> with these indexers [2014-02-20 00:00:00+00:00] of <class 'pandas.tslib.Timestamp'>
+                df = df[start:stop]
+            except:
+                pass
 
         # interpolate missing values
         df = df.interpolate(method='time')
@@ -1420,7 +1492,7 @@ class Formula(Series):
             result = result[0]
         if isinstance(result, pd.Series):
             result.name = self.name
-        return self.do_postprocess(result,None,None)
+        return self.do_postprocess(result.tz_convert(self.timezone),None,None)
     
     def get_dependencies(self):
         ''' return list of dependencies in order of processing '''
@@ -1447,7 +1519,9 @@ def series_pre_save(sender, instance, **kwargs):
     if not instance.mlocatie:
         # for parameter series only, others should have mlocatie set
         instance.set_locatie()
-
+    if not instance.timezone:
+        instance.timezone = instance.default_timezone()
+        
 @receiver(post_save, sender=Series)
 @receiver(post_save, sender=ManualSeries)
 @receiver(post_save, sender=Formula)
@@ -1495,6 +1569,7 @@ class Chart(PolymorphicModel):
     stop = models.DateTimeField(blank=True,null=True)
     percount = models.IntegerField(default=2,verbose_name='aantal perioden',help_text='maximaal aantal periodes terug in de tijd (0 = alle perioden)')
     perunit = models.CharField(max_length=10,choices = PERIOD_CHOICES, default = 'months', verbose_name='periodelengte')
+    timezone = models.CharField(max_length=20,choices=TIMEZONE_CHOICES,verbose_name='tijdzone',blank=True)
 
     def tijdreeksen(self):
         return self.series.count()
@@ -1514,15 +1589,8 @@ class Chart(PolymorphicModel):
         return None
     
     def auto_start(self):
-        tz = timezone.get_current_timezone()
-#         if self.start_today:
-#             # start at today 00:00 UTC
-#             # can be accomplished using percount=1, perunit=day
-#             today = datetime.datetime.utcnow()
-#             today.replace(hour=0,minute=0,second=0)
-#             return today
         if self.start is None:
-            start = timezone.make_aware(datetime.datetime.now(),tz)
+            start = aware(datetime.datetime.now(),self.timezone)
             for cs in self.series.all():
                 t0 = cs.t0
                 if t0 is None:
@@ -1532,20 +1600,20 @@ class Chart(PolymorphicModel):
             if self.percount > 0:
                 kwargs = {self.perunit: -self.percount}
                 delta = dateutil.relativedelta.relativedelta(**kwargs)
-                pstart = timezone.make_aware(datetime.datetime.now() + delta, tz)
+                pstart = timezone.make_aware(datetime.datetime.now() + delta, self.timezone)
                 if start is None:
                     return pstart
                 start = max(start,pstart) 
             return start
         return self.start
 
-    def to_pandas(self):
-        s = { unicode(cd.series): cd.series.to_pandas() for cd in self.series.all() }
+    def to_pandas(self,**kwargs):
+        s = { unicode(cd.series)+('' if cd.series.validated else '*'): cd.series.to_pandas(**kwargs) for cd in self.series.all() }
         return pd.DataFrame(s)
     
-    def to_csv(self):
+    def to_csv(self,**kwargs):
         io = StringIO.StringIO()
-        df = self.to_pandas()
+        df = self.to_pandas(**kwargs)
         df.to_csv(io,index_label='Datum/tijd')
         return io.getvalue()
         
@@ -1553,6 +1621,11 @@ class Chart(PolymorphicModel):
         ordering = ['name',]
         verbose_name = 'Grafiek'
         verbose_name_plural = 'Grafieken'
+
+@receiver(pre_save, sender=Chart)
+def chart_pre_save(sender, instance, **kwargs):
+    if not instance.timezone:
+        instance.timezone = get_current_timezone()
 
 class Grid(Chart):    
     colwidth = models.FloatField(default=1,verbose_name='tijdstap',help_text='tijdstap in uren')
@@ -1779,17 +1852,12 @@ class CalibrationData(models.Model):
         verbose_name = 'IJkpunt'        
         verbose_name_plural = 'IJkset'
 
-#from smart_selects.db_fields import ChainedManyToManyField
-
 class KeyFigure(models.Model):
     ''' Net zoiets als een Formula, maar dan met een scalar als resultaat'''
     locatie = models.ForeignKey(MeetLocatie)
     name = models.CharField(max_length=200, verbose_name = 'naam')
     description = models.TextField(blank=True, null = True, verbose_name = 'omschrijving')
     variables = models.ManyToManyField(Variable,verbose_name = 'variabelen')
-#     variables = ChainedManyToManyField(Variable,verbose_name = 'variabelen',
-#             chained_field = locatie,
-#             chained_model_field = 'locatie')
     formula = models.TextField(blank=True,null=True,verbose_name = 'berekening')
     last_update = models.DateTimeField(auto_now = True, verbose_name = 'bijgewerkt')
     startDate = models.DateField(blank=True, null=True)
@@ -1830,9 +1898,3 @@ class KeyFigure(models.Model):
         verbose_name = 'Kental'        
         verbose_name_plural = 'Kentallen'
         unique_together = ('locatie', 'name')
-
-if __name__ == '__main__':
-    ds = Datasource.objects.get(pk=72)
-    data = ds.get_data()
-    print data['EC25']
-    

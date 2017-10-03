@@ -15,7 +15,7 @@ td a img {
 </style>
 <div id="content">
 <div class="container-fluid">
-<a href="{% url 'meetnet:well-detail' object.id %}" ><h4>Grondwaterput {{ object.name }}</h4></a>
+<a href="{% url 'meetnet:well-detail' object.id %}" ><h4>Grondwaterput {{ object }}</h4></a>
 <table class="table table-condensed">
 <tr><td class="col-md-2">Constructiedatum</div></td><td class="col-md-10">{%if object.dat %}{{object.date}}{%else%}<i>onbekend</i>{%endif%}</td></tr>
 <tr><td>Maaiveld</div></td><td>{%if object.maaiveld %}{{object.maaiveld|floatformat:2}} m NAP{%else%}<i>onbekend</i>{%endif%}</td></tr>

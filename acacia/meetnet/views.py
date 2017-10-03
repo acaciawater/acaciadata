@@ -7,17 +7,18 @@ from django.views.generic import DetailView, FormView, TemplateView
 from django.template.loader import render_to_string
 from django.http import HttpResponse
 from django.core.urlresolvers import reverse
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django.core.files.storage import default_storage
 from django.conf import settings
-
-from acacia.data.knmi.models import Station
+from django.contrib.auth.decorators import login_required
+import numpy as np
+import pandas as pd
 
 from .models import Network, Well, Screen
 from .forms import UploadFileForm
+from .actions import download_well_nitg
 
-import os, json, logging, time
-import pandas as pd
+import os, json, logging, time, datetime
 
 from util import handle_uploaded_files
 
@@ -60,6 +61,7 @@ class NetworkView(DetailView):
             content.append({'network': network.id,
                             'well': well.id,
                             'name': well.name,
+                            'nitg': well.nitg,
                             'lat': pos.y,
                             'lon': pos.x,
                             'url': reverse('meetnet:well-info', args=[well.id]),
@@ -106,19 +108,54 @@ class ScreenChartView(TemplateView):
         context['screen'] = filt
         return context
 
-class WellChartView(TemplateView):
-    template_name = 'plain_chart.html'
+def json_series(request, pk):
+    screen = get_object_or_404(Screen,pk=pk)
+    what = request.GET.get('mode','comp') # choices: comp, hand
+    if what == 'comp':
+        series = screen.get_compensated_series()
+    elif what == 'hand':
+        series = screen.get_manual_series()
+    else:
+        raise 'Illegal series type requested'
     
+    ref = request.GET.get('ref','nap') # choices: nap, bkb, mv, cm
+    if ref == 'nap':
+        pass
+    elif ref =='bkb':
+        series = screen.refpnt - series
+    elif ref == 'mv':
+        series = screen.well.maaiveld - series
+    elif ref == 'cm':
+        # converteren naar cm boven sensor
+        depths = screen.loggerpos_set.order_by('start_date').values_list('start_date','depth')
+        if len(depths)>0:
+            x,y = zip(*depths)
+            nap = (screen.refpnt - pd.Series(index = x, data = y))
+            nap = nap.reindex(series.index,method='pad')
+            series = (series - nap) * 100
+        else:
+            series = pd.Series()
+    if series is None or series.empty:
+        values = []
+    else:
+        values = zip(series.index.astype(np.int64)//10**6, series.values)
+    data = {'screen%s'%screen.nr: values}
+    return HttpResponse(json.dumps(data),content_type='application/json')
+    
+class WellChartView(TemplateView):
+    template_name = 'meetnet/chart_detail.html'
+        
     def get_context_data(self, **kwargs):
         context = super(WellChartView, self).get_context_data(**kwargs)
         well = Well.objects.get(pk=context['pk'])
         name = unicode(well)
+         
         options = {
              'rangeSelector': { 'enabled': True,
                                'inputEnabled': True,
                                },
             'navigator': {'adaptToUpdatedData': True, 'enabled': True},
-            'chart': {'type': 'arearange', 'zoomType': 'x'},
+            'chart': {'type': 'arearange', 'zoomType': 'x','events':{'load':None}},
             'title': {'text': name},
             'xAxis': {'type': 'datetime'},
             'yAxis': [{'title': {'text': 'Grondwaterstand\n(m tov NAP)'}}
@@ -137,46 +174,59 @@ class WellChartView(TemplateView):
         series = []
         xydata = []
         for screen in well.screen_set.all():
-            name = unicode(screen)
-            data = screen.to_pandas(ref='nap')
-            if data.size > 0:
-                xydata = zip(data.index.to_pydatetime(), data.values)
-                series.append({'name': name,
+            if screen.has_data():
+                xydata = None
+                series.append({'name': 'filter {}'.format(screen.nr),
                             'type': 'line',
                             'data': xydata,
                             'lineWidth': 1,
-                            'color': '#0066FF',
                             'zIndex': 2,
-                            })
-                mean = pd.expanding_mean(data)
-                std = pd.expanding_std(data)
-                a = (mean - std).dropna()
-                b = (mean + std).dropna()
-                ranges = zip(a.index.to_pydatetime(), a.values, b.values)
-                series.append({'name': 'spreiding',
-                            'data': ranges,
-                            'type': 'arearange',
-                            'lineWidth': 0,
-                            'color': '#0066FF',
-                            'fillOpacity': 0.2,
-                            'linkedTo' : ':previous',
-                            'zIndex': 0,
+                            'id': 'screen%d' % screen.nr
                             })
 
-            data = screen.to_pandas(ref='nap',kind='HAND')
-            if data.size > 0:
-                hand = zip(data.index.to_pydatetime(), data.values)
-                series.append({'name': 'handpeiling',
-                            'type': 'scatter',
-                            'data': hand,
-                            'zIndex': 3,
-                            'marker': {'symbol': 'circle', 'radius': 6, 'lineColor': 'white', 'lineWidth': 2, 'fillColor': 'red'},
-                            })
+            # sensor positie tov NAP
+#             data = []
+#             depths = screen.loggerpos_set.order_by('start_date').values_list('start_date','depth')
+#             if len(depths)>0:
+#                 last = None
+#                 for date,value in depths:
+#                     if last:
+#                         data.append((date,last))
+#                     value = screen.refpnt - value
+#                     data.append((date,value))
+#                     last = value
+# #                 date = datetime.datetime(2017,2,1)
+# #                 last_date = int(time.mktime(date.timetuple())*1000)
+# #                 data.append((last_date,last))
+#             if data:
+#                 series.append({'name': 'diver {}'.format(screen.nr),
+#                         'type': 'line',
+#                         'data': data,
+#                         'zIndex': 1,
+#                         'id': 'diver%d' % screen.nr
+#                         })
+            
 
-        if len(xydata)>0:
+            data = screen.get_manual_series()
+            if data is None:
+                continue
+            hand = zip(data.index.to_pydatetime(), data.values)
+            series.append({'name': 'peiling {}'.format(screen.nr),
+                        'type': 'scatter',
+                        'data': hand,
+                        'zIndex': 3,
+                        'marker': {'symbol': 'circle', 'radius': 6, 'lineColor': 'white', 'lineWidth': 2, },#'fillColor': screencolor(screen)},
+                        'tooltip': {
+                                'headerFormat': '<span style="font-size:10px">{point.x:%A %e %B %Y %H:%k }</span><br/><table>',
+                                'pointFormat': '<tr><td style="color:{series.color};padding:0;font-size:11px;">{series.name}: </td><td style="padding:0"><b>{point.y:,.2f}</b></td></tr>',
+                                'useHTML': True
+                            },
+                        })
+            
+        if well.maaiveld:
             mv = []
-            mv.append((xydata[0][0], screen.well.maaiveld))
-            mv.append((xydata[-1][0], screen.well.maaiveld))
+            mv.append((datetime.datetime(2013,1,1), well.maaiveld))
+            mv.append((datetime.datetime(2016,12,31,23,59), well.maaiveld))
             series.append({'name': 'maaiveld',
                         'type': 'line',
                         'lineWidth': 2,
@@ -187,36 +237,34 @@ class WellChartView(TemplateView):
                         })
 
         # neerslag toevoegen
-        try:
-            closest = Station.closest(well.location)
-            name = 'Meteostation {} (dagwaarden)'.format(closest.naam)
-            neerslag = Series.objects.get(name='RH',mlocatie__name=name)
-            data = neerslag.to_pandas(start=xydata[0][0], stop=xydata[-1][0]) / 10.0 # 0.1 mm -> mm
-            data = zip(data.index.to_pydatetime(), data.values)
-            series.append({'name': 'Neerslag '+ closest.naam,
-                        'type': 'column',
-                        'data': data,
-                        'yAxis': 1,
-                        'pointRange': 24 * 3600 * 1000, # 1 day
-                        'pointPadding': 0.01,
-                        'pointPlacement': 0.5,
-                        'zIndex': 1,
-                        'color': 'orange', 
-                        'borderColor': '#cc6600', 
-                        })
-            options['yAxis'].append({'title': {'text': 'Neerslag (mm)'},
-                                     'opposite': 1,
-                                     'min': 0,
-                                     })
-        except:
-            pass
+        if hasattr(well,'meteo'):
+            neerslag = well.meteo.neerslag
+            if neerslag:
+                data = neerslag.to_pandas(start=xydata[0][0], stop=xydata[-1][0]) / 10.0 # 0.1 mm -> mm
+                if not data.empty:
+                    data = zip(data.index.to_pydatetime(), data.values)
+                    series.append({'name': 'Neerslag '+ neerslag.datasource.name,
+                                'type': 'column',
+                                'data': data,
+                                'yAxis': 1,
+                                'pointRange': 24 * 3600 * 1000, # 1 day
+                                'pointPadding': 0.01,
+                                'pointPlacement': 0.5,
+                                'zIndex': 1,
+                                'color': 'orange', 
+                                'borderColor': '#cc6600', 
+                                })
+                    options['yAxis'].append({'title': {'text': 'Neerslag (mm)'},
+                                             'opposite': 1,
+                                             'min': 0,
+                                             })
         options['series'] = series
         context['options'] = json.dumps(options, default=lambda x: int(time.mktime(x.timetuple())*1000))
         context['object'] = well
         return context
 
 from acacia.data.views import DownloadSeriesAsZip
-from acacia.data.models import Series, Datasource
+from acacia.data.models import Series
 
 def get_series(screen):
     name = '%s COMP' % unicode(screen)
@@ -225,10 +273,20 @@ def get_series(screen):
     except:
         return None
 
+@login_required
+def DownloadSeriesAsNITG(request,source,series):
+    ''' Tijdreeksen downloaden als zip file '''
+    download_well_nitg(None, request, series) # reuse method from admin.actions. Runs in separate thread
+    return redirect(request.META.get('HTTP_REFERER','/'))
+
 def EmailNetworkSeries(request,pk):
     net = get_object_or_404(Network, pk=pk)
     series = [get_series(s) for w in net.well_set.all() for s in w.screen_set.all()]
     return DownloadSeriesAsZip(request, unicode(net), series)
+
+def EmailNetworkNITG(request, pk):
+    net = get_object_or_404(Network, pk=pk)
+    return DownloadSeriesAsNITG(request, unicode(net), net.well_set.all())
     
 def EmailWellSeries(request,pk):
     well = get_object_or_404(Well, pk=pk)
@@ -239,7 +297,7 @@ def EmailScreenSeries(request,pk):
     screen = get_object_or_404(Screen,pk=pk)
     series = get_series(screen)
     return DownloadSeriesAsZip(request, unicode(screen), series)
-                            
+
 class UploadDoneView(TemplateView):
     template_name = 'upload_done.html'
 
@@ -251,6 +309,9 @@ class UploadDoneView(TemplateView):
 
 def save_file(file_obj,folder):
     path = default_storage.path(os.path.join(folder,file_obj.name))
+    dirname = os.path.dirname(path)
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
     with open(path, 'wb') as destination:
         for chunk in file_obj.chunks():
             destination.write(chunk)

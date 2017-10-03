@@ -1,0 +1,121 @@
+{% load staticfiles %}
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta name="keywords" content="" />
+	<meta name="description" content="" />
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+ 	<link href="{% static "acacia/img/database_24.ico" %}" rel="icon" type="image/x-ico" />
+	<title>Validatiegrafiek</title>
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+	<script src="//code.highcharts.com/highcharts.js"></script>
+	<script src="//code.highcharts.com/highcharts-more.js"></script>
+	<script src="//code.highcharts.com/modules/exporting.js"></script>
+	{% if theme %}
+	<script src="{% static theme %}"></script>
+	{% endif %}
+	<style>
+	body, html {
+	  height: 100%;
+	  margin: 0;
+	}
+	
+	#container {
+	  width: 100%;
+	  height: 100%;
+	}
+
+	</style>
+	<script>
+		Highcharts.setOptions({
+		  global: {
+			useUTC: false
+		  },
+		  lang: {
+		  	shortMonths : ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dec"],
+			months: ["Januari", "Februari", "Maart", "April", "Mei", "Juni",  "Juli", "Augustus", "September", "Oktober", "November", "December"],
+			weekdays: ["Zondag", "Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag", "Zaterdag"],
+			printChart: "Afdrukken",
+			downloadJPEG: "Download als JPG",
+			downloadPNG: "Download als PNG",
+			downloadPDF: "Download als PDF",
+			downloadSVG: "Download als SVG",
+		  }
+		});
+	
+	    function selcol(a,n) {
+	    	// select column 0 (index) and column n
+	    	return a.map(x => [x[0],x[n]]);
+	    }
+	    function afterSetExtremes(e) {
+	    	var chart = Highcharts.charts[0];
+	    	chart.showLoading('Loading data from server...');
+		    $.getJSON('get/{{object.id}}?start='+Math.round(e.min)+'&stop='+Math.round(e.max), 
+		    		function(data) {
+    					chart.showLoading('Drawing chart...');
+				    	chart.series[0].setData(selcol(data,1));
+				    	chart.series[1].setData(selcol(data,2));
+				    	chart.series[2].setData(selcol(data,3));
+		    		}
+		    )
+		    //.fail(function(xhr, status, error) { alert('Fail: '+status);})
+		    .always(function() {chart.hideLoading();});
+	    }
+	    
+		function fetchSeries() {
+	    	var chart = Highcharts.charts[0];
+	    	chart.showLoading('Loading data from server...');
+		    $.getJSON('get/{{object.id}}', 
+		    		function(data) {
+		    			chart.showLoading('Drawing chart...');
+				    	chart.series[0].setData(selcol(data,1));
+				    	chart.series[1].setData(selcol(data,2));
+				    	chart.series[2].setData(selcol(data,3));
+			    	}
+		    )
+			.fail(function(xhr, status, error) {})
+		    .always(function() {chart.hideLoading();});
+		}
+				
+		function fetchSeries() {
+	    	var chart = Highcharts.charts[0];
+	    	chart.showLoading('Loading data from server...');
+		    $.ajax(
+		    		{
+		    			url:'get/{{object.id}}',
+		    			datatype: "json",
+		    			xhr: function() {
+		    				var xhr = new window.XMLHttpRequest();
+		    			    xhr.addEventListener("progress", function(evt){
+		    			      if (evt.lengthComputable) {
+		    			        var percentComplete = (100 * evt.loaded) / evt.total;
+		    			        console.log(percentComplete+"%");
+		    			      }
+		    			    }, false);
+		    			    return xhr;
+		    			},
+			    		success: function(data) {
+			    			chart.showLoading('Drawing chart...');
+					    	chart.series[0].setData(selcol(data,1));
+					    	chart.series[1].setData(selcol(data,2));
+					    	chart.series[2].setData(selcol(data,3));
+				    	}
+		    		}
+		    )
+			.fail(function(xhr, status, error) {})
+		    .always(function() {chart.hideLoading();});
+		}
+
+		$(function () {
+		  var opt = {{options|safe}};
+		  opt.chart.events.load = fetchSeries;
+		  //opt.xAxis.events = {afterSetExtremes: afterSetExtremes};
+		  $('#container').highcharts(opt);
+		});
+	</script>
+</head>
+<body>
+<div id="container"></div>
+</body>
+</html>

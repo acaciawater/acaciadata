@@ -8,12 +8,15 @@
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
  	<link href="{% static "acacia/img/database_24.ico" %}" rel="icon" type="image/x-ico" />
 	<title>Grafiek</title>
-	<script src="http://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
-	<script src="http://code.highcharts.com/4.2.0/highcharts.js"></script>
-	<script src="http://code.highcharts.com/4.2.0/highcharts-more.js"></script>
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+	<script src="//code.highcharts.com/stock/highstock.js"></script>
+	<script src="//code.highcharts.com/stock/highcharts-more.js"></script>
+<!-- 	<script src="//code.highcharts.com/modules/boost.js"></script> -->
+	<script src="//code.highcharts.com/modules/exporting.js"></script>
 	{% if theme %}
 	<script src="{% static theme %}"></script>
 	{% endif %}
+
 	<style>
 	body, html {
 	  height: 100%;
@@ -73,7 +76,7 @@
 		  var opt = {{options|safe}};
 		  opt.chart.events.load = function() {
 			  fetchSeries();
-			  posx = this.chartWidth - 32;
+			  posx = 32;
 			  posy = 8;
 			  this.renderer.image('/static/acacia/img/fullscreen3.png',posx,posy,16,16)
 	 		    .on('click', function() {

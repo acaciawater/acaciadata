@@ -70,21 +70,62 @@ update_thumbnails.short_description = "Thumbnails vernieuwen van geselecteerde p
 def generate_series(modeladmin, request, queryset):
     for p in queryset:
         try:
+            data = p.get_data()
             ds = p.datasource
-
+            
             # get list of all locations
             locs = set(ds.locations.all())
+
             locs.add(ds.meetlocatie)
             
             # create series for all locations
             for loc in locs:
+                if loc in data:
+                    df = data[loc]
+                elif loc.name in data:
+                    df = data[loc.name]
+                else:
+                    continue
+                logger.debug('Creating series {} for location {}'.format(p.name, loc.name))
                 series, created = p.series_set.get_or_create(mlocatie = loc, name = p.name, 
-                                                             defaults= {'description': p.description, 'unit': p.unit, 'user': request.user})
-                series.replace()
+                                                         defaults= {'description': p.description, 'unit': p.unit, 'user': request.user})
+                try:
+                    series.replace(df)
+                except Exception as e:
+                    logger.error('ERROR creating series %s for location %s: %s' % (p.name, loc.name, e))
         except Exception as e:
             logger.error('ERROR creating series %s: %s' % (p.name, e))
 generate_series.short_description = 'Standaard tijdreeksen aanmaken voor geselecteerde parameters'
 
+def generate_datasource_series(modeladmin, request, queryset):
+    for ds in queryset:
+        ds.update_parameters()
+        data = ds.get_data()
+        locs = set(ds.locations.all())
+        locs.add(ds.meetlocatie)
+        
+        for p in ds.parameter_set.all():
+            try:
+                # create series for all locations
+                for loc in locs:
+                    if loc in data:
+                        df = data[loc]
+                    elif loc.name in data:
+                        df = data[loc.name]
+                    else:
+                        continue
+                    logger.debug('Creating series {} for location {}'.format(p.name, loc.name))
+                    series, created = p.series_set.get_or_create(mlocatie = loc, name = p.name, 
+                                                             defaults= {'description': p.description, 'unit': p.unit, 'user': request.user})
+                    try:
+                        series.replace(df)
+                    except Exception as e:
+                        logger.error('ERROR creating series %s for location %s: %s' % (p.name, loc.name, e))
+            except Exception as e:
+                logger.error('ERROR creating series %s: %s' % (p.name, e))
+
+generate_datasource_series.short_description = 'Standaard tijdreeksen aanmaken voor alle parameters in geselecteerde gegevensbronnen'
+        
 def download_series(modeladmin, request, queryset):
     ds = set([series.datasource() for series in queryset])
     for d in ds:

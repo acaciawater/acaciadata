@@ -75,6 +75,12 @@ class Command(BaseCommand):
             for d in datasources:
                 if not d.autoupdate and pk is None:
                     continue
+
+                # THK 24/4/2017: hack to get polymorphic loggerdatasource object (if any). 
+                # Needed to pass logger name to generator. See loggerdatasource.build_download_options()
+                if hasattr(d,'loggerdatasource'):
+                    d=d.loggerdatasource
+                    
                 logger.source = d
                 logger.info('Updating datasource %s' % d.name)
                 try:
@@ -105,9 +111,12 @@ class Command(BaseCommand):
                         logger.info('Got %d new files' % newfilecount)
 
                     # for update use newfiles AND the existing sourcefiles that contain data for aggregation
+                    today = aware(datetime.now().replace(hour=0,minute=0,second=0))
+                    after=None
                     if last:
                         after = min(last.values())
-                        candidates = d.sourcefiles.filter(start__gte=after)
+                        after = min(after, today)
+                        candidates = d.sourcefiles.filter(stop__gte=after)
                     else:
                         after = None
                         candidates = d.sourcefiles.all()
@@ -144,7 +153,10 @@ class Command(BaseCommand):
                         try:
                             # replace timeseries or update after beforelast datapoint
                             start = last.get(s,None)
-                            changes = s.replace() if replace else s.update(data,start=start,thumbnail=thumb) 
+                            if start:
+                                # always replace forecast data 
+                                start = min(start,after)
+                            changes = s.replace(data) if replace else s.update(data,start=start,thumbnail=thumb) 
                             if changes:
                                 updated += 1
                                 logger.debug('%d datapoints updated for %s' % (changes, s.name))    
