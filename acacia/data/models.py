@@ -1600,7 +1600,7 @@ class Chart(PolymorphicModel):
             if self.percount > 0:
                 kwargs = {self.perunit: -self.percount}
                 delta = dateutil.relativedelta.relativedelta(**kwargs)
-                pstart = timezone.make_aware(datetime.datetime.now() + delta, self.timezone)
+                pstart = aware(datetime.datetime.now() + delta, self.timezone)
                 if start is None:
                     return pstart
                 start = max(start,pstart) 
