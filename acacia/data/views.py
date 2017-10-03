@@ -293,6 +293,26 @@ class SeriesView(DetailView):
         context['theme'] = ' None' #ser.theme()
         return context
 
+def parserep(r):
+    from dateutil.relativedelta import relativedelta
+    pattern = r'(?P<rep>\d*)(?P<how>[hdwmy])'
+    match = re.match(pattern, r,re.IGNORECASE)
+    if match:
+        rep = match.group('rep') or 1
+        how = match.group('how')
+        if how == 'h':
+            delta = relativedelta(hours=int(rep))
+        elif how == 'd':
+            delta = relativedelta(days=int(rep))
+        elif how == 'w':
+            delta = relativedelta(weeks=int(rep))
+        elif how == 'm':
+            delta = relativedelta(months=int(rep))
+        elif how == 'y':
+            delta = relativedelta(years=int(rep))
+        return delta
+    return None
+
 class ChartBaseView(TemplateView):
     template_name = 'data/plain_chart.html'
 
@@ -429,26 +449,6 @@ class ChartBaseView(TemplateView):
                 lo = parse(band.low)
                 hi = parse(band.high)
                 
-                def parserep(r):
-                    from dateutil.relativedelta import relativedelta
-                    pattern = r'(?P<rep>\d*)(?P<how>[hdwmy])'
-                    match = re.match(pattern, r,re.IGNORECASE)
-                    if match:
-                        rep = match.group('rep') or 1
-                        how = match.group('how')
-                        if how == 'h':
-                            delta = relativedelta(hours=int(rep))
-                        elif how == 'd':
-                            delta = relativedelta(days=int(rep))
-                        elif how == 'w':
-                            delta = relativedelta(weeks=int(rep))
-                        elif how == 'm':
-                            delta = relativedelta(months=int(rep))
-                        elif how == 'y':
-                            delta = relativedelta(years=int(rep))
-                        return delta
-                    return None
-
                 delta = parserep(band.repetition)
                 
                 b = []
@@ -464,8 +464,20 @@ class ChartBaseView(TemplateView):
             ax['plotBands'].extend(b) 
         
         for line in chart.plotline_set.all():
-            pass
-        
+            if line.orientation == 'h':
+                ax = options['yAxis'][line.axis-1]
+            else:
+                ax = options['xAxis']
+            line_options = {
+                'color': line.style.color,
+                'dashStyle': line.style.dashstyle,
+                'label': {'text': line.label},
+                'value': line.value,
+                'width': line.style.width
+                }
+            if not 'plotLines' in ax:
+                ax['plotLines'] = []
+            ax['plotLines'].append(line_options) 
 
         jop = json.dumps(options,default=date_handler)
         # remove quotes around date stuff

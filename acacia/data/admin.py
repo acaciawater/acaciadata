@@ -529,7 +529,7 @@ class PlotLineInline(admin.TabularInline):
     model = PlotLine
     classes = ('grp-collapse grp-closed',)
     extra = 0
-    formset = HiLoInlineFormSet
+    #formset = HiLoInlineFormSet
     
 class ChartAdmin(admin.ModelAdmin):
     actions = [actions.copy_charts,]
