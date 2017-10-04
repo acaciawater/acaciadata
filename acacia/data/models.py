@@ -811,7 +811,7 @@ def sourcefile_save(sender, instance, **kwargs):
         logger.exception('Error getting dimensions while saving sourcefile %s: %s' % (instance, e))
     ds = instance.datasource
     if instance.uploaded is None:
-        instance.uploaded = aware(timezone.now(),instance.dataset.timezone or get_current_timezone())
+        instance.uploaded = aware(timezone.now(),instance.datasource.timezone or get_current_timezone())
     if ds.last_download is None:
         ds.last_download = instance.uploaded
     elif ds.last_download < instance.uploaded:
