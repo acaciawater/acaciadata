@@ -150,6 +150,11 @@ class DatasourceAdmin(admin.ModelAdmin):
                 if instance.name is None or len(instance.name) == 0:
                     instance.name,ext = os.path.splitext(os.path.basename(instance.file.name))
             instance.save()
+
+        # explicitly delete forms marked with 'delete'
+        for obj in formset.deleted_objects:
+            obj.delete()
+            
         formset.save_m2m()
 
 #     def formfield_for_manytomany(self, db_field, request, **kwargs):
