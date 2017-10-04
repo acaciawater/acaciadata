@@ -223,7 +223,7 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
             
             # issue warning if data has points beyond timespan of barometer
             barostart = baro.index[0]
-            dataend = data.index[0]
+            dataend = data.index[-1]
             if dataend < barostart:
                 logger.warning('Geen luchtdruk gegevens beschikbaar voor {}'.format(barostart))
                 continue
@@ -279,8 +279,6 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
         series.make_thumbnail()
         series.save()
         
-        series.validate(reset=True)
-
 def drift_correct(series, manual):
     ''' correct drift with manual measurements (both are pandas series)'''
     # TODO: extrapolate series to manual 
