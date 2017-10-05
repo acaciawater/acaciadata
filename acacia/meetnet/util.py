@@ -40,7 +40,7 @@ THUMB_DPI=72
 THUMB_SIZE=(12,5) # inch
 
 def getcolor(index):
-    colors = ['red', 'green', 'blue', 'black', 'orange', 'purple', 'brown', 'grey' ]
+    colors = ['red', 'blue', 'green', 'black', 'orange', 'purple', 'brown', 'grey' ]
     index = index % len(colors) 
     return colors[index]
 
