@@ -84,7 +84,7 @@ class Generator(object):
                 content = response.read()
                 if util.is_dirlist(content):
                     # download all files in directory listing
-                    pattern = kwargs['pattern',None] # search pattern
+                    pattern = kwargs.get('pattern',None) # search pattern
                     dirlist = util.get_dirlist(content)
                     tz = timezone.get_current_timezone()
                     for f in dirlist:
