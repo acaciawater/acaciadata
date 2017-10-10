@@ -741,6 +741,7 @@ class SourceFile(models.Model,LoggerSourceMixin):
                 try:
                     data[k]=v.tz_localize(tz,ambiguous='infer')
                 except:
+                    
                     data[k]=v.tz_localize(tz,abmiguous='NaT')
         return data
 
