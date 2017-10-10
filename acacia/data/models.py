@@ -738,7 +738,10 @@ class SourceFile(models.Model,LoggerSourceMixin):
             if v.index.tz:
                 data[k]=v.tz_convert(tz)
             else:
-                data[k]=v.tz_localize(tz,ambiguous='infer')
+                try:
+                    data[k]=v.tz_localize(tz,ambiguous='infer')
+                except:
+                    data[k]=v.tz_localize(tz,abmiguous='NaT')
         return data
 
     def get_locations(self,gen=None):
