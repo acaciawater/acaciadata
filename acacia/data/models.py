@@ -1285,7 +1285,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         start = kwargs.get('start', None)
         stop = kwargs.get('stop', None)
 
-        queryset = self.datapoints
+        queryset = self.datapoints.order_by('date')
         raw = kwargs.get('raw', False)
         if self.validated and not raw:
             queryset = self.validation.validpoint_set.order_by('date')
