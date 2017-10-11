@@ -21,7 +21,8 @@ class AHN(models.Model):
         # define bounding box of 3x3 pixels
         box = (x-self.resolution,y-self.resolution,x+self.resolution,y+self.resolution)
         bbox = ','.join([str(x) for x in box])
-        query = {'service': 'wms', 
+        query = {'service': 'wms',
+                 'version': '1.1.1', 
                  'request': 'getFeatureInfo', 
                  'layers': self.layer, 
                  'query_layers': self.layer,
@@ -43,6 +44,5 @@ class AHN(models.Model):
                 if z > 1e30 or z < -32767:
                     z = None
                 return z
-        else:
             raise Exception(response.reason)
         
