@@ -1054,8 +1054,8 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         if series.empty:
             return series
  
-        # remove duplicates
-        series = series.groupby(series.index).last()
+        # remove duplicates and sort on time
+        series = series.groupby(series.index).last().sort_index()
         if series.empty:
             return series
         
@@ -1367,7 +1367,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
     def validate(self,reset=False, accept=False, user=None):
         try:
             val = self.validation
-        except ObjectDoesNotExist:
+        except:
             # no validation
             return
         if reset:
