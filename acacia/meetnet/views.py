@@ -177,15 +177,13 @@ class WellChartView(TemplateView):
             }
 
         series = []
-        xydata = []
         start = stop = None
 
         for screen in well.screen_set.all():
             if screen.has_data():
-                xydata = None
                 series.append({'name': 'filter {}'.format(screen.nr),
                             'type': 'line',
-                            'data': xydata,
+                            'data': [],
                             'lineWidth': 1,
                             'zIndex': 2,
                             'id': 'screen%d' % screen.nr
@@ -255,21 +253,20 @@ class WellChartView(TemplateView):
         if hasattr(well,'meteo'):
             neerslag = well.meteo.neerslag
             if neerslag:
-                data = neerslag.to_pandas(start=xydata[0][0], stop=xydata[-1][0]) / 10.0 # 0.1 mm -> mm
-                if not data.empty:
-                    data = zip(data.index.to_pydatetime(), data.values)
-                    series.append({'name': 'Neerslag '+ neerslag.datasource.name,
+                data = neerslag.to_array(start=start, stop=stop)
+                if data:
+                    series.append({'name': neerslag.name,
                                 'type': 'column',
                                 'data': data,
                                 'yAxis': 1,
                                 'pointRange': 24 * 3600 * 1000, # 1 day
-                                'pointPadding': 0.01,
-                                'pointPlacement': 0.5,
+#                                 'pointPadding': 0.01,
+                                'pointPlacement': 'between',
                                 'zIndex': 1,
                                 'color': 'orange', 
                                 'borderColor': '#cc6600', 
                                 })
-                    options['yAxis'].append({'title': {'text': 'Neerslag (mm)'},
+                    options['yAxis'].append({'title': {'text': 'Neerslag (mm/d)'},
                                              'opposite': 1,
                                              'min': 0,
                                              })
