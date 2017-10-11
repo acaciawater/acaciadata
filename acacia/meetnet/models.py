@@ -246,7 +246,7 @@ class Screen(models.Model):
             return None
         
     def get_loggers(self):
-        return [p.logger for p in self.loggerpos_set.all().group_by('logger').last()]
+        return [p.logger for p in self.loggerpos_set.order_by('logger__serial').distinct('logger__serial')]
         
     def last_logger(self):
         last = self.loggerpos_set.all().order_by('start_date').last()
@@ -270,14 +270,6 @@ class Screen(models.Model):
             y = []
         return pd.Series(index=x, data=y, name=unicode(self))
         
-    def get_manual_series_old(self, **kwargs):
-        # Handpeilingen ophalen
-        if hasattr(self.mloc, 'manualseries_set'):
-            for s in self.mloc.manualseries_set.all():
-                if s.name.endswith('HAND'):
-                    return s.to_pandas(**kwargs)
-        return None
-
     def get_manual_series(self, **kwargs):
         # Handpeilingen ophalen
         for s in self.mloc.series_set.instance_of(ManualSeries):
@@ -363,12 +355,12 @@ class LoggerPos(models.Model):
 class LoggerStat(models.Model):
     loggerpos = models.OneToOneField(LoggerPos)
     count = models.PositiveIntegerField(default=0)
-    min = models.FloatField(default=0)
-    p10 = models.FloatField(default=0)
-    p50 = models.FloatField(default=0)
-    p90 = models.FloatField(default=0)
-    max = models.FloatField(default=0)
-    std = models.FloatField(default=0)
+    min = models.FloatField(default=0,blank=True,null=True)
+    p10 = models.FloatField(default=0,blank=True,null=True)
+    p50 = models.FloatField(default=0,blank=True,null=True)
+    p90 = models.FloatField(default=0,blank=True,null=True)
+    max = models.FloatField(default=0,blank=True,null=True)
+    std = models.FloatField(default=0,blank=True,null=True)
 
     def update(self):
         df = self.loggerpos.screen.get_compensated_series(start=self.loggerpos.start_date, stop = self.loggerpos.end_date)
