@@ -17,23 +17,36 @@ from acacia.meetnet.util import register_screen, register_well,\
     drift_correct_screen
 from django.core.exceptions import ObjectDoesNotExist
 from acacia.meetnet.models import LoggerStat
+from django.contrib import messages
 logger = logging.getLogger(__name__)
 
 def elevation_from_ahn(modeladmin, request, queryset):
     """ get elevation from AHN """
     ahn3 = get_object_or_404(AHN,name='AHN3 0.5m DTM')
     ahn2 = get_object_or_404(AHN,name='AHN2 0.5m geinterpoleerd')
+    numok = 0
+    numfail = 0
     for mp in queryset:
         x = mp.location.x
         y = mp.location.y
         try:
-            mp.ahn = ahn3.get_elevation(x,y)
-            if mp.ahn is None:
-                # try AHN2
-                mp.ahn = ahn2.get_elevation(x,y)
-            mp.save()
+            ahn = ahn2.get_elevation(x,y)
+#    WMS service has changed for AHN3
+#             if not ahn:
+#                 ahn = ahn3.get_elevation(x,y)
+            if not ahn:
+                numfail += 1
+            else:
+                numok += 1
+                mp.ahn=ahn
+                mp.save(fields=('ahn'))
         except:
-            pass
+            numfail += 1
+            #logger.exception('Fout bij maaiveld bepaling voor {}'.format(mp))
+    if numfail:
+        messages.warning(request, 'Voor {} putten is het niet gelukt om het AHN maaiveld op te vragen.'.format(numfail))
+    if numok:
+        messages.success(request, 'AHN maaiveld voor {} putten met succes bepaald.'.format(numfail))
 elevation_from_ahn.short_description = 'Bepaal maaiveldhoogte in NAP adhv AHN'        
 
 def store_screens_nitg(queryset, zf):
