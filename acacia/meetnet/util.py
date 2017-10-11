@@ -27,7 +27,7 @@ from django.conf import settings
 from acacia.data.models import Project, Generator, DataPoint, MeetLocatie, SourceFile, Chart, Series,\
     Parameter
 from acacia.data.generators import sws
-from acacia.data.knmi.models import Station
+from acacia.data.knmi.models import Station, NeerslagStation
 from .models import Well, Screen, Datalogger, MonFile, Channel, LoggerDatasource
 
 rcParams['font.family'] = 'sans-serif'
@@ -199,6 +199,35 @@ def convert_to_nap(screen,series,parameter='Waterstand'):
                 seriesdata = seriesdata.append(data)
     return seriesdata
 
+def get_series_data(screen,series,parameter='Waterstand'):
+    
+    seriesdata = None
+    for logpos in screen.loggerpos_set.all().order_by('start_date'):
+        for ds in logpos.logger.datasources.all():
+            print ' ', logpos.logger, logpos.start_date, logpos.refpnt
+            try:
+                data = ds.get_data()
+            except Exception as e:
+                logger.error('Error reading {}: {}'.format(ds,e))
+                continue
+            if not data:
+                logger.error('No data found in {}'.format(ds))
+                continue
+
+            if isinstance(data,dict):
+                data = data.itervalues().next()
+
+            if not parameter in data:
+                logger.error('parameter {} not found in file {}'.format(parameter, ds))
+            
+            data = data[parameter]
+            data = series.do_postprocess(data)
+            if seriesdata is None:
+                seriesdata = data
+            else:
+                seriesdata = seriesdata.append(data)
+    return seriesdata
+
 def compensate(screen,series,baros,parameter='PRESSURE'):
     ''' compensate for air pressure '''
     well = screen.well
@@ -305,9 +334,9 @@ def recomp(screen,series,baros={}):
             if ds:
                 gen = ds.generator.classname.lower()
                 if 'sws.diver' in gen:
-                    dsdata=compensate(screen, series, baros)
+                    dsdata=compensate(screen, series, baros, 'PRESSURE')
                 elif 'ellitrack' in gen:
-                    dsdata=convert_to_nap(screen, series)
+                    dsdata=get_series_data(screen, series, 'Waterstand')
                 else:
                     logger.error('generator {} not supported'.format(gen))
             else:
@@ -407,17 +436,18 @@ def createmeteo(request, well):
             ds.update_parameters()
             
         series_set = []
-        for key in candidates:
+        for key, value in candidates.items():
             try:
                 series = None
                 p = ds.parameter_set.get(name=key)
-                series, created = p.series_set.get_or_create(name = p.name, mloc = mloc, defaults = 
+                series_name = '{} {}'.format(value,closest.naam)
+                series, created = p.series_set.get_or_create(name = series_name, mlocatie = mloc, defaults = 
                         {'description': p.description, 'unit': p.unit, 'user': request.user})
                 series.replace()
             except Parameter.DoesNotExist:
-                logger.warning('Parameter %s not found in datasource %s' % (p.name, ds.name))
+                logger.warning('Parameter %s not found in datasource %s' % (key, ds.name))
             except Exception as e:
-                logger.error('ERROR creating series %s: %s' % (p.name, e))
+                logger.error('ERROR creating series %s: %s' % (key, e))
             series_set.append(series)
         return series_set
 
@@ -432,18 +462,18 @@ def createmeteo(request, well):
     gen = Generator.objects.get(classname__icontains='KNMI.meteo')
     closest = Station.closest(well.location)
     name = 'Meteostation {} (dagwaarden)'.format(closest.naam)
-    meteo.temperatuur,meteo.neerslag,meteo.verdamping = docreate(name,closest,gen,'20130101',['T','RH','EV24'])
+    meteo.temperatuur,meteo.neerslag,meteo.verdamping = docreate(name,closest,gen,'20170101',{'TG':'Temperatuur','RH': 'Neerslag','EV24': 'Verdamping'})
 
-#     gen = Generator.objects.get(classname__icontains='KNMI.neerslag')
-#     closest3 = NeerslagStation.closest(well.location,3)
-#     for closest in closest3:
-#         name = 'Neerslagstation {}'.format(closest.naam)
-#         docreate(name,closest,gen,'20130101',['RD'])
+    gen = Generator.objects.get(classname__icontains='KNMI.neerslag')
+    closest = NeerslagStation.closest(well.location)
+    name = 'Neerslagstation {}'.format(closest.naam)
+    docreate(name,closest,gen,'20170101',{'RD':'Neerslag'})
 
     gen = Generator.objects.get(classname__icontains='KNMI.uur')
     closest = Station.closest(well.location)
     name = 'Meteostation {} (uurwaarden)'.format(closest.naam)
-    meteo.baro = docreate(name,closest,gen,'2013010101',['P'])
+    luchtdruk = docreate(name,closest,gen,'2017010101',{'P':'Luchtdruk'})
+    meteo.baro = luchtdruk[0] 
 
     meteo.save()
     
