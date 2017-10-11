@@ -9,6 +9,7 @@ from django.conf import settings
 from django.contrib import admin
 from acacia.meetnet.models import MeteoData
 from acacia.meetnet.actions import update_statistics
+from acacia.data.models import SourceFile
 
 USE_GOOGLE_TERRAIN_TILES = False
 
@@ -60,7 +61,8 @@ class DataloggerAdmin(admin.ModelAdmin):
 
 class MonFileInline(admin.TabularInline):
     model = MonFile
-    
+    classes = ['collapse']
+
 class LoggerPosAdmin(admin.ModelAdmin):
     model = LoggerPos
     actions = [update_statistics]
