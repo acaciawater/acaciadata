@@ -11,7 +11,6 @@ from django.shortcuts import get_object_or_404, redirect
 from django.core.files.storage import default_storage
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-import numpy as np
 import pandas as pd
 
 from .models import Network, Well, Screen
