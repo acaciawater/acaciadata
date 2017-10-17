@@ -5,18 +5,20 @@ from django.db.models import Avg, Max, Min, Sum
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.utils import timezone
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.contrib.gis.db import models as geo
 from django.utils.text import slugify
 from django.conf import settings
-import upload as up
+from acacia.data import util, upload as up
 import numpy as np
 import pandas as pd
-import json,util,StringIO,pytz,logging
+import json,pytz,logging
+from io import StringIO
 import dateutil
 from django.db.models.aggregates import StdDev
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.timezone import get_current_timezone, is_naive
+from django.db.models.deletion import CASCADE, SET_NULL
 
 THEME_CHOICES = ((None,'standaard'),
                  ('dark-blue','blauw'),
@@ -79,7 +81,7 @@ class Project(models.Model):
     def get_absolute_url(self):
         return reverse('acacia:project-detail', args=[self.id])
          
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     class Meta:
@@ -98,19 +100,19 @@ class Webcam(models.Model):
 
     snapshot.allow_tags=True
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
     
 class ProjectLocatie(geo.Model):
-    project = models.ForeignKey(Project)
+    project = models.ForeignKey(Project, on_delete=CASCADE)
     name = models.CharField(max_length=100,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     description.allow_tags=True
     image = models.ImageField(upload_to=up.locatie_upload, blank = True, null = True)
     location = geo.PointField(srid=util.RDNEW,verbose_name='locatie', help_text='Projectlocatie in Rijksdriehoekstelsel coordinaten')
-    objects = geo.GeoManager()
-    webcam = models.ForeignKey(Webcam, null = True, blank=True)
-    dashboard = models.ForeignKey('TabGroup', blank=True, null=True, verbose_name = 'Standaard dashboard')
+
+    webcam = models.ForeignKey(Webcam, null = True, blank=True, on_delete=CASCADE)
+    dashboard = models.ForeignKey('TabGroup', blank=True, null=True, verbose_name = 'Standaard dashboard',on_delete=CASCADE)
     
     def get_absolute_url(self):
         return reverse('acacia:projectlocatie-detail', args=[self.id])
@@ -119,7 +121,7 @@ class ProjectLocatie(geo.Model):
         return self.meetlocatie_set.count()
     location_count.short_description='Aantal meetlocaties'
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     def latlon(self):
@@ -136,13 +138,12 @@ class ProjectLocatie(geo.Model):
         unique_together = ('project', 'name', )
 
 class MeetLocatie(geo.Model):
-    projectlocatie = models.ForeignKey(ProjectLocatie)
+    projectlocatie = models.ForeignKey(ProjectLocatie, on_delete=CASCADE)
     name = models.CharField(max_length=100,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     image = models.ImageField(upload_to=up.meetlocatie_upload, blank = True, null = True)
     location = geo.PointField(dim=2,srid=util.RDNEW,verbose_name='locatie', help_text='Meetlocatie in Rijksdriehoekstelsel coordinaten')
-    objects = geo.GeoManager()
-    webcam = models.ForeignKey(Webcam, null = True, blank=True)
+    webcam = models.ForeignKey(Webcam, null = True, blank=True, on_delete=CASCADE)
 
     def project(self):
         return self.projectlocatie.project
@@ -157,7 +158,7 @@ class MeetLocatie(geo.Model):
     def get_absolute_url(self):
         return reverse('acacia:meetlocatie-detail',args=[self.id])
     
-    def __unicode__(self):
+    def __str__(self):
         try:
             return '%s %s' % (self.projectlocatie, self.name)
         except ProjectLocatie.DoesNotExist:
@@ -205,7 +206,7 @@ class Generator(models.Model):
     def get_class(self):
         return classForName(self.classname)
     
-    def __unicode__(self):
+    def __str__(self):
         return self.name
         
     class Meta:
@@ -227,11 +228,11 @@ TIMEZONE_CHOICES = timezone_choices()
 class Datasource(models.Model, LoggerSourceMixin):
     name = models.CharField(max_length=100,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
-    meetlocatie=models.ForeignKey(MeetLocatie,null=True,blank=True,verbose_name='Primaire meetlocatie',help_text='Primaire meetlocatie van deze gegevensbron')
+    meetlocatie=models.ForeignKey(MeetLocatie,on_delete=CASCADE,null=True,blank=True,verbose_name='Primaire meetlocatie',help_text='Primaire meetlocatie van deze gegevensbron')
     locations=models.ManyToManyField(MeetLocatie,blank=True,related_name='datasources',verbose_name='locaties', help_text='Secundaire meetlocaties die deze gegevensbron gebruiken')
     url=models.CharField(blank=True,null=True,max_length=200,help_text='volledige url van de gegevensbron. Leeg laten voor handmatige uploads of default url van generator')
-    generator=models.ForeignKey(Generator,help_text='Generator voor het maken van tijdreeksen uit de datafiles')
-    user=models.ForeignKey(User,verbose_name='Aangemaakt door')
+    generator=models.ForeignKey(Generator,help_text='Generator voor het maken van tijdreeksen uit de datafiles', on_delete=CASCADE)
+    user=models.ForeignKey(User,verbose_name='Aangemaakt door', on_delete=CASCADE)
     created = models.DateTimeField(auto_now_add=True,verbose_name='Aangemaakt op')
     last_download = models.DateTimeField(null=True, blank=True, verbose_name='geactualiseerd')
     autoupdate = models.BooleanField(default=True)
@@ -246,7 +247,7 @@ class Datasource(models.Model, LoggerSourceMixin):
         verbose_name = 'gegevensbron'
         verbose_name_plural = 'gegevensbronnen'
         
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     def get_absolute_url(self):
@@ -573,14 +574,14 @@ class Datasource(models.Model, LoggerSourceMixin):
 
 class Notification(models.Model):
     # TODO: ook meetlocatie of projectlocatie volgen (ivm berekende reeksen)
-    datasource = models.ForeignKey(Datasource,help_text='Gegevensbron welke gevolgd wordt')
-    user = models.ForeignKey(User,blank=True,null=True,verbose_name='Gebruiker',help_text='Gebruiker die berichtgeving ontvangt over updates')
+    datasource = models.ForeignKey(Datasource,help_text='Gegevensbron welke gevolgd wordt', on_delete=CASCADE)
+    user = models.ForeignKey(User,blank=True,null=True,verbose_name='Gebruiker',help_text='Gebruiker die berichtgeving ontvangt over updates', on_delete=CASCADE)
     email = models.EmailField(max_length=254,blank=True)
     subject = models.TextField(blank=True,default='acaciadata.com update rapport')
     level = models.CharField(max_length=10,choices = LOGGING_CHOICES, default = 'ERROR', verbose_name='Niveau',help_text='Niveau van berichtgeving')
     active = models.BooleanField(default = True,verbose_name='activeren')
 
-    def __unicode__(self):
+    def __str__(self):
         return self.datasource.name
 
     class Meta:
@@ -601,7 +602,7 @@ class Notification(models.Model):
     
 class SourceFile(models.Model,LoggerSourceMixin):
     name=models.CharField(max_length=100,blank=True)
-    datasource = models.ForeignKey('Datasource',related_name='sourcefiles', verbose_name = 'gegevensbron')
+    datasource = models.ForeignKey('Datasource',related_name='sourcefiles', verbose_name = 'gegevensbron', on_delete=CASCADE)
     file=models.FileField(max_length=200,upload_to=up.sourcefile_upload,blank=True,null=True)
     rows=models.IntegerField(default=0,verbose_name='rijen')
     cols=models.IntegerField(default=0,verbose_name='kolommen')
@@ -609,11 +610,11 @@ class SourceFile(models.Model,LoggerSourceMixin):
     start=models.DateTimeField(null=True,blank=True)
     stop=models.DateTimeField(null=True,blank=True)
     crc=models.IntegerField(default=0)
-    user=models.ForeignKey(User)
+    user=models.ForeignKey(User, on_delete=CASCADE)
     created = models.DateTimeField(auto_now_add=True,verbose_name='aangemaakt')
     uploaded = models.DateTimeField(auto_now=True)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
      
     class Meta:
@@ -783,7 +784,7 @@ def loaddata(signal_handler):
     def wrapper(*args, **kwargs):
         if kwargs.get('raw', False):
             #called from manage.py loaddata
-            print "Skipping signal for %s %s" % (args, kwargs)
+            print ('Skipping signal for {} {}'.format(args, **kwargs))
             return
         signal_handler(*args, **kwargs)
     return wrapper
@@ -826,14 +827,14 @@ SERIES_CHOICES = (('line', 'lijn'),
                   )
         
 class Parameter(models.Model, LoggerSourceMixin):
-    datasource = models.ForeignKey(Datasource)
+    datasource = models.ForeignKey(Datasource, on_delete=CASCADE)
     name = models.CharField(max_length=50,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     unit = models.CharField(max_length=10, default='m',verbose_name='eenheid')
     type = models.CharField(max_length=20, default='line', choices = SERIES_CHOICES)
     thumbnail = models.ImageField(upload_to=up.param_thumb_upload, max_length=200, blank=True, null=True)
     
-    def __unicode__(self):
+    def __str__(self):
         return '%s - %s' % (self.datasource.name, self.name)
 
     class Meta:
@@ -919,14 +920,14 @@ from polymorphic.manager import PolymorphicManager
 from polymorphic.models import PolymorphicModel
 
 class Series(PolymorphicModel,LoggerSourceMixin):
-    mlocatie = models.ForeignKey(MeetLocatie,null=True,blank=True,verbose_name='meetlocatie')
+    mlocatie = models.ForeignKey(MeetLocatie,null=True,blank=True,verbose_name='meetlocatie', on_delete=CASCADE)
     name = models.CharField(max_length=100,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
     unit = models.CharField(max_length=10, blank=True, null=True, verbose_name='eenheid')
     type = models.CharField(max_length=20, blank = True, verbose_name='weergave', help_text='Standaard weeggave op grafieken', default='line', choices = SERIES_CHOICES)
-    parameter = models.ForeignKey(Parameter, null=True, blank=True)
+    parameter = models.ForeignKey(Parameter, null=True, blank=True, on_delete=CASCADE)
     thumbnail = models.ImageField(upload_to=up.series_thumb_upload, max_length=200, blank=True, null=True)
-    user=models.ForeignKey(User)
+    user=models.ForeignKey(User, on_delete=CASCADE)
     objects = PolymorphicManager()
     timezone = models.CharField(max_length=20,blank=True,choices=TIMEZONE_CHOICES,verbose_name='tijdzone')
 
@@ -941,10 +942,10 @@ class Series(PolymorphicModel,LoggerSourceMixin):
     aggregate = models.CharField(max_length=10,choices=AGGREGATION_METHOD,blank=True, null=True, 
                                  verbose_name='aggregatie', help_text = 'Aggregatiemethode bij resampling van tijdreeks')
     scale = models.FloatField(default = 1.0,verbose_name = 'verschalingsfactor', help_text = 'constante factor voor verschaling van de meetwaarden (vóór compensatie)')
-    scale_series = models.ForeignKey('Series',null=True,blank=True,verbose_name='verschalingsreeks', related_name='scaling_set', help_text='tijdreeks voor verschaling van de meetwaarden (vóór compensatie')
+    scale_series = models.ForeignKey('Series',null=True,blank=True,verbose_name='verschalingsreeks', related_name='scaling_set', help_text='tijdreeks voor verschaling van de meetwaarden (vóór compensatie', on_delete=CASCADE)
 
     offset = models.FloatField(default = 0.0, verbose_name = 'compensatieconstante', help_text = 'constante voor compensatie van de meetwaarden (ná verschaling)')
-    offset_series = models.ForeignKey('Series',null=True, blank=True, verbose_name='compensatiereeks',related_name='offset_set', help_text = 'tijdreeks voor compensatie van de meetwaarden (ná verschaling)' )
+    offset_series = models.ForeignKey('Series',null=True, blank=True, verbose_name='compensatiereeks',related_name='offset_set', help_text = 'tijdreeks voor compensatie van de meetwaarden (ná verschaling)' , on_delete=CASCADE)
     
     cumsum = models.BooleanField(default = False, verbose_name='accumuleren', help_text = 'reeks transformeren naar accumulatie')
     cumstart = models.DateTimeField(blank = True, null = True, verbose_name='start accumulatie')
@@ -1007,7 +1008,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         else:
             return get_current_timezone()
 
-    def __unicode__(self):
+    def __str__(self):
         ds = self.datasource()
         if ds:
             src = ds.name
@@ -1378,7 +1379,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
 
 # cache series properties to speed up loading admin page for series
 class SeriesProperties(models.Model):
-    series = models.OneToOneField(Series,related_name='properties')
+    series = models.OneToOneField(Series,related_name='properties', on_delete=CASCADE)
     aantal = models.IntegerField(default = 0)
     min = models.FloatField(default = 0, null = True)
     max = models.FloatField(default = 0, null = True)
@@ -1386,9 +1387,9 @@ class SeriesProperties(models.Model):
     tot = models.DateTimeField(null = True)
     gemiddelde = models.FloatField(default = 0, null = True)
     stddev = models.FloatField(default = 0, null = True)
-    eerste = models.ForeignKey('DataPoint',null = True, related_name='first')
-    laatste = models.ForeignKey('DataPoint',null = True, related_name='last')
-    beforelast = models.ForeignKey('DataPoint', null = True, related_name='beforelast')  
+    eerste = models.ForeignKey('DataPoint',null = True, related_name='first', on_delete=SET_NULL)
+    laatste = models.ForeignKey('DataPoint',null = True, related_name='last', on_delete=SET_NULL)
+    beforelast = models.ForeignKey('DataPoint', null = True, related_name='beforelast', on_delete=SET_NULL)  
 
     def update(self, save = True):
         agg = self.series.datapoints.aggregate(van=Min('date'), tot=Max('date'), min=Min('value'), max=Max('value'), avg=Avg('value'), std = StdDev('value'))
@@ -1416,9 +1417,9 @@ class SeriesProperties(models.Model):
             self.save()
 
 class Variable(models.Model):
-    locatie = models.ForeignKey(MeetLocatie)
+    locatie = models.ForeignKey(MeetLocatie,on_delete=CASCADE)
     name = models.CharField(max_length=20, verbose_name = 'variabele')
-    series = models.ForeignKey(Series, verbose_name = 'reeks')
+    series = models.ForeignKey(Series, verbose_name = 'reeks',on_delete=CASCADE)
 
     def thumbtag(self):
         try:
@@ -1429,7 +1430,7 @@ class Variable(models.Model):
     thumbtag.allow_tags = True
     thumbtag.short_description = 'thumbnail'
 
-    def __unicode__(self):
+    def __str__(self):
         return '%s = %s' % (self.name, self.series)
         
     class Meta:
@@ -1440,7 +1441,7 @@ class Variable(models.Model):
 # Series that can be edited manually
 class ManualSeries(Series):
     ''' Series that can be edited manually (no datasource, nor parameter)'''
-    def __unicode__(self):
+    def __str__(self):
         return self.name
  
     def get_series_data(self,data,start=None):
@@ -1456,7 +1457,7 @@ class Formula(Series):
     formula_variables = models.ManyToManyField(Variable,verbose_name = 'variabelen')
     intersect = models.BooleanField(default=True,verbose_name = 'bereken alleen voor overlappend tijdsinterval')
         
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     def get_variables(self):
@@ -1536,7 +1537,7 @@ def series_post_save(sender, instance, **kwargs):
         logger.exception('Error updating properties of %s: %s' % (instance, e))
     
 class DataPoint(models.Model):
-    series = models.ForeignKey(Series,related_name='datapoints')
+    series = models.ForeignKey(Series,related_name='datapoints',on_delete=CASCADE)
     date = models.DateTimeField(verbose_name='Tijdstip')
     value = models.FloatField(verbose_name='Waarde')
     
@@ -1563,7 +1564,7 @@ class Chart(PolymorphicModel):
     name = models.CharField(max_length = 100, verbose_name = 'naam')
     description = models.TextField(blank=True,null=True,verbose_name='toelichting',help_text='Toelichting bij grafiek op het dashboard')
     title = models.CharField(max_length = 100, verbose_name = 'titel')
-    user=models.ForeignKey(User)
+    user=models.ForeignKey(User,on_delete=CASCADE)
     start = models.DateTimeField(blank=True,null=True)
     #start_today = models.BooleanField(default=False,verbose_name='vanaf vandaag')
     stop = models.DateTimeField(blank=True,null=True)
@@ -1574,7 +1575,7 @@ class Chart(PolymorphicModel):
     def tijdreeksen(self):
         return self.series.count()
     
-    def __unicode__(self):
+    def __str__(self):
         return self.name
     
     def get_absolute_url(self):
@@ -1701,7 +1702,7 @@ class BandStyle(models.Model):
     borderwidth = models.IntegerField(default=0,verbose_name='breedte rand')
     zIndex = models.IntegerField(default = 0,verbose_name='volgorde')
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
     
 class LineStyle(models.Model):
@@ -1711,14 +1712,14 @@ class LineStyle(models.Model):
     width = models.CharField(max_length=32,default='0',verbose_name='breedte')
     zIndex = models.IntegerField(default = 0,verbose_name='volgorde')
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
 
 class PlotLine(models.Model):
-    chart = models.ForeignKey(Chart,verbose_name='grafiek')
+    chart = models.ForeignKey(Chart,verbose_name='grafiek',on_delete=CASCADE)
     axis = models.IntegerField(default=1)
-    style = models.ForeignKey(LineStyle,verbose_name='stijl')
+    style = models.ForeignKey(LineStyle,verbose_name='stijl',on_delete=CASCADE)
     orientation = models.CharField(max_length=1,choices=ORIENTATION,verbose_name='oriëntatie')
     label = models.CharField(max_length=50)
     value = models.CharField(max_length=32,verbose_name='waarde')
@@ -1730,9 +1731,9 @@ class PlotLine(models.Model):
         
         
 class PlotBand(models.Model):
-    chart = models.ForeignKey(Chart,verbose_name='grafiek')
+    chart = models.ForeignKey(Chart,verbose_name='grafiek',on_delete=CASCADE)
     axis = models.IntegerField(default=1)
-    style = models.ForeignKey(BandStyle,verbose_name='stijl')
+    style = models.ForeignKey(BandStyle,verbose_name='stijl',on_delete=CASCADE)
     orientation = models.CharField(max_length=1,choices=ORIENTATION,verbose_name='oriëntatie')
     label = models.CharField(max_length=50)
     low = models.CharField(max_length = 32,verbose_name='van')
@@ -1749,10 +1750,10 @@ AXIS_CHOICES = (
                )
 
 class ChartSeries(models.Model):
-    chart = models.ForeignKey(Chart,related_name='series', verbose_name='grafiek')
+    chart = models.ForeignKey(Chart,related_name='series', verbose_name='grafiek',on_delete=CASCADE)
     order = models.IntegerField(default=1,verbose_name='volgorde')
-    series = models.ForeignKey(Series, verbose_name = 'tijdreeks')
-    series2 = models.ForeignKey(Series, related_name='series2',blank=True, null=True, verbose_name = 'tweede tijdreeks', help_text='tijdreeks voor ondergrens bij area grafiek')
+    series = models.ForeignKey(Series, verbose_name = 'tijdreeks',on_delete=CASCADE)
+    series2 = models.ForeignKey(Series, related_name='series2',blank=True, null=True, verbose_name = 'tweede tijdreeks', help_text='tijdreeks voor ondergrens bij area grafiek',on_delete=CASCADE)
     name = models.CharField(max_length=100,blank=True,null=True,verbose_name='legendanaam')
     axis = models.IntegerField(default=1,verbose_name='Nummer y-as')
     axislr = models.CharField(max_length=2, choices=AXIS_CHOICES, default='l',verbose_name='Positie y-as')
@@ -1765,7 +1766,7 @@ class ChartSeries(models.Model):
     t0 = models.DateTimeField(null=True,blank=True,verbose_name='start')
     t1 = models.DateTimeField(null=True,blank=True,verbose_name='stop')
     
-    def __unicode__(self):
+    def __str__(self):
         return unicode(self.series)
     
     def theme(self):
@@ -1781,7 +1782,7 @@ class Dashboard(models.Model):
     name = models.CharField(max_length=100, verbose_name= 'naam')
     description = models.TextField(blank=True, null=True,verbose_name = 'omschrijving')
     charts = models.ManyToManyField(Chart, verbose_name = 'grafieken', through='DashboardChart')
-    user=models.ForeignKey(User)
+    user=models.ForeignKey(User,on_delete=CASCADE)
     
     def grafieken(self):
         return self.charts.count()
@@ -1792,15 +1793,15 @@ class Dashboard(models.Model):
     def get_absolute_url(self):
         return reverse('acacia:dash-view', args=[self.id]) 
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
     
     class Meta:
         ordering = ['name',]
 
 class DashboardChart(models.Model):
-    chart = models.ForeignKey(Chart, verbose_name='Grafiek')
-    dashboard = models.ForeignKey(Dashboard)
+    chart = models.ForeignKey(Chart, verbose_name='Grafiek',on_delete=CASCADE)
+    dashboard = models.ForeignKey(Dashboard,on_delete=CASCADE)
     order = models.IntegerField(default = 1, verbose_name = 'volgorde')
 
     class Meta:
@@ -1809,7 +1810,7 @@ class DashboardChart(models.Model):
         verbose_name_plural = 'Grafieken'
     
 class TabGroup(models.Model):
-    location = models.ForeignKey(ProjectLocatie,verbose_name='projectlocatie')
+    location = models.ForeignKey(ProjectLocatie,verbose_name='projectlocatie',on_delete=CASCADE)
     name = models.CharField(max_length = 50, verbose_name='naam', help_text='naam van dashboard groep')
 
     def pagecount(self):
@@ -1819,7 +1820,7 @@ class TabGroup(models.Model):
     def pages(self):
         return self.tabpage_set.order_by('order')
     
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     def get_absolute_url(self):
@@ -1830,12 +1831,12 @@ class TabGroup(models.Model):
         verbose_name_plural = 'Dashboardgroepen'
         
 class TabPage(models.Model):
-    tabgroup = models.ForeignKey(TabGroup)
+    tabgroup = models.ForeignKey(TabGroup,on_delete=CASCADE)
     name = models.CharField(max_length=50,default='basis',verbose_name='naam')
     order = models.IntegerField(default=1,verbose_name='volgorde', help_text='volgorde van tabblad')
-    dashboard = models.ForeignKey(Dashboard)
+    dashboard = models.ForeignKey(Dashboard,on_delete=CASCADE)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     class Meta:
@@ -1843,8 +1844,8 @@ class TabPage(models.Model):
         verbose_name_plural = 'Tabbladen'
         
 class CalibrationData(models.Model):
-    datasource = models.ForeignKey(Datasource)
-    parameter = models.ForeignKey(Parameter)
+    datasource = models.ForeignKey(Datasource,on_delete=CASCADE)
+    parameter = models.ForeignKey(Parameter,on_delete=CASCADE)
     sensor_value = models.FloatField(verbose_name = 'meetwaarde')
     calib_value = models.FloatField(verbose_name='ijkwaarde')
     
@@ -1854,7 +1855,7 @@ class CalibrationData(models.Model):
 
 class KeyFigure(models.Model):
     ''' Net zoiets als een Formula, maar dan met een scalar als resultaat'''
-    locatie = models.ForeignKey(MeetLocatie)
+    locatie = models.ForeignKey(MeetLocatie,on_delete=CASCADE)
     name = models.CharField(max_length=200, verbose_name = 'naam')
     description = models.TextField(blank=True, null = True, verbose_name = 'omschrijving')
     variables = models.ManyToManyField(Variable,verbose_name = 'variabelen')
@@ -1864,7 +1865,7 @@ class KeyFigure(models.Model):
     stopDate = models.DateField(blank=True, null=True)
     value = models.FloatField(blank=True, null=True, verbose_name = 'waarde')
     
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     def get_variables(self):

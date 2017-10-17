@@ -42,5 +42,4 @@ urlpatterns = [url(r'^$', ListView.as_view(model=Project), name='project-list'),
     url(r'^locatie/(?P<pk>\d+)$', ProjectLocatieDetailView.as_view(), name='projectlocatie-detail'),
     url(r'^meetlocatie/(?P<pk>\d+)$', MeetLocatieDetailView.as_view(), name='meetlocatie-detail'),
     
-    url(r'^chaining/', include('smart_selects.urls'))
     ]

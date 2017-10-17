@@ -12,7 +12,7 @@ from django.contrib.contenttypes.models import ContentType
 
 import django.contrib.gis.forms as geoforms
 import json
-import actions
+from acacia.data import actions
 from acacia.data.models import PlotLine, LineStyle, PlotBand, BandStyle
 import dateutil
 
@@ -618,7 +618,7 @@ class WebcamAdmin(admin.ModelAdmin):
     list_display = ('name', 'snapshot', )
 
 
-from actions import update_kental
+from .actions import update_kental
 class KeyFigureAdmin(admin.ModelAdmin):
     actions = [update_kental]
     model = KeyFigure

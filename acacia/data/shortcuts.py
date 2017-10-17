@@ -3,7 +3,7 @@ Created on Feb 26, 2014
 
 @author: theo
 '''
-from knmi.models import NeerslagStation, Station
+from .knmi.models import NeerslagStation, Station
 from .models import Datasource, Generator
 
 def meteo2locatie(loc,user):

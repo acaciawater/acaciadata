@@ -6,7 +6,6 @@ class Station(models.Model):
     nummer = models.IntegerField()
     naam = models.CharField(max_length=50)
     location = models.PointField(srid=RDNEW)
-    objects = models.GeoManager()
     
     def coords(self):
         return (self.location.x, self.location.y)
@@ -27,7 +26,6 @@ class NeerslagStation(models.Model):
     nummer = models.IntegerField()
     naam = models.CharField(max_length=50)
     location = models.PointField(srid=RDNEW)
-    objects = models.GeoManager()
             
     def coords(self):
         return (self.location.x, self.location.y)

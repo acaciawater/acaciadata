@@ -16,7 +16,7 @@ USE_GOOGLE_TERRAIN_TILES = False
 from django.contrib.admin.widgets import AdminFileWidget
 from django.utils.safestring import mark_safe
 
-import actions
+from . import actions
 
 class AdminImageWidget(AdminFileWidget):
     def render(self, name, value, attrs=None):
@@ -129,7 +129,7 @@ class ScreenInline(admin.TabularInline):
         
 class ScreenAdmin(admin.ModelAdmin):
     actions = [actions.make_screencharts,actions.recomp_screens,actions.drift_screens,actions.register_screens,actions.download_screen_nitg]
-    list_display = ('__unicode__', 'refpnt', 'top', 'bottom', 'num_files', 'num_standen', 'start', 'stop')
+    list_display = ('__str__', 'refpnt', 'top', 'bottom', 'num_files', 'num_standen', 'start', 'stop')
     search_fields = ('well__name', 'well__nitg')
     list_filter = ('well','well__network')
     inlines = [LoggerInline]
@@ -207,7 +207,7 @@ class MeteoDataAdmin(admin.ModelAdmin):
     search_fields = ('well__nitg','baro__name')
     list_filter = ('well','baro','neerslag','verdamping','temperatuur')
     
-admin.site.register(Network)
+#admin.site.register(Network)
 admin.site.register(Well, WellAdmin)
 admin.site.register(Screen, ScreenAdmin)
 admin.site.register(Photo,PhotoAdmin)

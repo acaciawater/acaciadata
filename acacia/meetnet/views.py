@@ -19,7 +19,7 @@ from .actions import download_well_nitg
 
 import os, json, logging, time
 
-from util import handle_uploaded_files
+from .util import handle_uploaded_files
 from django.utils.timezone import get_current_timezone
 
 logger = logging.getLogger(__name__)
@@ -139,9 +139,9 @@ def json_series(request, pk):
     if series is None or series.empty:
         values = []
     else:
-        values = zip(series.index, series.values)
+        values = list(zip(series.index, series.values))
         #values = zip(series.index.astype(np.int64)//10**6, series.values)
-    data = {'screen%s'%screen.nr: values}
+    data = {'screen{}'.format(screen.nr): values}
     return HttpResponse(json.dumps(data,default=lambda x: int(time.mktime(x.timetuple())*1000)),content_type='application/json')
     #return HttpResponse(json.dumps(data),content_type='application/json')
     
@@ -151,7 +151,7 @@ class WellChartView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super(WellChartView, self).get_context_data(**kwargs)
         well = Well.objects.get(pk=context['pk'])
-        name = unicode(well)
+        name = str(well)
          
         options = {
              'rangeSelector': { 'enabled': True,
@@ -185,7 +185,7 @@ class WellChartView(TemplateView):
                             'data': [],
                             'lineWidth': 1,
                             'zIndex': 2,
-                            'id': 'screen%d' % screen.nr
+                            'id': 'screen{}'.format(screen.nr)
                             })
                 if start:
                     start = min(start,screen.start())
@@ -216,14 +216,14 @@ class WellChartView(TemplateView):
 #                         'type': 'line',
 #                         'data': data,
 #                         'zIndex': 1,
-#                         'id': 'diver%d' % screen.nr
+#                         'id': 'diver{}'.format(screen.nr)
 #                         })
             
 
             data = screen.get_manual_series()
             if data is None:
                 continue
-            hand = zip(data.index.to_pydatetime(), data.values)
+            hand = list(zip(data.index.to_pydatetime(), data.values))
             series.append({'name': 'peiling {}'.format(screen.nr),
                         'type': 'scatter',
                         'data': hand,
@@ -278,7 +278,7 @@ from acacia.data.views import DownloadSeriesAsZip
 from acacia.data.models import Series
 
 def get_series(screen):
-    name = '%s COMP' % unicode(screen)
+    name = '{} COMP'.format(screen)
     try:
         return Series.objects.get(name=name)
     except:

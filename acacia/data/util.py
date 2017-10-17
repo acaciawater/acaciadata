@@ -97,7 +97,7 @@ def get_dirlist(content):
     return [m.groupdict() for m in re.finditer(FTPDIRPATTERN, content, re.MULTILINE)]
 
 from zipfile import ZipFile
-import StringIO
+from io import StringIO
 from django.http import HttpResponse
 import django.utils.text as dut
 

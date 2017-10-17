@@ -7,12 +7,12 @@ import os, logging
 from django.utils.text import slugify
 from .util import make_chart, recomp, createmeteo
 from acacia.data.models import Series
-import nitg
+from . import nitg
 from acacia.data import actions
 from acacia.ahn.models import AHN
 from django.shortcuts import get_object_or_404
 
-import StringIO
+from io import StringIO
 from acacia.meetnet.util import register_screen, register_well,\
     drift_correct_screen
 from django.core.exceptions import ObjectDoesNotExist
@@ -83,7 +83,7 @@ def update_statistics(modeladmin, request, queryset):
             s = lp.loggerstat
         except ObjectDoesNotExist:
             s = LoggerStat.objects.create(loggerpos = lp)
-        print lp
+        print(lp)
         s.update()
 update_statistics.short_description = 'statistiek vernieuwen'
 

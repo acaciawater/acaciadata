@@ -1,4 +1,4 @@
-from models import Station, NeerslagStation
+from .models import Station, NeerslagStation
 from django.contrib.gis import admin
 
 class StationAdmin(admin.OSMGeoAdmin):

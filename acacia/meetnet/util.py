@@ -12,7 +12,7 @@ from acacia.meetnet.models import MeteoData
 matplotlib.use('agg')
 import matplotlib.pylab as plt
 from matplotlib import rcParams
-from StringIO import StringIO
+from io import StringIO
 import math, pytz
 import os,re
 import datetime
@@ -174,7 +174,7 @@ def convert_to_nap(screen,series,parameter='Waterstand'):
             logger.warning('Referentiepunt ontbreekt voor {pos}'.format(pos=logpos))
             continue
         for ds in logpos.logger.datasources.all():
-            print ' ', logpos.logger, logpos.start_date, logpos.refpnt
+            print (' ', logpos.logger, logpos.start_date, logpos.refpnt)
             try:
                 data = ds.get_data()
             except Exception as e:
@@ -204,7 +204,7 @@ def get_series_data(screen,series,parameter='Waterstand'):
     seriesdata = None
     for logpos in screen.loggerpos_set.all().order_by('start_date'):
         for ds in logpos.logger.datasources.all():
-            print ' ', logpos.logger, logpos.start_date, logpos.refpnt
+            print (' ', logpos.logger, logpos.start_date, logpos.refpnt)
             try:
                 data = ds.get_data()
             except Exception as e:
@@ -266,7 +266,7 @@ def compensate(screen,series,baros,parameter='PRESSURE'):
         logpos.clear_stats()
         
         for mon in logpos.monfile_set.all().order_by('start_date'):
-            print ' ', logpos.logger, logpos.start_date, mon
+            print (' ', logpos.logger, logpos.start_date, mon)
             try:
                 mondata = mon.get_data()
             except Exception as e:

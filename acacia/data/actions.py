@@ -192,7 +192,7 @@ def download_series_zip(modeladmin, request, queryset):
     
 download_series_zip.short_description = 'Geselecteerde tijdreeksen converteren naar csv en link naar zip bestand emailen'
     
-import StringIO
+from io import StringIO
 from django.http import HttpResponse
 
 def download_series_csv(modeladmin, request, queryset):
@@ -312,7 +312,7 @@ update_grid.short_description = "Grid bijwerken"
 
 def test_kental(modeladmin, request, queryset):
     for k in queryset:
-        print k.get_value()
+        print(k.get_value())
 
 def update_kental(modeladmin, request, queryset):
     for k in queryset:

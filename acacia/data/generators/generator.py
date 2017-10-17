@@ -1,4 +1,4 @@
-import os, urllib2, cgi
+import os, urllib3, cgi
 import re
 import dateutil
 import acacia.data.util as util

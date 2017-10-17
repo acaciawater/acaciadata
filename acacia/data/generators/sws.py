@@ -4,8 +4,8 @@ Created on Jan 26, 2014
 @author: theo
 '''
 import logging
-from generator import Generator
-from StringIO import StringIO
+from .generator import Generator
+from io import StringIO
 logger = logging.getLogger(__name__)
 import numpy as np
 import pytz

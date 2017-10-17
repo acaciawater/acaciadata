@@ -6,12 +6,13 @@ Created on Jun 1, 2014
 import os, pandas as pd, numpy as np
 from django.db import models
 from django.contrib.gis.db import models as geo
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from acacia.data.models import Datasource, Series, SourceFile, ProjectLocatie,\
     MeetLocatie, ManualSeries
 from acacia.data import util
 from django.db.models.aggregates import Count, Sum
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models.deletion import SET_NULL, CASCADE
 
 class Network(models.Model):
     name = models.CharField(max_length=50, unique=True, verbose_name = 'naam')
@@ -21,7 +22,7 @@ class Network(models.Model):
     last_round = models.DateField(null=True,blank=True,verbose_name = 'laatste uitleesronde')
     next_round = models.DateField(null=True,blank=True,verbose_name = 'volgende uitleesronde')
     
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     def get_absolute_url(self):
@@ -34,8 +35,8 @@ class Network(models.Model):
 
 class Well(geo.Model):
     #TODO: this class should inherit from acacia.data.models.ProjectLocatie
-    ploc = models.ForeignKey(ProjectLocatie, null=True, blank=True)
-    network = models.ForeignKey(Network, verbose_name = 'Meetnet')
+    ploc = models.ForeignKey(ProjectLocatie, null=True, blank=True,on_delete=SET_NULL)
+    network = models.ForeignKey(Network, verbose_name = 'Meetnet',on_delete=CASCADE)
     name = models.CharField(max_length=50, verbose_name = 'naam')
     nitg = models.CharField(max_length=50, verbose_name = 'TNO/NITG nummer', blank=True)
     bro = models.CharField(max_length=50, verbose_name = 'BRO nummer', blank=True)
@@ -51,8 +52,6 @@ class Well(geo.Model):
     log = models.ImageField(null=True,blank=True,upload_to='logs',verbose_name = 'boorstaat')
     chart = models.ImageField(null=True,blank=True, upload_to='charts', verbose_name='grafiek')
     g = models.FloatField(default=9.80665,verbose_name='valversnelling', help_text='valversnelling in m/s2')
-    #baro = models.ForeignKey(Series, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='luchtdruk', help_text = 'tijdreeks voor luchtdruk compensatie')
-    objects = geo.GeoManager()
     
     def latlon(self):
         return util.toWGS84(self.location)
@@ -86,7 +85,7 @@ class Well(geo.Model):
     def get_absolute_url(self):
         return reverse('meetnet:well-detail', args=[self.id])
 
-    def __unicode__(self):
+    def __str__(self):
         return self.nitg or self.name
     
     def has_data(self):
@@ -117,13 +116,13 @@ def limitKNMI():
 
 class MeteoData(models.Model):
     """ meteo data for a well """
-    well = models.OneToOneField(Well,related_name='meteo',verbose_name='put')
+    well = models.OneToOneField(Well,related_name='meteo',verbose_name='put',on_delete=CASCADE)
     baro = models.ForeignKey(Series,on_delete=models.SET_NULL,blank=True,null=True,related_name='well_baro',limit_choices_to=limitKNMI,verbose_name='Luchtdruk')
     neerslag = models.ForeignKey(Series,on_delete=models.SET_NULL,blank=True,null=True,related_name='well_p',limit_choices_to=limitKNMI)
     verdamping = models.ForeignKey(Series,on_delete=models.SET_NULL,blank=True,null=True,related_name='well_ev24',limit_choices_to=limitKNMI)
     temperatuur = models.ForeignKey(Series,on_delete=models.SET_NULL,blank=True,null=True,related_name='well_temp',limit_choices_to=limitKNMI)
 
-    def __unicode__(self):
+    def __str__(self):
         return unicode(self.well)
     
     class Meta:
@@ -131,14 +130,14 @@ class MeteoData(models.Model):
         verbose_name_plural = 'Meteo'
 
 class Photo(models.Model): 
-    well = models.ForeignKey(Well)
+    well = models.ForeignKey(Well,on_delete=CASCADE)
     photo = models.ImageField(upload_to = 'fotos') 
     
     def thumb(self):
         url = self.photo.url
         return '<a href="%s"><img src="%s" height="60px"/></a>' % (url,url)
 
-    def __unicode__(self):
+    def __str__(self):
         try:
             return os.path.basename(self.photo.file.name)
         except:
@@ -158,8 +157,8 @@ MATERIALS = (
              ('ms', 'Staal'),
              )                  
 class Screen(models.Model):
-    mloc = models.ForeignKey(MeetLocatie, null=True, blank=True)
-    well = models.ForeignKey(Well, verbose_name = 'put')
+    mloc = models.ForeignKey(MeetLocatie, null=True, blank=True,on_delete=SET_NULL)
+    well = models.ForeignKey(Well, verbose_name = 'put',on_delete=CASCADE)
     nr = models.IntegerField(default=1, verbose_name = 'filternummer')
     density = models.FloatField(default=1000.0,verbose_name='dichtheid',help_text='dichtheid van het water in de peilbuis in kg/m3')
     refpnt = models.FloatField(null=True, blank=True, verbose_name = 'bovenkant buis', help_text = 'bovenkant peilbuis in meter tov NAP')
@@ -253,7 +252,7 @@ class Screen(models.Model):
         #return None if last is None else last.logger
         return last
     
-    def __unicode__(self):
+    def __str__(self):
         #return '%s/%03d' % (self.well.nitg, self.nr)
         wid = self.well.nitg or self.well.name
         return '%s/%03d' % (wid, self.nr)
@@ -312,15 +311,15 @@ class Datalogger(models.Model):
     serial = models.CharField(max_length=50,verbose_name = 'serienummer',unique=True)
     model = models.CharField(max_length=50,verbose_name = 'type', default='14', choices=DIVER_TYPES)
     
-    def __unicode__(self):
+    def __str__(self):
         return self.serial
  
     class Meta:
         ordering = ['serial']
 
 class LoggerPos(models.Model):
-    logger = models.ForeignKey(Datalogger)
-    screen = models.ForeignKey(Screen,verbose_name = 'filter',blank=True, null=True)
+    logger = models.ForeignKey(Datalogger,on_delete=CASCADE)
+    screen = models.ForeignKey(Screen,verbose_name = 'filter',blank=True, null=True,on_delete=SET_NULL)
     start_date = models.DateTimeField(verbose_name = 'start', help_text = 'Tijdstip van start datalogger')   
     end_date = models.DateTimeField(verbose_name = 'stop', blank=True, null=True, help_text = 'Tijdstrip van stoppen datalogger')   
     refpnt = models.FloatField(verbose_name = 'referentiepunt', blank=True, null=True, help_text = 'ophangpunt in meter tov NAP')
@@ -328,7 +327,7 @@ class LoggerPos(models.Model):
     #baro = models.ForeignKey(Series, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='luchtdruk', help_text = 'tijdreeks voor luchtdruk compensatie')
     remarks = models.TextField(verbose_name='opmerkingen', blank=True) 
 
-    def __unicode__(self):
+    def __str__(self):
         return '%s@%s' % (self.logger, self.screen)
     
     class Meta:
@@ -353,7 +352,7 @@ class LoggerPos(models.Model):
             pass
         
 class LoggerStat(models.Model):
-    loggerpos = models.OneToOneField(LoggerPos)
+    loggerpos = models.OneToOneField(LoggerPos,on_delete=CASCADE)
     count = models.PositiveIntegerField(default=0)
     min = models.FloatField(default=0,blank=True,null=True)
     p10 = models.FloatField(default=0,blank=True,null=True)
@@ -377,7 +376,7 @@ class LoggerStat(models.Model):
         self.save()
         
 class LoggerDatasource(Datasource):
-    logger = models.ForeignKey(Datalogger, related_name = 'datasources')
+    logger = models.ForeignKey(Datalogger, related_name = 'datasources',on_delete=CASCADE)
      
     class Meta:
         verbose_name = 'Loggerdata'
@@ -408,10 +407,10 @@ class MonFile(SourceFile):
     num_channels = models.IntegerField(default = 1)
     num_points = models.IntegerField()
 
-    source = models.ForeignKey(LoggerPos,verbose_name='diver',blank=True,null=True)
+    source = models.ForeignKey(LoggerPos,verbose_name='diver',blank=True,null=True,on_delete=SET_NULL)
 
 class Channel(models.Model):
-    monfile = models.ForeignKey(MonFile)
+    monfile = models.ForeignKey(MonFile,on_delete=CASCADE)
     number = models.IntegerField()
     identification = models.CharField(max_length=20)
     reference_level = models.FloatField()
@@ -419,7 +418,7 @@ class Channel(models.Model):
     range = models.FloatField()
     range_unit = models.CharField(max_length=10)
  
-    def __unicode__(self):
+    def __str__(self):
         return self.identification
 
     class Meta:
