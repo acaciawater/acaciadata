@@ -19,8 +19,8 @@ def spliturl(url):
 class Generator(object):
 
     def __init__(self, *args, **kwargs):
-        #self.engine = 'c'
-        self.engine = 'python'
+        self.engine = kwargs.get('engine', 'c')
+        #self.engine = 'python'
     
     def read_csv(self, *args, **kwargs):
         kwargs['engine'] = self.engine
