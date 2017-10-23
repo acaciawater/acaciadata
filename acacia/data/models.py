@@ -735,13 +735,12 @@ class SourceFile(models.Model,LoggerSourceMixin):
         # data should have a datetimeindex
         tz = self.datasource.timezone or get_current_timezone()
         for k,v in data.items():
-            if v.index.tz:
+            if hasattr(v.index,'tz') and v.index.tz:
                 data[k]=v.tz_convert(tz)
             else:
                 try:
                     data[k]=v.tz_localize(tz,ambiguous='infer')
                 except:
-                    
                     data[k]=v.tz_localize(tz,abmiguous='NaT')
         return data
 
