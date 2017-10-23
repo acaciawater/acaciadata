@@ -22,8 +22,7 @@ class NMCPro(Generator):
                 data[key] = data[key].astype('float64')
             except:
                 pass
-        data.sort(inplace=True)
-        return data
+        return data.sort_index()
 
     def get_header(self, f):
         f.seek(0)
