@@ -13,7 +13,7 @@
 	<li class="active"><a href="{% url 'acacia:meetlocatie-detail' object.id %}">{{object.name}}</a></li>
 </ol>
 {% endblock breadcrumbs %}
-{% block admin_url %}meetlocatie/{{object.id}}{% endblock %}
+{% block admin_url %}data/meetlocatie/{{object.id}}{% endblock %}
 {% block script %}
 {{ block.super }}
 {% localize off %}

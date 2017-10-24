@@ -7,8 +7,7 @@ import logging
 from generator import Generator
 from StringIO import StringIO
 logger = logging.getLogger(__name__)
-import numpy as np
-import pytz
+import pandas as pd
 
 class MonFileException(Exception):
 
@@ -81,6 +80,10 @@ class Diver(Generator):
         else:
             num=int(sections['HEADER'].get('Number of points','0'))
             data = self.read_csv(f, header=None, index_col=0, names = names, delim_whitespace=True, parse_dates = {'date': [0,1]}, nrows=num-2, error_bad_lines=False)
+            # when the datafile was edited manually and number of points does not correspond to number of rows, the last row will contain 'END OF DATA FILE...'
+            if 'END OF' in data.index:
+                data.drop('END OF',inplace=True)
+                data.index = pd.to_datetime(data.index,infer_datetime_format=True,errors='coerce')
         return data
 
     def get_parameters(self, fil):

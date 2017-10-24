@@ -96,13 +96,15 @@ class Command(BaseCommand):
                         else:
                             # maak dict met een na laatste datapoint per tijdreeks
                             # (rekening houden met niet volledig gevulde laatste tijdsinterval bij accumulatie of sommatie)
-                            last = {s: s.beforelast().date for s in series if s.aantal() > 0}
-                                
+                            try:
+                                last = {s: s.beforelast().date for s in series if s.aantal() > 0}
+                            except:
+                                last = {}
                     if down and d.autoupdate:
                         logger.info('Downloading datasource')
                         try:
                             # if start is in the future, use datetime.now as start to overwrite previous forecasts
-                            start = min(data_stop, aware(datetime.now()))
+                            start = min(data_stop, aware(datetime.now())) if data_stop else None
                             newfiles = d.download(start)
                         except Exception as e:
                             logger.exception('ERROR downloading datasource: %s' % e)

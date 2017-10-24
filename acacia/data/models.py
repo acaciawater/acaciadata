@@ -735,10 +735,13 @@ class SourceFile(models.Model,LoggerSourceMixin):
         # data should have a datetimeindex
         tz = self.datasource.timezone or get_current_timezone()
         for k,v in data.items():
-            if v.index.tz:
+            if hasattr(v.index,'tz') and v.index.tz:
                 data[k]=v.tz_convert(tz)
             else:
-                data[k]=v.tz_localize(tz,ambiguous='infer')
+                try:
+                    data[k]=v.tz_localize(tz,ambiguous='infer')
+                except:
+                    data[k]=v.tz_localize(tz,ambiguous='NaT')
         return data
 
     def get_locations(self,gen=None):
@@ -811,7 +814,7 @@ def sourcefile_save(sender, instance, **kwargs):
         logger.exception('Error getting dimensions while saving sourcefile %s: %s' % (instance, e))
     ds = instance.datasource
     if instance.uploaded is None:
-        instance.uploaded = aware(timezone.now(),instance.dataset.timezone or get_current_timezone())
+        instance.uploaded = aware(timezone.now(),instance.datasource.timezone or get_current_timezone())
     if ds.last_download is None:
         ds.last_download = instance.uploaded
     elif ds.last_download < instance.uploaded:
@@ -1536,6 +1539,8 @@ def series_post_save(sender, instance, **kwargs):
         logger.exception('Error updating properties of %s: %s' % (instance, e))
     
 class DataPoint(models.Model):
+    #id = models.BigAutoField(primary_key=True, unique = True)
+    id = models.BigIntegerField(primary_key=True, unique = True)
     series = models.ForeignKey(Series,related_name='datapoints')
     date = models.DateTimeField(verbose_name='Tijdstip')
     value = models.FloatField(verbose_name='Waarde')
@@ -1600,7 +1605,7 @@ class Chart(PolymorphicModel):
             if self.percount > 0:
                 kwargs = {self.perunit: -self.percount}
                 delta = dateutil.relativedelta.relativedelta(**kwargs)
-                pstart = timezone.make_aware(datetime.datetime.now() + delta, self.timezone)
+                pstart = aware(datetime.datetime.now() + delta, self.timezone)
                 if start is None:
                     return pstart
                 start = max(start,pstart) 

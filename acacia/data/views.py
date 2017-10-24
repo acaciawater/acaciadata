@@ -84,15 +84,16 @@ def ChartToJson(request, pk):
         
         def getseriesdata(s):
             pts = s.to_array(start=start,stop=stop)
+            num = len(pts)
+            
             #resample test
-            if cs.type == 'line':
+            if num>0 and cs.type == 'line':
                 x,y = zip(*pts)
                 f = pd.Series(data=y,index=x).resample(rule='H').mean()
                 f[pd.isnull(f)]=''
                 pts = zip(f.index,f.values)
 
             if maxpts>0:
-                num = len(pts)
                 if num > maxpts:
                     # thin series
                     date_range = pts[-1][0] - pts[0][0]
@@ -293,6 +294,26 @@ class SeriesView(DetailView):
         context['theme'] = ' None' #ser.theme()
         return context
 
+def parserep(r):
+    from dateutil.relativedelta import relativedelta
+    pattern = r'(?P<rep>\d*)(?P<how>[hdwmy])'
+    match = re.match(pattern, r,re.IGNORECASE)
+    if match:
+        rep = match.group('rep') or 1
+        how = match.group('how')
+        if how == 'h':
+            delta = relativedelta(hours=int(rep))
+        elif how == 'd':
+            delta = relativedelta(days=int(rep))
+        elif how == 'w':
+            delta = relativedelta(weeks=int(rep))
+        elif how == 'm':
+            delta = relativedelta(months=int(rep))
+        elif how == 'y':
+            delta = relativedelta(years=int(rep))
+        return delta
+    return None
+
 class ChartBaseView(TemplateView):
     template_name = 'data/plain_chart.html'
 
@@ -364,14 +385,13 @@ class ChartBaseView(TemplateView):
                 deltat = (ser.tot()-ser.van()).total_seconds() / ser.aantal() * 1000
             except:
                 deltat = 24 * 3600000 # 1 day                
-            title = s.label #ser.name if len(ser.unit)==0 else '%s [%s]' % (ser.name, ser.unit) if chart.series.count()>1 else ser.unit
             options['yAxis'].append({
-                                     'title': {'text': title},
+                                     'title': {'text': s.label},
                                      'opposite': 0 if s.axislr == 'l' else 1,
                                      'min': s.y0,
                                      'max': s.y1
                                      })
-            pts = [] #[[p.date,p.value] for p in ser.datapoints.filter(date__gte=start).order_by('date')]
+            pts = []
             name = s.name
             if name is None or name == '':
                 name = ser.name
@@ -421,7 +441,15 @@ class ChartBaseView(TemplateView):
                 b = []
                 for i in range(20):
                     if lo < ymax:
-                        b.append({'color': band.style.fillcolor, 'borderWidth': band.style.borderwidth, 'borderColor': band.style.bordercolor, 'from': lo, 'to': hi, 'label': {'text':band.label}})
+                        b.append(
+                            {'color': band.style.fillcolor, 
+                             'borderWidth': band.style.borderwidth, 
+                             'borderColor': band.style.bordercolor, 
+                             'from': lo, 
+                             'to': hi, 
+                             'label': {'text':band.label},
+                             'zIndex': band.style.zIndex
+                             })
                         lo += every
                         hi += every
             else:
@@ -429,26 +457,6 @@ class ChartBaseView(TemplateView):
                 lo = parse(band.low)
                 hi = parse(band.high)
                 
-                def parserep(r):
-                    from dateutil.relativedelta import relativedelta
-                    pattern = r'(?P<rep>\d*)(?P<how>[hdwmy])'
-                    match = re.match(pattern, r,re.IGNORECASE)
-                    if match:
-                        rep = match.group('rep') or 1
-                        how = match.group('how')
-                        if how == 'h':
-                            delta = relativedelta(hours=int(rep))
-                        elif how == 'd':
-                            delta = relativedelta(days=int(rep))
-                        elif how == 'w':
-                            delta = relativedelta(weeks=int(rep))
-                        elif how == 'm':
-                            delta = relativedelta(months=int(rep))
-                        elif how == 'y':
-                            delta = relativedelta(years=int(rep))
-                        return delta
-                    return None
-
                 delta = parserep(band.repetition)
                 
                 b = []
@@ -464,8 +472,21 @@ class ChartBaseView(TemplateView):
             ax['plotBands'].extend(b) 
         
         for line in chart.plotline_set.all():
-            pass
-        
+            if line.orientation == 'h':
+                ax = options['yAxis'][line.axis-1]
+            else:
+                ax = options['xAxis']
+            line_options = {
+                'color': line.style.color,
+                'dashStyle': line.style.dashstyle,
+                'label': {'text': line.label},
+                'value': line.value,
+                'width': line.style.width,
+                'zIndex': line.style.zIndex
+                }
+            if not 'plotLines' in ax:
+                ax['plotLines'] = []
+            ax['plotLines'].append(line_options) 
 
         jop = json.dumps(options,default=date_handler)
         # remove quotes around date stuff
@@ -485,16 +506,6 @@ class ChartBaseView(TemplateView):
         
 class ChartView(ChartBaseView):
     template_name = 'data/chart_detail.html'
-
-#     def get_context_data(self, **kwargs):
-#         context = super(ChartView, self).get_context_data(**kwargs)
-#         pk = context.get('pk',1)
-#         if pk is not None:
-#             chart = Chart.objects.get(pk=pk)
-#             jop = self.get_json(chart)
-#             context['options'] = jop
-#             context['chart'] = chart
-#         return context
     
 class DashView(TemplateView):
     template_name = 'data/dash.html'

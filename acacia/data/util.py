@@ -110,9 +110,12 @@ def datasources_as_zip(datasources, zipname):
     for d in datasources:
         folder = slugify(d.name)
         for f in d.sourcefiles.all():
-            filepath = f.filepath()
-            zippath = os.path.join(folder, f.filename())
-            zf.write(filepath,zippath)
+            try:
+                filepath = f.filepath()
+                zippath = os.path.join(folder, f.filename())
+                zf.write(filepath,zippath)
+            except Exception as e:
+                logger.error('Cannot add file {} to zip archive: {}'.format(f, e))
     zf.close()
     resp = HttpResponse(io.getvalue(), content_type = "application/x-zip-compressed")
     resp['Content-Disposition'] = 'attachment; filename=%s' % zipname

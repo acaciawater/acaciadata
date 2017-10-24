@@ -371,7 +371,11 @@ class Validation(models.Model):
     def reset(self):
         ''' resets this validation: removes all points and results '''
         if self.has_result():
-            self.result.delete()
+            try:
+                self.result.delete()
+            except:
+                # sometimes cant delete because result.id is None??
+                pass
         self.subresult_set.all().delete()
         self.validpoint_set.all().delete()
         self.last_validation = None

@@ -10,7 +10,7 @@
 	<li class="active"><a href="{% url 'acacia:projectlocatie-detail' object.id %}">{{object.name}}</a></li>
 </ol>
 {% endblock breadcrumbs %}
-{% block admin_url %}projectlocatie/{{object.id}}{% endblock %}
+{% block admin_url %}data/projectlocatie/{{object.id}}{% endblock %}
 {% block script %}
 {{ block.super }}
 {% localize off %}

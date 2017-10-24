@@ -21,8 +21,7 @@ class CR1000(Generator):
         sections['COLUMNS'] = rd(f)
         sections['UNITS'] = rd(f)
         sections['AGGR'] = rd(f)
-        if self.engine == 'python':
-            self.skiprows = 4
+        self.skiprows = 4 if self.engine == 'python' else 0 
         return sections
 
     def get_data(self, f, **kwargs):

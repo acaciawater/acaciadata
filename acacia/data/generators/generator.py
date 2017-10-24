@@ -19,8 +19,8 @@ def spliturl(url):
 class Generator(object):
 
     def __init__(self, *args, **kwargs):
-        #self.engine = 'c'
-        self.engine = 'python'
+        self.engine = kwargs.get('engine', 'c')
+        #self.engine = 'python'
     
     def read_csv(self, *args, **kwargs):
         kwargs['engine'] = self.engine
@@ -84,7 +84,7 @@ class Generator(object):
                 content = response.read()
                 if util.is_dirlist(content):
                     # download all files in directory listing
-                    pattern = kwargs['pattern',None] # search pattern
+                    pattern = kwargs.get('pattern',None) # search pattern
                     dirlist = util.get_dirlist(content)
                     tz = timezone.get_current_timezone()
                     for f in dirlist:
