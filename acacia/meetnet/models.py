@@ -45,7 +45,7 @@ class Well(geo.Model):
     ahn = models.DecimalField(null=True, blank=True, decimal_places=2, max_digits=10, verbose_name = 'AHN maaiveld', help_text = 'AHN-maaiveld in meter tov NAP')
     date = models.DateField(null=True, blank=True, verbose_name = 'constructiedatum')
     straat = models.CharField(max_length=60, blank=True)
-    huisnummer = models.CharField(max_length=6, blank=True)
+    huisnummer = models.CharField(max_length=12, blank=True)
     postcode = models.CharField(max_length=8, blank=True)
     plaats = models.CharField(max_length=60, blank=True)
     log = models.ImageField(null=True,blank=True,upload_to='logs',verbose_name = 'boorstaat')
