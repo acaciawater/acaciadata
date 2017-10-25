@@ -1145,6 +1145,9 @@ class Series(PolymorphicModel,LoggerSourceMixin):
                 dataframe = data[self.mlocatie]
             elif self.mlocatie.name in data:
                 dataframe = data[self.mlocatie.name]
+            elif None in data and len(data) == 1:
+                # no location available, use default
+                dataframe = data[None]
             else:
                 logger.error('series %s: location %s not found' % (self.name, self.mlocatie.name))
                 return None
@@ -1539,8 +1542,7 @@ def series_post_save(sender, instance, **kwargs):
         logger.exception('Error updating properties of %s: %s' % (instance, e))
     
 class DataPoint(models.Model):
-    #id = models.BigAutoField(primary_key=True, unique = True)
-    id = models.BigIntegerField(primary_key=True, unique = True)
+    id = models.BigAutoField(primary_key=True, unique = True)
     series = models.ForeignKey(Series,related_name='datapoints')
     date = models.DateTimeField(verbose_name='Tijdstip')
     value = models.FloatField(verbose_name='Waarde')
