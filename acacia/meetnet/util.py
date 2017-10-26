@@ -76,7 +76,7 @@ def chart_for_screen(screen,start=None,stop=None):
             plt.plot_date(x,y,'--',label='diverpositie',color='orange')
             ncol += 1
 
-    data = screen.get_levels('nap',rule='H')
+    data = screen.get_levels('nap',rule=None)
 #    n = len(data) / (THUMB_SIZE[0]*THUMB_DPI)
 #     if n > 1:
 #         #use data thinning: take very nth row
@@ -117,7 +117,7 @@ def chart_for_well(well,start=None,stop=None):
     ncol = 0
     index = 0
     for screen in well.screen_set.all():
-        data = screen.get_levels('nap',rule='H')
+        data = screen.get_levels('nap',rule=None)
 #         n = len(data) / (THUMB_SIZE[0]*THUMB_DPI)
 #         if n > 1:
 #             #use data thinning: take very nth row
