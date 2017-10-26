@@ -222,28 +222,34 @@ class Screen(models.Model):
             return query['sourcefiles__count']
         except:
             return 0
-    
-    def num_standen(self):
-        try:
-            query = self.mloc.datasource_set.aggregate(Sum('sourcefiles__rows'))
-            return query['sourcefiles__rows__sum']
-        except:
-            return 0
-
-    def has_data(self):
-        return self.num_standen()>0
-
+        
+    def find_series(self):
+        from django.db.models import Q
+        return self.mloc.series_set.filter(Q(name__endswith='COMP')|Q(name__startswith='Waterstand')).first()
+        
     def start(self):
         try:
-            return min([d.start() for d in self.mloc.datasource_set.all() if d.start()])
+            return self.find_series().van()
         except:
             return None
 
     def stop(self):
         try:
-            return max([d.stop() for d in self.mloc.datasource_set.all() if d.stop()])
+            return self.find_series().tot()
         except:
             return None
+        
+    def num_standen(self):
+        try:
+            s = self.find_series()
+            return s.aantal()
+            #return self.find_series().aantal()
+        except:
+            return 0
+        
+    def has_data(self):
+        return self.num_standen()>0
+
         
     def get_loggers(self):
         return [p.logger for p in self.loggerpos_set.order_by('logger__serial').distinct('logger__serial')]
@@ -279,10 +285,14 @@ class Screen(models.Model):
             
     def get_compensated_series(self, **kwargs):
         # Gecompenseerde tijdreeksen (tov NAP) ophalen (Alleen voor Divers and Leiderdorp Instruments)
-        for s in self.mloc.series():
-            if s.name.endswith('COMP') or s.name.startswith('Waterstand'):
-                return s.to_pandas(**kwargs)
-        return None
+        try:
+            return self.find_series().to_pandas(**kwargs)
+        except:
+            return None
+#         for s in self.mloc.series():
+#             if s.name.endswith('COMP') or s.name.startswith('Waterstand'):
+#                 return s.to_pandas(**kwargs)
+#         return None
     
     def stats(self):
         df = self.get_compensated_series()
@@ -322,10 +332,9 @@ class LoggerPos(models.Model):
     logger = models.ForeignKey(Datalogger)
     screen = models.ForeignKey(Screen,verbose_name = 'filter',blank=True, null=True)
     start_date = models.DateTimeField(verbose_name = 'start', help_text = 'Tijdstip van start datalogger')   
-    end_date = models.DateTimeField(verbose_name = 'stop', blank=True, null=True, help_text = 'Tijdstrip van stoppen datalogger')   
+    end_date = models.DateTimeField(verbose_name = 'stop', blank=True, null=True, help_text = 'Tijdstip van stoppen datalogger')   
     refpnt = models.FloatField(verbose_name = 'referentiepunt', blank=True, null=True, help_text = 'ophangpunt in meter tov NAP')
     depth = models.FloatField(verbose_name = 'kabellengte', blank=True, null=True, help_text = 'lengte van ophangkabel in meter')
-    #baro = models.ForeignKey(Series, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='luchtdruk', help_text = 'tijdreeks voor luchtdruk compensatie')
     remarks = models.TextField(verbose_name='opmerkingen', blank=True) 
 
     def __unicode__(self):
