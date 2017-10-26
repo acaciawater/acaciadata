@@ -69,7 +69,7 @@ class LoggerPosAdmin(admin.ModelAdmin):
     list_display = ('logger', 'screen', 'start_date', 'end_date', 'refpnt', 'depth', 'remarks')
     list_filter = ('screen__well', 'screen',)
     search_fields = ('logger__serial','screen__well__name')
-    inlines = [MonFileInline]
+    #inlines = [MonFileInline]
     
 class LoggerInline(admin.TabularInline):
     model = LoggerPos
