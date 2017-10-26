@@ -1241,11 +1241,21 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         return num_created + num_updated
     
     def getproperties(self):
+        ''' return properties, creates and updates if no properties exist '''
         try:
             props = self.properties
         except SeriesProperties.DoesNotExist:
             props = SeriesProperties.objects.create(series = self)
             props.update()
+        return props
+
+    def update_properties(self):
+        ''' return updated properties, creates if no properties exist '''
+        try:
+            props = self.properties
+        except SeriesProperties.DoesNotExist:
+            props = SeriesProperties.objects.create(series = self)
+        props.update()
         return props
      
     def aantal(self):
