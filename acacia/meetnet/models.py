@@ -51,7 +51,6 @@ class Well(geo.Model):
     log = models.ImageField(null=True,blank=True,upload_to='logs',verbose_name = 'boorstaat')
     chart = models.ImageField(null=True,blank=True, upload_to='charts', verbose_name='grafiek')
     g = models.FloatField(default=9.80665,verbose_name='valversnelling', help_text='valversnelling in m/s2')
-    #baro = models.ForeignKey(Series, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='luchtdruk', help_text = 'tijdreeks voor luchtdruk compensatie')
     objects = geo.GeoManager()
     
     def latlon(self):
@@ -163,6 +162,7 @@ class Screen(models.Model):
     nr = models.IntegerField(default=1, verbose_name = 'filternummer')
     density = models.FloatField(default=1000.0,verbose_name='dichtheid',help_text='dichtheid van het water in de peilbuis in kg/m3')
     refpnt = models.FloatField(null=True, blank=True, verbose_name = 'bovenkant buis', help_text = 'bovenkant peilbuis in meter tov NAP')
+    depth = models.FloatField(null=True, blank=True, verbose_name = 'diepte peilbuis', help_text = 'diepte peilbuis in meter min maaiveld')
     top = models.FloatField(null=True, blank=True, verbose_name = 'bovenkant filter', help_text = 'bovenkant filter in meter min maaiveld')
     bottom = models.FloatField(null=True, blank=True, verbose_name = 'onderkant filter', help_text = 'onderkant filter in meter min maaiveld')
     diameter = models.FloatField(null=True, blank=True, verbose_name = 'diameter buis', default=32, help_text='diameter in mm (standaard = 32 mm)')
@@ -296,6 +296,8 @@ class Screen(models.Model):
     
     def stats(self):
         df = self.get_compensated_series()
+        if df is None:
+            return {}
         s = df.describe(percentiles=[.1,.5,.9])
         s['p10'] = None if np.isnan(s['10%']) else s['10%']
         s['p50'] = None if np.isnan(s['50%']) else s['50%']
