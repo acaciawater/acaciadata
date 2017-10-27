@@ -151,7 +151,7 @@ class MeetLocatie(geo.Model):
         return util.toWGS84(self.location)
 
     def datasourcecount(self):
-        return self.datasources.count()
+        return self.datasource_set.count()
     datasourcecount.short_description = 'Aantal datasources'
 
     def get_absolute_url(self):
