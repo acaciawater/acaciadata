@@ -423,13 +423,19 @@ def register_screen(screen):
 def createmeteo(request, well):
     ''' Create datasources with meteo data for a well '''
 
+    def find(f, seq):
+        """Return first item in sequence where f(item) == True."""
+        for item in seq:
+            if f(item): 
+                return item
+  
     def docreate(name,closest,gen,start,candidates):
         instance = gen.get_class()()
         ploc, created = well.ploc.project.projectlocatie_set.get_or_create(name = name, defaults = {'description': name, 'location': closest.location})
         mloc, created = ploc.meetlocatie_set.get_or_create(name = name, defaults = {'description': name, 'location': closest.location})
         if created:
             logger.info('Meetlocatie {} aangemaakt'.format(name))   
-        ds, created = mloc.datasources.get_or_create(name = name, defaults = {'description': name,'generator': gen, 'user': user, 'timezone': 'UTC',
+        ds, created = mloc.datasource_set.update_or_create(name = name, defaults = {'description': name,'generator': gen, 'user': user, 'timezone': 'UTC',
                                                      'url': instance.url + '?stns={stn}&start={start}'.format(stn=closest.nummer,start=start)})
         if created:
             ds.download()
@@ -443,7 +449,8 @@ def createmeteo(request, well):
                 series_name = '{} {}'.format(value,closest.naam)
                 series, created = p.series_set.get_or_create(name = series_name, mlocatie = mloc, defaults = 
                         {'description': p.description, 'unit': p.unit, 'user': request.user})
-                series.replace()
+                if created:
+                    series.replace()
             except Parameter.DoesNotExist:
                 logger.warning('Parameter %s not found in datasource %s' % (key, ds.name))
             except Exception as e:
@@ -462,8 +469,11 @@ def createmeteo(request, well):
     gen = Generator.objects.get(classname__icontains='KNMI.meteo')
     closest = Station.closest(well.location)
     name = 'Meteostation {} (dagwaarden)'.format(closest.naam)
-    meteo.temperatuur,meteo.neerslag,meteo.verdamping = docreate(name,closest,gen,'20170101',{'TG':'Temperatuur','RH': 'Neerslag','EV24': 'Verdamping'})
-
+    res = docreate(name,closest,gen,'20170101',{'TG':'Temperatuur','RH': 'Neerslag','EV24': 'Verdamping'})
+    meteo.temperatuur = find(lambda s: s.name.startswith('Temperatuur'),res) 
+    meteo.neerslag = find(lambda s: s.name.startswith('Neerslag'),res)
+    meteo.verdamping = find(lambda s: s.name.startswith('Verdamping'),res)     
+    
     gen = Generator.objects.get(classname__icontains='KNMI.neerslag')
     closest = NeerslagStation.closest(well.location)
     name = 'Neerslagstation {}'.format(closest.naam)
@@ -472,8 +482,9 @@ def createmeteo(request, well):
     gen = Generator.objects.get(classname__icontains='KNMI.uur')
     closest = Station.closest(well.location)
     name = 'Meteostation {} (uurwaarden)'.format(closest.naam)
-    luchtdruk = docreate(name,closest,gen,'2017010101',{'P':'Luchtdruk'})
-    meteo.baro = luchtdruk[0] 
+    res = docreate(name,closest,gen,'2017010101',{'P':'Luchtdruk','RH': 'Neerslag'})
+    meteo.baro = find(lambda s: s.name.startswith('Lucht'),res)
+    meteo.neerslag = find(lambda s: s.name.startswith('Neer'),res)
 
     meteo.save()
     
