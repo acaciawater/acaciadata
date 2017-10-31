@@ -258,14 +258,19 @@ class WellChartView(TemplateView):
                                 'type': 'column',
                                 'data': data,
                                 'yAxis': 1,
-                                'pointRange': 24 * 3600 * 1000, # 1 day
-#                                 'pointPadding': 0.01,
-                                'pointPlacement': 'between',
+                                'pointRange': 1 * 3600 * 1000, # 1 hour
+                                'pointPadding': 0,
+                                'groupPadding': 0,
+                                'pointPlacement': -0.5,
                                 'zIndex': 1,
                                 'color': 'orange', 
                                 'borderColor': '#cc6600', 
+                                'tooltip': {'valueSuffix': ' '+neerslag.unit,
+                                            'valueDecimals': 2,
+                                            'shared': True,
+                                           }, 
                                 })
-                    options['yAxis'].append({'title': {'text': 'Neerslag (mm/d)'},
+                    options['yAxis'].append({'title': {'text': 'Neerslag ({})'.format(neerslag.unit)},
                                              'opposite': 1,
                                              'min': 0,
                                              })
