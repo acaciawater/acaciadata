@@ -33,15 +33,15 @@ def aware(d,tz=None):
                 tz = settings.TIME_ZONE
             if not isinstance(tz, timezone.tzinfo):
                 tz = pytz.timezone(tz)
-            if timezone.is_naive(d):
-                try:
+            try:
+                if timezone.is_naive(d):
                     return timezone.make_aware(d, tz)            
+            except Exception as e:
+#                 pytz.NonExistentTimeError, pytz.AmbiguousTimeError: # CET/CEST transition?
+                try:
+                    return timezone.make_aware(d, pytz.utc)
                 except:
-    #                 pytz.NonExistentTimeError, pytz.AmbiguousTimeError: # CET/CEST transition?
-                    try:
-                        return timezone.make_aware(d, pytz.utc)
-                    except:
-                        pass
+                    pass
             else:
                 return d.astimezone(tz)
     return d
@@ -448,7 +448,8 @@ class Datasource(models.Model, LoggerSourceMixin):
                         
         for loc, data in datadict.iteritems():
             # sourcefile.get_data has already set the timezone, code below is redundant?
-            date = np.array([aware(d, self.timezone) for d in data.index.to_pydatetime()])
+            timezone = pytz.timezone(self.timezone)
+            date = np.array([aware(d, timezone) for d in data.index.to_pydatetime()])
             slicer = None
             if start is not None:
                 if stop is not None:
@@ -740,7 +741,7 @@ class SourceFile(models.Model,LoggerSourceMixin):
             else:
                 try:
                     data[k]=v.tz_localize(tz,ambiguous='infer')
-                except:
+                except Exception as ex:
                     data[k]=v.tz_localize(tz,ambiguous='NaT')
         return data
 
@@ -1141,7 +1142,10 @@ class Series(PolymorphicModel,LoggerSourceMixin):
             dataframe = data
         else:
             # multiple locations
-            if self.mlocatie in data:
+            if not self.mlocatie:
+                # use any location
+                _location, dataframe = next(data.items())
+            elif self.mlocatie in data:
                 dataframe = data[self.mlocatie]
             elif self.mlocatie.name in data:
                 dataframe = data[self.mlocatie.name]
