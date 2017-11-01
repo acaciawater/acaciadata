@@ -10,7 +10,7 @@ from django.core.urlresolvers import reverse
 from acacia.data.models import Datasource, Series, SourceFile, ProjectLocatie,\
     MeetLocatie, ManualSeries
 from acacia.data import util
-from django.db.models.aggregates import Count, Sum
+from django.db.models.aggregates import Count
 from django.core.exceptions import ObjectDoesNotExist
 
 class Network(models.Model):
@@ -67,6 +67,31 @@ class Well(geo.Model):
         return self.photo_set.count()
     num_photos.short_description='aantal fotos'
 
+    def add_photo(self, name, fp, fmt='JPEG'):
+        ''' adds or replaces photo from file-like object while honoring rotation tag '''
+        from PIL import Image
+        from cStringIO import StringIO
+
+        ORIENTATION = 274
+        TRANSPOSE = {3: Image.ROTATE_180, 6: Image.ROTATE_270, 8: Image.ROTATE_90}
+        
+        image = Image.open(fp)
+        exif = image._getexif()
+        if exif and ORIENTATION in exif:
+            orientation = exif[ORIENTATION]
+            if orientation in TRANSPOSE:
+                image = image.transpose(TRANSPOSE[orientation])
+                io = StringIO()
+                image.save(io,fmt)
+                fp = io
+        basename,_ext = os.path.splitext(name)
+        queryset = self.photo_set.filter(photo__contains=basename)
+        if queryset:
+            photo_obj = queryset.first()
+        else:
+            photo_obj = self.photo_set.create() 
+        photo_obj.photo.save(name,fp,save=True)
+        
     def full_address(self,sep=', '):
         def add(a,b,sep):
             if b:
@@ -130,6 +155,7 @@ class MeteoData(models.Model):
         verbose_name_plural = 'Meteo'
 
 class Photo(models.Model): 
+    # TODO: use sorl.thumbnail?
     well = models.ForeignKey(Well)
     photo = models.ImageField(upload_to = 'fotos') 
     
