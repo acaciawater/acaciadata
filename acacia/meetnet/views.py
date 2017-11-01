@@ -237,14 +237,16 @@ class WellChartView(TemplateView):
                         })
             
 
-        if well.maaiveld and start and stop:
+        maaiveld = well.maaiveld or well.ahn
+        if maaiveld and start and stop:
             tz = get_current_timezone()
+            maaiveld = float(maaiveld)
             series.append({'name': 'maaiveld',
                         'type': 'line',
                         'lineWidth': 2,
                         'color': '#009900',
                         'dashStyle': 'Dash',
-                        'data': [(start.astimezone(tz),well.maaiveld),(stop.astimezone(tz),well.maaiveld)],
+                        'data': [(start.astimezone(tz),maaiveld),(stop.astimezone(tz),maaiveld)],
                         'zIndex': 4,
                         })
 
