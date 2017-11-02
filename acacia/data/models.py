@@ -1226,8 +1226,10 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         
 
         # delete properties first to avoid foreignkey constraint failure
-        self.properties.delete()
-
+        try:
+            self.properties.delete()
+        except:
+            pass
         # delete the points
         if start is None:
             start = min([p.date for p in pts])
