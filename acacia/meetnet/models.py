@@ -119,16 +119,18 @@ class Well(geo.Model):
                 return True
         return False
     
+    def last_measurement(self):
+        last = [s.last_measurement() for s in self.screen_set.all()]
+        if last:
+            # remove None measurements
+            last = [m for m in last if m]
+            if last:
+                return max(last,key=lambda x: x.date)
+        return None
+    
     def last_measurement_date(self):
-        last = None
-        for s in self.screen_set.all():
-            if s.has_data():
-                stop = s.stop()
-                if last is None:
-                    last = stop
-                elif stop:
-                    last = max(last,stop)
-        return last.date() if last else None
+        last = self.last_measurement()
+        return last.date.date() if last else None
     
     class Meta:
         verbose_name = 'put'
@@ -329,6 +331,13 @@ class Screen(models.Model):
         s['p50'] = None if np.isnan(s['50%']) else s['50%']
         s['p90'] = None if np.isnan(s['90%']) else s['90%']
         return s
+        
+    def last_measurement(self):
+        series = self.find_series()
+        if series and series.datapoints:
+            return series.datapoints.latest('date')
+        else:
+            return None
         
     class Meta:
         unique_together = ('well', 'nr',)
