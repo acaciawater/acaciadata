@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import os,datetime,math,binascii
+import os, datetime, math, binascii
 from django.db import models
 from django.db.models import Avg, Max, Min, Sum
 from django.contrib.auth.models import User
@@ -12,18 +12,18 @@ from django.conf import settings
 import upload as up
 import numpy as np
 import pandas as pd
-import json,util,StringIO,pytz,logging
+import json, util, StringIO, pytz, logging
 import dateutil
 from django.db.models.aggregates import StdDev
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.timezone import get_current_timezone, is_naive
 
-THEME_CHOICES = ((None,'standaard'),
-                 ('dark-blue','blauw'),
-                 ('dark-green','groen'),
-                 ('gray','grijs'),
-                 ('grid','grid'),
-                 ('skies','wolken'),)
+THEME_CHOICES = ((None, 'standaard'),
+                 ('dark-blue', 'blauw'),
+                 ('dark-green', 'groen'),
+                 ('gray', 'grijs'),
+                 ('grid', 'grid'),
+                 ('skies', 'wolken'),)
 
 def aware(d,tz=None):
     ''' utility function to ensure datetime object has requested timezone '''
@@ -55,16 +55,16 @@ class LoggerSourceMixin(object):
     def getLoggerSource(self):
         return self
 
-    def getLogger(self,name=__name__): 
-        logger = logging.getLogger(name)  
-        return logging.LoggerAdapter(logger,extra={'source': self.getLoggerSource()})
+    def getLogger(self, name=__name__): 
+        logger = logging.getLogger(name)
+        return logging.LoggerAdapter(logger, extra={'source': self.getLoggerSource()})
 
 class Project(models.Model):
     name = models.CharField(max_length=50, unique=True)
-    description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
-    image = models.ImageField(upload_to=up.project_upload, blank = True, null=True)
+    description = models.TextField(blank=True, null=True, verbose_name='omschrijving')
+    image = models.ImageField(upload_to=up.project_upload, blank=True, null=True)
     logo = models.ImageField(upload_to=up.project_upload, blank=True, null=True)
-    theme = models.CharField(max_length=50,null=True, blank=True,verbose_name='thema', default='dark-blue',choices=THEME_CHOICES,help_text='Thema voor grafieken')
+    theme = models.CharField(max_length=50, blank=True, null=True, verbose_name='thema', default='dark-blue', choices=THEME_CHOICES, help_text='Thema voor grafieken')
         
     def series(self):
         s = []
@@ -86,11 +86,11 @@ class Project(models.Model):
         verbose_name_plural = 'projecten'
 
 class Webcam(models.Model):
-    name = models.CharField(max_length=50,verbose_name='naam')
-    description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
-    image = models.TextField(verbose_name = 'url voor snapshot')
-    video = models.TextField(verbose_name = 'url voor streaming video')
-    admin = models.TextField(verbose_name = 'url voor beheer')
+    name = models.CharField(max_length=50, verbose_name='naam')
+    description = models.TextField(blank=True, null=True, verbose_name='omschrijving')
+    image = models.TextField(verbose_name='url voor snapshot')
+    video = models.TextField(verbose_name='url voor streaming video')
+    admin = models.TextField(verbose_name='url voor beheer')
     
     def snapshot(self):
         url = self.image
@@ -103,14 +103,14 @@ class Webcam(models.Model):
     
 class ProjectLocatie(geo.Model):
     project = models.ForeignKey(Project)
-    name = models.CharField(max_length=100,verbose_name='naam')
-    description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
-    description.allow_tags=True
-    image = models.ImageField(upload_to=up.locatie_upload, blank = True, null = True)
-    location = geo.PointField(srid=util.RDNEW,verbose_name='locatie', help_text='Projectlocatie in Rijksdriehoekstelsel coordinaten')
+    name = models.CharField(max_length=100, verbose_name='naam')
+    description = models.TextField(blank=True, null=True, verbose_name='omschrijving')
+    description.allow_tags = True
+    image = models.ImageField(upload_to=up.locatie_upload, blank=True, null=True)
+    location = geo.PointField(srid=util.RDNEW, verbose_name='locatie', help_text='Projectlocatie in Rijksdriehoekstelsel coordinaten')
     objects = geo.GeoManager()
-    webcam = models.ForeignKey(Webcam, null = True, blank=True)
-    dashboard = models.ForeignKey('TabGroup', blank=True, null=True, verbose_name = 'Standaard dashboard')
+    webcam = models.ForeignKey(Webcam, blank=True, null=True)
+    dashboard = models.ForeignKey('TabGroup', blank=True, null=True, verbose_name='Standaard dashboard')
     
     def get_absolute_url(self):
         return reverse('acacia:projectlocatie-detail', args=[self.id])
@@ -137,12 +137,12 @@ class ProjectLocatie(geo.Model):
 
 class MeetLocatie(geo.Model):
     projectlocatie = models.ForeignKey(ProjectLocatie)
-    name = models.CharField(max_length=100,verbose_name='naam')
-    description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
+    name = models.CharField(max_length=100, verbose_name='naam')
+    description = models.TextField(blank=True, null=True, verbose_name='omschrijving')
     image = models.ImageField(upload_to=up.meetlocatie_upload, blank = True, null = True)
-    location = geo.PointField(dim=2,srid=util.RDNEW,verbose_name='locatie', help_text='Meetlocatie in Rijksdriehoekstelsel coordinaten')
+    location = geo.PointField(dim=2, srid=util.RDNEW, verbose_name='locatie', help_text='Meetlocatie in Rijksdriehoekstelsel coordinaten')
     objects = geo.GeoManager()
-    webcam = models.ForeignKey(Webcam, null = True, blank=True)
+    webcam = models.ForeignKey(Webcam, blank=True, null = True)
 
     def project(self):
         return self.projectlocatie.project
@@ -196,11 +196,11 @@ def classForName( kls ):
     return m
 
 class Generator(models.Model):
-    name = models.CharField(max_length=50,verbose_name='naam', unique=True)
-    classname = models.CharField(max_length=50,verbose_name='python klasse',
+    name = models.CharField(max_length=50, verbose_name='naam', unique=True)
+    classname = models.CharField(max_length=50, verbose_name='python klasse',
                                  help_text='volledige naam van de generator klasse, bijvoorbeeld acacia.data.generators.knmi.Meteo')
-    description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
-    url = models.URLField(blank=True,null=True,verbose_name = 'Default url')
+    description = models.TextField(blank=True, null=True, verbose_name='omschrijving')
+    url = models.URLField(blank=True, null=True, verbose_name='Default url')
     
     def get_class(self):
         return classForName(self.classname)
@@ -225,20 +225,20 @@ def timezone_choices():
 TIMEZONE_CHOICES = timezone_choices()
 
 class Datasource(models.Model, LoggerSourceMixin):
-    name = models.CharField(max_length=100,verbose_name='naam')
-    description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
-    meetlocatie=models.ForeignKey(MeetLocatie,null=True,blank=True,verbose_name='Primaire meetlocatie',help_text='Primaire meetlocatie van deze gegevensbron')
-    locations=models.ManyToManyField(MeetLocatie,blank=True,related_name='datasources',verbose_name='locaties', help_text='Secundaire meetlocaties die deze gegevensbron gebruiken')
-    url=models.CharField(blank=True,null=True,max_length=200,help_text='volledige url van de gegevensbron. Leeg laten voor handmatige uploads of default url van generator')
-    generator=models.ForeignKey(Generator,help_text='Generator voor het maken van tijdreeksen uit de datafiles')
-    user=models.ForeignKey(User,verbose_name='Aangemaakt door')
-    created = models.DateTimeField(auto_now_add=True,verbose_name='Aangemaakt op')
-    last_download = models.DateTimeField(null=True, blank=True, verbose_name='geactualiseerd')
+    name = models.CharField(max_length=100, verbose_name='naam')
+    description = models.TextField(blank=True, null=True, verbose_name='omschrijving')
+    meetlocatie = models.ForeignKey(MeetLocatie, blank=True, null=True, verbose_name='Primaire meetlocatie', help_text='Primaire meetlocatie van deze gegevensbron')
+    locations = models.ManyToManyField(MeetLocatie, blank=True, related_name='datasources', verbose_name='locaties', help_text='Secundaire meetlocaties die deze gegevensbron gebruiken')
+    url = models.CharField(blank=True, null=True, max_length=200, help_text='volledige url van de gegevensbron. Leeg laten voor handmatige uploads of default url van generator')
+    generator = models.ForeignKey(Generator, help_text='Generator voor het maken van tijdreeksen uit de datafiles')
+    user = models.ForeignKey(User, verbose_name='Aangemaakt door')
+    created = models.DateTimeField(auto_now_add=True, verbose_name='Aangemaakt op')
+    last_download = models.DateTimeField(blank=True, null=True, verbose_name='geactualiseerd')
     autoupdate = models.BooleanField(default=True)
-    config=models.TextField(blank=True,null=True,default='{}',verbose_name = 'Additionele configuraties',help_text='Geldige JSON dictionary')
-    username=models.CharField(max_length=50, blank=True, null=True, default='anonymous', verbose_name='Gebuikersnaam',help_text='Gebruikersnaam voor downloads')
-    password=models.CharField(max_length=50, blank=True, null=True, verbose_name='Wachtwoord',help_text='Wachtwoord voor downloads')
-    timezone=models.CharField(max_length=50, blank=True, verbose_name = 'Tijdzone', default=settings.TIME_ZONE,choices=TIMEZONE_CHOICES)
+    config = models.TextField(blank=True, null=True, default='{}', verbose_name = 'Additionele configuraties', help_text='Geldige JSON dictionary')
+    username = models.CharField(max_length=50, blank=True, null=True, default='anonymous', verbose_name='Gebuikersnaam',help_text='Gebruikersnaam voor downloads')
+    password = models.CharField(max_length=50, blank=True, null=True, verbose_name='Wachtwoord', help_text='Wachtwoord voor downloads')
+    timezone = models.CharField(max_length=50, blank=True, verbose_name='Tijdzone', default=settings.TIME_ZONE, choices=TIMEZONE_CHOICES)
 
     class Meta:
         ordering = ['name',]
@@ -306,7 +306,7 @@ class Datasource(models.Model, LoggerSourceMixin):
             return None
 
         options['url']=url
-
+        
         return options
                    
     def download(self, start=None):
@@ -339,7 +339,7 @@ class Datasource(models.Model, LoggerSourceMixin):
                     try:
                         sourcefile = self.sourcefiles.get(name=filename)
                     except:
-                        sourcefile = SourceFile(name=filename,datasource=self,user=self.user)
+                        sourcefile = SourceFile(name=filename, datasource=self, user=self.user)
                     sourcefile.crc = crc
                     contentfile = ContentFile(contents)
                     try:
@@ -348,7 +348,7 @@ class Datasource(models.Model, LoggerSourceMixin):
                         crcs[crc] = sourcefile.file
                         files.append(sourcefile)
                     except Exception as e:
-                        logger.exception('Problem saving file %s: %s' % (filename,e))
+                        logger.exception('Problem saving file %s: %s' % (filename, e))
 
             options['callback'] = callback
             results = gen.download(**options)
@@ -361,7 +361,7 @@ class Datasource(models.Model, LoggerSourceMixin):
         self.save(update_fields=['last_download'])
         return files
         
-    def update_parameters(self,data=None,files=None,limit=0):
+    def update_parameters(self, data=None, files=None, limit=0):
         logger = self.getLogger()
         gen = self.get_generator_instance()
         if gen is None:
@@ -385,26 +385,26 @@ class Datasource(models.Model, LoggerSourceMixin):
                     logger.exception('Cannot update parameters for sourcefile %s: %s' % (sourcefile, e))
             except Exception as e:
                 logger.exception('Cannot open sourcefile %s: %s' % (sourcefile, e))
-        logger.debug('Update completed, got %d parameters from %d files', len(params),len(files))
+        logger.debug('Update completed, got %d parameters from %d files', len(params), len(files))
         num_created = 0
         num_updated = 0
-        for name,defaults in params.iteritems():
+        for name, defaults in params.iteritems():
             name = name.strip()
             if name == '':
                 continue
             try:
                 param = self.parameter_set.get(name=name)
-                num_updated = num_updated+1
+                num_updated = num_updated + 1
             except Parameter.DoesNotExist:
                 logger.info('parameter %s created' % name)
-                param = Parameter(name=name,**defaults)
+                param = Parameter(name=name, **defaults)
                 param.datasource = self
-                num_created = num_created+1
+                num_created = num_created + 1
             param.save()
         logger.debug('%d parameters created, %d updated' % (num_created, num_updated))
-        return num_created+num_updated
+        return num_created + num_updated
 
-    def replace_parameters(self,data=None):
+    def replace_parameters(self, data=None):
         self.parameter_set.all().delete()
         self.update_parameters(data)
 
@@ -414,7 +414,7 @@ class Datasource(models.Model, LoggerSourceMixin):
         for p in self.parameter_set.all():
             p.make_thumbnail(data)
     
-    def get_data(self,**kwargs):
+    def get_data(self, **kwargs):
         logger = self.getLogger()
         gen = self.get_generator_instance(**kwargs)
         logger.debug('Getting data for datasource %s', self.name)
@@ -428,11 +428,11 @@ class Datasource(models.Model, LoggerSourceMixin):
         for sourcefile in files:
 
             if start is not None:
-                sstop = aware(sourcefile.stop,self.timezone)
+                sstop = aware(sourcefile.stop, self.timezone)
                 if sstop is not None and sstop < start:
                     continue
             if stop is not None:
-                sstart = aware(sourcefile.start,self.timezone)
+                sstart = aware(sourcefile.start, self.timezone)
                 if sstart is not None and sstart > stop:
                     continue
                 
@@ -671,27 +671,27 @@ class SourceFile(models.Model,LoggerSourceMixin):
 
     def get_data_dimensions(self, data):
         tz = self.datasource.timezone or get_current_timezone()
-        numrows=0
-        cols=set()
-        begin=None
-        end=None
-        for k,v in data.iteritems():
+        numrows = 0
+        cols = set()
+        begin = None
+        end = None
+        for k, v in data.iteritems():
             rows = v.shape[0]
             if rows:
                 numrows += rows
                 start = aware(min(v.index), tz)
-                begin = min(begin,start) if begin else start 
+                begin = min(begin, start) if begin else start 
                 stop = aware(max(v.index), tz)
-                end = max(end,stop) if end else stop 
+                end = max(end, stop) if end else stop 
                 for colname in v.columns.values:
                     cols.add(colname)
-        numcols=len(cols)
+        numcols = len(cols)
         numlocs = len(data)
         
         self.cols = numcols
         self.rows = numrows
         self.locs = numlocs
-        self.start= begin
+        self.start = begin
         self.stop = end
         
         return (numlocs,numrows,numcols,begin,end)
@@ -1539,8 +1539,7 @@ def series_post_save(sender, instance, **kwargs):
         logger.exception('Error updating properties of %s: %s' % (instance, e))
     
 class DataPoint(models.Model):
-    #id = models.BigAutoField(primary_key=True, unique = True)
-    id = models.BigIntegerField(primary_key=True, unique = True)
+    id = models.BigAutoField(primary_key=True, unique = True)
     series = models.ForeignKey(Series,related_name='datapoints')
     date = models.DateTimeField(verbose_name='Tijdstip')
     value = models.FloatField(verbose_name='Waarde')

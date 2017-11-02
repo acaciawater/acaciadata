@@ -393,6 +393,7 @@ class ManualSeriesAdmin(PolymorphicChildModelAdmin):
 #class FormulaAdmin(SeriesAdmin):
 class FormulaSeriesAdmin(PolymorphicChildModelAdmin):
     base_model = Series
+    exclude = ('user',)
     list_filter = ('mlocatie', 'parameter__datasource', 'parameter__datasource__meetlocatie__projectlocatie__project', ContentTypeFilter)
     fieldsets = (
                   ('Algemeen', {'fields': ('mlocatie', 'name', ('unit', 'type'), 'description','timezone'),
