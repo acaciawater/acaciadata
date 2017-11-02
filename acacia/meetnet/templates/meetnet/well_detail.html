@@ -56,10 +56,11 @@ a img {
 	{% endif %}
 </tr>
 <tr><td class="col-md-2">Omschrijving</td><td>{{object.description|safe}}</td></tr>
-<tr><td class="col-md-2">OLGA code</td><td>{{object.name|default:'<i>geen</i>'}}</td></tr>
+<!-- <tr><td class="col-md-2">OLGA code</td><td>{{object.name|default:'<i>geen</i>'}}</td></tr> -->
 <!-- <tr><td>BRO id</td><td>{{object.bro|default:'<i>onbekend</i>'}}</td></tr> -->
-{% if object.straat %}<tr><td>Adres</td><td>{{object.straat}} {{object.huisnummer}}</td></tr>{% endif %}
-{% if object.plaats %}<tr><td>Plaats</td><td>{{object.postcode}} {{object.plaats}}</td></tr>{% endif %}
+{% if object.straat %}<tr><td>Adres</td><td>{{object.full_address}}</td></tr>{% endif %}
+<!-- {% if object.straat %}<tr><td>Adres</td><td>{{object.straat}} {{object.huisnummer}}</td></tr>{% endif %} -->
+<!-- {% if object.plaats %}<tr><td>Plaats</td><td>{{object.postcode}} {{object.plaats}}</td></tr>{% endif %} -->
 <tr><td>Coördinaten</div></td><td>({{object.RD.x|floatformat:2}}&nbsp;{{object.RD.y|floatformat:2}})</td></tr>
 {% if object.date %}<tr><td>Constructiedatum</div></td><td>{{object.date}}</td></tr>{% endif %}
 <tr><td>Maaiveld</div></td><td>{%if object.maaiveld %}{{object.maaiveld|floatformat:2}} m NAP{%else%}<i>onbekend</i>{%endif%}
@@ -67,7 +68,12 @@ a img {
 </td></tr>
 
 <tr><td>Filters</td><td>{{object.num_filters}}</td></tr>
-<tr><td>Laatste uitleesronde</td><td>{{object.last_measurement_date|default:'<i>onbekend</i>'}}</td></tr>
+{%with object.last_measurement as last %}
+<tr>
+<td>Laatste meting</td>
+<td>{% if last %}{{last.value|floatformat:2}}m ({{last.date}}){% else %}<i>onbekend</i>{% endif %}</td>
+</tr>
+{% endwith %}
 <tr>
 <td>{%for f in object.photo_set.all %}<a href="/media/{{f.photo.name}}"><img class="foto" src="/media/{{f.photo.name}}"/></a>{%endfor%}</td>
 <td>
