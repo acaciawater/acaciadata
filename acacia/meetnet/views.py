@@ -21,6 +21,11 @@ import os, json, logging, time
 
 from util import handle_uploaded_files
 from django.utils.timezone import get_current_timezone
+import StringIO
+from zipfile import ZipFile
+from django.utils.text import slugify
+from acacia.data.actions import download_series_csv
+from acacia.data.util import series_as_csv
 
 logger = logging.getLogger(__name__)
 
@@ -282,14 +287,9 @@ class WellChartView(TemplateView):
         return context
 
 from acacia.data.views import DownloadSeriesAsZip
-from acacia.data.models import Series
 
 def get_series(screen):
-    name = '%s COMP' % unicode(screen)
-    try:
-        return Series.objects.get(name=name)
-    except:
-        return None
+    return screen.find_series()
 
 @login_required
 def DownloadSeriesAsNITG(request,source,series):
@@ -310,6 +310,18 @@ def EmailWellSeries(request,pk):
     well = get_object_or_404(Well, pk=pk)
     series = [get_series(s) for s in well.screen_set.all()]
     return DownloadSeriesAsZip(request, unicode(well), series)
+
+def DownloadWellSeries(request,pk):
+    well = get_object_or_404(Well, pk=pk)
+    series = [get_series(s) for s in well.screen_set.all()]
+    if series:
+        if len(series)==1:
+            resp = series_as_csv(series[0]) # one single csv file
+            resp['Content-Disposition'] = 'attachment; filename={}.csv'.format(slugify(str(well)))
+        else:
+            resp = download_series_csv(None,request,series) # zip archive with all series
+            resp['Content-Disposition'] = 'attachment; filename={}.zip'.format(slugify(str(well)))
+        return resp
     
 def EmailScreenSeries(request,pk):
     screen = get_object_or_404(Screen,pk=pk)
