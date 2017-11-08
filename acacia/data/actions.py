@@ -141,17 +141,14 @@ def download_series(modeladmin, request, queryset):
         d.download()
 download_series.short_description = 'Bronbestanden van geselecteerde tijdreeksen downloaden'
 
-#TODO: convert to celery
 from django.utils.text import slugify
 from django.conf import settings
 import os,tempfile
 from zipfile import ZipFile
 from threading import Thread
 
-from django.core.mail import send_mail
 from datetime import datetime, timedelta
 from django.template.loader import render_to_string
-from django.contrib.sites.models import Site
 
 def email_series_zip(request, queryset, zf):
     if not queryset:
@@ -189,7 +186,6 @@ def download_series_zip(modeladmin, request, queryset):
     series = list(queryset)
     t = Thread(target=email_series_zip, args=(request,series,zipfile))
     t.start()
-    
 download_series_zip.short_description = 'Geselecteerde tijdreeksen converteren naar csv en link naar zip bestand emailen'
     
 import StringIO
