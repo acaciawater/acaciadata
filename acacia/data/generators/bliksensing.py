@@ -1,31 +1,81 @@
 import pandas as pd
-import numpy as np
-import urllib2
+from datetime import datetime
+import requests
+from pytz import utc
+import logging
+logger = logging.getLogger(__name__)
 
-from acacia.data.generators.generator import Generator
+from generator import Generator
+from acacia.data.secrets import BLIK_SECRET_TOKEN_DATA
 
-class BlikSensingGenerator(Generator):    
+class Blik(Generator):
+    def get_data(self, fil, **kwargs):
+        fil.seek(0)
+        df = pd.read_json(fil)
+        df.index=df['time'].apply(lambda x: datetime.fromtimestamp(x,utc))
+        return df.drop('time',axis=1)
+    
+    def get_parameters(self, fil):
+        df = self.get_data(fil)
+        params = {col:{'description':col,'unit':'-'} for col in df.columns}
+        return params
+    
+    def get_auth_token(self):
+        data = BLIK_SECRET_TOKEN_DATA
+        headers = {'content-type': 'application/json'}
+        response = requests.post('https://blik.eu.auth0.com/oauth/token', data=data, headers=headers)
+        response.raise_for_status()
+        return response.json().get(u'access_token')
+    
+    def blik_api_request(self, url, limit, before, after):
+        url = url + '?limit={0}&before={1}&after={2}'.format(limit, before, after)
+        token = self.get_auth_token()
+        auth_string = 'Bearer ' + token
+        headers = {'authorization': auth_string}
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        return response.text
+
+    unix_epoch = datetime(1970, 1, 1, tzinfo=utc)
+        
+    def utc_now(self):
+        now = datetime.utcnow()
+        return utc.localize(now)
+    
+    def datetime_to_unix_timestamp(self,dt):
+        if dt is None:
+            return None
+        if dt.tzinfo is None:
+            dt = utc.localize(dt)
+        return int((dt - self.unix_epoch).total_seconds())
+      
     def download(self, **kwargs):
+        url = kwargs.get('url', None) #'https://backend.water.bliksensing.nl/measurements/<node-ID>'
+        if url is None:
+            logger.error('url for download is undefined')
+            return {}
+        limit = kwargs.get('limit', 50000)
+        stop = kwargs.get('stop', self.utc_now())
+        start = kwargs.get('start', self.unix_epoch)
+        if start is None:
+            start = self.unix_epoch
         
+        node_id = url.split('/')[-1]
+        before = self.datetime_to_unix_timestamp(stop)
+        after = self.datetime_to_unix_timestamp(start)
         
+        filename = 'blik_node{0}limit{1}before{2}after{3}.json'.format(node_id, limit, before, after)
+        content = self.blik_api_request(url, limit, before, after)
+        if 'time' not in content:
+            logger.debug('download() did not complete. Possibly no new data (in that case, response = []). Response from BlikSensing: ' + content)
+            return {}
+        result = {filename:content}
         
-        
-        
-        
-        
-        result = {'file.txt':unicode(dict(kwargs))}
         callback = kwargs.get('callback', None)
         if callback is not None:
             callback(result)
         return result
     
-    def get_data(self, fil, **kwargs):
-        #get data from the file fil
-        return pd.DataFrame(np.random.randn(6,4), index=pd.date_range('20170101', periods=6), columns=list('ABCD'))
-
-    def get_parameters(self, fil):
-        #get parameters from the file fil
-        return {'A': {'description' : 'description', 'unit': 'unit'}, 'B': {'description' : 'description', 'unit': 'unit'}, 'C': {'description' : 'description', 'unit': 'unit'}, 'D': {'description' : 'description', 'unit': 'unit'}}
-
+    
     
     
