@@ -4,7 +4,9 @@ Created on Feb 12, 2014
 @author: theo
 '''
 import os, fnmatch, re
+import pytz, datetime
 import matplotlib
+from django.utils import timezone
 matplotlib.use('agg')
 import matplotlib.pylab as plt
 from django.contrib.gis.geos import Point
@@ -22,6 +24,15 @@ WEBMERC=3857
 GOOGLE=900913
 AMERSFOORT=4289
 WGS84=4326
+
+EPOCH = pytz.utc.localize(datetime.datetime(1970,1,1,0,0,0))
+
+def unix_timestamp(dt):
+    if timezone.is_naive(dt):
+        dt = timezone.make_aware(dt, pytz.utc)            
+    else:
+        dt = timezone.localtime(dt,pytz.utc)
+    return (dt-EPOCH).total_seconds()
 
 # thumbnail size and resolution
 THUMB_DPI=72

@@ -17,15 +17,13 @@ from .models import Network, Well, Screen
 from .forms import UploadFileForm
 from .actions import download_well_nitg
 
-import os, json, logging, time
+import os, json, logging
 
 from util import handle_uploaded_files
 from django.utils.timezone import get_current_timezone
-import StringIO
-from zipfile import ZipFile
 from django.utils.text import slugify
 from acacia.data.actions import download_series_csv
-from acacia.data.util import series_as_csv
+from acacia.data.util import series_as_csv, unix_timestamp
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +108,7 @@ class ScreenChartView(TemplateView):
                        ]
             }
             
-        context['options'] = json.dumps(options, default=lambda x: int(time.mktime(x.timetuple())*1000))
+        context['options'] = json.dumps(options, default=lambda x: int(unix_timestamp(x)*1000))
         context['screen'] = filt
         return context
 
@@ -147,8 +145,7 @@ def json_series(request, pk):
         values = zip(series.index, series.values)
         #values = zip(series.index.astype(np.int64)//10**6, series.values)
     data = {'screen%s'%screen.nr: values}
-    return HttpResponse(json.dumps(data,default=lambda x: int(time.mktime(x.timetuple())*1000)),content_type='application/json')
-    #return HttpResponse(json.dumps(data),content_type='application/json')
+    return HttpResponse(json.dumps(data,default=lambda x: int(unix_timestamp(x)*1000)),content_type='application/json')
     
 class WellChartView(TemplateView):
     template_name = 'meetnet/chart_detail.html'
@@ -261,11 +258,21 @@ class WellChartView(TemplateView):
             if neerslag:
                 data = neerslag.to_array(start=start, stop=stop)
                 if data:
+                    aantal = len(data)
+                    if aantal>1:
+                        first = data[0][0]
+                        last = data[-1][0]
+                        deltat = (last - first)
+                        secs = deltat.total_seconds() / (aantal-1)
+                        hours = max(int(secs/3600),1)
+                    else:
+                        hours = 1 
+                    
                     series.append({'name': neerslag.name,
                                 'type': 'column',
                                 'data': data,
                                 'yAxis': 1,
-                                'pointRange': 1 * 3600 * 1000, # 1 hour
+                                'pointRange': hours * 3600 * 1000, 
                                 'pointPadding': 0,
                                 'groupPadding': 0,
                                 'pointPlacement': -0.5,
@@ -282,7 +289,10 @@ class WellChartView(TemplateView):
                                              'min': 0,
                                              })
         options['series'] = series
-        context['options'] = json.dumps(options, default=lambda x: int(time.mktime(x.timetuple())*1000))
+        
+        def to_timestamp(dt):
+            ''' transform datetime to timestamp '''
+        context['options'] = json.dumps(options, default=lambda x: unix_timestamp(x)*1000)
         context['object'] = well
         return context
 
