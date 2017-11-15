@@ -484,7 +484,7 @@ def createmeteo(request, well):
     name = 'Meteostation {} (uurwaarden)'.format(closest.naam)
     res = docreate(name,closest,gen,'2017010101',{'P':'Luchtdruk','RH': 'Neerslag'})
     meteo.baro = find(lambda s: s.name.startswith('Lucht'),res)
-    meteo.neerslag = find(lambda s: s.name.startswith('Neer'),res)
+    #meteo.neerslag = find(lambda s: s.name.startswith('Neer'),res)
 
     meteo.save()
     
