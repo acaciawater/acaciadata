@@ -7,7 +7,7 @@ from django.test import TestCase
 from django.contrib.gis.geos.point import Point
 from django.contrib.auth.models import User
 
-from acacia.data.models import Project, Generator, aware
+from acacia.data.models import Project, Generator, aware, Formula
 from acacia.data.generators.generator import Generator as BaseGenerator
 import acacia.data.actions as actions
 
@@ -83,7 +83,7 @@ class ProjectModelTests(TestCase):
         gen = generator_class()
         self.assertEqual(gen.get_header(None),{})
         
-    def test__it_is_possible_to_add_a_datasource_to_a_generator(self):
+    def test_it_is_possible_to_add_a_datasource_to_a_generator(self):
         generator = Generator.objects.create(name=u'Generator', classname='acacia.data.tests.test_models.MockGenerator')
         user = User.objects.create(username=u'UserName', password=u'PassWord')        
         self.assertEqual(generator.datasource_set.count(), 0)
@@ -140,14 +140,14 @@ class ProjectModelTests(TestCase):
     def test_datasource_download_same_file_twice_adds_it_once_to_database(self):
         (_,_,_,_,_,datasource) = self.setup_up_to_datasource()
         datasource.download(start = datetime.datetime(1991,12,19))
-        file = datasource.sourcefiles.filter(name='file.txt').update(name='file0.txt')
+        datasource.sourcefiles.filter(name='file.txt').update(name='file0.txt')
         datasource.download(start = datetime.datetime(1991,12,19))
         self.assertEqual(datasource.sourcefiles.count(),1)
         
     def test_datasource_download_different_file_results_in_two_files_in_database(self):
         (_,_,_,_,_,datasource) = self.setup_up_to_datasource()
         datasource.download(start = datetime.datetime(2017,01,01))
-        file = datasource.sourcefiles.filter(name='file.txt').update(name='file0.txt')
+        datasource.sourcefiles.filter(name='file.txt').update(name='file0.txt')
         datasource.download(start = datetime.datetime(1991,12,19))
         self.assertEqual(datasource.sourcefiles.count(),2)
         
@@ -210,13 +210,32 @@ class ProjectModelTests(TestCase):
         return (project,projectlocatie,meetlocatie,generator,user,datasource)
     
     
-        
+    
+    
+    
+    
+        # !!!!!!!!!! HIER GEBLEVEN !!!!!!!!!!!!!!!
     def test_series(self):
         (project,projectlocatie,meetlocatie,generator,user,datasource) = self.setup_up_to_generate_series()
         series = project.series()
         first_series = series[0];
-        print(first_series.to_pandas())
+        #print(first_series.to_pandas())
         self.assertEqual(first_series.maximum(),20.0)
+        
+    def test_berekende_reeks(self):
+        (project,projectlocatie,meetlocatie,generator,user,datasource) = self.setup_up_to_generate_series()
+        series_list = project.series()
+        variabele1 = meetlocatie.variable_set.create(name="EersteReeks", series = series_list[0])
+        variabele2 = meetlocatie.variable_set.create(name="TweedeReeks", series = series_list[1])
+        berekende_reeks = Formula.objects.create(mlocatie=meetlocatie, name="Verschil", user=user)
+        berekende_reeks.formula_variables.add(variabele1)
+        berekende_reeks.formula_variables.add(variabele2)
+        berekende_reeks.formula_text = "TweedeReeks-EersteReeks"
+        berekende_reeks.save()
+        #print(berekende_reeks.to_pandas()) #Gaat nog niet goed. Nu lege reeks. Reeks moet nog gemaakt worden.
+        self.assertEqual(True,False)
+        
+        
         
         
         

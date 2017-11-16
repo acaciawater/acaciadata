@@ -20,6 +20,7 @@ class Blik(Generator):
         params = {col:{'description':col,'unit':'-'} for col in df.columns}
         return params
     
+    # Request a new token every time for simplicity, because the token expires already after a week.
     def get_auth_token(self):
         data = BLIK_SECRET_TOKEN_DATA
         headers = {'content-type': 'application/json'}
