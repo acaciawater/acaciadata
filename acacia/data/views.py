@@ -16,6 +16,7 @@ from dateutil.parser import parse
 from acacia.data.models import aware
 import pandas as pd
 from acacia.data.util import resample_rule
+from django.utils.translation import ugettext as _
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +111,7 @@ def ChartToJson(request, pk):
                 pts2 = getseriesdata(cs.series2)
                 pts = [[p1[0],p1[1],p2[1]] for p1,p2 in zip(pts,pts2)]
             except:
-                logger.exception('Cannot align series {a} and {b} for area fill in chart {c}'.format(a=str(cs.series), b=str(cs.series2), c=str(c)))
+                logger.exception(_('Cannot align series {a} and {b} for area fill in chart {c}').format(a=str(cs.series), b=str(cs.series2), c=str(c)))
                 # series need to be aligned
                 pass
         data['series_%d' % cs.series.id] = pts
@@ -165,24 +166,6 @@ def UpdateDatasource(request,pk):
     nxt = request.GET['next']
     update_datasource(pk)
     return redirect(nxt)
-# 
-# from celery.result import AsyncResult
-# 
-# def poll_state(request):
-#     """ A view to report progress """
-#     if 'job' in request.GET:
-#         job_id = request.GET['job']
-#     else:
-#         return HttpResponse('No job id given.')
-# 
-#     job = AsyncResult(job_id)
-#     data = {'state':job.state, 'result': job.result}
-#     return HttpResponse(json.dumps(data), mimetype='application/json')
-# 
-# def StartUpdateDatasource(request,pk):
-#     #job = update_datasource.delay(pk)
-#     job = longjob.delay(pk)
-#     return render_to_response('data/poll_view.html', {'job': job.id }, context_instance=RequestContext(request))
 
 class DatasourceDetailView(DetailView):
     model = Datasource
@@ -546,7 +529,7 @@ class DashGroupView(TemplateView):
         page = min(page, len(dashboards))
         if page > 0:
             pages = list(group.pages())
-            context['title'] = 'Dashboard %s - %s' % (group.name, pages[page-1].name)
+            context['title'] = _('Dashboard %(name)s - %(page)s') % {'name':group.name, 'page': pages[page-1].name}
             context['page'] = int(page)
             context['dashboard'] = dashboards[page-1]
         return context    
@@ -616,7 +599,7 @@ class GridBaseView(TemplateView):
                 'tooltip': {
                     'useHTML': True,
                     'headerFormat': '',
-                    'pointFormat': '{point.x: %e %B %Y %H:%M:%S}<br/>Diepte: {point.y}m<br/>' + grid.entity + ': <b>{point.value} '+grid.unit+'</b>',
+                    'pointFormat': '{point.x: %e %B %Y %H:%M:%S}<br/>'+_('Diepte')+': {point.y}m<br/>' + grid.entity + ': <b>{point.value} '+grid.unit+'</b>',
                     'footerFormat': '',
                     'valueDecimals': 2
                 },

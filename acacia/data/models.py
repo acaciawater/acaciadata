@@ -17,13 +17,14 @@ import dateutil
 from django.db.models.aggregates import StdDev
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.timezone import get_current_timezone, is_naive
+from django.utils.translation import ugettext_lazy as _
 
-THEME_CHOICES = ((None,'standaard'),
-                 ('dark-blue','blauw'),
-                 ('dark-green','groen'),
-                 ('gray','grijs'),
-                 ('grid','grid'),
-                 ('skies','wolken'),)
+THEME_CHOICES = ((None,_('default')),
+                 ('dark-blue',_('blue')),
+                 ('dark-green',_('green')),
+                 ('gray',_('gray')),
+                 ('grid',_('grid')),
+                 ('skies',_('skies')),)
 
 def aware(d,tz=None):
     ''' utility function to ensure datetime object has requested timezone '''
@@ -61,10 +62,10 @@ class LoggerSourceMixin(object):
 
 class Project(models.Model):
     name = models.CharField(max_length=50, unique=True)
-    description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
+    description = models.TextField(blank=True,null=True,verbose_name=_('description'))
     image = models.ImageField(upload_to=up.project_upload, blank = True, null=True)
     logo = models.ImageField(upload_to=up.project_upload, blank=True, null=True)
-    theme = models.CharField(max_length=50,null=True, blank=True,verbose_name='thema', default='dark-blue',choices=THEME_CHOICES,help_text='Thema voor grafieken')
+    theme = models.CharField(max_length=50,null=True, blank=True,verbose_name=_('theme'), default='blue', choices=THEME_CHOICES,help_text=_('Theme for charts'))
         
     def series(self):
         s = []
@@ -74,7 +75,7 @@ class Project(models.Model):
 
     def location_count(self):
         return self.projectlocatie_set.count()
-    location_count.short_description='Aantal locaties'
+    location_count.short_description=_('Number of locations')
     
     def get_absolute_url(self):
         return reverse('acacia:project-detail', args=[self.id])
@@ -83,14 +84,14 @@ class Project(models.Model):
         return self.name
 
     class Meta:
-        verbose_name_plural = 'projecten'
+        verbose_name_plural = _('projects')
 
 class Webcam(models.Model):
-    name = models.CharField(max_length=50,verbose_name='naam')
-    description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
-    image = models.TextField(verbose_name = 'url voor snapshot')
-    video = models.TextField(verbose_name = 'url voor streaming video')
-    admin = models.TextField(verbose_name = 'url voor beheer')
+    name = models.CharField(max_length=50,verbose_name=_('name'))
+    description = models.TextField(blank=True,null=True,verbose_name=_('description'))
+    image = models.TextField(verbose_name = _('url for snapshot'))
+    video = models.TextField(verbose_name = _('url for streaming video'))
+    admin = models.TextField(verbose_name = _('url for admin'))
     
     def snapshot(self):
         url = self.image
@@ -103,21 +104,21 @@ class Webcam(models.Model):
     
 class ProjectLocatie(geo.Model):
     project = models.ForeignKey(Project)
-    name = models.CharField(max_length=100,verbose_name='naam')
-    description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
+    name = models.CharField(max_length=100,verbose_name=_('name'))
+    description = models.TextField(blank=True,null=True,verbose_name=_('description'))
     description.allow_tags=True
     image = models.ImageField(upload_to=up.locatie_upload, blank = True, null = True)
-    location = geo.PointField(srid=util.RDNEW,verbose_name='locatie', help_text='Projectlocatie in Rijksdriehoekstelsel coordinaten')
+    location = geo.PointField(srid=util.RDNEW,verbose_name=_('location'), help_text=_('Project location in Rijksdriehoekstelsel coordinates'))
     objects = geo.GeoManager()
     webcam = models.ForeignKey(Webcam, null = True, blank=True)
-    dashboard = models.ForeignKey('TabGroup', blank=True, null=True, verbose_name = 'Standaard dashboard')
+    dashboard = models.ForeignKey('TabGroup', blank=True, null=True, verbose_name = _('Default dashboard'))
     
     def get_absolute_url(self):
         return reverse('acacia:projectlocatie-detail', args=[self.id])
 
     def location_count(self):
         return self.meetlocatie_set.count()
-    location_count.short_description='Aantal meetlocaties'
+    location_count.short_description=_('Number of measure locations')
 
     def __unicode__(self):
         return self.name
@@ -137,10 +138,10 @@ class ProjectLocatie(geo.Model):
 
 class MeetLocatie(geo.Model):
     projectlocatie = models.ForeignKey(ProjectLocatie)
-    name = models.CharField(max_length=100,verbose_name='naam')
-    description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
+    name = models.CharField(max_length=100,verbose_name=_('name'))
+    description = models.TextField(blank=True,null=True,verbose_name=_('description'))
     image = models.ImageField(upload_to=up.meetlocatie_upload, blank = True, null = True)
-    location = geo.PointField(dim=2,srid=util.RDNEW,verbose_name='locatie', help_text='Meetlocatie in Rijksdriehoekstelsel coordinaten')
+    location = geo.PointField(dim=2,srid=util.RDNEW,verbose_name=_('location'), help_text=_('Location in Rijksdriehoekstelsel coordinates'))
     objects = geo.GeoManager()
     webcam = models.ForeignKey(Webcam, null = True, blank=True)
 
@@ -152,7 +153,7 @@ class MeetLocatie(geo.Model):
 
     def datasourcecount(self):
         return self.datasource_set.count()
-    datasourcecount.short_description = 'Aantal datasources'
+    datasourcecount.short_description = _('Number of datasources')
 
     def get_absolute_url(self):
         return reverse('acacia:meetlocatie-detail',args=[self.id])

@@ -1,10 +1,11 @@
 from django.db import models
 import requests
+from django.utils.translation import ugettext_lazy as _
 
 class AHN(models.Model):
-    name = models.CharField(max_length=50)
-    layer = models.CharField(max_length=50)
-    resolution = models.FloatField()
+    name = models.CharField(max_length=50,verbose_name=_('name'))
+    layer = models.CharField(max_length=50,verbose_name=_('layer'))
+    resolution = models.FloatField(verbose_name=_('resolution'))
     url = models.URLField()
     
     def __unicode__(self):
