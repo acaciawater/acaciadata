@@ -37,7 +37,7 @@ class Well(geo.Model):
     ploc = models.ForeignKey(ProjectLocatie, null=True, blank=True)
     network = models.ForeignKey(Network, verbose_name = 'Meetnet')
     name = models.CharField(max_length=50, verbose_name = 'naam')
-    nitg = models.CharField(max_length=50, unique=True, verbose_name = 'TNO/NITG nummer', blank=True)
+    nitg = models.CharField(max_length=50, verbose_name = 'TNO/NITG nummer', blank=True)
     bro = models.CharField(max_length=50, verbose_name = 'BRO nummer', blank=True)
     location = geo.PointField(srid=28992,verbose_name='locatie',help_text='locatie in rijksdriehoeksstelsel coordinaten')
     description = models.TextField(verbose_name='locatieomschrijving',blank=True)
@@ -68,6 +68,21 @@ class Well(geo.Model):
         return self.photo_set.count()
     num_photos.short_description='aantal fotos'
 
+    def full_address(self,sep=', '):
+        def add(a,b,sep):
+            if b:
+                if a:
+                    a += sep
+                    a += b
+                else:
+                    a = b
+            return a
+        
+        adres = add(self.straat,self.huisnummer,' ')
+        adres = add(adres, self.postcode, ', ')
+        adres = add(adres, self.plaats, ' ')
+        return adres
+    
     def get_absolute_url(self):
         return reverse('meetnet:well-detail', args=[self.id])
 
@@ -95,7 +110,8 @@ class Well(geo.Model):
         verbose_name = 'put'
         verbose_name_plural = 'putten'
         ordering = ['nitg','name']
-
+        unique_together = ('nitg','name')
+        
 def limitKNMI():
     return {'parameter__datasource__generator__classname__icontains':'KNMI'}
 

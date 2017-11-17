@@ -25,7 +25,7 @@ class FEWS(Generator):
 
     def timestamp(self, datetime=datetime.datetime.utcnow()):
         ''' return unix timestamp from datetime '''
-        return int(time.mktime(datetime.utctimetuple())*1000)
+        return int(time.mktime(datetime.timetuple())*1000)
                 
     def download (self, **kwargs):
         ''' download json response from ddsc REST API 

@@ -116,7 +116,7 @@ class DatasourceAdmin(admin.ModelAdmin):
     form = DatasourceForm
     inlines = [CalibrationInline, SourceFileInline] # takes VERY long for decagon with more than 1000 files
     search_fields = ['name',]
-    actions = [actions.upload_datasource, actions.update_parameters, actions.datasource_dimensions,actions.generate_locations,actions.generate_datasource_series]
+    actions = [actions.upload_datasource, actions.update_parameters, actions.datasource_dimensions,actions.generate_locations,actions.generate_datasource_series,actions.update_datasource_series]
     list_filter = ('meetlocatie','meetlocatie__projectlocatie','meetlocatie__projectlocatie__project','generator')
     list_display = ('name', 'description', 'meetlocatie', 'generator', 'last_download', 'filecount', 'locationcount', 'parametercount', 'seriescount', 'calibcount','timezone','start', 'stop', 'rows',)
     fieldsets = (
@@ -368,6 +368,7 @@ class ParameterSeriesAdmin(PolymorphicChildModelAdmin):
     )
 
     def save_model(self, request, obj, form, change):
+        obj.mlocatie = obj.parameter.meetlocatie()
         obj.user = request.user
         obj.save()
 
@@ -470,6 +471,7 @@ class SeriesAdmin(PolymorphicParentModelAdmin):
     )
 
     def save_model(self, request, obj, form, change):
+        obj.mlocatie = obj.parameter.meetlocatie()
         obj.user = request.user
         obj.save()
 

@@ -18,9 +18,10 @@ from .models import Network, Well, Screen
 from .forms import UploadFileForm
 from .actions import download_well_nitg
 
-import os, json, logging, time, datetime
+import os, json, logging, time
 
 from util import handle_uploaded_files
+from django.utils.timezone import get_current_timezone
 
 logger = logging.getLogger(__name__)
 
@@ -56,19 +57,20 @@ class NetworkView(DetailView):
         context = super(NetworkView, self).get_context_data(**kwargs)
         network = self.get_object()
         content = []
-        for well in network.well_set.all():
-            pos = well.latlon()
-            content.append({'network': network.id,
-                            'well': well.id,
-                            'name': well.name,
-                            'nitg': well.nitg,
-                            'lat': pos.y,
-                            'lon': pos.x,
-                            'url': reverse('meetnet:well-info', args=[well.id]),
-                            })
-        context['content'] = json.dumps(content)
-        if not network.bound is None:
-            context['boundary'] = network.bound
+        if network:
+            if not network.bound is None:
+                context['boundary'] = network.bound
+            for well in network.well_set.all():
+                pos = well.latlon()
+                content.append({'network': network.id,
+                                'well': well.id,
+                                'name': well.name,
+                                'nitg': well.nitg,
+                                'lat': pos.y,
+                                'lon': pos.x,
+                                'url': reverse('meetnet:well-info', args=[well.id]),
+                                })
+        context['content'] = json.dumps(content) if content else None
         context['maptype'] = 'ROADMAP'
         context['apikey'] = settings.GOOGLE_MAPS_API_KEY
         return context
@@ -138,9 +140,11 @@ def json_series(request, pk):
     if series is None or series.empty:
         values = []
     else:
-        values = zip(series.index.astype(np.int64)//10**6, series.values)
+        values = zip(series.index, series.values)
+        #values = zip(series.index.astype(np.int64)//10**6, series.values)
     data = {'screen%s'%screen.nr: values}
-    return HttpResponse(json.dumps(data),content_type='application/json')
+    return HttpResponse(json.dumps(data,default=lambda x: int(time.mktime(x.timetuple())*1000)),content_type='application/json')
+    #return HttpResponse(json.dumps(data),content_type='application/json')
     
 class WellChartView(TemplateView):
     template_name = 'meetnet/chart_detail.html'
@@ -171,8 +175,11 @@ class WellChartView(TemplateView):
                         'href': 'http://www.acaciawater.com',
                        },
             }
+
         series = []
         xydata = []
+        start = stop = None
+
         for screen in well.screen_set.all():
             if screen.has_data():
                 xydata = None
@@ -183,6 +190,15 @@ class WellChartView(TemplateView):
                             'zIndex': 2,
                             'id': 'screen%d' % screen.nr
                             })
+                if start:
+                    start = min(start,screen.start())
+                else:
+                    start = screen.start()
+                    
+                if stop:
+                    stop = min(stop,screen.stop())
+                else:
+                    stop = screen.stop()
 
             # sensor positie tov NAP
 #             data = []
@@ -223,16 +239,15 @@ class WellChartView(TemplateView):
                             },
                         })
             
-        if well.maaiveld:
-            mv = []
-            mv.append((datetime.datetime(2013,1,1), well.maaiveld))
-            mv.append((datetime.datetime(2016,12,31,23,59), well.maaiveld))
+
+        if well.maaiveld and start and stop:
+            tz = get_current_timezone()
             series.append({'name': 'maaiveld',
                         'type': 'line',
                         'lineWidth': 2,
                         'color': '#009900',
                         'dashStyle': 'Dash',
-                        'data': mv,
+                        'data': [(start.astimezone(tz),well.maaiveld),(stop.astimezone(tz),well.maaiveld)],
                         'zIndex': 4,
                         })
 

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os,datetime,math,binascii
+from django.db import connection
 from django.db import models
 from django.db.models import Avg, Max, Min, Sum
 from django.contrib.auth.models import User
@@ -16,7 +17,7 @@ import json,util,StringIO,pytz,logging
 import dateutil
 from django.db.models.aggregates import StdDev
 from django.core.exceptions import ObjectDoesNotExist
-from django.utils.timezone import get_current_timezone, is_naive
+from django.utils.timezone import get_current_timezone
 
 THEME_CHOICES = ((None,'standaard'),
                  ('dark-blue','blauw'),
@@ -29,11 +30,11 @@ def aware(d,tz=None):
     ''' utility function to ensure datetime object has requested timezone '''
     if d is not None:
         if isinstance(d, (datetime.datetime, datetime.date,)):
-            if tz is None or tz == '':
-                tz = settings.TIME_ZONE
-            if not isinstance(tz, timezone.tzinfo):
-                tz = pytz.timezone(tz)
             if timezone.is_naive(d):
+                if tz is None or tz == '':
+                    tz = settings.TIME_ZONE
+                if not isinstance(tz, timezone.tzinfo):
+                    tz = pytz.timezone(tz)
                 try:
                     return timezone.make_aware(d, tz)            
                 except:
@@ -41,9 +42,7 @@ def aware(d,tz=None):
                     try:
                         return timezone.make_aware(d, pytz.utc)
                     except:
-                        pass
-            else:
-                return d.astimezone(tz)
+                        pass            
     return d
 
 from django.utils.deconstruct import deconstructible
