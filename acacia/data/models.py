@@ -18,25 +18,30 @@ import dateutil
 from django.db.models.aggregates import StdDev
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.timezone import get_current_timezone
+from django.utils.translation import ugettext_lazy as _
 
-THEME_CHOICES = ((None,'standaard'),
-                 ('dark-blue','blauw'),
-                 ('dark-green','groen'),
-                 ('gray','grijs'),
-                 ('grid','grid'),
-                 ('skies','wolken'),)
+THEME_CHOICES = ((None,_('default')),
+                 ('dark-blue',_('blue')),
+                 ('dark-green',_('green')),
+                 ('gray',_('gray')),
+                 ('grid',_('grid')),
+                 ('skies',_('skies')),)
 
 def aware(d,tz=None):
     ''' utility function to ensure datetime object has requested timezone '''
     if d is not None:
         if isinstance(d, (datetime.datetime, datetime.date,)):
-            if timezone.is_naive(d):
+            try:
+                if timezone.is_naive(d):
+                    return timezone.make_aware(d, tz)            
+            except Exception as e:
+#                 pytz.NonExistentTimeError, pytz.AmbiguousTimeError: # CET/CEST transition?
                 if tz is None or tz == '':
                     tz = settings.TIME_ZONE
                 if not isinstance(tz, timezone.tzinfo):
                     tz = pytz.timezone(tz)
                 try:
-                    return timezone.make_aware(d, tz)            
+                    return timezone.make_aware(d, pytz.utc)
                 except:
     #                 pytz.NonExistentTimeError, pytz.AmbiguousTimeError: # CET/CEST transition?
                     try:
@@ -60,10 +65,10 @@ class LoggerSourceMixin(object):
 
 class Project(models.Model):
     name = models.CharField(max_length=50, unique=True)
-    description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
+    description = models.TextField(blank=True,null=True,verbose_name=_('description'))
     image = models.ImageField(upload_to=up.project_upload, blank = True, null=True)
     logo = models.ImageField(upload_to=up.project_upload, blank=True, null=True)
-    theme = models.CharField(max_length=50,null=True, blank=True,verbose_name='thema', default='dark-blue',choices=THEME_CHOICES,help_text='Thema voor grafieken')
+    theme = models.CharField(max_length=50,null=True, blank=True,verbose_name=_('theme'), default='blue', choices=THEME_CHOICES,help_text=_('Theme for charts'))
         
     def series(self):
         s = []
@@ -73,7 +78,7 @@ class Project(models.Model):
 
     def location_count(self):
         return self.projectlocatie_set.count()
-    location_count.short_description='Aantal locaties'
+    location_count.short_description=_('Number of locations')
     
     def get_absolute_url(self):
         return reverse('acacia:project-detail', args=[self.id])
@@ -82,14 +87,14 @@ class Project(models.Model):
         return self.name
 
     class Meta:
-        verbose_name_plural = 'projecten'
+        verbose_name_plural = _('projects')
 
 class Webcam(models.Model):
-    name = models.CharField(max_length=50,verbose_name='naam')
-    description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
-    image = models.TextField(verbose_name = 'url voor snapshot')
-    video = models.TextField(verbose_name = 'url voor streaming video')
-    admin = models.TextField(verbose_name = 'url voor beheer')
+    name = models.CharField(max_length=50,verbose_name=_('name'))
+    description = models.TextField(blank=True,null=True,verbose_name=_('description'))
+    image = models.TextField(verbose_name = _('url for snapshot'))
+    video = models.TextField(verbose_name = _('url for streaming video'))
+    admin = models.TextField(verbose_name = _('url for admin'))
     
     def snapshot(self):
         url = self.image
@@ -102,21 +107,21 @@ class Webcam(models.Model):
     
 class ProjectLocatie(geo.Model):
     project = models.ForeignKey(Project)
-    name = models.CharField(max_length=100,verbose_name='naam')
-    description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
+    name = models.CharField(max_length=100,verbose_name=_('name'))
+    description = models.TextField(blank=True,null=True,verbose_name=_('description'))
     description.allow_tags=True
     image = models.ImageField(upload_to=up.locatie_upload, blank = True, null = True)
-    location = geo.PointField(srid=util.RDNEW,verbose_name='locatie', help_text='Projectlocatie in Rijksdriehoekstelsel coordinaten')
+    location = geo.PointField(srid=util.RDNEW,verbose_name=_('location'), help_text=_('Project location in Rijksdriehoekstelsel coordinates'))
     objects = geo.GeoManager()
     webcam = models.ForeignKey(Webcam, null = True, blank=True)
-    dashboard = models.ForeignKey('TabGroup', blank=True, null=True, verbose_name = 'Standaard dashboard')
+    dashboard = models.ForeignKey('TabGroup', blank=True, null=True, verbose_name = _('Default dashboard'))
     
     def get_absolute_url(self):
         return reverse('acacia:projectlocatie-detail', args=[self.id])
 
     def location_count(self):
         return self.meetlocatie_set.count()
-    location_count.short_description='Aantal meetlocaties'
+    location_count.short_description=_('Number of measure locations')
 
     def __unicode__(self):
         return self.name
@@ -136,10 +141,10 @@ class ProjectLocatie(geo.Model):
 
 class MeetLocatie(geo.Model):
     projectlocatie = models.ForeignKey(ProjectLocatie)
-    name = models.CharField(max_length=100,verbose_name='naam')
-    description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
+    name = models.CharField(max_length=100,verbose_name=_('name'))
+    description = models.TextField(blank=True,null=True,verbose_name=_('description'))
     image = models.ImageField(upload_to=up.meetlocatie_upload, blank = True, null = True)
-    location = geo.PointField(dim=2,srid=util.RDNEW,verbose_name='locatie', help_text='Meetlocatie in Rijksdriehoekstelsel coordinaten')
+    location = geo.PointField(dim=2,srid=util.RDNEW,verbose_name=_('location'), help_text=_('Location in Rijksdriehoekstelsel coordinates'))
     objects = geo.GeoManager()
     webcam = models.ForeignKey(Webcam, null = True, blank=True)
 
@@ -150,8 +155,8 @@ class MeetLocatie(geo.Model):
         return util.toWGS84(self.location)
 
     def datasourcecount(self):
-        return self.datasources.count()
-    datasourcecount.short_description = 'Aantal datasources'
+        return self.datasource_set.count()
+    datasourcecount.short_description = _('Number of datasources')
 
     def get_absolute_url(self):
         return reverse('acacia:meetlocatie-detail',args=[self.id])
@@ -447,7 +452,8 @@ class Datasource(models.Model, LoggerSourceMixin):
                         
         for loc, data in datadict.iteritems():
             # sourcefile.get_data has already set the timezone, code below is redundant?
-            date = np.array([aware(d, self.timezone) for d in data.index.to_pydatetime()])
+            timezone = pytz.timezone(self.timezone)
+            date = np.array([aware(d, timezone) for d in data.index.to_pydatetime()])
             slicer = None
             if start is not None:
                 if stop is not None:
@@ -739,7 +745,7 @@ class SourceFile(models.Model,LoggerSourceMixin):
             else:
                 try:
                     data[k]=v.tz_localize(tz,ambiguous='infer')
-                except:
+                except Exception as ex:
                     data[k]=v.tz_localize(tz,ambiguous='NaT')
         return data
 
@@ -921,7 +927,6 @@ from polymorphic.manager import PolymorphicManager
 from polymorphic.models import PolymorphicModel
 
 class Series(PolymorphicModel,LoggerSourceMixin):
-    
     mlocatie = models.ForeignKey(MeetLocatie,null=True,blank=True,verbose_name='meetlocatie')
     name = models.CharField(max_length=100,verbose_name='naam')
     description = models.TextField(blank=True,null=True,verbose_name='omschrijving')
@@ -1057,8 +1062,8 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         if series.empty:
             return series
  
-        # remove duplicates
-        series = series.groupby(series.index).last()
+        # remove duplicates and sort on time
+        series = series.groupby(series.index).last().sort_index()
         if series.empty:
             return series
         
@@ -1141,10 +1146,16 @@ class Series(PolymorphicModel,LoggerSourceMixin):
             dataframe = data
         else:
             # multiple locations
-            if self.mlocatie in data:
+            if not self.mlocatie:
+                # use any location
+                _location, dataframe = next(data.items())
+            elif self.mlocatie in data:
                 dataframe = data[self.mlocatie]
             elif self.mlocatie.name in data:
                 dataframe = data[self.mlocatie.name]
+            elif None in data and len(data) == 1:
+                # no location available, use default
+                dataframe = data[None]
             else:
                 logger.error('series %s: location %s not found' % (self.name, self.mlocatie.name))
                 return None
@@ -1217,6 +1228,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
             logger.warning('No valid datapoints found in series %s' % self.name)
             return 0;
         
+
         # delete properties first to avoid foreignkey constraint failure
         self.getProperties().delete()
 
@@ -1237,11 +1249,21 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         return num_created + num_updated
     
     def getproperties(self):
+        ''' return properties, creates and updates if no properties exist '''
         try:
             props = self.properties
         except SeriesProperties.DoesNotExist:
             props = SeriesProperties.objects.create(series = self)
             props.update()
+        return props
+
+    def update_properties(self):
+        ''' return updated properties, creates if no properties exist '''
+        try:
+            props = self.properties
+        except SeriesProperties.DoesNotExist:
+            props = SeriesProperties.objects.create(series = self)
+        props.update()
         return props
      
     def aantal(self):
@@ -1287,7 +1309,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         start = kwargs.get('start', None)
         stop = kwargs.get('stop', None)
 
-        queryset = self.datapoints
+        queryset = self.datapoints.order_by('date')
         raw = kwargs.get('raw', False)
         if self.validated and not raw:
             queryset = self.validation.validpoint_set.order_by('date')
@@ -1369,7 +1391,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
     def validate(self,reset=False, accept=False, user=None):
         try:
             val = self.validation
-        except ObjectDoesNotExist:
+        except:
             # no validation
             return
         if reset:
@@ -1538,8 +1560,7 @@ def series_post_save(sender, instance, **kwargs):
         logger.exception('Error updating properties of %s: %s' % (instance, e))
     
 class DataPoint(models.Model):
-    #id = models.BigAutoField(primary_key=True, unique = True)
-    id = models.BigIntegerField(primary_key=True, unique = True)
+    id = models.BigAutoField(primary_key=True, unique = True)
     series = models.ForeignKey(Series,related_name='datapoints')
     date = models.DateTimeField(verbose_name='Tijdstip')
     value = models.FloatField(verbose_name='Waarde')

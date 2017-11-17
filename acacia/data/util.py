@@ -4,7 +4,10 @@ Created on Feb 12, 2014
 @author: theo
 '''
 import os, fnmatch, re
+import pytz, datetime
 import matplotlib
+from django.utils import timezone
+from django.utils.translation import ugettext as _
 matplotlib.use('agg')
 import matplotlib.pylab as plt
 from django.contrib.gis.geos import Point
@@ -23,6 +26,15 @@ GOOGLE=900913
 AMERSFOORT=4289
 WGS84=4326
 
+EPOCH = pytz.utc.localize(datetime.datetime(1970,1,1,0,0,0))
+
+def unix_timestamp(dt):
+    if timezone.is_naive(dt):
+        dt = timezone.make_aware(dt, pytz.utc)            
+    else:
+        dt = timezone.localtime(dt,pytz.utc)
+    return (dt-EPOCH).total_seconds()
+
 # thumbnail size and resolution
 THUMB_DPI=72
 THUMB_SIZE=(9,3) # inch
@@ -39,7 +51,7 @@ def toRD(p):
 def trans(p, srid):
     '''transform Point p to requested srid'''
     if not isinstance(p,Point):
-        raise TypeError('django.contrib.gis.geos.Point expected')
+        raise TypeError(_('django.contrib.gis.geos.Point expected'))
     psrid = p.srid
     if not psrid:
         psrid = WGS84
@@ -115,17 +127,17 @@ def datasources_as_zip(datasources, zipname):
                 zippath = os.path.join(folder, f.filename())
                 zf.write(filepath,zippath)
             except Exception as e:
-                logger.error('Cannot add file {} to zip archive: {}'.format(f, e))
+                logger.error(_('Cannot add file {} to zip archive: {}').format(f, e))
     zf.close()
     resp = HttpResponse(io.getvalue(), content_type = "application/x-zip-compressed")
     resp['Content-Disposition'] = 'attachment; filename=%s' % zipname
     return resp
 
 def datasource_as_csv(d):
-    logger.debug('creating csv file for datasource %s' % d.name)
+    logger.debug(_('creating csv file for datasource %s') % d.name)
     filename = slugify(d.name) + '.csv'
     csv = d.to_csv()
-    logger.debug('csv file created, size = %d bytes' % len(csv))
+    logger.debug(_('csv file created, size = %d bytes') % len(csv))
     resp = HttpResponse(csv, content_type='text/csv')
     resp['Content-Disposition'] = 'attachment; filename=%s' % filename
     return resp

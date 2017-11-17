@@ -11,17 +11,19 @@ from django.shortcuts import get_object_or_404, redirect
 from django.core.files.storage import default_storage
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-import numpy as np
 import pandas as pd
 
 from .models import Network, Well, Screen
 from .forms import UploadFileForm
 from .actions import download_well_nitg
 
-import os, json, logging, time
+import os, json, logging
 
 from util import handle_uploaded_files
 from django.utils.timezone import get_current_timezone
+from django.utils.text import slugify
+from acacia.data.actions import download_series_csv
+from acacia.data.util import series_as_csv, unix_timestamp
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +108,7 @@ class ScreenChartView(TemplateView):
                        ]
             }
             
-        context['options'] = json.dumps(options, default=lambda x: int(time.mktime(x.timetuple())*1000))
+        context['options'] = json.dumps(options, default=lambda x: int(unix_timestamp(x)*1000))
         context['screen'] = filt
         return context
 
@@ -143,8 +145,7 @@ def json_series(request, pk):
         values = zip(series.index, series.values)
         #values = zip(series.index.astype(np.int64)//10**6, series.values)
     data = {'screen%s'%screen.nr: values}
-    return HttpResponse(json.dumps(data,default=lambda x: int(time.mktime(x.timetuple())*1000)),content_type='application/json')
-    #return HttpResponse(json.dumps(data),content_type='application/json')
+    return HttpResponse(json.dumps(data,default=lambda x: int(unix_timestamp(x)*1000)),content_type='application/json')
     
 class WellChartView(TemplateView):
     template_name = 'meetnet/chart_detail.html'
@@ -177,15 +178,13 @@ class WellChartView(TemplateView):
             }
 
         series = []
-        xydata = []
         start = stop = None
 
         for screen in well.screen_set.all():
             if screen.has_data():
-                xydata = None
                 series.append({'name': 'filter {}'.format(screen.nr),
                             'type': 'line',
-                            'data': xydata,
+                            'data': [],
                             'lineWidth': 1,
                             'zIndex': 2,
                             'id': 'screen%d' % screen.nr
@@ -240,14 +239,16 @@ class WellChartView(TemplateView):
                         })
             
 
-        if well.maaiveld and start and stop:
+        maaiveld = well.maaiveld or well.ahn
+        if maaiveld and start and stop:
             tz = get_current_timezone()
+            maaiveld = float(maaiveld)
             series.append({'name': 'maaiveld',
                         'type': 'line',
                         'lineWidth': 2,
                         'color': '#009900',
                         'dashStyle': 'Dash',
-                        'data': [(start.astimezone(tz),well.maaiveld),(stop.astimezone(tz),well.maaiveld)],
+                        'data': [(start.astimezone(tz),maaiveld),(stop.astimezone(tz),maaiveld)],
                         'zIndex': 4,
                         })
 
@@ -255,38 +256,50 @@ class WellChartView(TemplateView):
         if hasattr(well,'meteo'):
             neerslag = well.meteo.neerslag
             if neerslag:
-                data = neerslag.to_pandas(start=xydata[0][0], stop=xydata[-1][0]) / 10.0 # 0.1 mm -> mm
-                if not data.empty:
-                    data = zip(data.index.to_pydatetime(), data.values)
-                    series.append({'name': 'Neerslag '+ neerslag.datasource.name,
+                data = neerslag.to_array(start=start, stop=stop)
+                if data:
+                    aantal = len(data)
+                    if aantal>1:
+                        first = data[0][0]
+                        last = data[-1][0]
+                        deltat = (last - first)
+                        secs = deltat.total_seconds() / (aantal-1)
+                        hours = max(int(secs/3600),1)
+                    else:
+                        hours = 1 
+                    
+                    series.append({'name': neerslag.name,
                                 'type': 'column',
                                 'data': data,
                                 'yAxis': 1,
-                                'pointRange': 24 * 3600 * 1000, # 1 day
-                                'pointPadding': 0.01,
-                                'pointPlacement': 0.5,
+                                'pointRange': hours * 3600 * 1000, 
+                                'pointPadding': 0,
+                                'groupPadding': 0,
+                                'pointPlacement': -0.5,
                                 'zIndex': 1,
                                 'color': 'orange', 
                                 'borderColor': '#cc6600', 
+                                'tooltip': {'valueSuffix': ' '+neerslag.unit,
+                                            'valueDecimals': 2,
+                                            'shared': True,
+                                           }, 
                                 })
-                    options['yAxis'].append({'title': {'text': 'Neerslag (mm)'},
+                    options['yAxis'].append({'title': {'text': 'Neerslag ({})'.format(neerslag.unit)},
                                              'opposite': 1,
                                              'min': 0,
                                              })
         options['series'] = series
-        context['options'] = json.dumps(options, default=lambda x: int(time.mktime(x.timetuple())*1000))
+        
+        def to_timestamp(dt):
+            ''' transform datetime to timestamp '''
+        context['options'] = json.dumps(options, default=lambda x: unix_timestamp(x)*1000)
         context['object'] = well
         return context
 
 from acacia.data.views import DownloadSeriesAsZip
-from acacia.data.models import Series
 
 def get_series(screen):
-    name = '%s COMP' % unicode(screen)
-    try:
-        return Series.objects.get(name=name)
-    except:
-        return None
+    return screen.find_series()
 
 @login_required
 def DownloadSeriesAsNITG(request,source,series):
@@ -307,6 +320,18 @@ def EmailWellSeries(request,pk):
     well = get_object_or_404(Well, pk=pk)
     series = [get_series(s) for s in well.screen_set.all()]
     return DownloadSeriesAsZip(request, unicode(well), series)
+
+def DownloadWellSeries(request,pk):
+    well = get_object_or_404(Well, pk=pk)
+    series = [get_series(s) for s in well.screen_set.all()]
+    if series:
+        if len(series)==1:
+            resp = series_as_csv(series[0]) # one single csv file
+            resp['Content-Disposition'] = 'attachment; filename={}.csv'.format(slugify(str(well)))
+        else:
+            resp = download_series_csv(None,request,series) # zip archive with all series
+            resp['Content-Disposition'] = 'attachment; filename={}.zip'.format(slugify(str(well)))
+        return resp
     
 def EmailScreenSeries(request,pk):
     screen = get_object_or_404(Screen,pk=pk)

@@ -37,3 +37,13 @@ def closest(cls, coords, n=1):
             return objs[:n]
         else:
             return objs
+
+def create_location(obj,project):
+    ''' Create projectlocaties and meetlocaties for Stations '''
+    ploc,created = project.projectlocatie_set.update_or_create(name=obj.naam, defaults = {
+        'location':obj.location
+        })
+    mloc,created = ploc.meetlocatie_set.update_or_create(name=obj.naam, defaults = {
+        'location': obj.location
+        })
+    return created

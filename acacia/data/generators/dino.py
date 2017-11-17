@@ -17,7 +17,6 @@ def find_files(pattern, root=os.curdir):
             yield os.path.join(path, filename)
 
 class Dino(Generator):
-# TODO: modify for engine = python
     def skip_section(self,f):
         while True:
             line=f.readline()
@@ -138,9 +137,13 @@ class Dino(Generator):
         header = self.get_header(fil)
         params = {}
         for p in header[3:]: 
-            if len(p)>0:
-                params[p] = {'description': p, 'unit': '-'}
+            if p.lower().startswith('stand'):
+                params[p] = {'description': p, 'unit': 'cm'}
         return params
+
+    def get_locations(self,fil):
+        ''' return dict of all locations in the datafile '''
+        return {}
 
     def get_files(self, filename):
         with zipfile.ZipFile(filename,'r') as z:
