@@ -153,15 +153,17 @@ class WellChartView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super(WellChartView, self).get_context_data(**kwargs)
         well = Well.objects.get(pk=context['pk'])
-        name = unicode(well)
-         
+        if well.name == well.nitg:
+            title = well.name
+        else:
+            title = '{nitg} ({name})'.format(name=well.name, nitg=well.nitg)
         options = {
              'rangeSelector': { 'enabled': True,
                                'inputEnabled': True,
                                },
             'navigator': {'adaptToUpdatedData': True, 'enabled': True},
             'chart': {'type': 'arearange', 'zoomType': 'x','events':{'load':None}},
-            'title': {'text': name},
+            'title': {'text': title},
             'xAxis': {'type': 'datetime'},
             'yAxis': [{'title': {'text': 'Grondwaterstand\n(m tov NAP)'}}
                       ],
