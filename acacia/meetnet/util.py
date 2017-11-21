@@ -40,7 +40,7 @@ THUMB_DPI=72
 THUMB_SIZE=(12,5) # inch
 
 def getcolor(index):
-    colors = ['red', 'blue', 'green', 'black', 'orange', 'purple', 'brown', 'grey' ]
+    colors = ['blue', 'red', 'green', 'black', 'orange', 'purple', 'brown', 'grey' ]
     index = index % len(colors) 
     return colors[index]
 
@@ -140,12 +140,14 @@ def chart_for_well(well,start=None,stop=None):
             
     plt.ylabel('m tov NAP')
 
-    plt.axhline(y=screen.well.maaiveld, linestyle='--', label='maaiveld',color='green')
-    ncol += 1
+    mv = screen.well.maaiveld or screen.well.ahn
+    if mv:
+        plt.axhline(y=mv, linestyle='--', label='maaiveld',color='green')
+        ncol += 1
 
     plt.legend(bbox_to_anchor=(0.5, -0.1), loc='upper center',ncol=min(ncol,5),frameon=False)
     plt.title(well)
-    
+
     img = StringIO() 
     plt.savefig(img,format='png',bbox_inches='tight')
     plt.close()    
