@@ -1230,7 +1230,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         
 
         # delete properties first to avoid foreignkey constraint failure
-        self.getProperties().delete()
+        self.getproperties().delete()
 
         # delete the points
         if start is None:
