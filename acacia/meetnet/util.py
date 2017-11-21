@@ -470,9 +470,10 @@ def createmeteo(request, well):
     closest = Station.closest(well.location)
     name = 'Meteostation {} (dagwaarden)'.format(closest.naam)
     res = docreate(name,closest,gen,'20170101',{'TG':'Temperatuur','RH': 'Neerslag','EV24': 'Verdamping'})
-    meteo.temperatuur = find(lambda s: s.name.startswith('Temperatuur'),res) 
-    meteo.neerslag = find(lambda s: s.name.startswith('Neerslag'),res)
-    meteo.verdamping = find(lambda s: s.name.startswith('Verdamping'),res)     
+    if res:
+        meteo.temperatuur = find(lambda s: s.name.startswith('Temperatuur'),res) 
+        meteo.neerslag = find(lambda s: s.name.startswith('Neerslag'),res)
+        meteo.verdamping = find(lambda s: s.name.startswith('Verdamping'),res)     
     
     gen = Generator.objects.get(classname__icontains='KNMI.neerslag')
     closest = NeerslagStation.closest(well.location)
@@ -483,7 +484,8 @@ def createmeteo(request, well):
     closest = Station.closest(well.location)
     name = 'Meteostation {} (uurwaarden)'.format(closest.naam)
     res = docreate(name,closest,gen,'2017010101',{'P':'Luchtdruk','RH': 'Neerslag'})
-    meteo.baro = find(lambda s: s.name.startswith('Lucht'),res)
+    if res:
+        meteo.baro = find(lambda s: s.name.startswith('Lucht'),res)
     #meteo.neerslag = find(lambda s: s.name.startswith('Neer'),res)
 
     meteo.save()
