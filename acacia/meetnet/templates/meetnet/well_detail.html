@@ -79,7 +79,7 @@ a img {
 <td>
 {% if chart %}
 <div class="grafiek">
-	<a href="{% url 'meetnet:chart-detail' object.id %}" target="_blank">
+	<a href="{% url 'meetnet:chart-detail' object.id %}?stats=1" target="_blank">
 		<img src="{{chart}}" alt='grafiek' title='Klik voor interactieve grafiek in aparte tab'/>
 	</a>
 </div>

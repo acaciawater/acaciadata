@@ -23,7 +23,7 @@ td a img {
 <tr><td>Fotos</td><td>{%for f in object.photo_set.all %}<a href="/media/{{f.photo.name}}"><img src="/media/{{f.photo.name}}"/></a>{%empty%}<i>geen</i>{%endfor%}</td></tr>
 {% if object.has_data %}
 <tr><td colspan="2">
-	<a href="{% url 'meetnet:chart-detail' object.id %}" target="_blank"><img width="100%" src="{{object.chart.url}}"></a>
+	<a href="{% url 'meetnet:chart-detail' object.id %}?stats=1" target="_blank"><img width="100%" src="{{object.chart.url}}"></a>
 </td></tr>
 {% endif %}
 </table>
