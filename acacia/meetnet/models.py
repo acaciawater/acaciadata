@@ -112,7 +112,8 @@ class Well(geo.Model):
         return reverse('meetnet:well-detail', args=[self.id])
 
     def __unicode__(self):
-        return self.nitg or self.name
+        #return self.nitg or self.name
+        return self.name
     
     def has_data(self):
         for s in self.screen_set.all():
@@ -136,8 +137,8 @@ class Well(geo.Model):
     class Meta:
         verbose_name = _('well')
         verbose_name_plural = _('wells')
-        ordering = ['nitg','name']
-        unique_together = ('nitg','name')
+        ordering = ['name','nitg']
+        unique_together = ('name','nitg')
         
 def limitKNMI():
     return {'parameter__datasource__generator__classname__icontains':'KNMI'}
@@ -368,18 +369,18 @@ class Datalogger(models.Model):
 
 class LoggerPos(models.Model):
     logger = models.ForeignKey(Datalogger)
-    screen = models.ForeignKey(Screen,verbose_name = 'filter',blank=True, null=True)
-    start_date = models.DateTimeField(verbose_name = 'start', help_text = 'Tijdstip van start datalogger')   
-    end_date = models.DateTimeField(verbose_name = 'stop', blank=True, null=True, help_text = 'Tijdstip van stoppen datalogger')   
-    refpnt = models.FloatField(verbose_name = 'referentiepunt', blank=True, null=True, help_text = 'ophangpunt in meter tov NAP')
-    depth = models.FloatField(verbose_name = 'kabellengte', blank=True, null=True, help_text = 'lengte van ophangkabel in meter')
-    remarks = models.TextField(verbose_name='opmerkingen', blank=True) 
+    screen = models.ForeignKey(Screen,verbose_name = _('screen'),blank=True, null=True)
+    start_date = models.DateTimeField(verbose_name = _('start'), help_text = _('Start of datalogger'))   
+    end_date = models.DateTimeField(verbose_name = _('stop'), blank=True, null=True, help_text = _('Stopping time of datalogger'))   
+    refpnt = models.FloatField(verbose_name = _('reference point'), blank=True, null=True, help_text = _('Reference point in meter wrt NAP'))
+    depth = models.FloatField(verbose_name = _('cable length'), blank=True, null=True, help_text = _('length of cable in meter'))
+    remarks = models.TextField(verbose_name=_('remarks'), blank=True) 
 
     def __unicode__(self):
         return '%s@%s' % (self.logger, self.screen)
     
     class Meta:
-        verbose_name = 'DataloggerInstallatie'
+        verbose_name = _('LoggerInstallation')
         ordering = ['start_date','logger']
 
     def stats(self):
@@ -474,14 +475,15 @@ class Channel(models.Model):
         verbose_name_plural = 'Kanalen'
 
 HAND_CHOICES=(
-    ('bkb','Bovenkant buis'),
-    ('nap','NAP'),
+    ('bkb',_('Top of casing')),
+    ('nap',_('NAP')),
     )
 
 class Handpeiling(ManualSeries):
-    refpnt = models.CharField(max_length=4,choices=HAND_CHOICES,verbose_name='referentie',default='bkb')
+    screen = models.ForeignKey(Screen,on_delete=models.CASCADE,verbose_name=_('screen')) 
+    refpnt = models.CharField(max_length=4,choices=HAND_CHOICES,verbose_name=_('reference point'),default='bkb')
 
     class Meta:
         verbose_name = 'Handpeiling'
-        verbose_name_plural = 'Handpeilngen'
+        verbose_name_plural = 'Handpeilingen'
     
