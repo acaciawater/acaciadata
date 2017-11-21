@@ -20,13 +20,23 @@ class Blik(Generator):
         params = {col:{'description':col,'unit':'-'} for col in df.columns}
         return params
     
-    # Request a new token every time for simplicity, because the token expires already after a week.
-    def get_auth_token(self):
+    def request_new_token(self):
         data = BLIK_SECRET_TOKEN_DATA
         headers = {'content-type': 'application/json'}
         response = requests.post('https://blik.eu.auth0.com/oauth/token', data=data, headers=headers)
         response.raise_for_status()
-        return response.json().get(u'access_token')
+        Blik.token = response.json().get(u'access_token')
+        now = self.datetime_to_unix_timestamp(self.utc_now())
+        Blik.expire = now + response.json().get(u'expires_in')
+    
+    token = u''     # Store the received token in the class.
+    expire = 0      # Expiration date of the token as a unix timestamp.
+    def get_auth_token(self):
+        now = self.datetime_to_unix_timestamp(self.utc_now())
+        hour_before_expiration = Blik.expire-3600
+        if (now > hour_before_expiration):
+            self.request_new_token()
+        return Blik.token
     
     def blik_api_request(self, url, limit, before, after):
         url = url + '?limit={0}&before={1}&after={2}'.format(limit, before, after)

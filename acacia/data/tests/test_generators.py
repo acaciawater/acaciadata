@@ -75,3 +75,21 @@ class BlikGeneratorTests(TestCase):
         expected_params = {u'water_K': {'description': u'water_K', 'unit': '-'}, u'water_m': {'description': u'water_m', 'unit': '-'}, u'air_Pa': {'description': u'air_Pa', 'unit': '-'}, u'water_Pa': {'description': u'water_Pa', 'unit': '-'}, u'air_K': {'description': u'air_K', 'unit': '-'}}
         self.assertEqual(params,expected_params)
         
+    def test_token_expiration(self):
+        gen = self.create_generator()
+        # Reset the Blik class:
+        gen.__class__.token = u''
+        gen.__class__.expire = 0
+        
+        first_token = gen.get_auth_token()
+        self.assertNotEqual(gen.__class__.token,u'')
+        # Sleep so that the authorization server returns a different token:
+        time.sleep(0.5)
+        second_token = gen.get_auth_token()
+        self.assertEqual(first_token,second_token)
+        #Token expires in 10 minutes and we expect a new token is fetched if the token expires within an hour.
+        gen.__class__.expire = int(time.time()) + 600
+        time.sleep(0.5)
+        third_token = gen.get_auth_token()
+        self.assertNotEqual(first_token,third_token)
+        
