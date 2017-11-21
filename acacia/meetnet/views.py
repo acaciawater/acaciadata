@@ -145,6 +145,18 @@ def json_series(request, pk):
         values = zip(series.index, series.values)
         #values = zip(series.index.astype(np.int64)//10**6, series.values)
     data = {'screen%s'%screen.nr: values}
+    stats = request.GET.get('stats','0')
+    try:
+        stats = int(stats)
+        if stats:
+            mean = pd.expanding_mean(series)
+            std = pd.expanding_std(series)
+            a = (mean - std).dropna()
+            b = (mean + std).dropna()
+            ranges = zip(a.index.to_pydatetime(), a.values, b.values)
+            data.update({'stats%s'%screen.nr: ranges})
+    except:
+        pass
     return HttpResponse(json.dumps(data,default=lambda x: int(unix_timestamp(x)*1000)),content_type='application/json')
     
 class WellChartView(TemplateView):
@@ -162,7 +174,7 @@ class WellChartView(TemplateView):
                                'inputEnabled': True,
                                },
             'navigator': {'adaptToUpdatedData': True, 'enabled': True},
-            'chart': {'type': 'arearange', 'zoomType': 'x','events':{'load':None}},
+            'chart': {'zoomType': 'x','events':{'load':None}},
             'title': {'text': title},
             'xAxis': {'type': 'datetime'},
             'yAxis': [{'title': {'text': 'Grondwaterstand\n(m tov NAP)'}}
@@ -201,28 +213,21 @@ class WellChartView(TemplateView):
                 else:
                     stop = screen.stop()
 
-            # sensor positie tov NAP
-#             data = []
-#             depths = screen.loggerpos_set.order_by('start_date').values_list('start_date','depth')
-#             if len(depths)>0:
-#                 last = None
-#                 for date,value in depths:
-#                     if last:
-#                         data.append((date,last))
-#                     value = screen.refpnt - value
-#                     data.append((date,value))
-#                     last = value
-# #                 date = datetime.datetime(2017,2,1)
-# #                 last_date = int(time.mktime(date.timetuple())*1000)
-# #                 data.append((last_date,last))
-#             if data:
-#                 series.append({'name': 'diver {}'.format(screen.nr),
-#                         'type': 'line',
-#                         'data': data,
-#                         'zIndex': 1,
-#                         'id': 'diver%d' % screen.nr
-#                         })
-            
+                # add statistics if requested
+                stats = self.request.GET.get('stats','0')
+                stats = int(stats)
+                if stats:
+                    series.append({'name': 'spreiding %d'% screen.nr,
+                            'id': 'stats%d' % screen.nr,
+                            'data': [],
+                            'type': 'arearange',
+                            'lineWidth': 0,
+                            'linkedTo': ':previous',
+                            #'color': '#0066FF',
+                            'fillOpacity': 0.2,
+                            'zIndex': 0,
+                            'marker': {'enabled':False}
+                            })
 
             data = screen.get_manual_series()
             if data is None:
@@ -292,8 +297,6 @@ class WellChartView(TemplateView):
                                              })
         options['series'] = series
         
-        def to_timestamp(dt):
-            ''' transform datetime to timestamp '''
         context['options'] = json.dumps(options, default=lambda x: unix_timestamp(x)*1000)
         context['object'] = well
         return context
