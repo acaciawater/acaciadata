@@ -19,6 +19,7 @@ from django.db.models.aggregates import StdDev
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.timezone import get_current_timezone
 from django.utils.translation import ugettext_lazy as _
+from exceptions import IOError
 
 THEME_CHOICES = ((None,_('default')),
                  ('dark-blue',_('blue')),
@@ -717,6 +718,9 @@ class SourceFile(models.Model,LoggerSourceMixin):
             if closed:
                 self.file.open()
             data = gen.get_data(self.file,**kwargs)
+        except IOError as e:
+            logger.error('Error retrieving data from %s: %s' % (filename, e))
+            return None
         except Exception as e:
             logger.exception('Error retrieving data from %s: %s' % (filename, e))
             return None
@@ -1069,7 +1073,8 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         
         if self.resample is not None and self.resample != '':
             try:
-                series = series.resample(how=self.aggregate, rule=self.resample)
+                #series = series.resample(how=self.aggregate, rule=self.resample)
+                series = series.resample(rule=self.resample).aggregate(self.aggregate)
                 if series.empty:
                     return series
             except Exception as e:
