@@ -1035,10 +1035,9 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         # align series and forward fill the missing data
 
         def is_naive(idx):
-            if hasattr(idx, 'tz') and idx.tz:
-                return True
-            else:
-                return False
+            if hasattr(idx, 'tz'):
+                return idx.tz is None or idx.tz == ''
+            return True
          
         if is_naive(s1.index): 
             if not is_naive(s2.index):
