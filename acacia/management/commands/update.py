@@ -121,7 +121,7 @@ class Command(BaseCommand):
                         candidates = d.sourcefiles.filter(stop__gte=after)
                     else:
                         after = None
-                        candidates = d.sourcefiles.all()
+                        candidates = newfiles#d.sourcefiles.all()
                     if not candidates:
                         logger.warning('No new data for datasource {ds}'.format(ds=d))
                         if not force:

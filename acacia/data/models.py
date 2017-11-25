@@ -17,7 +17,7 @@ import json,util,StringIO,pytz,logging
 import dateutil
 from django.db.models.aggregates import StdDev
 from django.core.exceptions import ObjectDoesNotExist
-from django.utils.timezone import get_current_timezone
+from django.utils.timezone import get_current_timezone, is_naive
 from django.utils.translation import ugettext_lazy as _
 from exceptions import IOError
 
