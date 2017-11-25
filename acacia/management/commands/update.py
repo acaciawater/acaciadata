@@ -97,6 +97,7 @@ class Command(BaseCommand):
                             # maak dict met een na laatste datapoint per tijdreeks
                             # (rekening houden met niet volledig gevulde laatste tijdsinterval bij accumulatie of sommatie)
                             try:
+                                # TODO: not correct: 'dead'  series cause processing too many files  
                                 last = {s: s.beforelast().date for s in series if s.aantal() > 0}
                             except:
                                 last = {}
@@ -121,7 +122,7 @@ class Command(BaseCommand):
                         candidates = d.sourcefiles.filter(stop__gte=after)
                     else:
                         after = None
-                        candidates = newfiles#d.sourcefiles.all()
+                        candidates = d.sourcefiles.all() if replace else newfiles
                     if not candidates:
                         logger.warning('No new data for datasource {ds}'.format(ds=d))
                         if not force:
