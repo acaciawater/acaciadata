@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import os,datetime,math,binascii
-from django.db import connection
 from django.db import models
 from django.db.models import Avg, Max, Min, Sum
 from django.contrib.auth.models import User
@@ -17,7 +16,7 @@ import json,util,StringIO,pytz,logging
 import dateutil
 from django.db.models.aggregates import StdDev
 from django.core.exceptions import ObjectDoesNotExist
-from django.utils.timezone import get_current_timezone, is_naive
+from django.utils.timezone import get_current_timezone
 from django.utils.translation import ugettext_lazy as _
 from exceptions import IOError
 
@@ -1034,13 +1033,21 @@ class Series(PolymorphicModel,LoggerSourceMixin):
     def do_align(self, s1, s2):
         ''' align series s2 with s1 and fill missing values by padding'''
         # align series and forward fill the missing data
-        if is_naive(s1.index):
+
+        def is_naive(idx):
+            if hasattr(idx, 'tz') and idx.tz:
+                return True
+            else:
+                return False
+         
+        if is_naive(s1.index): 
             if not is_naive(s2.index):
                 s1 = s1.tz_localize(s2.index.tz,ambiguous='infer')
         elif is_naive(s2.index):
             s2 = s2.tz_localize(s1.index.tz,ambiguous='infer')
         else: 
             s1 = s1.tz_convert(s2.index.tz)
+            
         a,b = s1.align(s2,method='pad')
         # back fill na values (in case s2 starts after s1)
         s2 = b.fillna(method='bfill')
