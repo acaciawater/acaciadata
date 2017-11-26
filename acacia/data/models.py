@@ -19,6 +19,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils.timezone import get_current_timezone
 from django.utils.translation import ugettext_lazy as _
 import six
+from exceptions import IOError
 
 THEME_CHOICES = ((None,_('default')),
                  ('dark-blue',_('blue')),
@@ -724,6 +725,9 @@ class SourceFile(models.Model,LoggerSourceMixin):
             if closed:
                 self.file.open()
             data = gen.get_data(self.file,**kwargs)
+        except IOError as e:
+            logger.error('Error retrieving data from %s: %s' % (filename, e))
+            return None
         except Exception as e:
             logger.exception('Error retrieving data from %s: %s' % (filename, e))
             return None
@@ -1037,13 +1041,20 @@ class Series(PolymorphicModel,LoggerSourceMixin):
     def do_align(self, s1, s2):
         ''' align series s2 with s1 and fill missing values by padding'''
         # align series and forward fill the missing data
-        if is_naive(s1.index):
+
+        def is_naive(idx):
+            if hasattr(idx, 'tz'):
+                return idx.tz is None or idx.tz == ''
+            return True
+         
+        if is_naive(s1.index): 
             if not is_naive(s2.index):
                 s1 = s1.tz_localize(s2.index.tz,ambiguous='infer')
         elif is_naive(s2.index):
             s2 = s2.tz_localize(s1.index.tz,ambiguous='infer')
         else: 
             s1 = s1.tz_convert(s2.index.tz)
+            
         a,b = s1.align(s2,method='pad')
         # back fill na values (in case s2 starts after s1)
         s2 = b.fillna(method='bfill')
@@ -1076,7 +1087,8 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         
         if self.resample is not None and self.resample != '':
             try:
-                series = series.resample(how=self.aggregate, rule=self.resample)
+                #series = series.resample(how=self.aggregate, rule=self.resample)
+                series = series.resample(rule=self.resample).aggregate(self.aggregate)
                 if series.empty:
                     return series
             except Exception as e:
