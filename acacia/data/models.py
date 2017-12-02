@@ -18,6 +18,7 @@ from django.db.models.aggregates import StdDev
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.timezone import get_current_timezone
 from django.utils.translation import ugettext_lazy as _
+import six
 from exceptions import IOError
 
 THEME_CHOICES = ((None,_('default')),
@@ -303,7 +304,14 @@ class Datasource(models.Model, LoggerSourceMixin):
         elif not 'start' in options:
             # incremental download
             options['start'] = self.stop()
-
+        else:
+            start = options['start']
+            if isinstance(start,six.string_types):
+                "try to parse start into datetime"
+                try:
+                    options['start'] = dateutil.parser.parse(start)
+                except:
+                    logger.error('Problem parsing config options for datasource {}: could not parse date {}'.format(self.name,start))
         url = self.url or self.generator.url
         if not url:
             logger.error('Cannot download datasource %s: no default url available' % (self.name))
