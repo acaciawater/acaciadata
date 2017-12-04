@@ -617,7 +617,7 @@ def addmonfile(request,network,f):
                 pos.save()
 
         try:
-            loc = MeetLocatie.objects.get(name=unicode(screen))
+            loc = MeetLocatie.objects.get(name='%s/%03d' % (well.name,filter))
         except MeetLocatie.DoesNotExist:
             loc = MeetLocatie.objects.get(name='%s/%03d' % (well.nitg,filter))
         except MultipleObjectsReturned:
@@ -660,7 +660,7 @@ def addmonfile(request,network,f):
         mon.user = ds.user
         mon.file.save(name=filename, content=ContentFile(contents))
         mon.get_dimensions()
-        mon.channel_set.add(*channels)
+        mon.channel_set.add(*channels,bulk=False)
         mon.save()
 
         logger.info('Bestand {filename} toegevoegd aan gegevensbron {ds} voor logger {log}'.format(filename=basename, ds=unicode(ds), log=unicode(pos or serial)))
@@ -741,6 +741,7 @@ def handle_uploaded_files(request, network, localfiles):
         wells = set()
         result = {}
         for pathname in localfiles:
+            msg = []
             filename = os.path.basename(pathname)
             try:
                 if zipfile.is_zipfile(pathname): 
