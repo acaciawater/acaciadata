@@ -309,12 +309,12 @@ def compensate(screen,series,baros,parameter='PRESSURE'):
             # clip logger data on timerange of baros data
             # data = data[max(barostart,datastart):min(baroend,dataend)]
 
-            #clear datapoints with less than 5 cm of water
-            data[data<5] = np.nan
+            #clear datapoints with less than 2 cm of water
+            data[data<2] = np.nan
             # count dry values
             dry = data.isnull().sum()
             if dry:
-                logger.warning('Logger {}, MON file {}: {} out of {} measurements have less than 5 cm of water'.format(unicode(logpos),mon,dry,data.size))
+                logger.warning('Logger {}, MON file {}: {} out of {} measurements have less than 2 cm of water'.format(unicode(logpos),mon,dry,data.size))
             sumdry += dry
             
             data = data / 100 + (logpos.refpnt - logpos.depth)
@@ -343,10 +343,10 @@ def recomp(screen,series,baros={}):
                     logger.error('generator {} not supported'.format(gen))
             else:
                 logger.warning('no datasource for logger {}'.format(logger))
-            if data:
-                data = data.append(dsdata)
-            else:
+            if data is None:
                 data = dsdata
+            else:
+                data = data.append(dsdata)
     if data is None:
         logger.warning('No data for {}'.format(screen))
         return
