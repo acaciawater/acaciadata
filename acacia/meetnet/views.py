@@ -282,7 +282,7 @@ class WellChartView(TemplateView):
                                 'pointRange': hours * 3600 * 1000, 
                                 'pointPadding': 0,
                                 'groupPadding': 0,
-                                'pointPlacement': -0.5,
+                                'pointPlacement': 0.5,
                                 'zIndex': 1,
                                 'color': 'orange', 
                                 'borderColor': '#cc6600', 
