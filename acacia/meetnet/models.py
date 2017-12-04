@@ -282,7 +282,10 @@ class Screen(models.Model):
 
         
     def get_loggers(self):
-        return [p.logger for p in self.loggerpos_set.order_by('logger__serial').distinct('logger__serial')]
+        # Not supported by MySQL:
+        # return [p.logger for p in self.loggerpos_set.order_by('logger__serial').distinct('logger__serial')]
+        d = {p.logger.serial:p.logger for p in self.loggerpos_set.all()}
+        return d.values()
         
     def last_logger(self):
         last = self.loggerpos_set.all().order_by('start_date').last()
