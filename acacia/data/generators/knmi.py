@@ -193,7 +193,7 @@ class Neerslag(Meteo):
         names = header.get('COLUMNS',[])
         names.append('NAME')
         skiprows = self.skiprows if self.engine == 'python' else 0
-        data = self.read_csv(f, header=None, skiprows = skiprows, names=names, skipinitialspace=True, comment = '#', index_col = 1, parse_dates = True)
+        data = self.read_csv(f.file.file, header=None, skiprows = skiprows, names=names, skipinitialspace=True, comment = '#', index_col = 1, parse_dates = True)
         return data
 
 class ZipMixin(object):
