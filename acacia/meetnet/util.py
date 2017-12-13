@@ -408,20 +408,21 @@ def drift_correct_screen(screen,user):
     
 def register_well(well):
     # register well in acaciadata
-    project,created = Project.objects.get_or_create(name=well.network.name)
-    well.ploc, created = project.projectlocatie_set.get_or_create(name=well.name,defaults={'location': well.location})
+    project, created = Project.objects.get_or_create(name=well.network.name)
+    well.ploc, created = project.projectlocatie_set.update_or_create(name=well.name,defaults={'location': well.location})
     if created:
-        well.save()
+        well.save
 
 def register_screen(screen):
     # register screen in acaciadata
-    project,created = Project.objects.get_or_create(name=screen.well.network.name)
-    screen.well.ploc, created = project.projectlocatie_set.get_or_create(name=screen.well.name,defaults={'location': screen.well.location})
+    project, created = Project.objects.get_or_create(name=screen.well.network.name)
+    screen.well.ploc, created = project.projectlocatie_set.update_or_create(name=screen.well.name,defaults={'location': screen.well.location})
     if created:
         screen.well.save()
-    screen.mloc, created = screen.well.ploc.meetlocatie_set.get_or_create(name=unicode(screen),defaults={'location': screen.well.location})
-    screen.save()
-        
+    screen.mloc, created = screen.well.ploc.meetlocatie_set.update_or_create(name=unicode(screen),defaults={'location': screen.well.location})
+    if created:
+        screen.save()
+
 def createmeteo(request, well):
     ''' Create datasources with meteo data for a well '''
 
