@@ -27,7 +27,7 @@ from django.conf import settings
 from acacia.data.models import Project, Generator, DataPoint, MeetLocatie, SourceFile, Chart, Series,\
     Parameter
 from acacia.data.generators import sws
-from acacia.data.knmi.models import Station
+from acacia.data.knmi.models import Station, NeerslagStation
 from .models import Well, Screen, Datalogger, MonFile, Channel, LoggerDatasource
 
 rcParams['font.family'] = 'sans-serif'
@@ -40,7 +40,7 @@ THUMB_DPI=72
 THUMB_SIZE=(12,5) # inch
 
 def getcolor(index):
-    colors = ['red', 'blue', 'green', 'black', 'orange', 'purple', 'brown', 'grey' ]
+    colors = ['blue', 'red', 'green', 'black', 'orange', 'purple', 'brown', 'grey' ]
     index = index % len(colors) 
     return colors[index]
 
@@ -76,7 +76,7 @@ def chart_for_screen(screen,start=None,stop=None):
             plt.plot_date(x,y,'--',label='diverpositie',color='orange')
             ncol += 1
 
-    data = screen.get_levels('nap',rule='H')
+    data = screen.get_levels('nap',rule=None)
 #    n = len(data) / (THUMB_SIZE[0]*THUMB_DPI)
 #     if n > 1:
 #         #use data thinning: take very nth row
@@ -117,7 +117,7 @@ def chart_for_well(well,start=None,stop=None):
     ncol = 0
     index = 0
     for screen in well.screen_set.all():
-        data = screen.get_levels('nap',rule='H')
+        data = screen.get_levels('nap',rule=None)
 #         n = len(data) / (THUMB_SIZE[0]*THUMB_DPI)
 #         if n > 1:
 #             #use data thinning: take very nth row
@@ -140,12 +140,14 @@ def chart_for_well(well,start=None,stop=None):
             
     plt.ylabel('m tov NAP')
 
-    plt.axhline(y=screen.well.maaiveld, linestyle='--', label='maaiveld',color='green')
-    ncol += 1
+    mv = screen.well.maaiveld or screen.well.ahn
+    if mv:
+        plt.axhline(y=mv, linestyle='--', label='maaiveld',color='green')
+        ncol += 1
 
     plt.legend(bbox_to_anchor=(0.5, -0.1), loc='upper center',ncol=min(ncol,5),frameon=False)
     plt.title(well)
-    
+
     img = StringIO() 
     plt.savefig(img,format='png',bbox_inches='tight')
     plt.close()    
@@ -165,13 +167,76 @@ def make_chart(obj):
 def make_encoded_chart(obj):
     return encode_chart(make_chart(obj))
 
-def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
-    ''' re-compensate timeseries for screen '''
+def convert_to_nap(screen,series,parameter='Waterstand'):
+    ''' offset timeseries from surface to NAP '''
+    
+    seriesdata = None
+    for logpos in screen.loggerpos_set.all().order_by('start_date'):
+        if logpos.refpnt is None:
+            logger.warning('Referentiepunt ontbreekt voor {pos}'.format(pos=logpos))
+            continue
+        for ds in logpos.logger.datasources.all():
+            print ' ', logpos.logger, logpos.start_date, logpos.refpnt
+            try:
+                data = ds.get_data()
+            except Exception as e:
+                logger.error('Error reading {}: {}'.format(ds,e))
+                continue
+            if not data:
+                logger.error('No data found in {}'.format(ds))
+                continue
 
+            if isinstance(data,dict):
+                data = data.itervalues().next()
+
+            if not parameter in data:
+                logger.error('parameter {} not found in file {}'.format(parameter, ds))
+            
+            data = data[parameter]
+            data = series.do_postprocess(data)
+            data = data + logpos.refpnt
+            if seriesdata is None:
+                seriesdata = data
+            else:
+                seriesdata = seriesdata.append(data)
+    return seriesdata
+
+def get_series_data(screen,series,parameter='Waterstand'):
+    
+    seriesdata = None
+    for logpos in screen.loggerpos_set.all().order_by('start_date'):
+        for ds in logpos.logger.datasources.all():
+            print ' ', logpos.logger, logpos.start_date, logpos.refpnt
+            try:
+                data = ds.get_data()
+            except Exception as e:
+                logger.error('Error reading {}: {}'.format(ds,e))
+                continue
+            if not data:
+                logger.error('No data found in {}'.format(ds))
+                continue
+
+            if isinstance(data,dict):
+                data = data.itervalues().next()
+
+            if not parameter in data:
+                logger.error('parameter {} not found in file {}'.format(parameter, ds))
+            
+            data = data[parameter]
+            data = series.do_postprocess(data)
+            if seriesdata is None:
+                seriesdata = data
+            else:
+                seriesdata = seriesdata.append(data)
+    return seriesdata
+
+def compensate(screen,series,baros,parameter='PRESSURE'):
+    ''' compensate for air pressure '''
     well = screen.well
     if not hasattr(well,'meteo') or well.meteo.baro is None:
         logger.error('Luchtdruk ontbreekt voor put {well}'.format(well=well))
-        return
+        return None
+    
     baroseries = well.meteo.baro
     logger.info('Compenseren voor luchtdrukreeks {}'.format(baroseries))
     if baroseries in baros:
@@ -187,7 +252,6 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
                 # TODO: use g at  baro location, not well location
                 baro = baro / (screen.well.g or 9.80638)
         
-        baro = baro.tz_convert(tz)
         baros[baroseries] = baro
         
     seriesdata = None
@@ -218,12 +282,12 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
                 # Nov 2016: new signature for get_data 
                 mondata = mondata.itervalues().next()
 
-            data = mondata['PRESSURE']
+            data = mondata[parameter]
             data = series.do_postprocess(data)
             
             # issue warning if data has points beyond timespan of barometer
             barostart = baro.index[0]
-            dataend = data.index[-1]
+            dataend = data.index[0]
             if dataend < barostart:
                 logger.warning('Geen luchtdruk gegevens beschikbaar voor {}'.format(barostart))
                 continue
@@ -245,12 +309,12 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
             # clip logger data on timerange of baros data
             # data = data[max(barostart,datastart):min(baroend,dataend)]
 
-            #clear datapoints with less than 5 cm of water
-            data[data<5] = np.nan
+            #clear datapoints with less than 2 cm of water
+            data[data<2] = np.nan
             # count dry values
             dry = data.isnull().sum()
             if dry:
-                logger.warning('Logger {}, MON file {}: {} out of {} measurements have less than 5 cm of water'.format(unicode(logpos),mon,dry,data.size))
+                logger.warning('Logger {}, MON file {}: {} out of {} measurements have less than 2 cm of water'.format(unicode(logpos),mon,dry,data.size))
             sumdry += dry
             
             data = data / 100 + (logpos.refpnt - logpos.depth)
@@ -258,27 +322,53 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
                 seriesdata = data
             else:
                 seriesdata = seriesdata.append(data)
+    if sumdry:
+        logger.warning('Screen {}: {} out of {} measurements have less than 2 cm of water'.format(unicode(screen),sumdry,seriesdata.size))
                 
-    series.datapoints.all().delete()
+    return seriesdata
 
-    if seriesdata is not None:
-        # remove duplicates
-        seriesdata = seriesdata.groupby(seriesdata.index).last()
-        # sort data
-        seriesdata.sort_index(inplace=True)
-#         if sumdry:
-#             logger.warning('Screen {}: {} out of {} measurements have less than 5 cm of water'.format(unicode(screen),sumdry,seriesdata.size))
-        datapoints=[]
-        for date,value in seriesdata.iteritems():
-            value = float(value)
-            if math.isnan(value) or date is None:
-                continue
-            datapoints.append(DataPoint(series=series, date=date, value=value))
-        series.datapoints.bulk_create(datapoints)
-        series.unit = 'm tov NAP'
-        series.make_thumbnail()
-        series.save()
-        
+def recomp(screen,series,baros={}):
+    ''' re-compensate timeseries for screen '''
+    loggers = screen.get_loggers()
+    data = None
+    for logger in loggers:
+        for ds in logger.datasources.all():
+            if ds:
+                gen = ds.generator.classname.lower()
+                if 'sws.diver' in gen:
+                    dsdata=compensate(screen, series, baros, 'PRESSURE')
+                elif 'ellitrack' in gen:
+                    dsdata=get_series_data(screen, series, 'Waterstand')
+                else:
+                    logger.error('generator {} not supported'.format(gen))
+            else:
+                logger.warning('no datasource for logger {}'.format(logger))
+            if data is None:
+                data = dsdata
+            else:
+                data = data.append(dsdata)
+    if data is None:
+        logger.warning('No data for {}'.format(screen))
+        return
+
+    # remove duplicates
+    data = data.groupby(data.index).last()
+    # sort data
+    data.sort_index(inplace=True)
+    datapoints=[]
+    for date,value in data.iteritems():
+        value = float(value)
+        if math.isnan(value) or date is None:
+            continue
+        datapoints.append(DataPoint(series=series, date=date, value=value))
+    series.datapoints.all().delete()
+    series.datapoints.bulk_create(datapoints)
+    series.unit = 'm tov NAP'
+    series.make_thumbnail()
+    series.save()
+
+    series.validate(reset=True)
+
 def drift_correct(series, manual):
     ''' correct drift with manual measurements (both are pandas series)'''
     # TODO: extrapolate series to manual 
@@ -318,47 +408,56 @@ def drift_correct_screen(screen,user):
     
 def register_well(well):
     # register well in acaciadata
-    project,created = Project.objects.get_or_create(name=well.network.name)
-    well.ploc, created = project.projectlocatie_set.get_or_create(name=well.name,defaults={'location': well.location})
+    project, created = Project.objects.get_or_create(name=well.network.name)
+    well.ploc, created = project.projectlocatie_set.update_or_create(name=well.name,defaults={'location': well.location})
     if created:
-        well.save()
+        well.save
 
 def register_screen(screen):
     # register screen in acaciadata
-    project,created = Project.objects.get_or_create(name=screen.well.network.name)
-    screen.well.ploc, created = project.projectlocatie_set.get_or_create(name=screen.well.name,defaults={'location': screen.well.location})
+    project, created = Project.objects.get_or_create(name=screen.well.network.name)
+    screen.well.ploc, created = project.projectlocatie_set.update_or_create(name=screen.well.name,defaults={'location': screen.well.location})
     if created:
         screen.well.save()
-    screen.mloc, created = screen.well.ploc.meetlocatie_set.get_or_create(name=unicode(screen),defaults={'location': screen.well.location})
-    screen.save()
-        
+    screen.mloc, created = screen.well.ploc.meetlocatie_set.update_or_create(name=unicode(screen),defaults={'location': screen.well.location})
+    if created:
+        screen.save()
+
 def createmeteo(request, well):
     ''' Create datasources with meteo data for a well '''
 
+    def find(f, seq):
+        """Return first item in sequence where f(item) == True."""
+        for item in seq:
+            if f(item): 
+                return item
+  
     def docreate(name,closest,gen,start,candidates):
         instance = gen.get_class()()
         ploc, created = well.ploc.project.projectlocatie_set.get_or_create(name = name, defaults = {'description': name, 'location': closest.location})
         mloc, created = ploc.meetlocatie_set.get_or_create(name = name, defaults = {'description': name, 'location': closest.location})
         if created:
             logger.info('Meetlocatie {} aangemaakt'.format(name))   
-        ds, created = mloc.datasources.get_or_create(name = name, defaults = {'description': name,'generator': gen, 'user': user, 'timezone': 'UTC',
+        ds, created = mloc.datasource_set.update_or_create(name = name, defaults = {'description': name,'generator': gen, 'user': user, 'timezone': 'UTC',
                                                      'url': instance.url + '?stns={stn}&start={start}'.format(stn=closest.nummer,start=start)})
         if created:
             ds.download()
             ds.update_parameters()
             
         series_set = []
-        for key in candidates:
+        for key, value in candidates.items():
             try:
                 series = None
                 p = ds.parameter_set.get(name=key)
-                series, created = p.series_set.get_or_create(name = p.name, mloc = mloc, defaults = 
+                series_name = '{} {}'.format(value,closest.naam)
+                series, created = p.series_set.get_or_create(name = series_name, mlocatie = mloc, defaults = 
                         {'description': p.description, 'unit': p.unit, 'user': request.user})
-                series.replace()
+                if created:
+                    series.replace()
             except Parameter.DoesNotExist:
-                logger.warning('Parameter %s not found in datasource %s' % (p.name, ds.name))
+                logger.warning('Parameter %s not found in datasource %s' % (key, ds.name))
             except Exception as e:
-                logger.error('ERROR creating series %s: %s' % (p.name, e))
+                logger.error('ERROR creating series %s: %s' % (key, e))
             series_set.append(series)
         return series_set
 
@@ -373,18 +472,24 @@ def createmeteo(request, well):
     gen = Generator.objects.get(classname__icontains='KNMI.meteo')
     closest = Station.closest(well.location)
     name = 'Meteostation {} (dagwaarden)'.format(closest.naam)
-    meteo.temperatuur,meteo.neerslag,meteo.verdamping = docreate(name,closest,gen,'20130101',['T','RH','EV24'])
-
-#     gen = Generator.objects.get(classname__icontains='KNMI.neerslag')
-#     closest3 = NeerslagStation.closest(well.location,3)
-#     for closest in closest3:
-#         name = 'Neerslagstation {}'.format(closest.naam)
-#         docreate(name,closest,gen,'20130101',['RD'])
+    res = docreate(name,closest,gen,'20170101',{'TG':'Temperatuur','RH': 'Neerslag','EV24': 'Verdamping'})
+    if res:
+        meteo.temperatuur = find(lambda s: s.name.startswith('Temperatuur'),res) 
+        meteo.neerslag = find(lambda s: s.name.startswith('Neerslag'),res)
+        meteo.verdamping = find(lambda s: s.name.startswith('Verdamping'),res)     
+    
+    gen = Generator.objects.get(classname__icontains='KNMI.neerslag')
+    closest = NeerslagStation.closest(well.location)
+    name = 'Neerslagstation {}'.format(closest.naam)
+    docreate(name,closest,gen,'20170101',{'RD':'Neerslag'})
 
     gen = Generator.objects.get(classname__icontains='KNMI.uur')
     closest = Station.closest(well.location)
     name = 'Meteostation {} (uurwaarden)'.format(closest.naam)
-    meteo.baro = docreate(name,closest,gen,'2013010101',['P'])
+    res = docreate(name,closest,gen,'2017010101',{'P':'Luchtdruk','RH': 'Neerslag'})
+    if res:
+        meteo.baro = find(lambda s: s.name.startswith('Lucht'),res)
+    #meteo.neerslag = find(lambda s: s.name.startswith('Neer'),res)
 
     meteo.save()
     
@@ -513,7 +618,7 @@ def addmonfile(request,network,f):
                 pos.save()
 
         try:
-            loc = MeetLocatie.objects.get(name=unicode(screen))
+            loc = MeetLocatie.objects.get(name='%s/%03d' % (well.name,filter))
         except MeetLocatie.DoesNotExist:
             loc = MeetLocatie.objects.get(name='%s/%03d' % (well.nitg,filter))
         except MultipleObjectsReturned:
@@ -556,7 +661,7 @@ def addmonfile(request,network,f):
         mon.user = ds.user
         mon.file.save(name=filename, content=ContentFile(contents))
         mon.get_dimensions()
-        mon.channel_set.add(*channels)
+        mon.channel_set.add(*channels,bulk=False)
         mon.save()
 
         logger.info('Bestand {filename} toegevoegd aan gegevensbron {ds} voor logger {log}'.format(filename=basename, ds=unicode(ds), log=unicode(pos or serial)))
@@ -637,6 +742,7 @@ def handle_uploaded_files(request, network, localfiles):
         wells = set()
         result = {}
         for pathname in localfiles:
+            msg = []
             filename = os.path.basename(pathname)
             try:
                 if zipfile.is_zipfile(pathname): 

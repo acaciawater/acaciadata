@@ -11,9 +11,9 @@ class Command(BaseCommand):
     help = 'Check email functionality'
 
     def handle(self, *args, **options):
-        subject = '[Django] Email test (2)'
-        message = 'Hallo,\nDeze mail komt van een acaciadata.com server en is bedoeld om de email te testen.\nGroeten, Theo'
-        fromaddr = 'webmaster@acaciadata.com'
-        recipients = ['theo.kleinendorst@acaciawater.com',]
+        subject = 'Re: Prins Hendrik Zanddijk'
+        message = 'Goedendag,\nDeze mail komt van de phzdmeet.nl server (Reverse DNS=phzdmeet.nl) en is bedoeld om de email te testen.\nVriendelijke groet, Theo'
+        fromaddr = 'webmaster@phzdmeet.nl'
+        recipients = ['tkleinen@gmail.com','theo.kleinendorst@acaciawater.com','t.kleinendorst@online.nl']
         send_mail(subject, message, fromaddr, recipients)
     

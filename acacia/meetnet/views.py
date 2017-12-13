@@ -11,16 +11,19 @@ from django.shortcuts import get_object_or_404, redirect
 from django.core.files.storage import default_storage
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-import numpy as np
 import pandas as pd
 
 from .models import Network, Well, Screen
 from .forms import UploadFileForm
 from .actions import download_well_nitg
 
-import os, json, logging, time, datetime
+import os, json, logging
 
 from util import handle_uploaded_files
+from django.utils.timezone import get_current_timezone
+from django.utils.text import slugify
+from acacia.data.actions import download_series_csv
+from acacia.data.util import series_as_csv, unix_timestamp
 
 logger = logging.getLogger(__name__)
 
@@ -56,19 +59,20 @@ class NetworkView(DetailView):
         context = super(NetworkView, self).get_context_data(**kwargs)
         network = self.get_object()
         content = []
-        for well in network.well_set.all():
-            pos = well.latlon()
-            content.append({'network': network.id,
-                            'well': well.id,
-                            'name': well.name,
-                            'nitg': well.nitg,
-                            'lat': pos.y,
-                            'lon': pos.x,
-                            'url': reverse('meetnet:well-info', args=[well.id]),
-                            })
-        context['content'] = json.dumps(content)
-        if not network.bound is None:
-            context['boundary'] = network.bound
+        if network:
+            if not network.bound is None:
+                context['boundary'] = network.bound
+            for well in network.well_set.all():
+                pos = well.latlon()
+                content.append({'network': network.id,
+                                'well': well.id,
+                                'name': well.name,
+                                'nitg': well.nitg,
+                                'lat': pos.y,
+                                'lon': pos.x,
+                                'url': reverse('meetnet:well-info', args=[well.id]),
+                                })
+        context['content'] = json.dumps(content) if content else None
         context['maptype'] = 'ROADMAP'
         context['apikey'] = settings.GOOGLE_MAPS_API_KEY
         return context
@@ -104,7 +108,7 @@ class ScreenChartView(TemplateView):
                        ]
             }
             
-        context['options'] = json.dumps(options, default=lambda x: int(time.mktime(x.timetuple())*1000))
+        context['options'] = json.dumps(options, default=lambda x: int(unix_timestamp(x)*1000))
         context['screen'] = filt
         return context
 
@@ -138,9 +142,22 @@ def json_series(request, pk):
     if series is None or series.empty:
         values = []
     else:
-        values = zip(series.index.astype(np.int64)//10**6, series.values)
+        values = zip(series.index, series.values)
+        #values = zip(series.index.astype(np.int64)//10**6, series.values)
     data = {'screen%s'%screen.nr: values}
-    return HttpResponse(json.dumps(data),content_type='application/json')
+    stats = request.GET.get('stats','0')
+    try:
+        stats = int(stats)
+        if stats:
+            mean = pd.expanding_mean(series)
+            std = pd.expanding_std(series)
+            a = (mean - std).dropna()
+            b = (mean + std).dropna()
+            ranges = zip(a.index.to_pydatetime(), a.values, b.values)
+            data.update({'stats%s'%screen.nr: ranges})
+    except:
+        pass
+    return HttpResponse(json.dumps(data,default=lambda x: int(unix_timestamp(x)*1000)),content_type='application/json')
     
 class WellChartView(TemplateView):
     template_name = 'meetnet/chart_detail.html'
@@ -148,15 +165,17 @@ class WellChartView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super(WellChartView, self).get_context_data(**kwargs)
         well = Well.objects.get(pk=context['pk'])
-        name = unicode(well)
-         
+        if well.name == well.nitg:
+            title = well.name
+        else:
+            title = '{nitg} ({name})'.format(name=well.name, nitg=well.nitg)
         options = {
              'rangeSelector': { 'enabled': True,
                                'inputEnabled': True,
                                },
             'navigator': {'adaptToUpdatedData': True, 'enabled': True},
-            'chart': {'type': 'arearange', 'zoomType': 'x','events':{'load':None}},
-            'title': {'text': name},
+            'chart': {'zoomType': 'x','events':{'load':None}},
+            'title': {'text': title},
             'xAxis': {'type': 'datetime'},
             'yAxis': [{'title': {'text': 'Grondwaterstand\n(m tov NAP)'}}
                       ],
@@ -171,41 +190,44 @@ class WellChartView(TemplateView):
                         'href': 'http://www.acaciawater.com',
                        },
             }
+
         series = []
-        xydata = []
+        start = stop = None
+
         for screen in well.screen_set.all():
             if screen.has_data():
-                xydata = None
                 series.append({'name': 'filter {}'.format(screen.nr),
                             'type': 'line',
-                            'data': xydata,
+                            'data': [],
                             'lineWidth': 1,
                             'zIndex': 2,
                             'id': 'screen%d' % screen.nr
                             })
+                if start:
+                    start = min(start,screen.start())
+                else:
+                    start = screen.start()
+                    
+                if stop:
+                    stop = min(stop,screen.stop())
+                else:
+                    stop = screen.stop()
 
-            # sensor positie tov NAP
-#             data = []
-#             depths = screen.loggerpos_set.order_by('start_date').values_list('start_date','depth')
-#             if len(depths)>0:
-#                 last = None
-#                 for date,value in depths:
-#                     if last:
-#                         data.append((date,last))
-#                     value = screen.refpnt - value
-#                     data.append((date,value))
-#                     last = value
-# #                 date = datetime.datetime(2017,2,1)
-# #                 last_date = int(time.mktime(date.timetuple())*1000)
-# #                 data.append((last_date,last))
-#             if data:
-#                 series.append({'name': 'diver {}'.format(screen.nr),
-#                         'type': 'line',
-#                         'data': data,
-#                         'zIndex': 1,
-#                         'id': 'diver%d' % screen.nr
-#                         })
-            
+                # add statistics if requested
+                stats = self.request.GET.get('stats','0')
+                stats = int(stats)
+                if stats:
+                    series.append({'name': 'spreiding %d'% screen.nr,
+                            'id': 'stats%d' % screen.nr,
+                            'data': [],
+                            'type': 'arearange',
+                            'lineWidth': 0,
+                            'linkedTo': ':previous',
+                            #'color': '#0066FF',
+                            'fillOpacity': 0.2,
+                            'zIndex': 0,
+                            'marker': {'enabled':False}
+                            })
 
             data = screen.get_manual_series()
             if data is None:
@@ -223,16 +245,17 @@ class WellChartView(TemplateView):
                             },
                         })
             
-        if well.maaiveld:
-            mv = []
-            mv.append((datetime.datetime(2013,1,1), well.maaiveld))
-            mv.append((datetime.datetime(2016,12,31,23,59), well.maaiveld))
+
+        maaiveld = well.maaiveld or well.ahn
+        if maaiveld and start and stop:
+            tz = get_current_timezone()
+            maaiveld = float(maaiveld)
             series.append({'name': 'maaiveld',
                         'type': 'line',
                         'lineWidth': 2,
                         'color': '#009900',
                         'dashStyle': 'Dash',
-                        'data': mv,
+                        'data': [(start.astimezone(tz),maaiveld),(stop.astimezone(tz),maaiveld)],
                         'zIndex': 4,
                         })
 
@@ -240,38 +263,48 @@ class WellChartView(TemplateView):
         if hasattr(well,'meteo'):
             neerslag = well.meteo.neerslag
             if neerslag:
-                data = neerslag.to_pandas(start=xydata[0][0], stop=xydata[-1][0]) / 10.0 # 0.1 mm -> mm
-                if not data.empty:
-                    data = zip(data.index.to_pydatetime(), data.values)
-                    series.append({'name': 'Neerslag '+ neerslag.datasource.name,
+                data = neerslag.to_array(start=start, stop=stop)
+                if data:
+                    aantal = len(data)
+                    if aantal>1:
+                        first = data[0][0]
+                        last = data[-1][0]
+                        deltat = (last - first)
+                        secs = deltat.total_seconds() / (aantal-1)
+                        hours = max(int(secs/3600),1)
+                    else:
+                        hours = 1 
+                    
+                    series.append({'name': neerslag.name,
                                 'type': 'column',
                                 'data': data,
                                 'yAxis': 1,
-                                'pointRange': 24 * 3600 * 1000, # 1 day
-                                'pointPadding': 0.01,
+                                'pointRange': hours * 3600 * 1000, 
+                                'pointPadding': 0,
+                                'groupPadding': 0,
                                 'pointPlacement': 0.5,
                                 'zIndex': 1,
                                 'color': 'orange', 
                                 'borderColor': '#cc6600', 
+                                'tooltip': {'valueSuffix': ' '+neerslag.unit,
+                                            'valueDecimals': 2,
+                                            'shared': True,
+                                           }, 
                                 })
-                    options['yAxis'].append({'title': {'text': 'Neerslag (mm)'},
+                    options['yAxis'].append({'title': {'text': 'Neerslag ({})'.format(neerslag.unit)},
                                              'opposite': 1,
                                              'min': 0,
                                              })
         options['series'] = series
-        context['options'] = json.dumps(options, default=lambda x: int(time.mktime(x.timetuple())*1000))
+        
+        context['options'] = json.dumps(options, default=lambda x: unix_timestamp(x)*1000)
         context['object'] = well
         return context
 
 from acacia.data.views import DownloadSeriesAsZip
-from acacia.data.models import Series
 
 def get_series(screen):
-    name = '%s COMP' % unicode(screen)
-    try:
-        return Series.objects.get(name=name)
-    except:
-        return None
+    return screen.find_series()
 
 @login_required
 def DownloadSeriesAsNITG(request,source,series):
@@ -292,6 +325,18 @@ def EmailWellSeries(request,pk):
     well = get_object_or_404(Well, pk=pk)
     series = [get_series(s) for s in well.screen_set.all()]
     return DownloadSeriesAsZip(request, unicode(well), series)
+
+def DownloadWellSeries(request,pk):
+    well = get_object_or_404(Well, pk=pk)
+    series = [get_series(s) for s in well.screen_set.all()]
+    if series:
+        if len(series)==1:
+            resp = series_as_csv(series[0]) # one single csv file
+            resp['Content-Disposition'] = 'attachment; filename={}.csv'.format(slugify(str(well)))
+        else:
+            resp = download_series_csv(None,request,series) # zip archive with all series
+            resp['Content-Disposition'] = 'attachment; filename={}.zip'.format(slugify(str(well)))
+        return resp
     
 def EmailScreenSeries(request,pk):
     screen = get_object_or_404(Screen,pk=pk)

@@ -4,11 +4,14 @@ Created on Jun 1, 2014
 @author: theo
 '''
 from .models import Network, Well, Photo, Screen, Datalogger, LoggerPos, LoggerDatasource, MonFile, Channel
-from acacia.data.admin import DatasourceAdmin, SourceFileAdmin
+from acacia.data.admin import DatasourceAdmin, SourceFileAdmin,\
+    ManualSeriesAdmin, DataPointInline, SeriesForm
 from django.conf import settings
 from django.contrib import admin
-from acacia.meetnet.models import MeteoData
+from acacia.meetnet.models import MeteoData, Handpeiling
 from acacia.meetnet.actions import update_statistics
+from acacia.data.models import SourceFile, Series
+from django.utils.translation import ugettext as _
 
 USE_GOOGLE_TERRAIN_TILES = False
 
@@ -60,14 +63,15 @@ class DataloggerAdmin(admin.ModelAdmin):
 
 class MonFileInline(admin.TabularInline):
     model = MonFile
-    
+    classes = ['collapse']
+
 class LoggerPosAdmin(admin.ModelAdmin):
     model = LoggerPos
     actions = [update_statistics]
     list_display = ('logger', 'screen', 'start_date', 'end_date', 'refpnt', 'depth', 'remarks')
     list_filter = ('screen__well', 'screen',)
     search_fields = ('logger__serial','screen__well__name')
-    inlines = [MonFileInline]
+    #inlines = [MonFileInline]
     
 class LoggerInline(admin.TabularInline):
     model = LoggerPos
@@ -204,6 +208,32 @@ class MeteoDataAdmin(admin.ModelAdmin):
     list_display = ('well','baro')
     search_fields = ('well__nitg','baro__name')
     list_filter = ('well','baro','neerslag','verdamping','temperatuur')
+
+class HandForm(SeriesForm):
+
+    def clean(self):
+        cleaned_data = super(HandForm,self).clean()
+        screen = cleaned_data['screen']
+        cleaned_data['mlocatie'] = screen.mloc
+        return cleaned_data
+    
+class HandpeilingAdmin(ManualSeriesAdmin):
+    model = Handpeiling
+    base_model = Series
+    form = HandForm
+    actions = []
+    list_display = ('screen', 'thumbtag', 'unit', 'timezone', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
+    list_filter = ('screen',)
+    exclude = ('user','parameter')
+    inlines = [DataPointInline,]
+    search_fields = ['screen', 'name',]
+    fieldsets = (
+                 (_('Algemeen'), {'fields': ('screen', 'refpnt', ('unit', 'type'), 'description','timezone'),
+                               'classes': ('grp-collapse grp-open',),
+                               }),
+    )
+    def get_changeform_initial_data(self, request):
+        return {'type': 'scatter','user': request.user}
     
 admin.site.register(Network)
 admin.site.register(Well, WellAdmin)
@@ -216,3 +246,4 @@ admin.site.register(LoggerPos, LoggerPosAdmin)
 admin.site.register(LoggerDatasource, LoggerDatasourceAdmin)
 admin.site.register(MonFile,MonFileAdmin)
 admin.site.register(Channel, ChannelAdmin)
+admin.site.register(Handpeiling, HandpeilingAdmin)

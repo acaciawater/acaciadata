@@ -9,6 +9,7 @@ from django import forms
 from django.forms import PasswordInput, ModelForm
 from django.contrib.gis.db import models
 from django.contrib.contenttypes.models import ContentType
+from django.utils.translation import ugettext as _
 
 import django.contrib.gis.forms as geoforms
 import json
@@ -92,7 +93,7 @@ class CalibrationInline(admin.TabularInline):
                
 class DatasourceForm(ModelForm):
     model = Datasource
-    password = forms.CharField(label='Wachtwoord', help_text='Wachtwoord voor de webservice', widget=PasswordInput(render_value=True),required=False)
+    password = forms.CharField(label=_('password'), help_text=_('password for webservice'), widget=PasswordInput(render_value=True),required=False)
 
     def clean_config(self):
         config = self.cleaned_data['config']
@@ -100,7 +101,7 @@ class DatasourceForm(ModelForm):
             if config != '':
                 json.loads(config)
         except Exception as ex:
-            raise forms.ValidationError('Onjuiste JSON dictionary: %s'% ex)
+            raise forms.ValidationError(_('Invalid JSON dictionary: %s') % ex)
         return config
     
 #     def clean(self):
@@ -116,7 +117,7 @@ class DatasourceAdmin(admin.ModelAdmin):
     form = DatasourceForm
     inlines = [CalibrationInline, SourceFileInline] # takes VERY long for decagon with more than 1000 files
     search_fields = ['name',]
-    actions = [actions.upload_datasource, actions.update_parameters, actions.datasource_dimensions,actions.generate_locations,actions.generate_datasource_series]
+    actions = [actions.upload_datasource, actions.update_parameters, actions.datasource_dimensions,actions.generate_locations,actions.generate_datasource_series,actions.update_datasource_series]
     list_filter = ('meetlocatie','meetlocatie__projectlocatie','meetlocatie__projectlocatie__project','generator')
     list_display = ('name', 'description', 'meetlocatie', 'generator', 'last_download', 'filecount', 'locationcount', 'parametercount', 'seriescount', 'calibcount','timezone','start', 'stop', 'rows',)
     fieldsets = (
@@ -190,8 +191,8 @@ class MeetLocatieAdmin(admin.ModelAdmin):
     actions = [actions.meteo_toevoegen, 'add_notifications', actions.set_locatie]
 
     class NotificationActionForm(forms.Form):
-        email = forms.EmailField(label='Email adres', required=True)
-        level = forms.ChoiceField(label='Niveau', choices=LOGGING_CHOICES,required=True)
+        email = forms.EmailField(label=_('Email address'), required=True)
+        level = forms.ChoiceField(label=_('Level'), choices=LOGGING_CHOICES,required=True)
 
     def add_notifications(self, request, queryset):
         if 'apply' in request.POST:
@@ -204,7 +205,7 @@ class MeetLocatieAdmin(admin.ModelAdmin):
                     for ds in loc.datasources.all():
                         ds.notification_set.add(Notification(user=request.user,email=email,level=level))
                         num += 1
-                self.message_user(request, "%d gegevensbronnen getagged" % num)
+                self.message_user(request, _("%d datasources were tagged") % num)
                 return
         elif 'cancel' in request.POST:
             return redirect(request.get_full_path())
@@ -212,7 +213,7 @@ class MeetLocatieAdmin(admin.ModelAdmin):
             form = self.NotificationActionForm(initial={'email': request.user.email, 'level': 'ERROR'})
         return render(request,'data/notify.html',{'form': form, 'locaties': queryset, 'check': admin.helpers.ACTION_CHECKBOX_NAME})
 
-    add_notifications.short_description='Berichtgeving toevoegen aan geselecteerde meetlocaties'
+    add_notifications.short_description=_('Add email notification to selected datasources')
 
 class NotificationAdmin(admin.ModelAdmin):
     Model = Notification
@@ -224,7 +225,7 @@ class NotificationAdmin(admin.ModelAdmin):
     #actions = ['set_level']
 
     class NotificationLevelForm(forms.Form):
-        level = forms.ChoiceField(choices = LOGGING_CHOICES, label='Niveau', initial={'level': 'ERROR'}, required=True, help_text='Niveau van berichtgeving')
+        level = forms.ChoiceField(choices = LOGGING_CHOICES, label=_('Level'), initial={'level': 'ERROR'}, required=True, help_text=_('Level of notification'))
     
     def set_level(self, request, queryset):
         if 'apply' in request.POST:
@@ -232,7 +233,7 @@ class NotificationAdmin(admin.ModelAdmin):
             if form.is_valid():
                 level = form.cleaned_data['level']
                 num_updated = queryset.update(level=level)
-                self.message_user(request, "% email notifications changed" % num_updated)
+                self.message_user(request, _("% email notifications changed") % num_updated)
                 return
         elif 'cancel' in request.POST:
             return redirect(request.get_full_path())
@@ -240,7 +241,7 @@ class NotificationAdmin(admin.ModelAdmin):
             form = self.NotificationLevelForm(initial={'level': 'ERROR'})
         return render(request,'data/change_notify_level.html',{'form': form, 'locaties': queryset, 'check': admin.helpers.ACTION_CHECKBOX_NAME})
 
-    set_level.short_description='Niveau aanpassen'
+    set_level.short_description=_('Change notification level')
 
     
     def get_form(self, request, obj=None, **kwargs):
@@ -310,7 +311,7 @@ class SeriesForm(forms.ModelForm):
         if series is not None:
             scale = self.cleaned_data['scale']
             if scale != 1:
-                raise forms.ValidationError('Als een verschalingtijdreeks is opgegeven moet de verschalingsfactor gelijk aan 1 zijn')
+                raise forms.ValidationError(_('Als een verschalingtijdreeks is opgegeven moet de verschalingsfactor gelijk aan 1 zijn'))
         return series
 
     def clean_offset_series(self):
@@ -318,7 +319,7 @@ class SeriesForm(forms.ModelForm):
         if series is not None:
             offset = self.cleaned_data['offset']
             if offset != 0:
-                raise forms.ValidationError('Als een compensatietijdreeks is opgegeven moet de compensatiefactor gelijk aan 0 zijn')
+                raise forms.ValidationError(_('Als een compensatietijdreeks is opgegeven moet de compensatiefactor gelijk aan 0 zijn'))
         return series
 
 from polymorphic.admin import PolymorphicParentModelAdmin, PolymorphicChildModelAdmin
@@ -329,7 +330,7 @@ class SaveUserMixin:
         obj.save()
 
 class ContentTypeFilter(admin.SimpleListFilter):
-    title = 'Tijdreeks type'
+    title = _('Tijdreeks type')
     parameter_name = 'ctid'
 
     def lookups(self, request, modeladmin):
@@ -356,18 +357,19 @@ class ParameterSeriesAdmin(PolymorphicChildModelAdmin):
     search_fields = ['name','parameter__name','parameter__datasource__name']
 
     fieldsets = (
-                 ('Algemeen', {'fields': ('parameter', 'name', ('unit', 'type'), 'description','timezone'),
+                 (_('Algemeen'), {'fields': ('parameter', 'name', ('unit', 'type'), 'description','timezone'),
                                'classes': ('grp-collapse grp-open',),
                                }),
-                 ('Tijdsinterval', {'fields': ('from_limit','to_limit'),
+                 (_('Tijdsinterval'), {'fields': ('from_limit','to_limit'),
                                'classes': ('grp-collapse grp-closed',)
                                }),
-                 ('Bewerkingen', {'fields': (('resample', 'aggregate',),('scale', 'scale_series'), ('offset','offset_series'), ('cumsum', 'cumstart' ),),
+                 (_('Bewerkingen'), {'fields': (('resample', 'aggregate',),('scale', 'scale_series'), ('offset','offset_series'), ('cumsum', 'cumstart' ),),
                                'classes': ('grp-collapse grp-closed',),
                               }),
     )
 
     def save_model(self, request, obj, form, change):
+        obj.mlocatie = obj.parameter.meetlocatie()
         obj.user = request.user
         obj.save()
 
@@ -381,7 +383,7 @@ class ManualSeriesAdmin(PolymorphicChildModelAdmin):
     inlines = [DataPointInline,]
     search_fields = ['name','locatie']
     fieldsets = (
-                 ('Algemeen', {'fields': ('mlocatie', 'name', ('unit', 'type'), 'description','timezone'),
+                 (_('Algemeen'), {'fields': ('mlocatie', 'name', ('unit', 'type'), 'description','timezone'),
                                'classes': ('grp-collapse grp-open',),
                                }),
     )
@@ -396,16 +398,16 @@ class FormulaSeriesAdmin(PolymorphicChildModelAdmin):
     exclude = ('user',)
     list_filter = ('mlocatie', 'parameter__datasource', 'parameter__datasource__meetlocatie__projectlocatie__project', ContentTypeFilter)
     fieldsets = (
-                  ('Algemeen', {'fields': ('mlocatie', 'name', ('unit', 'type'), 'description','timezone'),
+                  (_('Algemeen'), {'fields': ('mlocatie', 'name', ('unit', 'type'), 'description','timezone'),
                                 'classes': ('grp-collapse grp-open',),
                                 }),
-                 ('Tijdsinterval', {'fields': ('from_limit','to_limit'),
+                 (_('Tijdsinterval'), {'fields': ('from_limit','to_limit'),
                                'classes': ('grp-collapse grp-closed',)
                                }),
-                 ('Bewerkingen', {'fields': (('resample', 'aggregate',),('scale', 'scale_series'), ('offset','offset_series'), ('cumsum', 'cumstart' ),),
+                 (_('Bewerkingen'), {'fields': (('resample', 'aggregate',),('scale', 'scale_series'), ('offset','offset_series'), ('cumsum', 'cumstart' ),),
                                'classes': ('grp-collapse grp-closed',),
                               }),
-                 ('Berekening', {'fields': ('formula_variables', 'intersect', 'formula_text'),
+                 (_('Berekening'), {'fields': ('formula_variables', 'intersect', 'formula_text'),
                                'classes': ('grp-collapse grp-closed',),
                               }),
     )
@@ -441,7 +443,7 @@ class SeriesAdmin(PolymorphicParentModelAdmin):
     }
 
     class ContentTypeFilter(admin.SimpleListFilter):
-        title = 'Tijdreeks type'
+        title = _('Tijdreeks type')
         parameter_name = 'ctid'
 
         def lookups(self, request, modeladmin):
@@ -459,18 +461,19 @@ class SeriesAdmin(PolymorphicParentModelAdmin):
     search_fields = ['name','parameter__name','parameter__datasource__name']
 
     base_fieldsets = (
-                 ('Algemeen', {'fields': ('parameter', 'name', ('unit', 'type'), 'description','timezone'),
+                 (_('Algemeen'), {'fields': ('parameter', 'name', ('unit', 'type'), 'description','timezone'),
                                'classes': ('grp-collapse grp-open',),
                                }),
-                 ('Tijdsinterval', {'fields': ('from_limit','to_limit'),
+                 (_('Tijdsinterval'), {'fields': ('from_limit','to_limit'),
                                'classes': ('grp-collapse grp-closed',)
                                }),
-                 ('Bewerkingen', {'fields': (('resample', 'aggregate',),('scale', 'scale_series'), ('offset','offset_series'), ('cumsum', 'cumstart' ),),
+                 (_('Bewerkingen'), {'fields': (('resample', 'aggregate',),('scale', 'scale_series'), ('offset','offset_series'), ('cumsum', 'cumstart' ),),
                                'classes': ('grp-collapse grp-closed',),
                               }),
     )
 
     def save_model(self, request, obj, form, change):
+        obj.mlocatie = obj.parameter.meetlocatie()
         obj.user = request.user
         obj.save()
 
@@ -514,16 +517,16 @@ class HiLoInlineFormSet(BaseInlineFormSet):
                     van=float(lo)
                     tot=float(hi)
                 except:
-                    raise forms.ValidationError("'van' en 'tot' moeten een getal zijn")
+                    raise forms.ValidationError(_("'van' en 'tot' moeten een getal zijn"))
             else:
                 # vertical band: low and high must be datetime
                 try:
                     van = dateutil.parser.parse(lo)
                     tot = dateutil.parser.parse(hi)
                 except:
-                    raise forms.ValidationError("'van' en 'tot' moeten een datum zijn")
+                    raise forms.ValidationError(_("'van' en 'tot' moeten een datum zijn"))
             if van > tot:
-                raise forms.ValidationError("'van' mag niet groter zijn dan 'tot'")
+                raise forms.ValidationError(_("'van' mag niet groter zijn dan 'tot'"))
             
 class PlotBandInline(admin.TabularInline):
     model = PlotBand
@@ -592,7 +595,7 @@ class VariableAdminForm(forms.ModelForm):
         try:
             exec("{0}=1".format(name))
         except:
-            raise forms.ValidationError('{0} is een ongeldige python variable'.format(name))
+            raise forms.ValidationError(_('{0} is een ongeldige python variable').format(name))
         return name
 
 class VariableAdmin(admin.ModelAdmin):

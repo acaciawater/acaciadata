@@ -71,7 +71,7 @@ class Meteo(Generator):
         header = self.get_header(f)
         columns = header.get('COLUMNS',[])
         skiprows = self.skiprows if self.engine == 'python' else 0
-        data = self.read_csv(f, header=None, names=columns, skiprows = skiprows, skipinitialspace=True, comment = '#', index_col = 1, parse_dates = True)
+        data = self.read_csv(f.file.file, header=None, names=columns, skiprows = skiprows, skipinitialspace=True, comment = '#', index_col = 1, parse_dates = True)
         return data
 
     def get_unit(self,descr):
@@ -193,7 +193,7 @@ class Neerslag(Meteo):
         names = header.get('COLUMNS',[])
         names.append('NAME')
         skiprows = self.skiprows if self.engine == 'python' else 0
-        data = self.read_csv(f, header=None, skiprows = skiprows, names=names, skipinitialspace=True, comment = '#', index_col = 1, parse_dates = True)
+        data = self.read_csv(f.file.file, header=None, skiprows = skiprows, names=names, skipinitialspace=True, comment = '#', index_col = 1, parse_dates = True)
         return data
 
 class ZipMixin(object):
@@ -317,102 +317,102 @@ class Radar(Generator):
             kwargs['filename'] = 'rad24h20170515'
         return Generator.download(self, **kwargs)
     
-# KNMI neerslagradar
-from pydap.client import open_url
-from pydap.exceptions import DapError
-import pytz
-import osr, gdal
-import numpy.ma as ma
-import pandas as pd
-
-UTC = pytz.utc
-UTC2000 = UTC.localize(datetime.datetime(2000, 1, 1))
-
-def thredds():
-    url = 'http://opendap.knmi.nl/knmi/thredds/dodsC/radarprecipclim/RAD_NL25_RAC_MFBS_24H_NC.nc'
-    dataset = open_url(url)
-    print dataset.keys()
-    grid = dataset.image1_image_data
-    print grid.dimensions, grid.shape
-    geo = dataset.geographic
-    print geo.attributes
-    projection = dataset.projection
-    print projection.attributes
-    
-    #corners = geo.attributes['geo_product_corners']
-    rowoffset = geo.attributes['geo_row_offset']
-    proj4 = projection.attributes['proj4_origin']
-    crs = osr.SpatialReference()
-    crs.ImportFromProj4(proj4)
-    wgs84 = osr.SpatialReference()
-    wgs84.ImportFromEPSG(4326)
-    trans = osr.CoordinateTransformation(wgs84, crs)
-    
-#     sw = corners[0:2]
-#     nw = corners[2:4]
-#     ne = corners[4:6]
-#     se = corners[6:]
-#     pt1 = trans.TransformPoint(sw[0],sw[1],0)
-#     pt2 = trans.TransformPoint(nw[0],nw[1],0)
-#     pt3 = trans.TransformPoint(ne[0],ne[1],0)
-#     pt4 = trans.TransformPoint(se[0],se[1],0)
-#     dx1 = pt3[0] - pt2[0]
-#     dx2 = pt4[0] - pt1[0]
-#     dy1 = pt2[1] - pt1[1]
-#     dy2 = pt3[1] - pt4[1]
-#     print dx1, dx2, dy1, dy2
-#     print proj4
-#     print corners
-    
-    p=(5.177,52.101) # de bilt
-    p=trans.TransformPoint(p[0],p[1])
-    col = int(p[0])
-    row = -int(p[1]+rowoffset)
-
-    time = dataset.time[:]
-    t = [UTC2000 + datetime.timedelta(seconds=float(s)) for s in time]
-    t1 = len(t)-10
-    print t[-1]
-    z = grid[t1,row,col].flatten()
-    z = ma.masked_where(z == -9999.0, z)
-    data = pd.Series(z,index=t)
-    data.index.name = 'Datum'
-    data.name = 'Neerslag'
-    io = StringIO.StringIO()
-    data.to_csv(io,header=True)
-    response = io.getvalue()
-
-def hdf(fname):
-    fname = '/media/sf_C_DRIVE/Users/theo/Documents/RAD_NL25_RAC_24H_201705150800.h5'
-    hdf = gdal.OpenShared(fname)
-    
-    meta = hdf.GetMetadata()
-    proj4 = meta['geographic_map_projection_projection_proj4_params']
-    rowoffset = float(meta['geographic_geo_row_offset'])
-    crs = osr.SpatialReference()
-    crs.ImportFromProj4(proj4)
-    wgs84 = osr.SpatialReference()
-    wgs84.ImportFromEPSG(4326)
-    trans = osr.CoordinateTransformation(wgs84, crs)
-
-    sets = hdf.GetMetadata('SUBDATASETS')
-    image1 = gdal.OpenShared(sets['SUBDATASET_1_NAME'])
-    image2 = gdal.OpenShared(sets['SUBDATASET_2_NAME'])
-
-    p=(5.177,52.101) # de bilt
-    p=trans.TransformPoint(p[0],p[1])
-    col = int(p[0])
-    row = -int(p[1]+rowoffset)
-
-    band1 = image1.GetRasterBand(1)
-    z1 = band1.ReadAsArray(col, row, 1, 1)[0][0]
-    band2 = image1.GetRasterBand(1)
-    z2 = band2.ReadAsArray(col, row, 1, 1)[0][0]
-    return (z1, z2)
-    
-if __name__ == '__main__':
-    thredds()
-
+# # KNMI neerslagradar
+# from pydap.client import open_url
+# from pydap.exceptions import DapError
+# import pytz
+# import osr, gdal
+# import numpy.ma as ma
+# import pandas as pd
+# 
+# UTC = pytz.utc
+# UTC2000 = UTC.localize(datetime.datetime(2000, 1, 1))
+# 
+# def thredds():
+#     url = 'http://opendap.knmi.nl/knmi/thredds/dodsC/radarprecipclim/RAD_NL25_RAC_MFBS_24H_NC.nc'
+#     dataset = open_url(url)
+#     print dataset.keys()
+#     grid = dataset.image1_image_data
+#     print grid.dimensions, grid.shape
+#     geo = dataset.geographic
+#     print geo.attributes
+#     projection = dataset.projection
+#     print projection.attributes
+#     
+#     #corners = geo.attributes['geo_product_corners']
+#     rowoffset = geo.attributes['geo_row_offset']
+#     proj4 = projection.attributes['proj4_origin']
+#     crs = osr.SpatialReference()
+#     crs.ImportFromProj4(proj4)
+#     wgs84 = osr.SpatialReference()
+#     wgs84.ImportFromEPSG(4326)
+#     trans = osr.CoordinateTransformation(wgs84, crs)
+#     
+# #     sw = corners[0:2]
+# #     nw = corners[2:4]
+# #     ne = corners[4:6]
+# #     se = corners[6:]
+# #     pt1 = trans.TransformPoint(sw[0],sw[1],0)
+# #     pt2 = trans.TransformPoint(nw[0],nw[1],0)
+# #     pt3 = trans.TransformPoint(ne[0],ne[1],0)
+# #     pt4 = trans.TransformPoint(se[0],se[1],0)
+# #     dx1 = pt3[0] - pt2[0]
+# #     dx2 = pt4[0] - pt1[0]
+# #     dy1 = pt2[1] - pt1[1]
+# #     dy2 = pt3[1] - pt4[1]
+# #     print dx1, dx2, dy1, dy2
+# #     print proj4
+# #     print corners
+#     
+#     p=(5.177,52.101) # de bilt
+#     p=trans.TransformPoint(p[0],p[1])
+#     col = int(p[0])
+#     row = -int(p[1]+rowoffset)
+# 
+#     time = dataset.time[:]
+#     t = [UTC2000 + datetime.timedelta(seconds=float(s)) for s in time]
+#     t1 = len(t)-10
+#     print t[-1]
+#     z = grid[t1,row,col].flatten()
+#     z = ma.masked_where(z == -9999.0, z)
+#     data = pd.Series(z,index=t)
+#     data.index.name = 'Datum'
+#     data.name = 'Neerslag'
+#     io = StringIO.StringIO()
+#     data.to_csv(io,header=True)
+#     response = io.getvalue()
+# 
+# def hdf(fname):
 #     fname = '/media/sf_C_DRIVE/Users/theo/Documents/RAD_NL25_RAC_24H_201705150800.h5'
-#     z = hdf(fname)
-#     print z
+#     hdf = gdal.OpenShared(fname)
+#     
+#     meta = hdf.GetMetadata()
+#     proj4 = meta['geographic_map_projection_projection_proj4_params']
+#     rowoffset = float(meta['geographic_geo_row_offset'])
+#     crs = osr.SpatialReference()
+#     crs.ImportFromProj4(proj4)
+#     wgs84 = osr.SpatialReference()
+#     wgs84.ImportFromEPSG(4326)
+#     trans = osr.CoordinateTransformation(wgs84, crs)
+# 
+#     sets = hdf.GetMetadata('SUBDATASETS')
+#     image1 = gdal.OpenShared(sets['SUBDATASET_1_NAME'])
+#     image2 = gdal.OpenShared(sets['SUBDATASET_2_NAME'])
+# 
+#     p=(5.177,52.101) # de bilt
+#     p=trans.TransformPoint(p[0],p[1])
+#     col = int(p[0])
+#     row = -int(p[1]+rowoffset)
+# 
+#     band1 = image1.GetRasterBand(1)
+#     z1 = band1.ReadAsArray(col, row, 1, 1)[0][0]
+#     band2 = image1.GetRasterBand(1)
+#     z2 = band2.ReadAsArray(col, row, 1, 1)[0][0]
+#     return (z1, z2)
+#     
+# if __name__ == '__main__':
+#     thredds()
+# 
+# #     fname = '/media/sf_C_DRIVE/Users/theo/Documents/RAD_NL25_RAC_24H_201705150800.h5'
+# #     z = hdf(fname)
+# #     print z

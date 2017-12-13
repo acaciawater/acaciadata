@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 '''
 Created on Mar 30, 2017
 
@@ -11,19 +12,38 @@ logger = generator.logger
 from ftplib import FTP
 from urlparse import urlparse
 from django.utils import timezone
-import dateutil, cgi, os
+import dateutil
+import pandas as pd
 
 class ElliTrack(GenericCSV):
-    def __init__(self,*args,**kwargs):
-        kwargs['separator'] = '\t'
-        return super(ElliTrack,self).__init__(*args,**kwargs)
     
     def get_data(self, f, **kwargs):
-        data = GenericCSV.get_data(self, f, **kwargs)
+        f.seek(0)
+        data = pd.read_table(f, parse_dates = True, index_col = 0, header = self.header, dayfirst = self.dayfirst, decimal = self.decimal)
+        self.set_labels(data)
+        if not isinstance(data.index,pd.DatetimeIndex):
+            # for some reason dateutil.parser.parse not always recognizes valid dates?
+            data.drop('None', inplace = True)
+            data.index = pd.to_datetime(data.index)
         if data is not None:
+            data.dropna(how='all', inplace=True)
             if 'Waterstand' in data:
                 data['Waterstand'] = data['Waterstand'] / 100
         return data
+
+#     def get_parameters(self, f):
+#         return {'Waterstand' : {'description' : 'Waterstand', 'unit': 'cm' },
+#             'Temp_water': {'description' : 'Temperatuur water', 'unit': 'oC' },
+#             'Temp_intern': {'description' : 'Temperatuur intern', 'unit': 'oC' }
+#         } 
+    def get_parameters(self, f):
+        f.seek(0)
+        data = pd.read_table(f, parse_dates = True, index_col = 0, header = self.header, dayfirst = self.dayfirst, decimal = self.decimal)
+        self.set_labels(data)
+        params = {}
+        for col in data.columns:
+            params[col] = {'description' : col, 'unit': 'm' if col.endswith('stand') else '°C'}
+        return params
 
     def download(self, **kwargs):
  
