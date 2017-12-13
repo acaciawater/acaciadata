@@ -68,8 +68,8 @@ class Well(geo.Model):
         return self.photo_set.count()
     num_photos.short_description=_('number of photos')
 
-    def add_photo(self, name, fp, fmt='JPEG'):
-        ''' adds or replaces photo from file-like object while honoring rotation tag '''
+    def _openimage(self, fp, fmt='JPEG'):
+        ''' opens image from file-like object while honoring rotation tag '''
         from PIL import Image
         from cStringIO import StringIO
 
@@ -77,14 +77,22 @@ class Well(geo.Model):
         TRANSPOSE = {3: Image.ROTATE_180, 6: Image.ROTATE_270, 8: Image.ROTATE_90}
         
         image = Image.open(fp)
-        exif = image._getexif()
-        if exif and ORIENTATION in exif:
-            orientation = exif[ORIENTATION]
-            if orientation in TRANSPOSE:
-                image = image.transpose(TRANSPOSE[orientation])
-                io = StringIO()
-                image.save(io,fmt)
-                fp = io
+        try:
+            exif = image._getexif()
+            if exif and ORIENTATION in exif:
+                orientation = exif[ORIENTATION]
+                if orientation in TRANSPOSE:
+                    image = image.transpose(TRANSPOSE[orientation])
+                    io = StringIO()
+                    image.save(io,fmt)
+                    fp = io
+        except:
+            pass
+        return fp
+    
+    def add_photo(self, name, fp, fmt='JPEG'):
+        ''' adds or replaces photo '''
+        fp = self._openimage(fp, fmt)
         basename,_ext = os.path.splitext(name)
         queryset = self.photo_set.filter(photo__contains=basename)
         if queryset:
@@ -92,6 +100,11 @@ class Well(geo.Model):
         else:
             photo_obj = self.photo_set.create() 
         photo_obj.photo.save(name,fp,save=True)
+        
+    def set_log(self, name, fp, fmt='JPEG'):
+        ''' sets or replaces borelog '''
+        fp = self._openimage(fp, fmt)
+        self.log.save(name,fp,save=True)
         
     def full_address(self,sep=', '):
         def add(a,b,sep):
