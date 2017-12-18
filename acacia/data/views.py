@@ -186,6 +186,7 @@ class ProjectDetailView(DetailView):
         for loc in project.projectlocatie_set.all():
             pos = loc.latlon()
             content.append({
+                            'id': loc.id,
                             'name': loc.name,
                             'lat': pos.y,
                             'lon': pos.x,
