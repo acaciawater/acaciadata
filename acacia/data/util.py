@@ -56,9 +56,6 @@ def trans(p, srid):
     if not psrid:
         psrid = WGS84
     p.transform(srid)
-#     if (psrid != srid): 
-#         tr = CoordTransform(SpatialReference(p.srid), SpatialReference(srid))
-#         p.transform(tr)
     return p
 
 def save_thumbnail(series,imagefile,kind='line'):
