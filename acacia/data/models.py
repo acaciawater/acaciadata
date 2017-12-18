@@ -20,6 +20,7 @@ from django.utils.timezone import get_current_timezone
 from django.utils.translation import ugettext_lazy as _
 import six
 from exceptions import IOError
+import time
 
 THEME_CHOICES = ((None,_('default')),
                  ('dark-blue',_('blue')),
@@ -1355,6 +1356,10 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         points = self.filter_points(**kwargs)
         return [(dp.date,dp.value) for dp in points]
 
+    def to_json(self, **kwargs):
+        pts = self.to_array()
+        return json.dumps(pts,default=lambda x: time.mktime(x.timetuple())*1000.0)
+    
     def to_pandas(self, **kwargs):
         arr = self.to_array(**kwargs)
         if arr:
