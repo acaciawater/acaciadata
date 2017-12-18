@@ -40,7 +40,7 @@ class Well(geo.Model):
     name = models.CharField(max_length=50, verbose_name = _('name'))
     nitg = models.CharField(max_length=50, verbose_name = _('TNO/NITG identification'), blank=True)
     bro = models.CharField(max_length=50, verbose_name = _('BRO id'), blank=True)
-    location = geo.PointField(srid=28992,verbose_name=_('location'),help_text=_('location in rijksdriehoeksstelsel coordinates'))
+    location = geo.PointField(dim=2,srid=util.WGS84,verbose_name=_('location'), help_text=_('Location in longitude/latitude coordinates'))
     description = models.TextField(verbose_name=_('description'),blank=True)
     maaiveld = models.FloatField(null=True, blank=True, verbose_name = _('surface level'), help_text = _('surface level in meter wrt NAP'))
     ahn = models.DecimalField(null=True, blank=True, decimal_places=2, max_digits=10, verbose_name = _('AHN surface level'))

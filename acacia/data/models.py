@@ -113,7 +113,7 @@ class ProjectLocatie(geo.Model):
     description = models.TextField(blank=True,null=True,verbose_name=_('description'))
     description.allow_tags=True
     image = models.ImageField(upload_to=up.locatie_upload, blank = True, null = True)
-    location = geo.PointField(srid=util.RDNEW,verbose_name=_('location'), help_text=_('Project location in Rijksdriehoekstelsel coordinates'))
+    location = geo.PointField(srid=util.WGS84,verbose_name=_('location'), help_text=_('Project location in longitude/latitude coordinates'))
     objects = geo.GeoManager()
     webcam = models.ForeignKey(Webcam, null = True, blank=True)
     dashboard = models.ForeignKey('TabGroup', blank=True, null=True, verbose_name = _('Default dashboard'))
@@ -131,6 +131,9 @@ class ProjectLocatie(geo.Model):
     def latlon(self):
         return util.toWGS84(self.location)
 
+    def RD(self):
+        return util.toRD(self.location)
+
     def series(self):
         s = []
         for m in self.meetlocatie_set.all():
@@ -146,7 +149,7 @@ class MeetLocatie(geo.Model):
     name = models.CharField(max_length=100,verbose_name=_('name'))
     description = models.TextField(blank=True,null=True,verbose_name=_('description'))
     image = models.ImageField(upload_to=up.meetlocatie_upload, blank = True, null = True)
-    location = geo.PointField(dim=2,srid=util.RDNEW,verbose_name=_('location'), help_text=_('Location in Rijksdriehoekstelsel coordinates'))
+    location = geo.PointField(dim=2,srid=util.WGS84,verbose_name=_('location'), help_text=_('Location in longitude/latitude coordinates'))
     objects = geo.GeoManager()
     webcam = models.ForeignKey(Webcam, null = True, blank=True)
 
@@ -155,6 +158,9 @@ class MeetLocatie(geo.Model):
         
     def latlon(self):
         return util.toWGS84(self.location)
+
+    def RD(self):
+        return util.toRD(self.location)
 
     def datasourcecount(self):
         return self.datasource_set.count()

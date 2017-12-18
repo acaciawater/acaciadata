@@ -58,6 +58,14 @@ def trans(p, srid):
     p.transform(srid)
     return p
 
+def setWGS84(obj,location='location'):
+    p = getattr(obj,location)
+    if p.x > 180 or p.y > 90:
+        # assume RDNEW projection
+        p.srid = RDNEW
+        setattr(obj,location,toWGS84(p))
+        obj.save()
+
 def save_thumbnail(series,imagefile,kind='line'):
     plt.figure(figsize=THUMB_SIZE,dpi=THUMB_DPI)
     try:
