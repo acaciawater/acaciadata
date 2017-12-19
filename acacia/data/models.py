@@ -113,11 +113,10 @@ class ProjectLocatie(geo.Model):
     description = models.TextField(blank=True,null=True,verbose_name=_('description'))
     description.allow_tags=True
     image = models.ImageField(upload_to=up.locatie_upload, blank = True, null = True)
-    location = geo.PointField(srid=util.WGS84,verbose_name=_('location'), help_text=_('Project location in longitude/latitude coordinates'))
     objects = geo.GeoManager()
     webcam = models.ForeignKey(Webcam, null = True, blank=True)
     dashboard = models.ForeignKey('TabGroup', blank=True, null=True, verbose_name = _('Default dashboard'))
-    
+    location = geo.PointField(srid=util.WGS84,null=True,verbose_name=_('location'), help_text=_('Location in longitude/latitude coordinates'))
     def get_absolute_url(self):
         return reverse('acacia:projectlocatie-detail', args=[self.id])
 
@@ -149,9 +148,9 @@ class MeetLocatie(geo.Model):
     name = models.CharField(max_length=100,verbose_name=_('name'))
     description = models.TextField(blank=True,null=True,verbose_name=_('description'))
     image = models.ImageField(upload_to=up.meetlocatie_upload, blank = True, null = True)
-    location = geo.PointField(dim=2,srid=util.WGS84,verbose_name=_('location'), help_text=_('Location in longitude/latitude coordinates'))
     objects = geo.GeoManager()
     webcam = models.ForeignKey(Webcam, null = True, blank=True)
+    location = geo.PointField(srid=util.WGS84,null=True,verbose_name=_('location'), help_text=_('Location in longitude/latitude coordinates'))
 
     def project(self):
         return self.projectlocatie.project

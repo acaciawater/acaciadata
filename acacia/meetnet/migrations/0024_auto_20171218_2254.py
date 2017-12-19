@@ -17,11 +17,6 @@ class Migration(migrations.Migration):
             name='well',
             options={'ordering': ['name', 'nitg'], 'verbose_name': 'well', 'verbose_name_plural': 'wells'},
         ),
-        migrations.AlterField(
-            model_name='well',
-            name='location',
-            field=django.contrib.gis.db.models.fields.PointField(help_text='Location in longitude/latitude coordinates', srid=4326, verbose_name='location'),
-        ),
         migrations.AlterUniqueTogether(
             name='well',
             unique_together=set([('name', 'nitg')]),
