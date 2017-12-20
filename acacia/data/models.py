@@ -1214,7 +1214,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
                     continue
                 pts.append(DataPoint(series=self, date=aware(date,tz), value=value))
             except Exception as e:
-                self.getLogger().debug('Datapoint %s,%g: %s' % (str(date), value, e))
+                self.getLogger().debug('Datapoint %s,%s: %s' % (str(date), value, e))
         return pts
     
     def create_points(self, series, tz):
