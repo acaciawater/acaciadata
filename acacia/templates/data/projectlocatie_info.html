@@ -1,5 +1,5 @@
+{% load i18n %}
 <div id="content">
-<h4>Locatie {{ object.name }}</h4>
+<h4>{% trans "Location" %} {{ object.name }}</h4>
 <p>{{object.description|safe}}</p>
 </div>
-

@@ -1,4 +1,5 @@
 {% extends 'data/highstock.html' %}
+{% load i18n %}
 {% block title %}{{chart.name}}{% endblock title %}
 {% block navbar %}{% endblock %}
 {% block brandname %}<a class="navbar-brand">{{chart.name}}</a>{% endblock brandname %}
@@ -33,7 +34,7 @@ body, html {
 			    datatype: "json",
  			    beforeSend: function(hdr) {
  				  	var chart = $('#container').highcharts();
- 			    	chart.showLoading("Gegevens ophalen...");
+ 			    	chart.showLoading('{% trans "Retrieving data..." %}');
  			    	return true;
  			    },
 			    success: function(data) {
@@ -64,6 +65,6 @@ body, html {
 <div id="container"></div>
 <br/>
 <div class="text-center">
-<a href="{% url 'acacia:chart-csv' chart.id %}" class="btn btn-primary active" data-toggle="tooltip" title="Tijdreeksen van deze grafiek downloaden als csv bestand" id="download">Downloaden</a>
+<a href="{% url 'acacia:chart-csv' chart.id %}" class="btn btn-primary active" data-toggle="tooltip" title="{% trans 'Download time series of this chart as a csv file' %}" id="download">{% trans "Download" %}</a>
 </div>
 {% endblock %}
