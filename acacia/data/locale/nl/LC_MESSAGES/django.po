@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-12-21 09:10+0100\n"
+"POT-Creation-Date: 2017-12-21 12:22+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -754,33 +754,33 @@ msgid "verschalingsfactor"
 msgstr "verschalingsfactor"
 
 #: data/models.py:968
-msgid "constante factor voor verschaling van de meetwaarden (vóór compensatie)"
+msgid "constante factor voor verschaling van de meetwaarden (voor compensatie)"
 msgstr ""
-"constante factor voor verschaling van de meetwaarden (vóór compensatie)"
+"constante factor voor verschaling van de meetwaarden (voor compensatie)"
 
 #: data/models.py:969
 msgid "verschalingsreeks"
 msgstr "verschalingsreeks"
 
 #: data/models.py:969
-msgid "tijdreeks voor verschaling van de meetwaarden (vóór compensatie"
-msgstr "tijdreeks voor verschaling van de meetwaarden (vóór compensatie)"
+msgid "tijdreeks voor verschaling van de meetwaarden (voor compensatie)"
+msgstr "tijdreeks voor verschaling van de meetwaarden (voor compensatie)"
 
 #: data/models.py:971
 msgid "compensatieconstante"
 msgstr "compensatieconstante"
 
 #: data/models.py:971
-msgid "constante voor compensatie van de meetwaarden (ná verschaling)"
-msgstr "constante voor compensatie van de meetwaarden (ná verschaling)"
+msgid "constante voor compensatie van de meetwaarden (na verschaling)"
+msgstr "constante voor compensatie van de meetwaarden (na verschaling)"
 
 #: data/models.py:972
 msgid "compensatiereeks"
 msgstr "compensatiereeks"
 
 #: data/models.py:972
-msgid "tijdreeks voor compensatie van de meetwaarden (ná verschaling)"
-msgstr "tijdreeks voor compensatie van de meetwaarden (ná verschaling)"
+msgid "tijdreeks voor compensatie van de meetwaarden (na verschaling)"
+msgstr "tijdreeks voor compensatie van de meetwaarden (na verschaling)"
 
 #: data/models.py:974
 msgid "accumuleren"
@@ -972,8 +972,8 @@ msgid "grafiek"
 msgstr "grafiek"
 
 #: data/models.py:1783 data/models.py:1797
-msgid "oriëntatie"
-msgstr "oriëntatie"
+msgid "orientatie"
+msgstr "orientatie"
 
 #: data/models.py:1785 data/models.py:1926
 msgid "waarde"

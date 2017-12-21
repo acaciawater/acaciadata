@@ -965,11 +965,11 @@ class Series(PolymorphicModel,LoggerSourceMixin):
                                 verbose_name=_('frequentie'),help_text=_('Frequentie voor resampling van tijdreeks'))
     aggregate = models.CharField(max_length=10,choices=AGGREGATION_METHOD,blank=True, null=True, 
                                  verbose_name=_('aggregatie'), help_text = _('Aggregatiemethode bij resampling van tijdreeks'))
-    scale = models.FloatField(default = 1.0,verbose_name = _('verschalingsfactor'), help_text = _('constante factor voor verschaling van de meetwaarden (vóór compensatie)'))
-    scale_series = models.ForeignKey('Series',null=True,blank=True,verbose_name=_('verschalingsreeks'), related_name='scaling_set', help_text=_('tijdreeks voor verschaling van de meetwaarden (vóór compensatie'))
+    scale = models.FloatField(default = 1.0,verbose_name = _('verschalingsfactor'), help_text = _('constante factor voor verschaling van de meetwaarden (voor compensatie)'))
+    scale_series = models.ForeignKey('Series',null=True,blank=True,verbose_name=_('verschalingsreeks'), related_name='scaling_set', help_text=_('tijdreeks voor verschaling van de meetwaarden (voor compensatie)'))
 
-    offset = models.FloatField(default = 0.0, verbose_name = _('compensatieconstante'), help_text = _('constante voor compensatie van de meetwaarden (ná verschaling)'))
-    offset_series = models.ForeignKey('Series',null=True, blank=True, verbose_name=_('compensatiereeks'),related_name='offset_set', help_text = _('tijdreeks voor compensatie van de meetwaarden (ná verschaling)') )
+    offset = models.FloatField(default = 0.0, verbose_name = _('compensatieconstante'), help_text = _('constante voor compensatie van de meetwaarden (na verschaling)'))
+    offset_series = models.ForeignKey('Series',null=True, blank=True, verbose_name=_('compensatiereeks'),related_name='offset_set', help_text = _('tijdreeks voor compensatie van de meetwaarden (na verschaling)') )
     
     cumsum = models.BooleanField(default = False, verbose_name=_('accumuleren'), help_text = _('reeks transformeren naar accumulatie'))
     cumstart = models.DateTimeField(blank = True, null = True, verbose_name=_('start accumulatie'))
@@ -1780,7 +1780,7 @@ class PlotLine(models.Model):
     chart = models.ForeignKey(Chart,verbose_name=_('grafiek'))
     axis = models.IntegerField(default=1)
     style = models.ForeignKey(LineStyle,verbose_name=_('stijl'))
-    orientation = models.CharField(max_length=1,choices=ORIENTATION,verbose_name=_('oriëntatie'))
+    orientation = models.CharField(max_length=1,choices=ORIENTATION,verbose_name=_('orientatie'))
     label = models.CharField(max_length=50)
     value = models.CharField(max_length=32,verbose_name=_('waarde'))
     repetition = models.CharField(max_length=32,default='0',verbose_name=_('herhaling'))
@@ -1794,7 +1794,7 @@ class PlotBand(models.Model):
     chart = models.ForeignKey(Chart,verbose_name=_('grafiek'))
     axis = models.IntegerField(default=1)
     style = models.ForeignKey(BandStyle,verbose_name=_('stijl'))
-    orientation = models.CharField(max_length=1,choices=ORIENTATION,verbose_name=_('oriëntatie'))
+    orientation = models.CharField(max_length=1,choices=ORIENTATION,verbose_name=_('orientatie'))
     label = models.CharField(max_length=50)
     low = models.CharField(max_length = 32,verbose_name=_('van'))
     high = models.CharField(max_length=32,verbose_name=_('tot'))
