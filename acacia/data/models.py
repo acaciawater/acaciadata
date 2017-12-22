@@ -808,7 +808,7 @@ def loaddata(signal_handler):
     def wrapper(*args, **kwargs):
         if kwargs.get('raw', False):
             #called from manage.py loaddata
-            print "Skipping signal for %s %s" % (args, kwargs)
+            #print "Skipping signal for %s %s" % (args, kwargs)
             return
         signal_handler(*args, **kwargs)
     return wrapper
