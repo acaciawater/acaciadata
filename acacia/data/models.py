@@ -292,7 +292,7 @@ class Datasource(models.Model, LoggerSourceMixin):
             loc = MeetLocatie.objects.get(pk=self.meetlocatie.pk)
             lonlat = loc.latlon()
             options['lonlat'] = (lonlat.x,lonlat.y)
-            options['meetlocatie'] = unicode(loc)
+            options['meetlocatie'] = loc.name
         if self.username:
             options['username'] = self.username
             options['password'] = self.password
