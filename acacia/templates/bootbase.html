@@ -66,18 +66,18 @@
 	      {% block navbar-auth %}
 	      <ul class="nav navbar-nav navbar-right">
 	        {% block navbar-right %}{% endblock navbar-right %}
-	        <li><a href="/admin/{% block admin_url %}{% endblock admin_url %}">Beheer</a></li>
+	        <li><a href="/admin/{% block admin_url %}{% endblock admin_url %}">{% trans "Admin" %}</a></li>
 	        {% if user.is_authenticated %}
 	        <li class="dropdown">
 	          <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% filter force_escape %}{% firstof user.first_name user.username %}{% endfilter %}
 	          <b class="caret"></b></a>
 	          <ul class="dropdown-menu">
-	            <li><a href="/accounts/logout">Uitloggen</a></li>
-	            <li><a href="/accounts/password/change">Wachtwoord veranderen</a></li>
+	            <li><a href="/accounts/logout">{% trans "Log out" %}</a></li>
+	            <li><a href="/accounts/password/change">{% trans "Change password" %}</a></li>
 	          </ul>
 	        </li>
           	{% else %}
-	        <li><a href="/accounts/login">Inloggen</a></li>
+	        <li><a href="/accounts/login">{% trans "Log in" %}</a></li>
           	{% endif %}
 	      </ul>
 	      {% endblock navbar-auth %}
