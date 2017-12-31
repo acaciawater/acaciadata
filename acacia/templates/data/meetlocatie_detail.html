@@ -59,7 +59,7 @@ $(function(){initialize();});
 </tr>
 </thead>
 <tbody>
-{% for d in object.datasources.all %}
+{% for d in object.datasource_set.all %}
 <tr>
 <td><a href='{% url "acacia:datasource-detail" d.id %}'>{{d.name}}</a></td>
 <td>{{d.filecount}}</td>
