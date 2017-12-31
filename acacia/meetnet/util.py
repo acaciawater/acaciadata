@@ -672,12 +672,7 @@ def update_series(request,screen):
 
     user=request.user
     
-    series = None
-    for s in screen.mloc.series():
-        if s.name.endswith('COMP') or s.name.startswith('Waterstand'):
-            series = s
-            break
-    
+    series = screen.find_series()    
     if series is None:
         # Make sure screen has been registered
         register_screen(screen)

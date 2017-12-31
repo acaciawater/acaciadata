@@ -13,6 +13,7 @@ from acacia.data import util
 from django.db.models.aggregates import Count
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
+from django.db.models.deletion import SET_NULL
 
 class Network(models.Model):
     name = models.CharField(max_length=50, unique=True, verbose_name = _('name'))
@@ -213,6 +214,8 @@ class Screen(models.Model):
     material = models.CharField(blank=True, max_length = 10,verbose_name = _('material'), default='pvc', choices = MATERIALS)
     chart = models.ImageField(null=True,blank=True, upload_to='charts', verbose_name=_('chart'))
     aquifer = models.CharField(max_length=20,blank=True,null=True,verbose_name=_('aquifer'))
+    manual_levels = models.ForeignKey(Series, null=True, blank=True, on_delete=SET_NULL, verbose_name=_('manual measurements'), related_name='manual')
+    logger_levels = models.ForeignKey(Series, null=True, blank=True, on_delete=SET_NULL, verbose_name=_('water level'), related_name='waterlevel')
 
     def get_series(self, ref = 'nap', kind='COMP', **kwargs):
         
@@ -269,9 +272,14 @@ class Screen(models.Model):
             return 0
         
     def find_series(self):
-        from django.db.models import Q
-        return self.mloc.series_set.filter(Q(name__endswith='COMP')|Q(name__startswith='Waterstand')).first()
-        
+        if not self.logger_levels:
+            from django.db.models import Q
+            series = self.mloc.series_set.filter(Q(name__iendswith='comp')|Q(name__istartswith='waterstand')|Q(name__iendswith='value')).first()
+            if series:
+                self.logger_levels = series
+                self.save()
+        return self.logger_levels
+    
     def start(self):
         try:
             return self.find_series().van()
@@ -313,7 +321,7 @@ class Screen(models.Model):
         return '%s/%03d' % (wid, self.nr)
 
     def get_absolute_url(self):
-        return reverse('meetnet:screen-detail', args=[self.id])
+        return reverse('meetnet:screen-detail', args=[self.pk])
 
     def to_pandas(self, ref='nap',kind='COMP',**kwargs):
         levels = self.get_series(ref,kind,**kwargs)
@@ -325,22 +333,22 @@ class Screen(models.Model):
         return pd.Series(index=x, data=y, name=unicode(self))
         
     def get_manual_series(self, **kwargs):
-        # Handpeilingen ophalen
-        for s in self.mloc.series_set.instance_of(ManualSeries):
-            if s.name.endswith('HAND'):
-                return s.to_pandas(**kwargs)
-        return None
+        if not self.manual_levels: 
+            # Handpeilingen ophalen
+            for s in self.mloc.series_set.instance_of(ManualSeries):
+                if s.name.endswith('HAND'):
+                    self.manual_levels = s
+                    self.save()
+            return None
+        return self.manual_levels.to_pandas(**kwargs)
             
     def get_compensated_series(self, **kwargs):
         # Gecompenseerde tijdreeksen (tov NAP) ophalen (Alleen voor Divers and Leiderdorp Instruments)
         try:
-            return self.find_series().to_pandas(**kwargs)
-        except:
+            series = self.find_series()
+            return series.to_pandas(**kwargs) if series else None
+        except Exception as e:
             return None
-#         for s in self.mloc.series():
-#             if s.name.endswith('COMP') or s.name.startswith('Waterstand'):
-#                 return s.to_pandas(**kwargs)
-#         return None
     
     def stats(self):
         df = self.get_compensated_series()

@@ -28,7 +28,7 @@ from acacia.data.util import series_as_csv, unix_timestamp
 logger = logging.getLogger(__name__)
 
 class WellView(DetailView):
-    template = 'meetnet/well_info.html'
+    #template = 'meetnet/well_info.html'
     model = Well
 
     def get_context_data(self, **kwargs):
@@ -165,10 +165,14 @@ class WellChartView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super(WellChartView, self).get_context_data(**kwargs)
         well = Well.objects.get(pk=context['pk'])
-        if well.name == well.nitg:
+        if not well.nitg:
+            title = well.name
+        elif not well.name:
+            title = well.nitg
+        elif well.name == well.nitg:
             title = well.name
         else:
-            title = '{nitg} ({name})'.format(name=well.name, nitg=well.nitg)
+            title = '{name} ({nitg})'.format(name=well.name, nitg=well.nitg)
         options = {
              'rangeSelector': { 'enabled': True,
                                'inputEnabled': True,
