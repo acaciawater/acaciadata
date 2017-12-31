@@ -9,7 +9,10 @@ import requests
 from requests.auth import HTTPBasicAuth
 from datetime import datetime
 import pytz
-from acacia.data.models import MeetLocatie
+from acacia.data.models import MeetLocatie, aware
+from acacia.data.util import slugify
+import pandas as pd
+import json
 
 fields = {
   "object_id": 0,
@@ -207,30 +210,43 @@ fields = {
 
 class Munisense(Generator):
 
-    api = 'https://wareco-water2.munisense.net/webservices/v2'    
-
-    def get_locations(self, fil):
-        return Generator.get_locations(self, fil)
-    
     def download(self, **kwargs):
         api = kwargs.get('url',settings.MUNISENSE_API)
         endpoint = '/groundwaterwells/{id}/{property}/query/{start_timestamp}'
+        prop = kwargs.get('property','water_level_validated')
         loc = kwargs.get('meetlocatie',None)
         if not loc:
             raise ValueError('Meetlocatie not defined')
         if isinstance(loc, MeetLocatie):
             loc = loc.name
+        object_id = kwargs.get('object_id',loc) 
         callback = kwargs.get('callback',None)
-        start = kwargs.get('start',datetime.datetime(2017,1,1).localize(pytz.utc))
+        start = kwargs.get('start') or datetime(2017,1,1)
+        start = aware(start,pytz.utc)
         username = kwargs.get('username',settings.MUNISENSE_USERNAME)
         password = kwargs.get('password',settings.MUNISENSE_PASSWORD)
         headers = {'Accept': 'application/json' }
         url = '{api}{endpoint}'.format(api=api,endpoint=endpoint)
-        url = url.format(id=loc,property='water_level',start_timestamp=start.isoformat())
-        response = requests.get(url,headers=headers,auth=HTTPBasicAuth(username,password))
-        response.raise_for_status()
-        filename = kwargs.get('filename','{id}_{timestamp}.json'.format(id=loc,timestamp=start.strftime('%y%m%d%H%M')))
-        result = {filename:response.text}
+        url = url.format(id=object_id,property=prop,start_timestamp=start.isoformat())
+        payload = {'rowcount': 1000}
+        
+        result = {}
+        index = 0
+        while True:
+            response = requests.get(url,headers=headers,params=payload,auth=HTTPBasicAuth(username,password))
+            response.raise_for_status()
+            index += 1
+            filename = kwargs.get('filename','{id}_{timestamp}_{index}.json'.format(id=slugify(loc),timestamp=start.strftime('%y%m%d%H%M'),index=index))
+            result[filename]=response.text
+            try:
+                data = response.json()
+                link_next = data['meta']['link_next']
+                if link_next:
+                    url = '{api}{endpoint}'.format(api=api,endpoint=link_next)
+                else:
+                    break
+            except:
+                break
         if callback:
             callback(result)
         return result
@@ -260,7 +276,17 @@ class Munisense(Generator):
                   'well_properties_filter_lower',
                   'well_properties_filter_upper_reference',
                   'well_properties_filter_lower_reference',
-                  'well_properties_filter_reference'
+                  'well_properties_filter_reference',
+                  'schlumberger_diver_available',
+                  'schlumberger_diver_id',
+                  'schlumberger_diver_location_well_head',
+                  'schlumberger_diver_type',
+                  'schlumberger_diver_model',
+                  'schlumberger_diver_serial',
+                  'schlumberger_diver_sensor_offset',
+                  'schlumberger_diver_sensor_offset_reference',
+                  'schlumberger_diver_calibration_offset',
+                  'schlumberger_diver_calibration_offset_reference',
                   ]
         username = kwargs.get('username',settings.MUNISENSE_USERNAME)
         password = kwargs.get('password',settings.MUNISENSE_PASSWORD)
@@ -279,15 +305,17 @@ class Munisense(Generator):
             yield response
             
     def get_data(self, fil, **kwargs):
-        return Generator.get_data(self, fil, **kwargs)
+        contents = json.load(fil)
+        data = contents['results']
+        records = [(r['timestamp'],r['water_level_validated'],r['raw_value'],r['value']) for r in data]
+        df = pd.DataFrame.from_records(records,columns=['timestamp','water_level_validated', 'raw_value', 'value'])
+        index = pd.DatetimeIndex(df['timestamp'])
+        df.set_index(index,drop=True,inplace=True)
+        return df
     
     def get_parameters(self, fil):
-        return Generator.get_parameters(self, fil)
-    
-    
-if __name__ == '__main__':
-    m = Munisense()
-    wells = m.download_wells({'url':'https://wareco-water2.munisense.net/webservices/v2',
-                         'username': 'jmeijles',
-                         'password': 'ProvZH2017'    
-    })
+        return {
+            'water_level_validated': {'description': 'validated water level', 'unit': 'm NAP'},
+            'raw_value': {'description': 'water level', 'unit': 'm NAP'},
+            'value': {'description': 'water level', 'unit': 'm NAP'},
+        }
