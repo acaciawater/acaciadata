@@ -33,18 +33,14 @@ def aware(d,tz=None):
     ''' utility function to ensure datetime object has requested timezone '''
     if d is not None:
         if isinstance(d, (datetime.datetime, datetime.date,)):
-            try:
-                if timezone.is_naive(d):
-                    return timezone.make_aware(d, tz)            
-            except Exception as e:
-#                 pytz.NonExistentTimeError, pytz.AmbiguousTimeError: # CET/CEST transition?
-                if tz is None or tz == '':
-                    tz = settings.TIME_ZONE
-                if not isinstance(tz, timezone.tzinfo):
-                    tz = pytz.timezone(tz)
+            if timezone.is_naive(d):
                 try:
-                    return timezone.make_aware(d, pytz.utc)
-                except:
+                    if tz is None or tz == '':
+                        tz = settings.TIME_ZONE
+                    if not isinstance(tz, timezone.tzinfo):
+                        tz = pytz.timezone(tz)
+                    return timezone.make_aware(d, tz)            
+                except Exception as e:
     #                 pytz.NonExistentTimeError, pytz.AmbiguousTimeError: # CET/CEST transition?
                     try:
                         return timezone.make_aware(d, pytz.utc)
