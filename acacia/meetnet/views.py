@@ -310,29 +310,58 @@ from acacia.data.views import DownloadSeriesAsZip
 def get_series(screen):
     return screen.find_series()
 
+def filter_wells(network,request):    
+    from django.db.models import Q
+    query = network.well_set.all()
+    term = request.GET.get('search')
+    if term:
+        query = query.filter(
+            Q(straat__icontains=term)|
+            Q(postcode__icontains=term)|
+            Q(plaats__icontains=term)|
+            Q(name__icontains=term)|
+            Q(nitg__icontains=term))
+    aquifer = request.GET.get('aquifer')
+    if aquifer and aquifer != 'all':
+        ids = Screen.objects.filter(aquifer__iexact=aquifer).values_list('well__id')
+        query = query.filter(id__in=ids)
+    return query
+
+def filter_screens(well,request):    
+    query = well.screen_set.all()
+    aquifer = request.GET.get('aquifer')
+    if aquifer and aquifer != 'all':
+        query = query.filter(aquifer__iexact=aquifer)
+    return query
+
 @login_required
 def DownloadSeriesAsNITG(request,source,series):
     ''' Tijdreeksen downloaden als zip file '''
     download_well_nitg(None, request, series) # reuse method from admin.actions. Runs in separate thread
     return redirect(request.META.get('HTTP_REFERER','/'))
 
+@login_required
 def EmailNetworkSeries(request,pk):
     net = get_object_or_404(Network, pk=pk)
-    series = [get_series(s) for w in net.well_set.all() for s in w.screen_set.all()]
-    return DownloadSeriesAsZip(request, unicode(net), series)
+    series = [get_series(s) for w in filter_wells(net,request) for s in filter_screens(w, request)]
+    return DownloadSeriesAsZip(request, unicode(net), filter(lambda x: x, series))
 
+@login_required
 def EmailNetworkNITG(request, pk):
     net = get_object_or_404(Network, pk=pk)
-    return DownloadSeriesAsNITG(request, unicode(net), net.well_set.all())
+    return DownloadSeriesAsNITG(request, unicode(net), filter_wells(net, request))
     
+@login_required
 def EmailWellSeries(request,pk):
     well = get_object_or_404(Well, pk=pk)
-    series = [get_series(s) for s in well.screen_set.all()]
-    return DownloadSeriesAsZip(request, unicode(well), series)
+    series = [get_series(s) for s in filter_screens(well, request)]
+    return DownloadSeriesAsZip(request, unicode(well), filter(lambda x:x, series))
 
+@login_required
 def DownloadWellSeries(request,pk):
     well = get_object_or_404(Well, pk=pk)
-    series = [get_series(s) for s in well.screen_set.all()]
+    series = [get_series(s) for s in filter_screens(well, request)]
+    series = filter(lambda x:x, series)
     if series:
         if len(series)==1:
             resp = series_as_csv(series[0]) # one single csv file
@@ -342,6 +371,7 @@ def DownloadWellSeries(request,pk):
             resp['Content-Disposition'] = 'attachment; filename={}.zip'.format(slugify(str(well)))
         return resp
     
+@login_required
 def EmailScreenSeries(request,pk):
     screen = get_object_or_404(Screen,pk=pk)
     series = get_series(screen)
