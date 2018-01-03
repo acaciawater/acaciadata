@@ -171,7 +171,16 @@ def email_series_zip(request, queryset, zf):
         url = request.build_absolute_uri(settings.EXPORT_URL+os.path.basename(zf.filename))
         logger.debug(_('Preparing zip file %s') % url)
         for series in queryset:
-            filename = slugify(unicode(series)) + '.csv'
+            ml = series.meetlocatie()
+            if ml:
+                src = slugify('{}-{}'.format(ml.name, series.name))
+            else:
+                ds = series.datasource()
+                if ds:
+                    src = slugify('{}-{}'.format(ds.name, series.name))
+                else:
+                    src = slugify(unicode(series))
+            filename = src + '.csv'
             logger.debug(_('adding %s') % filename)
             csv = series.to_csv()
             zf.writestr(filename,csv)
