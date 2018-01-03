@@ -221,7 +221,7 @@ class Munisense(Generator):
             loc = loc.name
         object_id = kwargs.get('object_id',loc) 
         callback = kwargs.get('callback',None)
-        start = kwargs.get('start') or datetime(2017,1,1)
+        start = kwargs.get('start') or datetime(2010,1,1)
         start = aware(start,pytz.utc)
         username = kwargs.get('username',settings.MUNISENSE_USERNAME)
         password = kwargs.get('password',settings.MUNISENSE_PASSWORD)
