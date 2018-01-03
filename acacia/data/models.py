@@ -1083,6 +1083,8 @@ class Series(PolymorphicModel,LoggerSourceMixin):
             return series
  
         # remove duplicates and sort on time
+        # MySQL < 5.6 does not have milliseconds, avoid duplicate entry exceptions
+        series.index = series.index.round('S')
         series = series.groupby(series.index).last().sort_index()
         if series.empty:
             return series
