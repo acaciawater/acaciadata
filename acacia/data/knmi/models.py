@@ -1,11 +1,11 @@
 from django.contrib.gis.db import models
-from ..util import WGS84
+from ..util import WGS84, RDNEW
 from .util import closest as closestn
 
 class Station(models.Model):
     nummer = models.IntegerField()
     naam = models.CharField(max_length=50)
-    location = models.PointField(srid=WGS84)
+    location = models.PointField(srid=WGS84,null=True)
     objects = models.GeoManager()
     
     def coords(self):
@@ -26,7 +26,7 @@ class Station(models.Model):
 class NeerslagStation(models.Model):
     nummer = models.IntegerField()
     naam = models.CharField(max_length=50)
-    location = models.PointField(srid=WGS84)
+    location = models.PointField(srid=WGS84,null=True)
     objects = models.GeoManager()
             
     def coords(self):
