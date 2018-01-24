@@ -40,11 +40,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterField(
             model_name='well',
-            name='location',
-            field=django.contrib.gis.db.models.fields.PointField(help_text='Location in longitude/latitude coordinates', srid=4326, verbose_name='location'),
-        ),
-        migrations.AlterField(
-            model_name='well',
             name='nitg',
             field=models.CharField(blank=True, max_length=50, null=True, verbose_name='TNO/NITG identification'),
         ),

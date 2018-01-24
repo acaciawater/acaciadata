@@ -1040,6 +1040,34 @@ class Series(PolymorphicModel,LoggerSourceMixin):
                 src = '(berekend)'
         return '%s - %s' % (src, self.name)
     
+    def at(self,date):
+        ''' return datapoint at given date '''
+        try:
+            return self.datapoints.get(date=date)
+        except:
+            pass
+    
+        q = self.datapoints.order_by('date')
+        first = q.first()
+        start = first.date
+        if date < start:
+            return first
+    
+        last = q.last()
+        stop = last.date
+        if date > stop:
+            return last
+        
+        p1 = self.datapoints.filter(date__gte=date).first()
+        p2 = self.datapoints.filter(date__lte=date).last()
+        dt = (p2.date - p1.date).total_seconds()
+        if dt:
+            dz = p2.value - p1.value
+            value = value=p1.value + (date - p1.date).total_seconds() * dz / dt
+        else:
+            value = p1.value
+        return DataPoint(series=self,date=date,value=value)
+
     def do_align(self, s1, s2):
         ''' align series s2 with s1 and fill missing values by padding'''
         # align series and forward fill the missing data
