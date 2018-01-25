@@ -957,9 +957,9 @@ class Series(PolymorphicModel,LoggerSourceMixin):
     to_limit = models.DateTimeField(blank=True,null=True,verbose_name=_('Eindtijd'))
     
     # Nabewerkingen
-    resample = models.CharField(max_length=10,choices=RESAMPLE_METHOD,blank=True, null=True, 
+    resample = models.CharField(max_length=10,choices=RESAMPLE_METHOD,blank=True, null=True, default=None, 
                                 verbose_name=_('frequentie'),help_text=_('Frequentie voor resampling van tijdreeks'))
-    aggregate = models.CharField(max_length=10,choices=AGGREGATION_METHOD,blank=True, null=True, 
+    aggregate = models.CharField(max_length=10,choices=AGGREGATION_METHOD,blank=True, null=True, default=None, 
                                  verbose_name=_('aggregatie'), help_text = _('Aggregatiemethode bij resampling van tijdreeks'))
     scale = models.FloatField(default = 1.0,verbose_name = _('verschalingsfactor'), help_text = _('constante factor voor verschaling van de meetwaarden (voor compensatie)'))
     scale_series = models.ForeignKey('Series',null=True,blank=True,verbose_name=_('verschalingsreeks'), related_name='scaling_set', help_text=_('tijdreeks voor verschaling van de meetwaarden (voor compensatie)'))
@@ -967,7 +967,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
     offset = models.FloatField(default = 0.0, verbose_name = _('compensatieconstante'), help_text = _('constante voor compensatie van de meetwaarden (na verschaling)'))
     offset_series = models.ForeignKey('Series',null=True, blank=True, verbose_name=_('compensatiereeks'),related_name='offset_set', help_text = _('tijdreeks voor compensatie van de meetwaarden (na verschaling)') )
     
-    cumsum = models.BooleanField(default = False, verbose_name=_('accumuleren'), help_text = _('reeks transformeren naar accumulatie'))
+    cumsum = models.BooleanField(verbose_name=_('accumuleren'), help_text = _('reeks transformeren naar accumulatie'))
     cumstart = models.DateTimeField(blank = True, null = True, verbose_name=_('start accumulatie'))
     
     class Meta:
