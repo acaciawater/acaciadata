@@ -37,7 +37,7 @@ from django.forms.models import BaseInlineFormSet
 class SourceInlineFormSet(BaseInlineFormSet):
     def get_queryset(self):
         qs = super(SourceInlineFormSet, self).get_queryset()
-        return qs[:100] # limit number of formsets
+        return qs[:10] # limit number of formsets
 
 class SourceFileInline(admin.TabularInline):
     model = SourceFile
