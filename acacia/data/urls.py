@@ -27,9 +27,9 @@ urlpatterns = [url(r'^$', ListView.as_view(model=Project), name='project-list'),
     url(r'^update/(?P<pk>\d+)',UpdateDatasource,name='datasource-update'),
     url(r'^update/meetlocatie/(?P<pk>\d+)', UpdateMeetlocatie,name='meetlocatie-update'),
     
-    url(r'^get/series/(?P<pk>\d+)/$', SeriesToJson),
-    url(r'^get/chart/(?P<pk>\d+)/$', ChartToJson),
-    url(r'^get/grid/(?P<pk>\d+)/$', GridToJson),
+    url(r'^get/series/(?P<pk>\d+)/$', SeriesToJson, name='series-json'),
+    url(r'^get/chart/(?P<pk>\d+)/$', ChartToJson, name='chart-json'),
+    url(r'^get/grid/(?P<pk>\d+)/$', GridToJson, name='grid-json'),
     
     url(r'^series/(?P<pk>\d+)/$', SeriesView.as_view(), name='series-detail'),
     url(r'^chart/(?P<pk>\d+)/$', ChartBaseView.as_view(), name='chart-detail'),

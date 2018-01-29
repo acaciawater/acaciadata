@@ -4,6 +4,8 @@ from .models import Chart, Series, Grid, ManualSeries
 import logging, re
 from django.contrib.gis.geos.point import Point
 from django.utils.translation import ugettext_lazy as _
+from django.contrib import messages
+
 logger = logging.getLogger(__name__)
 
 def sourcefile_dimensions(modeladmin, request, queryset):
@@ -69,6 +71,8 @@ def update_thumbnails(modeladmin, request, queryset):
 update_thumbnails.short_description = _("Replace thumbnails of selected parameters")
 
 def generate_series(modeladmin, request, queryset):
+    nok = 0
+    nbad = 0
     for p in queryset:
         try:
             data = p.get_data()
@@ -92,10 +96,17 @@ def generate_series(modeladmin, request, queryset):
                                                          defaults= {'description': p.description, 'unit': p.unit, 'user': request.user})
                 try:
                     series.replace(df)
+                    nok += 1
                 except Exception as e:
                     logger.error(_('ERROR creating series %(series)s for location %(loc)s: %(ex)s') % {'series':p.name, 'loc':loc.name, 'ex':e})
         except Exception as e:
+            nbad += 1
             logger.error(_('ERROR creating series %(name)s: %(ex)s') % {'name':p.name, 'ex':e})
+    if nok:
+        messages.success(request, _('{} series successfully created.').format(nok))
+    if nbad:
+        messages.error(request, _('{} series were not created.').format(nbad))
+        
 generate_series.short_description = _('Create timeseries for selected parameters')
 
 def generate_datasource_series(modeladmin, request, queryset):
@@ -160,7 +171,16 @@ def email_series_zip(request, queryset, zf):
         url = request.build_absolute_uri(settings.EXPORT_URL+os.path.basename(zf.filename))
         logger.debug(_('Preparing zip file %s') % url)
         for series in queryset:
-            filename = slugify(unicode(series)) + '.csv'
+            ml = series.meetlocatie()
+            if ml:
+                src = slugify('{}-{}'.format(ml.name, series.name))
+            else:
+                ds = series.datasource()
+                if ds:
+                    src = slugify('{}-{}'.format(ds.name, series.name))
+                else:
+                    src = slugify(unicode(series))
+            filename = src + '.csv'
             logger.debug(_('adding %s') % filename)
             csv = series.to_csv()
             zf.writestr(filename,csv)

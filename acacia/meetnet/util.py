@@ -309,12 +309,12 @@ def compensate(screen,series,baros,parameter='PRESSURE'):
             # clip logger data on timerange of baros data
             # data = data[max(barostart,datastart):min(baroend,dataend)]
 
-            #clear datapoints with less than 5 cm of water
-            data[data<5] = np.nan
+            #clear datapoints with less than 2 cm of water
+            data[data<2] = np.nan
             # count dry values
             dry = data.isnull().sum()
             if dry:
-                logger.warning('Logger {}, MON file {}: {} out of {} measurements have less than 5 cm of water'.format(unicode(logpos),mon,dry,data.size))
+                logger.warning('Logger {}, MON file {}: {} out of {} measurements have less than 2 cm of water'.format(unicode(logpos),mon,dry,data.size))
             sumdry += dry
             
             data = data / 100 + (logpos.refpnt - logpos.depth)
@@ -343,10 +343,10 @@ def recomp(screen,series,baros={}):
                     logger.error('generator {} not supported'.format(gen))
             else:
                 logger.warning('no datasource for logger {}'.format(logger))
-            if data:
-                data = data.append(dsdata)
-            else:
+            if data is None:
                 data = dsdata
+            else:
+                data = data.append(dsdata)
     if data is None:
         logger.warning('No data for {}'.format(screen))
         return
@@ -408,20 +408,21 @@ def drift_correct_screen(screen,user):
     
 def register_well(well):
     # register well in acaciadata
-    project,created = Project.objects.get_or_create(name=well.network.name)
-    well.ploc, created = project.projectlocatie_set.get_or_create(name=well.name,defaults={'location': well.location})
+    project, created = Project.objects.get_or_create(name=well.network.name)
+    well.ploc, created = project.projectlocatie_set.update_or_create(name=well.name,defaults={'location': well.location})
     if created:
-        well.save()
+        well.save
 
 def register_screen(screen):
     # register screen in acaciadata
-    project,created = Project.objects.get_or_create(name=screen.well.network.name)
-    screen.well.ploc, created = project.projectlocatie_set.get_or_create(name=screen.well.name,defaults={'location': screen.well.location})
+    project, created = Project.objects.get_or_create(name=screen.well.network.name)
+    screen.well.ploc, created = project.projectlocatie_set.update_or_create(name=screen.well.name,defaults={'location': screen.well.location})
     if created:
         screen.well.save()
-    screen.mloc, created = screen.well.ploc.meetlocatie_set.get_or_create(name=unicode(screen),defaults={'location': screen.well.location})
-    screen.save()
-        
+    screen.mloc, created = screen.well.ploc.meetlocatie_set.update_or_create(name=unicode(screen),defaults={'location': screen.well.location})
+    if created:
+        screen.save()
+
 def createmeteo(request, well):
     ''' Create datasources with meteo data for a well '''
 
@@ -617,7 +618,7 @@ def addmonfile(request,network,f):
                 pos.save()
 
         try:
-            loc = MeetLocatie.objects.get(name=unicode(screen))
+            loc = MeetLocatie.objects.get(name='%s/%03d' % (well.name,filter))
         except MeetLocatie.DoesNotExist:
             loc = MeetLocatie.objects.get(name='%s/%03d' % (well.nitg,filter))
         except MultipleObjectsReturned:
@@ -660,7 +661,7 @@ def addmonfile(request,network,f):
         mon.user = ds.user
         mon.file.save(name=filename, content=ContentFile(contents))
         mon.get_dimensions()
-        mon.channel_set.add(*channels)
+        mon.channel_set.add(*channels,bulk=False)
         mon.save()
 
         logger.info('Bestand {filename} toegevoegd aan gegevensbron {ds} voor logger {log}'.format(filename=basename, ds=unicode(ds), log=unicode(pos or serial)))
@@ -671,12 +672,7 @@ def update_series(request,screen):
 
     user=request.user
     
-    series = None
-    for s in screen.mloc.series():
-        if s.name.endswith('COMP') or s.name.startswith('Waterstand'):
-            series = s
-            break
-    
+    series = screen.find_series()    
     if series is None:
         # Make sure screen has been registered
         register_screen(screen)
@@ -741,6 +737,7 @@ def handle_uploaded_files(request, network, localfiles):
         wells = set()
         result = {}
         for pathname in localfiles:
+            msg = []
             filename = os.path.basename(pathname)
             try:
                 if zipfile.is_zipfile(pathname): 

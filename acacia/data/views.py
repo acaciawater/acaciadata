@@ -186,6 +186,7 @@ class ProjectDetailView(DetailView):
         for loc in project.projectlocatie_set.all():
             pos = loc.latlon()
             content.append({
+                            'id': loc.id,
                             'name': loc.name,
                             'lat': pos.y,
                             'lon': pos.x,
@@ -313,7 +314,7 @@ class ChartBaseView(TemplateView):
                         'shared': True,
                        }, 
             'legend': {'enabled': chart.series.count() > 1},
-            'plotOptions': {'line': {'marker': {'enabled': False}},
+            'plotOptions': {'line': {'marker': {'enabled': False}}, 'series': {'connectNulls': True},
                               'column': {'allowpointSelect': True, 'pointPadding': 0.01, 'groupPadding': 0.01}},
             'credits': {'enabled': True, 
                         'text': 'acaciawater.com', 

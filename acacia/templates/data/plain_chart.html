@@ -1,4 +1,5 @@
 {% load staticfiles %}
+{% load i18n %}
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
@@ -7,7 +8,7 @@
 	<meta name="description" content="" />
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
  	<link href="{% static "acacia/img/database_24.ico" %}" rel="icon" type="image/x-ico" />
-	<title>Grafiek</title>
+	<title>{% trans "Chart" %}</title>
 	<script src="//ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
 	<script src="//code.highcharts.com/stock/highstock.js"></script>
 	<script src="//code.highcharts.com/stock/highcharts-more.js"></script>
@@ -30,19 +31,25 @@
 
 	</style>
 	<script>
+		var userLang = navigator.language || navigator.userLanguage;
+		if (userLang == 'nl') {
+			Highcharts.setOptions({
+			  lang: {
+			  	shortMonths : ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dec"],
+				months: ["Januari", "Februari", "Maart", "April", "Mei", "Juni",  "Juli", "Augustus", "September", "Oktober", "November", "December"],
+				weekdays: ["Zondag", "Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag", "Zaterdag"],
+				printChart: "Afdrukken",
+				downloadJPEG: "Download als JPG",
+				downloadPNG: "Download als PNG",
+				downloadPDF: "Download als PDF",
+				downloadSVG: "Download als SVG",
+			  }
+			});
+		}
+		
 		Highcharts.setOptions({
 		  global: {
 			useUTC: false
-		  },
-		  lang: {
-		  	shortMonths : ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dec"],
-			months: ["Januari", "Februari", "Maart", "April", "Mei", "Juni",  "Juli", "Augustus", "September", "Oktober", "November", "December"],
-			weekdays: ["Zondag", "Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag", "Zaterdag"],
-			printChart: "Afdrukken",
-			downloadJPEG: "Download als JPG",
-			downloadPNG: "Download als PNG",
-			downloadPDF: "Download als PDF",
-			downloadSVG: "Download als SVG",
 		  }
 		});
 	
@@ -52,7 +59,7 @@
 			    datatype: "json",
  			    beforeSend: function(hdr) {
  				  	var chart = $('#container').highcharts();
- 			    	chart.showLoading("Gegevens ophalen...");
+ 			    	chart.showLoading('{% trans "Retrieving data..." %}');
  			    	return true;
  			    },
 			    success: function(data) {
@@ -84,7 +91,7 @@
 			    })
 			    .attr({
 			        zIndex: 100,
-			        title: 'Openen in apart venster'
+			        title: '{% trans "Open in separate window" %}'
 		    	})
 		    	.css({
 		        	cursor: 'pointer'

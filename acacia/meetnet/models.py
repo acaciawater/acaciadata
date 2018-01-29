@@ -13,6 +13,7 @@ from acacia.data import util
 from django.db.models.aggregates import Count
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
+from django.db.models.deletion import SET_NULL
 
 class Network(models.Model):
     name = models.CharField(max_length=50, unique=True, verbose_name = _('name'))
@@ -38,18 +39,20 @@ class Well(geo.Model):
     ploc = models.ForeignKey(ProjectLocatie, null=True, blank=True)
     network = models.ForeignKey(Network, verbose_name = _('network'))
     name = models.CharField(max_length=50, verbose_name = _('name'))
-    nitg = models.CharField(max_length=50, verbose_name = _('TNO/NITG identification'), blank=True)
-    bro = models.CharField(max_length=50, verbose_name = _('BRO id'), blank=True)
-    location = geo.PointField(srid=28992,verbose_name=_('location'),help_text=_('location in rijksdriehoeksstelsel coordinates'))
-    description = models.TextField(verbose_name=_('description'),blank=True)
+    nitg = models.CharField(max_length=50, verbose_name = _('TNO/NITG identification'), null=True, blank=True)
+    bro = models.CharField(max_length=50, verbose_name = _('BRO id'), null=True, blank=True)
+    location = geo.PointField(null=True,dim=2,srid=util.WGS84,verbose_name=_('location'), help_text=_('Location in longitude/latitude coordinates'))
+
+    description = models.TextField(verbose_name=_('description'),null=True,blank=True)
     maaiveld = models.FloatField(null=True, blank=True, verbose_name = _('surface level'), help_text = _('surface level in meter wrt NAP'))
     ahn = models.DecimalField(null=True, blank=True, decimal_places=2, max_digits=10, verbose_name = _('AHN surface level'))
     date = models.DateField(null=True, blank=True, verbose_name = _('Date of construction'))
-    straat = models.CharField(max_length=60, blank=True,verbose_name=_('street name'))
-    huisnummer = models.CharField(max_length=12, blank=True,verbose_name=_('house number'))
-    postcode = models.CharField(max_length=8, blank=True,verbose_name=_('postal code'))
-    plaats = models.CharField(max_length=60, blank=True,verbose_name=_('locality'))
-    log = models.ImageField(null=True,blank=True,upload_to='logs',verbose_name=_("driller's log"))
+    owner = models.CharField(max_length=40,blank=True,null=True,verbose_name=_('owner'))
+    straat = models.CharField(max_length=60, null=True, blank=True,verbose_name=_('street name'))
+    huisnummer = models.CharField(max_length=12, null=True, blank=True,verbose_name=_('house number'))
+    postcode = models.CharField(max_length=8, null=True, blank=True,verbose_name=_('postal code'))
+    plaats = models.CharField(max_length=60, null=True, blank=True,verbose_name=_('locality'))
+    log = models.ImageField(null=True, blank=True, upload_to='logs',verbose_name=_("driller's log"))
     chart = models.ImageField(null=True,blank=True, upload_to='charts', verbose_name=_('chart'))
     g = models.FloatField(default=9.80665,verbose_name=_('gravitational acceleration'), help_text=_('gravitational acceleration in m/s2'))
     objects = geo.GeoManager()
@@ -68,8 +71,8 @@ class Well(geo.Model):
         return self.photo_set.count()
     num_photos.short_description=_('number of photos')
 
-    def add_photo(self, name, fp, fmt='JPEG'):
-        ''' adds or replaces photo from file-like object while honoring rotation tag '''
+    def _openimage(self, fp, fmt='JPEG'):
+        ''' opens image from file-like object while honoring rotation tag '''
         from PIL import Image
         from cStringIO import StringIO
 
@@ -77,14 +80,22 @@ class Well(geo.Model):
         TRANSPOSE = {3: Image.ROTATE_180, 6: Image.ROTATE_270, 8: Image.ROTATE_90}
         
         image = Image.open(fp)
-        exif = image._getexif()
-        if exif and ORIENTATION in exif:
-            orientation = exif[ORIENTATION]
-            if orientation in TRANSPOSE:
-                image = image.transpose(TRANSPOSE[orientation])
-                io = StringIO()
-                image.save(io,fmt)
-                fp = io
+        try:
+            exif = image._getexif()
+            if exif and ORIENTATION in exif:
+                orientation = exif[ORIENTATION]
+                if orientation in TRANSPOSE:
+                    image = image.transpose(TRANSPOSE[orientation])
+                    io = StringIO()
+                    image.save(io,fmt)
+                    fp = io
+        except:
+            pass
+        return fp
+    
+    def add_photo(self, name, fp, fmt='JPEG'):
+        ''' adds or replaces photo '''
+        fp = self._openimage(fp, fmt)
         basename,_ext = os.path.splitext(name)
         queryset = self.photo_set.filter(photo__contains=basename)
         if queryset:
@@ -92,6 +103,11 @@ class Well(geo.Model):
         else:
             photo_obj = self.photo_set.create() 
         photo_obj.photo.save(name,fp,save=True)
+        
+    def set_log(self, name, fp, fmt='JPEG'):
+        ''' sets or replaces borelog '''
+        fp = self._openimage(fp, fmt)
+        self.log.save(name,fp,save=True)
         
     def full_address(self,sep=', '):
         def add(a,b,sep):
@@ -198,6 +214,9 @@ class Screen(models.Model):
     diameter = models.FloatField(null=True, blank=True, verbose_name = _('diameter'), default=32, help_text=_('diameter in mm (default = 32 mm)'))
     material = models.CharField(blank=True, max_length = 10,verbose_name = _('material'), default='pvc', choices = MATERIALS)
     chart = models.ImageField(null=True,blank=True, upload_to='charts', verbose_name=_('chart'))
+    aquifer = models.CharField(max_length=20,blank=True,null=True,verbose_name=_('aquifer'))
+    manual_levels = models.ForeignKey(Series, null=True, blank=True, on_delete=SET_NULL, verbose_name=_('manual measurements'), related_name='manual')
+    logger_levels = models.ForeignKey(Series, null=True, blank=True, on_delete=SET_NULL, verbose_name=_('water level'), related_name='waterlevel')
 
     def get_series(self, ref = 'nap', kind='COMP', **kwargs):
         
@@ -254,9 +273,14 @@ class Screen(models.Model):
             return 0
         
     def find_series(self):
-        from django.db.models import Q
-        return self.mloc.series_set.filter(Q(name__endswith='COMP')|Q(name__startswith='Waterstand')).first()
-        
+        if not self.logger_levels:
+            from django.db.models import Q
+            series = self.mloc.series_set.filter(Q(name__iendswith='comp')|Q(name__istartswith='waterstand')|Q(name__iendswith='value')).first()
+            if series:
+                self.logger_levels = series
+                self.save()
+        return self.logger_levels
+    
     def start(self):
         try:
             return self.find_series().van()
@@ -282,7 +306,10 @@ class Screen(models.Model):
 
         
     def get_loggers(self):
-        return [p.logger for p in self.loggerpos_set.order_by('logger__serial').distinct('logger__serial')]
+        # Not supported by MySQL:
+        # return [p.logger for p in self.loggerpos_set.order_by('logger__serial').distinct('logger__serial')]
+        d = {p.logger.serial:p.logger for p in self.loggerpos_set.all()}
+        return d.values()
         
     def last_logger(self):
         last = self.loggerpos_set.all().order_by('start_date').last()
@@ -295,7 +322,7 @@ class Screen(models.Model):
         return '%s/%03d' % (wid, self.nr)
 
     def get_absolute_url(self):
-        return reverse('meetnet:screen-detail', args=[self.id])
+        return reverse('meetnet:screen-detail', args=[self.pk])
 
     def to_pandas(self, ref='nap',kind='COMP',**kwargs):
         levels = self.get_series(ref,kind,**kwargs)
@@ -307,22 +334,22 @@ class Screen(models.Model):
         return pd.Series(index=x, data=y, name=unicode(self))
         
     def get_manual_series(self, **kwargs):
-        # Handpeilingen ophalen
-        for s in self.mloc.series_set.instance_of(ManualSeries):
-            if s.name.endswith('HAND'):
-                return s.to_pandas(**kwargs)
-        return None
+        if not self.manual_levels: 
+            # Handpeilingen ophalen
+            for s in self.mloc.series_set.instance_of(ManualSeries):
+                if s.name.endswith('HAND'):
+                    self.manual_levels = s
+                    self.save()
+            return None
+        return self.manual_levels.to_pandas(**kwargs)
             
     def get_compensated_series(self, **kwargs):
         # Gecompenseerde tijdreeksen (tov NAP) ophalen (Alleen voor Divers and Leiderdorp Instruments)
         try:
-            return self.find_series().to_pandas(**kwargs)
-        except:
+            series = self.find_series()
+            return series.to_pandas(**kwargs) if series else None
+        except Exception as e:
             return None
-#         for s in self.mloc.series():
-#             if s.name.endswith('COMP') or s.name.startswith('Waterstand'):
-#                 return s.to_pandas(**kwargs)
-#         return None
     
     def stats(self):
         df = self.get_compensated_series()

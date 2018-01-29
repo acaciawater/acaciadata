@@ -379,18 +379,25 @@ class ManualSeriesAdmin(PolymorphicChildModelAdmin):
     actions = [actions.copy_series, actions.series_thumbnails]
     list_display = ('name', 'mlocatie', 'thumbtag', 'unit', 'timezone', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
     list_filter = ('mlocatie', 'parameter__datasource', 'parameter__datasource__meetlocatie__projectlocatie__project', ContentTypeFilter)
-    exclude = ('user','parameter')
+    exclude = ('parameter','user')
     inlines = [DataPointInline,]
     search_fields = ['name','locatie']
     fieldsets = (
                  (_('Algemeen'), {'fields': ('mlocatie', 'name', ('unit', 'type'), 'description','timezone'),
                                'classes': ('grp-collapse grp-open',),
                                }),
+                (_('Tijdsinterval'), {'fields': ('from_limit','to_limit'),
+                              'classes': ('grp-collapse grp-closed',)
+                              }),
+                (_('Bewerkingen'), {'fields': (('resample', 'aggregate',),('scale', 'scale_series'), ('offset','offset_series'), ('cumsum', 'cumstart' ),),
+                              'classes': ('grp-collapse grp-closed',),
+                            }),
     )
 
     def save_model(self, request, obj, form, change):
         obj.user = request.user
         obj.save()
+        obj.getproperties().delete() # will be updated in due time
 
 #class FormulaAdmin(SeriesAdmin):
 class FormulaSeriesAdmin(PolymorphicChildModelAdmin):

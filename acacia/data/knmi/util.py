@@ -7,6 +7,7 @@ Created on Sep 17, 2015
 import math
 
 def distance(obj, pnt):
+    # TODO: works in projected srid. Use Haversine or Greatcircle approx for lonlat
     dx = obj.location.x - pnt.x
     dy = obj.location.y - pnt.y
     return math.sqrt(dx*dx+dy*dy)

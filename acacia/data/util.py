@@ -52,13 +52,9 @@ def trans(p, srid):
     '''transform Point p to requested srid'''
     if not isinstance(p,Point):
         raise TypeError(_('django.contrib.gis.geos.Point expected'))
-    psrid = p.srid
-    if not psrid:
-        psrid = WGS84
+    if not p.srid:
+        p.srid = WGS84
     p.transform(srid)
-#     if (psrid != srid): 
-#         tr = CoordTransform(SpatialReference(p.srid), SpatialReference(srid))
-#         p.transform(tr)
     return p
 
 def save_thumbnail(series,imagefile,kind='line'):

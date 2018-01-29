@@ -18,7 +18,6 @@ from acacia.meetnet.util import register_screen, register_well,\
 from django.core.exceptions import ObjectDoesNotExist
 from acacia.meetnet.models import LoggerStat
 from django.contrib import messages
-from decimal import Decimal
 logger = logging.getLogger(__name__)
 
 def elevation_from_ahn(modeladmin, request, queryset):

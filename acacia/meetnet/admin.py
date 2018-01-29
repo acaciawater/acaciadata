@@ -131,9 +131,9 @@ class ScreenInline(admin.TabularInline):
         
 class ScreenAdmin(admin.ModelAdmin):
     actions = [actions.make_screencharts,actions.recomp_screens,actions.drift_screens,actions.register_screens,actions.download_screen_nitg]
-    list_display = ('__unicode__', 'refpnt', 'top', 'bottom', 'num_files', 'num_standen', 'start', 'stop')
+    list_display = ('__unicode__', 'refpnt', 'top', 'bottom', 'aquifer', 'num_files', 'num_standen', 'start', 'stop')
     search_fields = ('well__name', 'well__nitg')
-    list_filter = ('well','well__network')
+    list_filter = ('well','well__network','aquifer')
     inlines = [LoggerInline]
     
 from django.contrib.gis.db import models

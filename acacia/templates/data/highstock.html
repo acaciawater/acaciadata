@@ -16,10 +16,9 @@
 <script src="{% static theme %}"></script>
 {% endif %}
 <script>
-Highcharts.setOptions({
-	  global: {
-		useUTC: false
-	  },
+var userLang = navigator.language || navigator.userLanguage;
+if (userLang == 'nl') {
+	Highcharts.setOptions({
 	  lang: {
 	  	shortMonths : ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dec"],
 		months: ["Januari", "Februari", "Maart", "April", "Mei", "Juni",  "Juli", "Augustus", "September", "Oktober", "November", "December"],
@@ -31,6 +30,13 @@ Highcharts.setOptions({
 		downloadSVG: "Download als SVG",
 	  }
 	});
+}
+
+Highcharts.setOptions({
+  global: {
+	useUTC: false
+  }
+});
 </script>
 {% block chartloader %}
 <script>
