@@ -967,7 +967,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
     offset = models.FloatField(default = 0.0, verbose_name = _('compensatieconstante'), help_text = _('constante voor compensatie van de meetwaarden (na verschaling)'))
     offset_series = models.ForeignKey('Series',null=True, blank=True, verbose_name=_('compensatiereeks'),related_name='offset_set', help_text = _('tijdreeks voor compensatie van de meetwaarden (na verschaling)') )
     
-    cumsum = models.BooleanField(verbose_name=_('accumuleren'), help_text = _('reeks transformeren naar accumulatie'))
+    cumsum = models.BooleanField(verbose_name=_('accumuleren'), default = False, help_text = _('reeks transformeren naar accumulatie'))
     cumstart = models.DateTimeField(blank = True, null = True, verbose_name=_('start accumulatie'))
     
     class Meta:
