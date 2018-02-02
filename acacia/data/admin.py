@@ -386,6 +386,9 @@ class ManualSeriesAdmin(PolymorphicChildModelAdmin):
                  (_('Algemeen'), {'fields': ('mlocatie', 'name', ('unit', 'type'), 'description','timezone'),
                                'classes': ('grp-collapse grp-open',),
                                }),
+                 (_('Bewerkingen'), {'fields': (('resample', 'aggregate',),('scale', 'scale_series'), ('offset','offset_series'), ('cumsum', 'cumstart' ),),
+                               'classes': ('grp-collapse grp-closed',),
+                              }),
     )
 
     def save_model(self, request, obj, form, change):
