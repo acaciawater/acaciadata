@@ -8,6 +8,7 @@ import pytz, datetime
 import matplotlib
 from django.utils import timezone
 from django.utils.translation import ugettext as _
+import requests
 matplotlib.use('agg')
 import matplotlib.pylab as plt
 from django.contrib.gis.geos import Point
@@ -56,6 +57,13 @@ def trans(p, srid):
         p.srid = WGS84
     p.transform(srid)
     return p
+
+def get_address(lon, lat):        
+    ''' haal adres gegevens op met google maps geocoding api '''
+    url = 'https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lon}&key={key}'.format(lon=lon,lat=lat,key=settings.GOOGLE_MAPS_API_KEY)
+    response = requests.get(url=url)
+    response.raise_for_status()
+    return response.json()
 
 def save_thumbnail(series,imagefile,kind='line'):
     plt.figure(figsize=THUMB_SIZE,dpi=THUMB_DPI)
