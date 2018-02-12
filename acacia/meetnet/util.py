@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 '''
 Created on Jun 3, 2014
 
@@ -8,6 +9,8 @@ import matplotlib
 from django.core.exceptions import MultipleObjectsReturned
 from django.core.mail.message import EmailMessage
 from acacia.meetnet.models import MeteoData
+from acacia.data.util import get_address
+from __builtin__ import False
 
 matplotlib.use('agg')
 import matplotlib.pylab as plt
@@ -35,6 +38,33 @@ rcParams['font.size'] = '8'
 
 logger = logging.getLogger(__name__)
 
+def set_well_address(well):
+    ''' sets well's address fields using google geocoding api '''
+    loc = well.latlon()
+    data = get_address(loc.x, loc.y)
+    for address in data['results']:
+        logger.debug(address.get('formatted_address','Geen adres'))
+        # first result is closest address
+        found = False
+        for comp in address['address_components']:
+            types = comp['types']
+            value = comp['long_name']
+            if 'street_number' in types:
+                well.huisnummer = value
+                found = True
+            elif 'route' in types:
+                well.straat = value
+                found = True
+            elif 'locality' in types:
+                well.plaats = value
+                found = True
+            elif 'postal_code' in types:
+                well.postcode = value
+                found = True
+        if found:
+            return True
+    return False
+
 # thumbnail size and resolution
 THUMB_DPI=72
 THUMB_SIZE=(12,5) # inch
@@ -52,7 +82,7 @@ def chart_for_screen(screen,start=None,stop=None):
     ax=fig.gca()
 
     datemin=start or datetime.datetime(2013,1,1)
-    datemax=stop or datetime.datetime(2016,12,31)
+    datemax=stop or datetime.datetime(2017,12,31)
     if start or stop:
         ax.set_xlim(datemin, datemax)
 
@@ -110,14 +140,14 @@ def chart_for_well(well,start=None,stop=None):
     fig=plt.figure(figsize=THUMB_SIZE)
     ax=fig.gca()
     datemin=start or datetime.datetime(2013,1,1)
-    datemax=stop or datetime.datetime(2016,12,31)
+    datemax=stop or datetime.datetime(2017,12,31)
     if start or stop:
         ax.set_xlim(datemin, datemax)
     plt.grid(linestyle='-', color='0.9')
     ncol = 0
     index = 0
     for screen in well.screen_set.all():
-        data = screen.get_levels('nap',rule=None)
+        data = screen.get_levels('nap',rule='H')
 #         n = len(data) / (THUMB_SIZE[0]*THUMB_DPI)
 #         if n > 1:
 #             #use data thinning: take very nth row
@@ -167,78 +197,15 @@ def make_chart(obj):
 def make_encoded_chart(obj):
     return encode_chart(make_chart(obj))
 
-def convert_to_nap(screen,series,parameter='Waterstand'):
-    ''' offset timeseries from surface to NAP '''
-    
-    seriesdata = None
-    for logpos in screen.loggerpos_set.all().order_by('start_date'):
-        if logpos.refpnt is None:
-            logger.warning('Referentiepunt ontbreekt voor {pos}'.format(pos=logpos))
-            continue
-        for ds in logpos.logger.datasources.all():
-            print ' ', logpos.logger, logpos.start_date, logpos.refpnt
-            try:
-                data = ds.get_data()
-            except Exception as e:
-                logger.error('Error reading {}: {}'.format(ds,e))
-                continue
-            if not data:
-                logger.error('No data found in {}'.format(ds))
-                continue
-
-            if isinstance(data,dict):
-                data = data.itervalues().next()
-
-            if not parameter in data:
-                logger.error('parameter {} not found in file {}'.format(parameter, ds))
-            
-            data = data[parameter]
-            data = series.do_postprocess(data)
-            data = data + logpos.refpnt
-            if seriesdata is None:
-                seriesdata = data
-            else:
-                seriesdata = seriesdata.append(data)
-    return seriesdata
-
-def get_series_data(screen,series,parameter='Waterstand'):
-    
-    seriesdata = None
-    for logpos in screen.loggerpos_set.all().order_by('start_date'):
-        for ds in logpos.logger.datasources.all():
-            print ' ', logpos.logger, logpos.start_date, logpos.refpnt
-            try:
-                data = ds.get_data()
-            except Exception as e:
-                logger.error('Error reading {}: {}'.format(ds,e))
-                continue
-            if not data:
-                logger.error('No data found in {}'.format(ds))
-                continue
-
-            if isinstance(data,dict):
-                data = data.itervalues().next()
-
-            if not parameter in data:
-                logger.error('parameter {} not found in file {}'.format(parameter, ds))
-            
-            data = data[parameter]
-            data = series.do_postprocess(data)
-            if seriesdata is None:
-                seriesdata = data
-            else:
-                seriesdata = seriesdata.append(data)
-    return seriesdata
-
-def compensate(screen,series,baros,parameter='PRESSURE'):
-    ''' compensate for air pressure '''
+def get_baro(screen,baros):
+    ''' get series with air pressure '''
     well = screen.well
     if not hasattr(well,'meteo') or well.meteo.baro is None:
         logger.error('Luchtdruk ontbreekt voor put {well}'.format(well=well))
         return None
     
     baroseries = well.meteo.baro
-    logger.info('Compenseren voor luchtdrukreeks {}'.format(baroseries))
+    logger.info('Luchtdruk: {}'.format(baroseries))
     if baroseries in baros:
         baro = baros[baroseries]
     else:
@@ -253,43 +220,59 @@ def compensate(screen,series,baros,parameter='PRESSURE'):
                 baro = baro / (screen.well.g or 9.80638)
         
         baros[baroseries] = baro
-        
+    return baro
+    
+def recomp(screen,series,baros={}):
+    ''' re-compensate timeseries '''
+
     seriesdata = None
-    sumdry = 0
-    for logpos in screen.loggerpos_set.all().order_by('start_date'):
-        if logpos.refpnt is None:
-            logger.warning('Referentiepunt ontbreekt voor {pos}'.format(pos=logpos))
+    monfiles = screen.get_monfiles()
+    if not monfiles:
+        logger.warning('Geen monfiles gevonden voor {}'.format(screen))
+        logger.warning('Reeds gecompenseerde gegevens ophalen'.format(screen))
+        return series.get_series_data(data=None)
+
+    for mon in monfiles:
+        print mon.start_date, mon.end_date, mon
+        mondata = mon.get_data()
+        if isinstance(mondata,dict):
+            mondata = mondata.itervalues().next()
+
+        if mondata is None or mondata.empty:
+            logger.error('No data found in {}'.format(mon))
             continue
-        if logpos.depth is None:
-            logger.warning('Inhangdiepte ontbreekt voor {pos}'.format(pos=logpos))
-            continue
 
-        # invalidate statistics
-        logpos.clear_stats()
-        
-        for mon in logpos.monfile_set.all().order_by('start_date'):
-            print ' ', logpos.logger, logpos.start_date, mon
-            try:
-                mondata = mon.get_data()
-            except Exception as e:
-                logger.error('Error reading {}: {}'.format(mon,e))
-                continue
-            if not mondata:
-                logger.error('No data found in {}'.format(mon))
-                continue
-
-            if isinstance(mondata,dict):
-                # Nov 2016: new signature for get_data 
-                mondata = mondata.itervalues().next()
-
-            data = mondata[parameter]
-            data = series.do_postprocess(data)
+        if 'LEVEL' in mondata:
+            # no need for compensation, data is cm wrt reference level (NAP) 
+            data = mondata['LEVEL']
+            data = series.do_postprocess(data/100)
             
+        elif 'PRESSURE' in mondata:
+            logpos = mon.source
+            if logpos.refpnt is None:
+                logger.warning('Referentiepunt ontbreekt voor {pos}'.format(pos=logpos))
+                continue
+            if logpos.depth is None:
+                logger.warning('Inhangdiepte ontbreekt voor {pos}'.format(pos=logpos))
+                continue
+            
+            data = mondata['PRESSURE']
+            data = series.do_postprocess(data)
+
+            # get barometric pressure            
+            try:
+                baro = get_baro(screen, baros)
+                if baro is None or baro.empty:
+                    continue
+            except Exception as e:
+                logger.error('Error retrieving barometric pressure: '+str(e))
+                continue
+
             # issue warning if data has points beyond timespan of barometer
             barostart = baro.index[0]
             dataend = data.index[0]
             if dataend < barostart:
-                logger.warning('Geen luchtdruk gegevens beschikbaar voor {}'.format(barostart))
+                logger.warning('Geen luchtdruk gegevens beschikbaar vóór {}'.format(barostart))
                 continue
             baroend = baro.index[-1]
             datastart = data.index[0]
@@ -306,68 +289,252 @@ def compensate(screen,series,baros,parameter='PRESSURE'):
 
             data.dropna(inplace=True)
             
-            # clip logger data on timerange of baros data
-            # data = data[max(barostart,datastart):min(baroend,dataend)]
-
             #clear datapoints with less than 2 cm of water
             data[data<2] = np.nan
             # count dry values
             dry = data.isnull().sum()
             if dry:
                 logger.warning('Logger {}, MON file {}: {} out of {} measurements have less than 2 cm of water'.format(unicode(logpos),mon,dry,data.size))
-            sumdry += dry
             
             data = data / 100 + (logpos.refpnt - logpos.depth)
-            if seriesdata is None:
-                seriesdata = data
-            else:
-                seriesdata = seriesdata.append(data)
-    if sumdry:
-        logger.warning('Screen {}: {} out of {} measurements have less than 2 cm of water'.format(unicode(screen),sumdry,seriesdata.size))
-                
-    return seriesdata
+            
+        else:
+            # no pressure or level in monfile
+            logger.error('Geen "PRESSURE" of "LEVEL" parameter gevonden in monfile {}'.format(mon))
+            continue
 
-def recomp(screen,series,baros={}):
-    ''' re-compensate timeseries for screen '''
-    loggers = screen.get_loggers()
-    data = None
-    for logger in loggers:
-        for ds in logger.datasources.all():
-            if ds:
-                gen = ds.generator.classname.lower()
-                if 'sws.diver' in gen:
-                    dsdata=compensate(screen, series, baros, 'PRESSURE')
-                elif 'ellitrack' in gen:
-                    dsdata=get_series_data(screen, series, 'Waterstand')
-                else:
-                    logger.error('generator {} not supported'.format(gen))
-            else:
-                logger.warning('no datasource for logger {}'.format(logger))
-            if data is None:
-                data = dsdata
-            else:
-                data = data.append(dsdata)
+        if seriesdata is None:
+            seriesdata = data
+        else:
+            seriesdata = seriesdata.append(data)
+
+    data = seriesdata
     if data is None:
         logger.warning('No data for {}'.format(screen))
         return
 
-    # remove duplicates
-    data = data.groupby(data.index).last()
-    # sort data
-    data.sort_index(inplace=True)
-    datapoints=[]
-    for date,value in data.iteritems():
-        value = float(value)
-        if math.isnan(value) or date is None:
-            continue
-        datapoints.append(DataPoint(series=series, date=date, value=value))
+    tz = pytz.timezone(series.timezone)
+    data = series.do_postprocess(data)
     series.datapoints.all().delete()
-    series.datapoints.bulk_create(datapoints)
+    series.create_points(data,tz)
     series.unit = 'm tov NAP'
+    series.update_properties()
     series.make_thumbnail()
     series.save()
-
     series.validate(reset=True)
+
+# def convert_to_nap(screen,series,parameter='Waterstand'):
+#     ''' offset timeseries from surface to NAP '''
+#     
+#     seriesdata = None
+#     for logpos in screen.loggerpos_set.all().order_by('start_date'):
+#         if logpos.refpnt is None:
+#             logger.warning('Referentiepunt ontbreekt voor {pos}'.format(pos=logpos))
+#             continue
+#         for ds in logpos.logger.datasources.all():
+#             print ' ', logpos.logger, logpos.start_date, logpos.refpnt
+#             try:
+#                 data = ds.get_data()
+#             except Exception as e:
+#                 logger.error('Error reading {}: {}'.format(ds,e))
+#                 continue
+#             if not data:
+#                 logger.error('No data found in {}'.format(ds))
+#                 continue
+# 
+#             if isinstance(data,dict):
+#                 data = data.itervalues().next()
+# 
+#             if not parameter in data:
+#                 logger.error('parameter {} not found in file {}'.format(parameter, ds))
+#             
+#             data = data[parameter]
+#             data = series.do_postprocess(data)
+#             data = data + logpos.refpnt
+#             if seriesdata is None:
+#                 seriesdata = data
+#             else:
+#                 seriesdata = seriesdata.append(data)
+#     return seriesdata
+#
+# def get_series_data1(screen,series,parameter='Waterstand'):
+#     
+#     seriesdata = None
+#     for logpos in screen.loggerpos_set.all().order_by('start_date'):
+#         for ds in logpos.logger.datasources.all():
+#             print ' ', logpos.logger, logpos.start_date, logpos.refpnt
+#             try:
+#                 data = ds.get_data()
+#             except Exception as e:
+#                 logger.error('Error reading {}: {}'.format(ds,e))
+#                 continue
+#             if not data:
+#                 logger.error('No data found in {}'.format(ds))
+#                 continue
+# 
+#             if isinstance(data,dict):
+#                 data = data.itervalues().next()
+# 
+#             if not parameter in data:
+#                 logger.error('parameter {} not found in file {}'.format(parameter, ds))
+#             
+#             data = data[parameter]
+#             data = series.do_postprocess(data)
+#             if seriesdata is None:
+#                 seriesdata = data
+#             else:
+#                 seriesdata = seriesdata.append(data)
+#     return seriesdata
+#
+# def compensate1(screen,series,baros,parameter='PRESSURE'):
+#     ''' compensate for air pressure '''
+#     well = screen.well
+#     if not hasattr(well,'meteo') or well.meteo.baro is None:
+#         logger.error('Luchtdruk ontbreekt voor put {well}'.format(well=well))
+#         return None
+#     
+#     baroseries = well.meteo.baro
+#     logger.info('Compenseren voor luchtdrukreeks {}'.format(baroseries))
+#     if baroseries in baros:
+#         baro = baros[baroseries]
+#     else:
+#         baro = baroseries.to_pandas()
+# 
+#         # if baro datasource = KNMI then convert from hPa to cm H2O
+#         dsbaro = baroseries.datasource()
+#         if dsbaro:
+#             gen = dsbaro.generator
+#             if 'knmi' in gen.name.lower() or 'knmi' in gen.classname.lower():
+#                 # TODO: use g at  baro location, not well location
+#                 baro = baro / (screen.well.g or 9.80638)
+#         
+#         baros[baroseries] = baro
+#         
+#     seriesdata = None
+#     sumdry = 0
+#     for logpos in screen.loggerpos_set.all().order_by('start_date'):
+#         if logpos.refpnt is None:
+#             logger.warning('Referentiepunt ontbreekt voor {pos}'.format(pos=logpos))
+#             continue
+#         if logpos.depth is None:
+#             logger.warning('Inhangdiepte ontbreekt voor {pos}'.format(pos=logpos))
+#             continue
+# 
+#         # invalidate statistics
+#         logpos.clear_stats()
+#         
+#         for mon in logpos.monfile_set.all().order_by('start_date'):
+#             print ' ', logpos.logger, logpos.start_date, mon
+#             try:
+#                 mondata = mon.get_data()
+#             except Exception as e:
+#                 logger.error('Error reading {}: {}'.format(mon,e))
+#                 continue
+#             if not mondata:
+#                 logger.error('No data found in {}'.format(mon))
+#                 continue
+# 
+#             if isinstance(mondata,dict):
+#                 # Nov 2016: new signature for get_data 
+#                 mondata = mondata.itervalues().next()
+# 
+#             data = mondata[parameter]
+#             data = series.do_postprocess(data)
+#             
+#             # issue warning if data has points beyond timespan of barometer
+#             barostart = baro.index[0]
+#             dataend = data.index[0]
+#             if dataend < barostart:
+#                 logger.warning('Geen luchtdruk gegevens beschikbaar voor {}'.format(barostart))
+#                 continue
+#             baroend = baro.index[-1]
+#             datastart = data.index[0]
+#             if datastart > baroend:
+#                 logger.warning('Geen luchtdruk gegevens beschikbaar na {}'.format(baroend))
+#                 continue
+# 
+#             adata, abaro = data.align(baro)
+#             abaro = abaro.interpolate(method='time')
+#             abaro = abaro.reindex(data.index)
+#             abaro[:barostart] = np.NaN
+#             abaro[baroend:] = np.NaN
+#             data = data - abaro
+# 
+#             data.dropna(inplace=True)
+#             
+#             # clip logger data on timerange of baros data
+#             # data = data[max(barostart,datastart):min(baroend,dataend)]
+# 
+#             #clear datapoints with less than 2 cm of water
+#             data[data<2] = np.nan
+#             # count dry values
+#             dry = data.isnull().sum()
+#             if dry:
+#                 logger.warning('Logger {}, MON file {}: {} out of {} measurements have less than 2 cm of water'.format(unicode(logpos),mon,dry,data.size))
+#             sumdry += dry
+#             
+#             data = data / 100 + (logpos.refpnt - logpos.depth)
+#             if seriesdata is None:
+#                 seriesdata = data
+#             else:
+#                 seriesdata = seriesdata.append(data)
+#     if sumdry:
+#         logger.warning('Screen {}: {} out of {} measurements have less than 2 cm of water'.format(unicode(screen),sumdry,seriesdata.size))
+#                 
+#     return seriesdata
+# 
+# def recomp1(screen,series,baros={}):
+#     ''' re-compensate timeseries for screen '''
+#     loggers = screen.get_loggers()
+#     data = None
+#     for datalogger in loggers:
+#         for ds in datalogger.datasources.all():
+#             if ds:
+#                 gen = ds.generator.classname.lower()
+#                 if 'sws.diver' in gen:
+#                     dsdata = None
+#                     pressureParameter = ds.parameter_set.filter(name='PRESSURE').first()
+#                     if pressureParameter:
+#                         dsdata=compensate(screen, series, baros, 'PRESSURE')
+#                     levelParameter = ds.parameter_set.filter(name='LEVEL').first()
+#                     if levelParameter:
+#                         # we have compensated data in mon files
+#                         levelData = get_series_data(screen,series,'LEVEL') / 100.0
+#                         if dsdata:
+#                             dsdata.append(levelData)
+#                         else:
+#                             dsdata = levelData
+#                 elif 'ellitrack' in gen:
+#                     dsdata=get_series_data(screen, series, 'Waterstand')
+#                 else:
+#                     logger.error('generator {} not supported'.format(gen))
+#             else:
+#                 logger.warning('no datasource for logger {}'.format(logger))
+#             if data is None:
+#                 data = dsdata
+#             else:
+#                 data = data.append(dsdata)
+#     if data is None:
+#         logger.warning('No data for {}'.format(screen))
+#         return
+# 
+#     # remove duplicates
+#     data = data.groupby(data.index).last()
+#     # sort data
+#     data.sort_index(inplace=True)
+#     datapoints=[]
+#     for date,value in data.iteritems():
+#         value = float(value)
+#         if math.isnan(value) or date is None:
+#             continue
+#         datapoints.append(DataPoint(series=series, date=date, value=value))
+#     series.datapoints.all().delete()
+#     series.datapoints.bulk_create(datapoints)
+#     series.unit = 'm tov NAP'
+#     series.make_thumbnail()
+#     series.save()
+# 
+#     series.validate(reset=True)
 
 def drift_correct(series, manual):
     ''' correct drift with manual measurements (both are pandas series)'''
@@ -532,8 +699,13 @@ def createmonfile(source, generator=sws.Diver()):
 
     s = headerdict['Series settings']
     mon.start_date = datetime.datetime.strptime(s['Start date / time'],'%S:%M:%H %d/%m/%y').replace(tzinfo=CET)    
-    mon.end_date = datetime.datetime.strptime(s['End date / time'], '%S:%M:%H %d/%m/%y').replace(tzinfo=CET)    
-
+    try:
+        mon.end_date = datetime.datetime.strptime(s['End date / time'], '%S:%M:%H %d/%m/%y').replace(tzinfo=CET)    
+    except KeyError:
+        # sometimes more spaces inserted after date before /
+        key = next(x for x in s.keys() if x.startswith('End date'))
+        mon.end_date = datetime.datetime.strptime(s[key], '%S:%M:%H %d/%m/%y').replace(tzinfo=CET)    
+        
     channels = []
     for i in range(mon.num_channels):
         channel = Channel(number = i+1)
@@ -548,9 +720,9 @@ def createmonfile(source, generator=sws.Diver()):
         channels.append(channel)
     return (mon, channels)
 
-def addmonfile(request,network,f):
+def addmonfile(request,network,f,force_name=None):
     ''' add monfile to database and create related tables '''
-    logger = logging.getLogger('upload')
+    #logger = logging.getLogger('upload')
 
     filename = f.name    
     basename = os.path.basename(filename)
@@ -565,7 +737,9 @@ def addmonfile(request,network,f):
     serial = mon.serial_number
     put = mon.location
     logger.info('Informatie uit MON file: Put={put}, diver={ser}'.format(put=put,ser=serial))
-    
+    if force_name:
+        put = force_name
+        logger.info('Opgegeven putnaam: {put}'.format(put=put))
     try:
         # find logger datasource by well/screen combination
         match = re.match(r'(\w+)[\.\-](\d{1,3}$)',put)
@@ -628,6 +802,10 @@ def addmonfile(request,network,f):
         # get/create datasource for logger
         ds, created = LoggerDatasource.objects.get_or_create(name=datalogger.serial,meetlocatie=loc,
                                                                  defaults = {'logger': datalogger, 'generator': generator, 'user': user, 'timezone': 'Etc/GMT-1'})
+        if created:
+            logger.info('New datasource created, updating parameters')
+            ds.update_parameters()
+        
     except Well.DoesNotExist:
         # this may be a baro logger, not installed in a well
         logger.error('Put niet gevonden: {}'.format(put))
@@ -665,6 +843,7 @@ def addmonfile(request,network,f):
         mon.save()
 
         logger.info('Bestand {filename} toegevoegd aan gegevensbron {ds} voor logger {log}'.format(filename=basename, ds=unicode(ds), log=unicode(pos or serial)))
+        ds.update_parameters()
         return (mon,screen)
     return error
 
@@ -697,14 +876,15 @@ def update_series(request,screen):
     make_chart(screen)
 
    
-def handle_uploaded_files(request, network, localfiles):
+def handle_uploaded_files(request, network, localfiles, lookup={}):
     
     num = len(localfiles)
     if num == 0:
         return
 
     def process_file(f, name):
-        mon,screen = addmonfile(request,network, f)
+        basename = os.path.basename(name)
+        mon,screen = addmonfile(request,network, f, lookup.get(basename))
         if not mon or not screen:
             logger.warning('Bestand {name} overgeslagen'.format(name=name))
             return False
@@ -721,7 +901,12 @@ def handle_uploaded_files(request, network, localfiles):
                 bytes = z.read(name)
                 io = StringIO(bytes)
                 io.name = name
-                result[name] = 'Success' if process_file(io, name) else 'Niet gebruikt'
+                try:
+                    result[name] = 'Success' if process_file(io, name) else 'Niet gebruikt'
+                except Exception as e:
+                    logger.exception('Fout in bestand {}'.format(name))
+                    result[name] = 'Error'
+                    
         return result
 
     def process_plainfile(pathname):
