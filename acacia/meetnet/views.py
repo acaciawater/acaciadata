@@ -17,7 +17,8 @@ from .models import Network, Well, Screen
 from .forms import UploadFileForm
 from .actions import download_well_nitg
 
-import os, json, logging
+import os, logging
+import simplejson as json
 
 from util import handle_uploaded_files
 from django.utils.timezone import get_current_timezone
@@ -142,8 +143,10 @@ def json_series(request, pk):
     if series is None or series.empty:
         values = []
     else:
-        values = zip(series.index, series.values)
-        #values = zip(series.index.astype(np.int64)//10**6, series.values)
+        r = series.resample(rule='H').mean()
+        values = zip(r.index, r.values)
+        #values = zip(series.index, series.values)
+
     data = {'screen%s'%screen.nr: values}
     stats = request.GET.get('stats','0')
     try:
@@ -157,7 +160,7 @@ def json_series(request, pk):
             data.update({'stats%s'%screen.nr: ranges})
     except:
         pass
-    return HttpResponse(json.dumps(data,default=lambda x: int(unix_timestamp(x)*1000)),content_type='application/json')
+    return HttpResponse(json.dumps(data,ignore_nan=True,default=lambda x: int(unix_timestamp(x)*1000)),content_type='application/json')
     
 class WellChartView(TemplateView):
     template_name = 'meetnet/chart_detail.html'
@@ -188,7 +191,7 @@ class WellChartView(TemplateView):
                         'shared': True,
                        }, 
             'legend': {'enabled': True},
-            'plotOptions': {'line': {'marker': {'enabled': False}}},            
+            'plotOptions': {'line': {'marker': {'enabled': False}}, 'series': {'connectNulls': False}},
             'credits': {'enabled': True, 
                         'text': 'acaciawater.com', 
                         'href': 'http://www.acaciawater.com',
