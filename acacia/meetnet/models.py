@@ -427,7 +427,11 @@ class LoggerPos(models.Model):
             s.save()
         except ObjectDoesNotExist:
             pass
-        
+    
+    def num_monfiles(self):
+        return self.monfile_set.count()
+    num_monfiles.short_description = _('Monfiles')
+    
 class LoggerStat(models.Model):
     loggerpos = models.OneToOneField(LoggerPos)
     count = models.PositiveIntegerField(default=0)

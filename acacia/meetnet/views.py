@@ -246,7 +246,7 @@ class WellChartView(TemplateView):
                         'zIndex': 3,
                         'marker': {'symbol': 'circle', 'radius': 6, 'lineColor': 'white', 'lineWidth': 2, },#'fillColor': screencolor(screen)},
                         'tooltip': {
-                                'headerFormat': '<span style="font-size:10px">{point.x:%A %e %B %Y %H:%k }</span><br/><table>',
+                                'headerFormat': '<span style="font-size:10px">{point.x:%A %e %B %Y %H:%M }</span><br/><table>',
                                 'pointFormat': '<tr><td style="color:{series.color};padding:0;font-size:11px;">{series.name}: </td><td style="padding:0"><b>{point.y:,.2f}</b></td></tr>',
                                 'useHTML': True
                             },

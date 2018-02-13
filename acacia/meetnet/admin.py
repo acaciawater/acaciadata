@@ -71,7 +71,7 @@ class MonFileInline(admin.TabularInline):
 class LoggerPosAdmin(admin.ModelAdmin):
     model = LoggerPos
     actions = [update_statistics]
-    list_display = ('logger', 'screen', 'start_date', 'end_date', 'refpnt', 'depth', 'remarks')
+    list_display = ('logger', 'screen', 'start_date', 'end_date', 'refpnt', 'depth', 'num_monfiles', 'remarks')
     list_filter = ('screen__well', 'screen',)
     search_fields = ('logger__serial','screen__well__name')
     inlines = [MonFileInline]
@@ -134,7 +134,7 @@ class ScreenInline(admin.TabularInline):
         
 class ScreenAdmin(admin.ModelAdmin):
     actions = [actions.make_screencharts,actions.recomp_screens,actions.drift_screens,actions.register_screens,actions.download_screen_nitg]
-    list_display = ('__unicode__', 'refpnt', 'top', 'bottom', 'aquifer', 'num_files', 'num_standen', 'start', 'stop')
+    list_display = ('__unicode__', 'refpnt', 'top', 'bottom', 'aquifer', 'num_files', 'num_standen', 'start', 'stop', 'manual_levels')
     search_fields = ('well__name', 'well__nitg')
     list_filter = ('well','well__network','aquifer')
     inlines = [LoggerInline]
