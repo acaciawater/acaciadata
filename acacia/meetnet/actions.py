@@ -27,8 +27,9 @@ def elevation_from_ahn(modeladmin, request, queryset):
     numok = 0
     numfail = 0
     for mp in queryset:
-        x = mp.location.x
-        y = mp.location.y
+        p = mp.RD()
+        x = p.x
+        y = p.y
         try:
             ahn = ahn3.get_elevation(x,y)
             if not ahn:
