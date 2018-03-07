@@ -77,7 +77,7 @@ def getcolor(index):
 def screencolor(screen):
     return getcolor(screen.nr-1)
 
-def chart_for_screen(screen,start=None,stop=None):
+def chart_for_screen(screen,start=None,stop=None,loggerpos=True):
     fig=plt.figure(figsize=THUMB_SIZE)
     ax=fig.gca()
 
@@ -90,7 +90,7 @@ def chart_for_screen(screen,start=None,stop=None):
     ncol = 0
 
     # sensor positie tov NAP berekenen en aan grafiek toevoegen
-    if screen.refpnt is not None:
+    if loggerpos and screen.refpnt is not None:
         depths = screen.loggerpos_set.filter(depth__isnull=False).order_by('start_date').values_list('start_date','end_date','depth')
         if len(depths)>0:
             data = []
