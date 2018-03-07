@@ -128,8 +128,8 @@ class Well(geo.Model):
         return reverse('meetnet:well-detail', args=[self.id])
 
     def __unicode__(self):
-        #return self.nitg or self.name
-        return self.name
+        return self.nitg or self.name
+        #return self.name
     
     def has_data(self):
         for s in self.screen_set.all():
@@ -153,7 +153,7 @@ class Well(geo.Model):
     class Meta:
         verbose_name = _('well')
         verbose_name_plural = _('wells')
-        ordering = ['name','nitg']
+        ordering = ['nitg','name']
         unique_together = ('name','nitg')
         
 def limitKNMI():

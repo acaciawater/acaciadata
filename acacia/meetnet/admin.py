@@ -156,7 +156,7 @@ class WellAdmin(admin.ModelAdmin):
     list_display = ('name','nitg','network','owner','maaiveld', 'ahn', 'num_filters', 'num_photos', 'straat', 'plaats')
     #list_editable = ('location',)
     #list_per_page = 4
-    ordering = ('network', 'name',)
+    ordering = ('nitg',)
     list_filter = ('network', 'owner','plaats')
     save_as = True
     search_fields = ['name', 'nitg', 'plaats']
