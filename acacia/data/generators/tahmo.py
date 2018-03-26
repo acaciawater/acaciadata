@@ -10,6 +10,12 @@ from generator import Generator
 from acacia.data.secrets import TAHMO_API_KEY, TAHMO_API_SECRET
 
 class Tahmo(Generator):
+    """Generator for Tahmo weather stations.
+
+    API documentation: tahmo.org/docs/TAHMO_API_documentation_latest.pdf
+    Examples: https://github.com/TAHMO/API-V1-Python-examples
+
+    """
     def get_stations(self):
         basic_auth_string = base64.encodestring('%s:%s' % (TAHMO_API_KEY, TAHMO_API_SECRET)).replace('\n', '')
         url = 'https://tahmoapi.mybluemix.net/v1/stations'
