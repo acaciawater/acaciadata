@@ -31,22 +31,23 @@ THEME_CHOICES = ((None,_('default')),
 
 def aware(d,tz=None):
     ''' utility function to ensure datetime object has requested timezone '''
-    if d is not None:
-        if isinstance(d, (datetime.datetime, datetime.date,)):
-            if timezone.is_naive(d):
+    if d is None or d is pd.NaT:
+        return d
+    if isinstance(d, (datetime.datetime, datetime.date,)):
+        if timezone.is_naive(d):
+            try:
+                if tz is None or tz == '':
+                    tz = settings.TIME_ZONE
+                if not isinstance(tz, timezone.tzinfo):
+                    tz = pytz.timezone(tz)
+                return timezone.make_aware(d, tz)            
+            except Exception as e:
+#                 pytz.NonExistentTimeError, pytz.AmbiguousTimeError: # CET/CEST transition?
                 try:
-                    if tz is None or tz == '':
-                        tz = settings.TIME_ZONE
-                    if not isinstance(tz, timezone.tzinfo):
-                        tz = pytz.timezone(tz)
-                    return timezone.make_aware(d, tz)            
-                except Exception as e:
-    #                 pytz.NonExistentTimeError, pytz.AmbiguousTimeError: # CET/CEST transition?
-                    try:
-                        return timezone.make_aware(d, pytz.utc)
-                    except:
-                        pass            
-    return d
+                    return timezone.make_aware(d, pytz.utc)
+                except:
+                    pass
+    return d            
 
 from django.utils.deconstruct import deconstructible
 
