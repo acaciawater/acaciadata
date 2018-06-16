@@ -141,7 +141,8 @@ generate_datasource_series.short_description = _('Create timeseries for all para
 def update_datasource_series(modeladmin, request, queryset):
     for ds in queryset:
         series = ds.getseries()
-        oldest = min(s.tot() for s in series if s.aantal())
+        tots = [s.tot() for s in series if s.aantal()]
+        oldest = min(tots) if tots else None
         data = ds.get_data(start=oldest)
         for s in ds.getseries():
             s.update(data=data)
