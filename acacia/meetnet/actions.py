@@ -14,12 +14,18 @@ from django.shortcuts import get_object_or_404
 
 import StringIO
 from acacia.meetnet.util import register_screen, register_well,\
-    drift_correct_screen
+    drift_correct_screen, set_well_address
 from django.core.exceptions import ObjectDoesNotExist
 from acacia.meetnet.models import LoggerStat
 from django.contrib import messages
 logger = logging.getLogger(__name__)
 
+def address_from_google(modeladmin, request, queryset):
+    for well in queryset:
+        if set_well_address(well):
+            well.save()
+address_from_google.short_description = 'Bepaal addres met Google geocoding API'        
+            
 def elevation_from_ahn(modeladmin, request, queryset):
     """ get elevation from AHN """
     ahn3 = get_object_or_404(AHN,name='AHN3 0.5m DTM')

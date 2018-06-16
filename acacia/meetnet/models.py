@@ -260,10 +260,11 @@ class Screen(models.Model):
         return self.get_series(ref,kind='HAND',**kwargs)        
         
     def get_monfiles(self):
-        files = []
-        for lp in self.loggerpos_set.all():
-            files.extend(lp.monfile_set.all())
-        return files
+        return MonFile.objects.filter(source__screen=self).order_by('start_date')
+#         files = []
+#         for lp in self.loggerpos_set.order_by('start_date'):
+#             files.extend(lp.monfile_set.order_by('start_date'))
+#         return files
 
     def num_files(self):
         try:
@@ -500,7 +501,7 @@ class Channel(models.Model):
     class Meta:
         verbose_name = 'Kanaal'
         verbose_name_plural = 'Kanalen'
-
+        
 HAND_CHOICES=(
     ('bkb',_('Top of casing')),
     ('nap',_('NAP')),

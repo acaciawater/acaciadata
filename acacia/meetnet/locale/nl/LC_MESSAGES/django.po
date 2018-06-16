@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-11-20 00:25+0100\n"
+"POT-Creation-Date: 2018-02-09 15:52+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,315 +17,340 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: admin.py:222
+#: meetnet/admin.py:232
 msgid "Algemeen"
 msgstr ""
 
-#: forms.py:25
+#: meetnet/forms.py:25
 #, python-format
 msgid ""
 "Ensure at least %(min_num)s files are uploaded (received %(num_files)s)."
 msgstr ""
 
-#: forms.py:26
+#: meetnet/forms.py:26
 #, python-format
 msgid "Ensure at most %(max_num)s files are uploaded (received %(num_files)s)."
 msgstr ""
 
-#: forms.py:27
+#: meetnet/forms.py:27
 #, python-format
 msgid "File %(uploaded_file_name)s exceeded maximum upload size."
 msgstr ""
 
-#: models.py:18 models.py:40
+#: meetnet/models.py:19
+#: meetnet/models.py:41
 msgid "name"
 msgstr "naam"
 
-#: models.py:20
+#: meetnet/models.py:21
 msgid "website of netork administrator"
 msgstr "website van meetnetbeheerder"
 
-#: models.py:21
+#: meetnet/models.py:22
 msgid "url of kml file of network boundary"
 msgstr "url van kml file van meetnet begrenzing"
 
-#: models.py:22
+#: meetnet/models.py:23
 msgid "last measuring round"
 msgstr "laatste meetronde"
 
-#: models.py:23
+#: meetnet/models.py:24
 msgid "next measuring round"
 msgstr "volgende meetronde"
 
-#: models.py:32 models.py:39
+#: meetnet/models.py:33
+#: meetnet/models.py:40
 msgid "network"
 msgstr "netwerk"
 
-#: models.py:33
+#: meetnet/models.py:34
 msgid "networks"
 msgstr "netwerken"
 
-#: models.py:41
+#: meetnet/models.py:42
 msgid "TNO/NITG identification"
 msgstr "TNO/NITG nummer"
 
-#: models.py:42
+#: meetnet/models.py:43
 msgid "BRO id"
 msgstr "BRO nummer"
 
-#: models.py:43
+#: meetnet/models.py:44
 msgid "location"
 msgstr "locatie"
 
-#: models.py:43
-msgid "location in rijksdriehoeksstelsel coordinates"
+#: meetnet/models.py:44
+#, fuzzy
+msgid "Location in longitude/latitude coordinates"
 msgstr "locatie in rijksdriehoeksstelsel coordinaten"
 
-#: models.py:44
+#: meetnet/models.py:46
 msgid "description"
 msgstr "omschrijving"
 
-#: models.py:45
+#: meetnet/models.py:47
 msgid "surface level"
 msgstr "maaiveld"
 
-#: models.py:45
+#: meetnet/models.py:47
 msgid "surface level in meter wrt NAP"
 msgstr "maaveld in meter tov NAP"
 
-#: models.py:46
+#: meetnet/models.py:48
 msgid "AHN surface level"
 msgstr "AHN maaiveld"
 
-#: models.py:47
+#: meetnet/models.py:49
 msgid "Date of construction"
 msgstr "Constructiedatum"
 
-#: models.py:48
+#: meetnet/models.py:50
+msgid "owner"
+msgstr "Beheerder"
+
+#: meetnet/models.py:51
 msgid "street name"
 msgstr "straatnaam"
 
-#: models.py:49
+#: meetnet/models.py:52
 msgid "house number"
 msgstr "huisnummer"
 
-#: models.py:50
+#: meetnet/models.py:53
 msgid "postal code"
 msgstr "postcode"
 
-#: models.py:51
+#: meetnet/models.py:54
 msgid "locality"
 msgstr "plaats"
 
-#: models.py:52
+#: meetnet/models.py:55
 msgid "driller's log"
 msgstr "boorstaat"
 
-#: models.py:53 models.py:199
+#: meetnet/models.py:56
+#: meetnet/models.py:216
 msgid "chart"
 msgstr "grafiek"
 
-#: models.py:54
+#: meetnet/models.py:57
 msgid "gravitational acceleration"
 msgstr "valversnelling"
 
-#: models.py:54
+#: meetnet/models.py:57
 msgid "gravitational acceleration in m/s2"
 msgstr "valversnelling in m/s2"
 
-#: models.py:65
+#: meetnet/models.py:68
 msgid "number of screens"
 msgstr "aantal filters"
 
-#: models.py:69
+#: meetnet/models.py:72
 msgid "number of photos"
 msgstr "aantal fotos"
 
-#: models.py:137 models.py:147 models.py:190
+#: meetnet/models.py:154
+#: meetnet/models.py:164
+#: meetnet/models.py:207
 msgid "well"
 msgstr "put"
 
-#: models.py:138
+#: meetnet/models.py:155
 msgid "wells"
 msgstr "putten"
 
-#: models.py:148
+#: meetnet/models.py:165
 msgid "air pressure"
 msgstr "luchtdruk"
 
-#: models.py:149
+#: meetnet/models.py:166
 msgid "precipitation"
 msgstr "neerslag"
 
-#: models.py:150
+#: meetnet/models.py:167
 msgid "evaporation"
 msgstr "verdamping"
 
-#: models.py:151
+#: meetnet/models.py:168
 msgid "temperature"
 msgstr "temperatuur"
 
-#: models.py:157
+#: meetnet/models.py:174
 msgid "meteo"
 msgstr "meteo"
 
-#: models.py:158
+#: meetnet/models.py:175
 msgid "Meteo"
 msgstr "Meteo"
 
-#: models.py:176
+#: meetnet/models.py:193
 msgid "sample"
 msgstr "voorbeeld"
 
-#: models.py:179
+#: meetnet/models.py:196
 msgid "photo"
 msgstr "foto"
 
-#: models.py:180
+#: meetnet/models.py:197
 msgid "photos"
 msgstr "foto's"
 
-#: models.py:183
+#: meetnet/models.py:200
 msgid "PVC"
 msgstr "PVC"
 
-#: models.py:184
+#: meetnet/models.py:201
 msgid "HDPE"
 msgstr "HDPE"
 
-#: models.py:185
+#: meetnet/models.py:202
 msgid "SS"
 msgstr "RVS"
 
-#: models.py:186
+#: meetnet/models.py:203
 msgid "steel"
 msgstr "staal"
 
-#: models.py:191
+#: meetnet/models.py:208
 msgid "screen number"
 msgstr "filternummer"
 
-#: models.py:192
+#: meetnet/models.py:209
 msgid "density"
 msgstr "dichtheid"
 
-#: models.py:192
+#: meetnet/models.py:209
 msgid "density of the water in observation tube (kg/m3)"
 msgstr "dichtheid van het water in de peilbuis (kg/m3)"
 
-#: models.py:193
+#: meetnet/models.py:210
 msgid "top of casing"
 msgstr "bovenkant buis"
 
-#: models.py:193
+#: meetnet/models.py:210
 msgid "top of casing in m wrt NAP"
 msgstr "bovenkant buis in meter tov NAP"
 
-#: models.py:194
+#: meetnet/models.py:211
 msgid "depth"
 msgstr "diepte"
 
-#: models.py:194
+#: meetnet/models.py:211
 msgid "depth of pipe in meters below the surface"
 msgstr "diepte buis in meter onder maaiveld"
 
-#: models.py:195
+#: meetnet/models.py:212
 msgid "top of screen"
 msgstr "bovenkant filter"
 
-#: models.py:195
+#: meetnet/models.py:212
 msgid "top of screen in meters below the surface"
 msgstr "bovenkant filter in meter onder maaiveld"
 
-#: models.py:196
+#: meetnet/models.py:213
 msgid "bottom of screen"
 msgstr "onderkant filter"
 
-#: models.py:196
+#: meetnet/models.py:213
 msgid "bottom of screen in meters below the surface"
 msgstr "onerkant filter in meter onder maaiveld"
 
-#: models.py:197
+#: meetnet/models.py:214
 msgid "diameter"
 msgstr "diameter"
 
-#: models.py:197
+#: meetnet/models.py:214
 msgid "diameter in mm (default = 32 mm)"
 msgstr "diameter buis in mm (standaard = 32 mm)"
 
-#: models.py:198
+#: meetnet/models.py:215
 msgid "material"
 msgstr "materiaal"
 
-#: models.py:229
+#: meetnet/models.py:217
+msgid "aquifer"
+msgstr "aquifer"
+
+#: meetnet/models.py:218
+msgid "manual measurements"
+msgstr "handpeilingen"
+
+#: meetnet/models.py:219
+#, fuzzy
+msgid "water level"
+msgstr "maaiveld"
+
+#: meetnet/models.py:249
 #, python-format
 msgid "Illegal reference for screen %s"
 msgstr "Onbekend filter %s"
 
-#: models.py:345 models.py:371 models.py:482
+#: meetnet/models.py:373
+#: meetnet/models.py:399
+#: meetnet/models.py:510
 msgid "screen"
 msgstr "filter"
 
-#: models.py:346
+#: meetnet/models.py:374
 msgid "screens"
 msgstr "filters"
 
-#: models.py:360
+#: meetnet/models.py:388
 msgid "serial number"
 msgstr "serienummer"
 
-#: models.py:361
+#: meetnet/models.py:389
 msgid "type"
 msgstr "type"
 
-#: models.py:372
+#: meetnet/models.py:400
 msgid "start"
-msgstr ""
+msgstr "start"
 
-#: models.py:372
+#: meetnet/models.py:400
 msgid "Start of datalogger"
-msgstr ""
+msgstr "start datalogger"
 
-#: models.py:373
+#: meetnet/models.py:401
 msgid "stop"
-msgstr ""
+msgstr "stop"
 
-#: models.py:373
+#: meetnet/models.py:401
 msgid "Stopping time of datalogger"
-msgstr ""
+msgstr "stop datalogger"
 
-#: models.py:374 models.py:483
+#: meetnet/models.py:402
+#: meetnet/models.py:511
 msgid "reference point"
-msgstr ""
+msgstr "referentiepunt"
 
-#: models.py:374
+#: meetnet/models.py:402
 #, fuzzy
-#| msgid "surface level in meter wrt NAP"
 msgid "Reference point in meter wrt NAP"
 msgstr "maaveld in meter tov NAP"
 
-#: models.py:375
+#: meetnet/models.py:403
 msgid "cable length"
-msgstr ""
+msgstr "kabellengte"
 
-#: models.py:375
+#: meetnet/models.py:403
 msgid "length of cable in meter"
-msgstr ""
+msgstr "kabellengte in meter"
 
-#: models.py:376
+#: meetnet/models.py:404
 msgid "remarks"
-msgstr ""
+msgstr "opmerkingen"
 
-#: models.py:382
+#: meetnet/models.py:410
 msgid "LoggerInstallation"
-msgstr ""
+msgstr "Datalogger installatie"
 
-#: models.py:477
+#: meetnet/models.py:505
 #, fuzzy
-#| msgid "top of casing"
 msgid "Top of casing"
 msgstr "bovenkant buis"
 
-#: models.py:478
+#: meetnet/models.py:506
 msgid "NAP"
-msgstr ""
+msgstr "NAP"
+

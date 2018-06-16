@@ -10,7 +10,7 @@ from django.conf import settings
 from django.contrib import admin
 from acacia.meetnet.models import MeteoData, Handpeiling
 from acacia.meetnet.actions import update_statistics
-from acacia.data.models import SourceFile, Series
+from acacia.data.models import Series
 from django.utils.translation import ugettext as _
 
 USE_GOOGLE_TERRAIN_TILES = False
@@ -64,6 +64,9 @@ class DataloggerAdmin(admin.ModelAdmin):
 class MonFileInline(admin.TabularInline):
     model = MonFile
     classes = ['collapse']
+    fields = ('name','file','rows', 'cols','start','stop')
+    extra = 0
+    ordering = ('start',)
 
 class LoggerPosAdmin(admin.ModelAdmin):
     model = LoggerPos
@@ -71,7 +74,7 @@ class LoggerPosAdmin(admin.ModelAdmin):
     list_display = ('logger', 'screen', 'start_date', 'end_date', 'refpnt', 'depth', 'remarks')
     list_filter = ('screen__well', 'screen',)
     search_fields = ('logger__serial','screen__well__name')
-    #inlines = [MonFileInline]
+    inlines = [MonFileInline]
     
 class LoggerInline(admin.TabularInline):
     model = LoggerPos
@@ -147,13 +150,14 @@ class WellAdmin(admin.ModelAdmin):
                actions.add_meteo_for_wells,
                actions.register_wells,
                actions.download_well_nitg,
-               actions.elevation_from_ahn]
+               actions.elevation_from_ahn,
+               actions.address_from_google]
     inlines = [ScreenInline, MeteoInline, PhotoInline ]
-    list_display = ('name','nitg','network','maaiveld', 'ahn', 'num_filters', 'num_photos', 'straat', 'plaats')
+    list_display = ('name','nitg','network','owner','maaiveld', 'ahn', 'num_filters', 'num_photos', 'straat', 'plaats')
     #list_editable = ('location',)
     #list_per_page = 4
     ordering = ('network', 'name',)
-    list_filter = ('network', )
+    list_filter = ('network', 'owner','plaats')
     save_as = True
     search_fields = ['name', 'nitg', 'plaats']
     list_select_related = True

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-12-21 10:49+0100\n"
+"POT-Creation-Date: 2018-02-09 15:52+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,21 +17,21 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: templates/base1.html:28 templates/bootbase.html:76
-msgid "Change password"
-msgstr "Wachtwoord veranderen"
-
-#: templates/base1.html:29 templates/bootbase.html:75
-msgid "Log out"
-msgstr "Uitloggen"
-
-#: templates/base1.html:31 templates/bootbase.html:80
-msgid "Log in"
-msgstr "Inloggen"
-
 #: templates/bootbase.html:69
 msgid "Admin"
 msgstr "Beheer"
+
+#: templates/bootbase.html:75
+msgid "Log out"
+msgstr "Uitloggen"
+
+#: templates/bootbase.html:76
+msgid "Change password"
+msgstr "Wachtwoord veranderen"
+
+#: templates/bootbase.html:80
+msgid "Log in"
+msgstr "Inloggen"
 
 #: templates/data/chart_detail.html:37 templates/data/plain_chart.html:62
 msgid "Retrieving data..."
