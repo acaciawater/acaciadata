@@ -184,7 +184,8 @@ def recomp(screen,series,baros={},tz=pytz.FixedOffset(60)):
                 # Nov 2016: new signature for get_data 
                 mondata = mondata.itervalues().next()
             data = mondata['PRESSURE']
-            data = series.do_postprocess(data).tz_localize(tz)
+            #data = series.do_postprocess(data).tz_localize(tz)
+            data = data.tz_localize(tz)
             
             adata, abaro = data.align(baro)
             abaro = abaro.interpolate(method='time')
@@ -448,13 +449,13 @@ def addmonfile(request,network,f):
 def update_series(request,screen):
 
     user=request.user
-    series = screen.get_compensated_series()
-    if series is None:
-        # Make sure screen has been registered
-        register_screen(screen)
-        name = '%s COMP' % screen
-        series, created = Series.objects.get_or_create(name=name,mlocatie=screen.mloc,defaults={'user':user})
-        series.save()
+#    series = screen.get_compensated_series()
+#    if series is None:
+    # Make sure screen has been registered
+    register_screen(screen)
+    name = '%s COMP' % screen
+    series, created = Series.objects.get_or_create(name=name,mlocatie=screen.mloc,defaults={'user':user})
+#    series.save()
 
     recomp(screen, series)
                  
@@ -467,8 +468,11 @@ def update_series(request,screen):
     chart.series.get_or_create(series=series, defaults={'label' : 'm tov NAP'})
 
     # handpeilingen toevoegen (als beschikbaar)
-    for hand in screen.mloc.manualseries_set.all():
-        chart.series.get_or_create(series=hand,defaults={'type':'scatter', 'order': 2})
+    try:
+        for hand in screen.mloc.manualseries_set.all():
+            chart.series.get_or_create(series=hand,defaults={'type':'scatter', 'order': 2})
+    except:
+        pass
     
     make_chart(screen)
 
