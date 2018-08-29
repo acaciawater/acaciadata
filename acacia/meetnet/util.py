@@ -553,12 +553,16 @@ def drift_correct(series, manual):
     drift = drift.fillna(0)
     return series-drift
 
-def drift_correct_screen(screen,user):
+def drift_correct_screen(screen,user,inplace=False):
     series = screen.get_compensated_series()
     manual = screen.get_manual_series()
     data = drift_correct(series,manual)
-    name = unicode(screen) + 'CORR'
-    cor, created = Series.objects.get_or_create(name=name,mlocatie=screen.mloc,defaults={'user':user})
+    if inplace:
+        cor = series
+        created = False
+    else:
+        name = unicode(screen) + 'CORR'
+        cor, created = Series.objects.get_or_create(name=name,mlocatie=screen.mloc,defaults={'user':user})
     if created:
         cor.unit = 'm tov NAP'
     else:
@@ -572,7 +576,7 @@ def drift_correct_screen(screen,user):
     cor.datapoints.bulk_create(datapoints)
     cor.make_thumbnail()
     cor.save()
-    
+
 def register_well(well):
     # register well in acaciadata
     project, created = Project.objects.get_or_create(name=well.network.name)
