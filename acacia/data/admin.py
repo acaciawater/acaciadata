@@ -403,6 +403,7 @@ class ManualSeriesAdmin(PolymorphicChildModelAdmin):
 class FormulaSeriesAdmin(PolymorphicChildModelAdmin):
     base_model = Series
     list_filter = ('mlocatie', 'parameter__datasource', 'parameter__datasource__meetlocatie__projectlocatie__project', ContentTypeFilter)
+    exclude = ('parameter','user')
     fieldsets = (
                   (_('Algemeen'), {'fields': ('mlocatie', 'name', ('unit', 'type'), 'description','timezone'),
                                 'classes': ('grp-collapse grp-open',),
@@ -422,6 +423,7 @@ class FormulaSeriesAdmin(PolymorphicChildModelAdmin):
     def save_model(self, request, obj, form, change):
         obj.user = request.user
         obj.save()
+        obj.getproperties().delete() # will be updated in due time
 
     #exclude = ('parameter',)
 

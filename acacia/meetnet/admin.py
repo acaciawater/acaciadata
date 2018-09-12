@@ -92,6 +92,7 @@ class LoggerDatasourceAdmin(DatasourceAdmin):
                                'classes': ('grp-collapse grp-closed',),
                               }),
     )
+    search_fields = ['name','meetlocatie__name']
 
 #     def __init__(self, *args, **kwargs):
 #         super(LoggerDatasourceAdmin,self).__init__(*args, **kwargs)
