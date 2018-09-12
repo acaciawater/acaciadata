@@ -22,8 +22,9 @@ logger = logging.getLogger(__name__)
 
 def address_from_google(modeladmin, request, queryset):
     for well in queryset:
-        if set_well_address(well):
-            well.save()
+        if not well.plaats:
+            if set_well_address(well):
+                well.save()
 address_from_google.short_description = 'Bepaal addres met Google geocoding API'        
             
 def elevation_from_ahn(modeladmin, request, queryset):
