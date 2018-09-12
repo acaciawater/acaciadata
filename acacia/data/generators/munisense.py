@@ -294,14 +294,14 @@ class Munisense(Generator):
         url = '{api}{endpoint}'.format(api=api,endpoint=endpoint)
         url = url.format(id=username)
         offset = 0
-        payload = {'offset':0, 'rowcount': 100, 'fields':','.join(fields)}
+        payload = {'offset':0, 'rowcount': 1000, 'fields':','.join(fields)}
         done = False
         while not done:
             response = requests.get(url,headers=headers,params=payload,auth=HTTPBasicAuth(username,password))
             response.raise_for_status()
-            offset += 100
+            offset += 1000
             payload['offset']=offset
-            done = len(response.json()) < 100
+            done = len(response.json()) < 1000
             yield response
             
     def get_data(self, fil, **kwargs):
