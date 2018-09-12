@@ -38,10 +38,16 @@ rcParams['font.size'] = '8'
 
 logger = logging.getLogger(__name__)
 
-def set_well_address(well):
+def set_well_address(well,override=False):
     ''' sets well's address fields using google geocoding api '''
     loc = well.latlon()
     data = get_address(loc.x, loc.y)
+
+    def setat(obj,att,val,force=False):
+        value = getattr(obj,att)
+        if not value or force:
+            setattr(obj,att,val)
+            
     for address in data['results']:
         logger.debug(address.get('formatted_address','Geen adres'))
         # first result is closest address
@@ -50,16 +56,16 @@ def set_well_address(well):
             types = comp['types']
             value = comp['long_name']
             if 'street_number' in types:
-                well.huisnummer = value
+                setat(well,'huisnummer',value)
                 found = True
             elif 'route' in types:
-                well.straat = value
+                setat(well,'straat',value)
                 found = True
             elif 'locality' in types:
-                well.plaats = value
+                setat(well,'plaats',value)
                 found = True
             elif 'postal_code' in types:
-                well.postcode = value
+                setat(well,'postcode',value)
                 found = True
         if found:
             return True
@@ -584,11 +590,9 @@ def register_screen(screen):
     # register screen in acaciadata
     project, created = Project.objects.get_or_create(name=screen.well.network.name)
     screen.well.ploc, created = project.projectlocatie_set.update_or_create(name=screen.well.name,defaults={'location': screen.well.location})
-    if created:
-        screen.well.save()
+    screen.well.save()
     screen.mloc, created = screen.well.ploc.meetlocatie_set.update_or_create(name=unicode(screen),defaults={'location': screen.well.location})
-    if created:
-        screen.save()
+    screen.save()
 
 def createmeteo(request, well):
     ''' Create datasources with meteo data for a well '''
