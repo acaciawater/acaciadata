@@ -463,7 +463,11 @@ class Datasource(models.Model, LoggerSourceMixin):
         for loc, data in datadict.iteritems():
             # sourcefile.get_data has already set the timezone, code below is redundant?
             timezone = pytz.timezone(self.timezone)
-            date = np.array([aware(d, timezone) for d in data.index.to_pydatetime()])
+            try:
+                date = np.array([aware(d, timezone) for d in data.index.to_pydatetime()])
+            except Exception as e:
+                logger.exception('Error processing data for '+str(loc))
+                continue
             slicer = None
             if start is not None:
                 if stop is not None:
@@ -759,7 +763,10 @@ class SourceFile(models.Model,LoggerSourceMixin):
                 try:
                     data[k]=v.tz_localize(tz,ambiguous='infer')
                 except Exception as ex:
-                    data[k]=v.tz_localize(tz,ambiguous='NaT')
+                    try:
+                        data[k]=v.tz_localize(tz,ambiguous='NaT')
+                    except:
+                        pass
         return data
 
     def get_locations(self,gen=None):
