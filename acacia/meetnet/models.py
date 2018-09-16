@@ -276,6 +276,7 @@ class Screen(models.Model):
     def find_series(self):
         if not self.logger_levels:
             from django.db.models import Q
+            # TODO: what to do if there are multiple series??
             series = self.mloc.series_set.filter(Q(name__iendswith='comp')|Q(name__istartswith='waterstand')|Q(name__iendswith='value')).first()
             if series:
                 self.logger_levels = series

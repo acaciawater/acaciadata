@@ -1384,19 +1384,31 @@ class Series(PolymorphicModel,LoggerSourceMixin):
                 queryset = queryset.filter(date__lt=first.date)
                 
         if start is None and stop is None:
-            return queryset.all()
+            return queryset
         if start is None:
             start = self.van()
         if stop is None:
             stop = self.tot()
         return queryset.filter(date__range=[start,stop])
     
+    def sample_points(self, **kwargs):
+        rule = kwargs.get('rule')
+        if rule is None:
+            return self.filter_points(**kwargs)
+
+        from sampler import MySQL
+        sampler = MySQL()
+        
+        start = kwargs.get('start', self.van())
+        stop = kwargs.get('stop', self.tot())
+        return sampler.sample(self, start, stop, rule)
+
     def to_array(self, **kwargs):
         points = self.filter_points(**kwargs)
         return [(dp.date,dp.value) for dp in points]
 
     def to_json(self, **kwargs):
-        pts = self.to_array()
+        pts = self.to_array(**kwargs)
         return json.dumps(pts,default=lambda x: time.mktime(x.timetuple())*1000.0)
     
     def to_pandas(self, **kwargs):

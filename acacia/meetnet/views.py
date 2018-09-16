@@ -116,8 +116,9 @@ class ScreenChartView(TemplateView):
 def json_series(request, pk):
     screen = get_object_or_404(Screen,pk=pk)
     what = request.GET.get('mode','comp') # choices: comp, hand
+    rule = request.GET.get('rule')
     if what == 'comp':
-        series = screen.get_compensated_series()
+        series = screen.get_compensated_series(rule=rule)
     elif what == 'hand':
         series = screen.get_manual_series()
     else:
@@ -143,9 +144,11 @@ def json_series(request, pk):
     if series is None or series.empty:
         values = []
     else:
-        r = series.resample(rule='H').mean()
-        values = zip(r.index, r.values)
-        #values = zip(series.index, series.values)
+        if rule:
+            r = series.resample(rule=rule).mean()
+            values = zip(r.index, r.values)
+        else:
+            values = zip(series.index, series.values)
 
     data = {'screen%s'%screen.nr: values}
     stats = request.GET.get('stats','0')
