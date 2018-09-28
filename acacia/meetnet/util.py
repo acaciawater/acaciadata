@@ -575,6 +575,8 @@ def drift_correct_screen(screen,user,inplace=False):
     cor.datapoints.bulk_create(datapoints)
     cor.make_thumbnail()
     cor.save()
+    screen.logger_levels = cor
+    screen.save()
     return cor
 
 
