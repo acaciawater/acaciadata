@@ -25,7 +25,7 @@ from django.utils.timezone import get_current_timezone
 from django.utils.text import slugify
 from acacia.data.actions import download_series_csv
 from acacia.data.util import series_as_csv, unix_timestamp
-from acacia.validation.models import RollingRule
+from acacia.validation.models import RollingRule, RangeRule
 
 logger = logging.getLogger(__name__)
 
@@ -155,14 +155,21 @@ def json_series(request, pk):
     if series is None or series.empty:
         values = []
     else:
-        # autofiltering (spike removal) for Leiden:
-        seriesFilter = RollingRule(
+        # autofiltering (range, spikes) for Leiden:
+        rangeFilter = RangeRule(
+            name = 'range', 
+            lower = -5,
+            upper = 5)
+
+        spikeFilter = RollingRule(
             name = 'spike', 
             count = 3,
             tolerance = 3,
             comp ='LT')
         
-        series, valid = seriesFilter.apply(series)
+        series, valid = rangeFilter.apply(series)
+        series = series.where(valid)
+        series, valid = spikeFilter.apply(series)
         series = series.where(valid)
         
         series = series.resample(rule='H').mean()
