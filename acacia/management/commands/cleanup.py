@@ -27,6 +27,7 @@ class Command(BaseCommand):
     def process_folder(self,folder,inuse,dry,verbose=0):
         count = 0
         bytes = 0
+	size = 0
         for path, folders, files in os.walk(folder):
             for f in files:
                 name = os.path.join(path,f)
@@ -45,7 +46,7 @@ class Command(BaseCommand):
                     if dry and verbose:
                         self.stdout.write('Keeping %s\n' % name)
                     pass
-        return (count, size)
+        return (count, bytes)
                 
     def handle(self, *args, **options):
         # get all files in use
@@ -75,7 +76,7 @@ class Command(BaseCommand):
         count = 0
         bytes = 0
         dry = options.get('dry')
-        verbosity = options.get('verbose',0)
+        verbosity = options.get('verbosity',0)
         for folder in roots:
             c,b = self.process_folder(folder, inuse, dry, verbosity)
             count += c
