@@ -29,7 +29,17 @@ from acacia.validation.models import RollingRule
 
 logger = logging.getLogger(__name__)
 
-class WellView(DetailView):
+class NavMixin(object):
+    """ Mixin for browsing through devices sorted by name """
+
+    def nav(self,well):
+        nxt = Well.objects.filter(name__gt=well.name)
+        nxt = nxt.first() if nxt else None
+        prv = Well.objects.filter(name__lt=well.name)
+        prv = prv.last() if prv else None
+        return {'next': nxt, 'prev': prv}
+
+class WellView(NavMixin, DetailView):
     #template = 'meetnet/well_info.html'
     model = Well
 
@@ -37,6 +47,7 @@ class WellView(DetailView):
         context = super(WellView, self).get_context_data(**kwargs)
         well = self.get_object()
         context['chart'] = well.chart.url if well.chart.name else None
+        context['nav'] = self.nav(well)
         return context
 
 class ScreenView(DetailView):
@@ -172,12 +183,16 @@ def json_series(request, pk):
         pass
     return HttpResponse(json.dumps(data,ignore_nan=True,default=lambda x: int(unix_timestamp(x)*1000)),content_type='application/json')
     
-class WellChartView(TemplateView):
+class WellChartView(NavMixin, TemplateView):
     template_name = 'meetnet/chart_detail.html'
         
     def get_context_data(self, **kwargs):
         context = super(WellChartView, self).get_context_data(**kwargs)
         well = Well.objects.get(pk=context['pk'])
+        
+        context['object'] = well
+        context['nav'] = self.nav(well)
+
         if not well.nitg:
             title = well.name
         elif not well.name:
@@ -186,6 +201,7 @@ class WellChartView(TemplateView):
             title = well.name
         else:
             title = '{name} ({nitg})'.format(name=well.name, nitg=well.nitg)
+        
         options = {
              'rangeSelector': { 'enabled': True,
                                'inputEnabled': True,
@@ -315,7 +331,6 @@ class WellChartView(TemplateView):
         options['series'] = series
         
         context['options'] = json.dumps(options, default=lambda x: unix_timestamp(x)*1000)
-        context['object'] = well
         return context
 
 from acacia.data.views import DownloadSeriesAsZip
