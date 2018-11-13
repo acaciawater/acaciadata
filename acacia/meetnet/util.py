@@ -77,7 +77,7 @@ def getcolor(index):
 def screencolor(screen):
     return getcolor(screen.nr-1)
 
-def chart_for_screen(screen,start=None,stop=None):
+def chart_for_screen(screen,start=None,stop=None,loggerpos=True):
     fig=plt.figure(figsize=THUMB_SIZE)
     ax=fig.gca()
 
@@ -90,7 +90,7 @@ def chart_for_screen(screen,start=None,stop=None):
     ncol = 0
 
     # sensor positie tov NAP berekenen en aan grafiek toevoegen
-    if screen.refpnt is not None:
+    if loggerpos and screen.refpnt is not None:
         depths = screen.loggerpos_set.filter(depth__isnull=False).order_by('start_date').values_list('start_date','end_date','depth')
         if len(depths)>0:
             data = []
@@ -106,7 +106,7 @@ def chart_for_screen(screen,start=None,stop=None):
             plt.plot_date(x,y,'--',label='diverpositie',color='orange')
             ncol += 1
 
-    data = screen.get_levels('nap',rule=None)
+    data = screen.get_levels('nap',rule='H')
 #    n = len(data) / (THUMB_SIZE[0]*THUMB_DPI)
 #     if n > 1:
 #         #use data thinning: take very nth row
@@ -205,7 +205,7 @@ def get_baro(screen,baros):
         return None
     
     baroseries = well.meteo.baro
-    logger.info('Luchtdruk: {}'.format(baroseries))
+    #logger.info('Luchtdruk: {}'.format(baroseries))
     if baroseries in baros:
         baro = baros[baroseries]
     else:
@@ -289,12 +289,12 @@ def recomp(screen,series,baros={}):
 
             data.dropna(inplace=True)
             
-            #clear datapoints with less than 2 cm of water
-            data[data<2] = np.nan
+            #clear datapoints with less than 5 cm of water
+            data[data<5] = np.nan
             # count dry values
             dry = data.isnull().sum()
             if dry:
-                logger.warning('Logger {}, MON file {}: {} out of {} measurements have less than 2 cm of water'.format(unicode(logpos),mon,dry,data.size))
+                logger.warning('Logger {}, MON file {}: {} out of {} measurements have less than 5 cm of water'.format(unicode(logpos),mon,dry,data.size))
             
             data = data / 100 + (logpos.refpnt - logpos.depth)
             
@@ -553,11 +553,14 @@ def drift_correct(series, manual):
     drift = drift.fillna(0)
     return series-drift
 
-def drift_correct_screen(screen,user):
+def drift_correct_screen(screen,user,inplace=False):
     series = screen.get_compensated_series()
     manual = screen.get_manual_series()
     data = drift_correct(series,manual)
-    name = unicode(screen) + 'CORR'
+    if inplace:
+        name = unicode(screen) + ' COMP'
+    else:
+        name = unicode(screen) + ' CORR'
     cor, created = Series.objects.get_or_create(name=name,mlocatie=screen.mloc,defaults={'user':user})
     if created:
         cor.unit = 'm tov NAP'
@@ -572,7 +575,11 @@ def drift_correct_screen(screen,user):
     cor.datapoints.bulk_create(datapoints)
     cor.make_thumbnail()
     cor.save()
-    
+    screen.logger_levels = cor
+    screen.save()
+    return cor
+
+
 def register_well(well):
     # register well in acaciadata
     project, created = Project.objects.get_or_create(name=well.network.name)
@@ -669,7 +676,7 @@ def createmonfile(source, generator=sws.Diver()):
     ''' parse .mon file and create MonFile instance '''
     
     # default timeone for MON files = Etc/GMT-1
-    CET = pytz.timezone('Etc/GMT-1')
+    tzz = pytz.timezone('Etc/GMT-1')
     
     headerdict = generator.get_header(source)
     mon = MonFile()
@@ -678,9 +685,9 @@ def createmonfile(source, generator=sws.Diver()):
     mon.compstat = header.get('COMP.STATUS',None)
     if 'DATE' in header and 'TIME' in header:
         dt = header.get('DATE') + ' ' + header.get('TIME')
-        mon.date = datetime.datetime.strptime(dt,'%d/%m/%Y %H:%M:%S').replace(tzinfo=CET)
+        mon.date = tzz.localize(datetime.datetime.strptime(dt,'%d/%m/%Y %H:%M:%S'))
     else:
-        mon.date = datetime.datetime.now(CET)
+        mon.date = datetime.datetime.now(tzz)
     mon.monfilename = header.get('FILENAME',None)
     mon.createdby = header.get('CREATED BY',None)
     mon.num_points = int(header.get('Number of points','0'))
@@ -701,13 +708,13 @@ def createmonfile(source, generator=sws.Diver()):
     mon.num_channels = int(s.get('Number of channels','1'))
 
     s = headerdict['Series settings']
-    mon.start_date = datetime.datetime.strptime(s['Start date / time'],'%S:%M:%H %d/%m/%y').replace(tzinfo=CET)    
+    mon.start_date = tzz.localize(datetime.datetime.strptime(s['Start date / time'],'%S:%M:%H %d/%m/%y'))    
     try:
-        mon.end_date = datetime.datetime.strptime(s['End date / time'], '%S:%M:%H %d/%m/%y').replace(tzinfo=CET)    
+        mon.end_date = tzz.localize(datetime.datetime.strptime(s['End date / time'],'%S:%M:%H %d/%m/%y'))    
     except KeyError:
-        # sometimes more spaces inserted after date before /
+        # sometimes more spaces inserted between words date and time
         key = next(x for x in s.keys() if x.startswith('End date'))
-        mon.end_date = datetime.datetime.strptime(s[key], '%S:%M:%H %d/%m/%y').replace(tzinfo=CET)    
+        mon.end_date = tzz.localize(datetime.datetime.strptime(s[key], '%S:%M:%H %d/%m/%y'))    
         
     channels = []
     for i in range(mon.num_channels):
