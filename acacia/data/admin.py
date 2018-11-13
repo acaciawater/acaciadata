@@ -267,7 +267,7 @@ class SourceFileAdmin(admin.ModelAdmin):
     fields = ('name', 'datasource', 'file',)
     list_display = ('name','datasource', 'meetlocatie', 'filetag', 'locs', 'rows', 'cols', 'start', 'stop', 'created',)
     list_filter = ('datasource', 'datasource__meetlocatie', 'datasource__meetlocatie__projectlocatie__project', 'created',)
-    search_fields = ['name',]
+    search_fields = ['name','datasource__name', 'datasource__meetlocatie__name']
 
     def save_model(self, request, obj, form, change):
         obj.user = request.user
