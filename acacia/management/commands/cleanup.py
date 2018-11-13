@@ -75,7 +75,7 @@ class Command(BaseCommand):
         count = 0
         bytes = 0
         dry = options.get('dry')
-        verbosity = options.get('verbose',0)
+        verbosity = options.get('verbosity',0)
         for folder in roots:
             c,b = self.process_folder(folder, inuse, dry, verbosity)
             count += c
