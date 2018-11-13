@@ -24,14 +24,15 @@ class Command(BaseCommand):
                 default=False,
                 help="Dry run: don't delete the files")
 
-    def process_folder(self,folder,inuse,dry):
+    def process_folder(self,folder,inuse,dry,verbose=0):
         count = 0
         bytes = 0
         for path, folders, files in os.walk(folder):
             for f in files:
                 name = os.path.join(path,f)
                 if not name in inuse:
-                    self.stdout.write('Deleting %s\n' % name)
+                    if verbose:
+                        self.stdout.write('Deleting %s\n' % name)
                     try:
                         size = os.path.getsize(name)
                         if not dry:
@@ -41,7 +42,7 @@ class Command(BaseCommand):
                     except Exception as e:
                         self.stdout.write('Error deleting %s: %s\n' % (name,e))
                 else:
-                    if dry:
+                    if dry and verbose:
                         self.stdout.write('Keeping %s\n' % name)
                     pass
         return (count, size)
@@ -74,9 +75,11 @@ class Command(BaseCommand):
         count = 0
         bytes = 0
         dry = options.get('dry')
+        verbosity = options.get('verbose',0)
         for folder in roots:
-            c,b = self.process_folder(folder, inuse, dry)
+            c,b = self.process_folder(folder, inuse, dry, verbosity)
             count += c
             bytes += b
-        self.stdout.write('{} files deleted ({} Mb)\n'.format(count, bytes / (1024*1024)))
+        if verbosity>0:
+            self.stdout.write('{} files deleted ({} Mb)\n'.format(count, bytes / (1024*1024)))
         
