@@ -128,51 +128,15 @@ class ScreenChartView(TemplateView):
 def json_series(request, pk):
     screen = get_object_or_404(Screen,pk=pk)
     what = request.GET.get('mode','comp') # choices: comp, hand
-    if what == 'comp':
-        series = screen.get_compensated_series()
-    elif what == 'hand':
-        series = screen.get_manual_series()
-    else:
-        raise 'Illegal series type requested'
-    
     ref = request.GET.get('ref','nap') # choices: nap, bkb, mv, cm
-    if ref == 'nap':
-        pass
-    elif ref =='bkb':
-        series = screen.refpnt - series
-    elif ref == 'mv':
-        series = screen.well.maaiveld - series
-    elif ref == 'cm':
-        # converteren naar cm boven sensor
-        depths = screen.loggerpos_set.order_by('start_date').values_list('start_date','depth')
-        if len(depths)>0:
-            x,y = zip(*depths)
-            nap = (screen.refpnt - pd.Series(index = x, data = y))
-            nap = nap.reindex(series.index,method='pad')
-            series = (series - nap) * 100
-        else:
-            series = pd.Series()
+    filters = [
+        RangeRule(name = 'range', lower = -5, upper = 5),
+        RollingRule(name = 'spike', count = 3, tolerance = 3, comp ='LT')
+        ]
+    series = screen.get_series(ref,what,rule='H',filters=filters)
     if series is None or series.empty:
         values = []
     else:
-        # autofiltering (range, spikes) for Leiden:
-        rangeFilter = RangeRule(
-            name = 'range', 
-            lower = -5,
-            upper = 5)
-
-        spikeFilter = RollingRule(
-            name = 'spike', 
-            count = 3,
-            tolerance = 3,
-            comp ='LT')
-        
-        series, valid = rangeFilter.apply(series)
-        series = series.where(valid)
-        series, valid = spikeFilter.apply(series)
-        series = series.where(valid)
-        
-        series = series.resample(rule='H').mean()
         values = zip(series.index, series.values)
         
     data = {'screen%s'%screen.nr: values}

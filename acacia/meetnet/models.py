@@ -220,51 +220,58 @@ class Screen(models.Model):
 
     def get_series(self, ref = 'nap', kind='COMP', **kwargs):
         
-        def bydate(record):
-            return record[0]
-
-        # luchtdruk gecompenseerde standen (tov NAP) ophalen
         rule = kwargs.pop('rule',None)
-        series = self.get_manual_series(**kwargs) if kind == 'HAND' else self.get_compensated_series(**kwargs)
-        if series is None or series.empty:
-            return []
+        filters = kwargs.pop('filters',[])
 
-        if rule:
-            # resample timeseries
-            series = series.resample(rule=rule).mean()
-            nans = series[pd.isnull(series)]
+        # standen tov NAP ophalen
+        series = self.get_manual_series(**kwargs) if kind.lower() == 'hand' else self.get_compensated_series(**kwargs)
+        if series is None:
+            series = pd.Series()
 
-        levels = []
-        for index,value in series.iteritems():
-            try:
-                if pd.isnull(value):
-                    level = None
-                elif ref == 'nap':
-                    level = value
-                elif ref == 'bkb':
-                    level = self.refpnt - value
-                elif ref == 'mv':
-                    level = self.well.maaiveld - value
+        if not series.empty:
+
+            ref = ref.lower()
+            
+            for filt in filters:
+                # remove all points that do not pass filter
+                series, valid = filt.apply(series)
+                series = series.where(valid)
+    
+            if rule:
+                # resample filtered points
+                series = series.resample(rule=rule).mean()
+                        
+            # convert for reference point (database reference is NAP)    
+            if ref == 'nap':
+                pass
+            elif ref =='bkb':
+                series = self.refpnt - series
+            elif ref == 'mv':
+                series = self.well.maaiveld - series
+            elif ref == 'cm':
+                # converteren naar cm boven sensor
+                depths = self.loggerpos_set.order_by('start_date').values_list('start_date','depth')
+                if len(depths)>0:
+                    x,y = zip(*depths)
+                    nap = (self.refpnt - pd.Series(index = x, data = y))
+                    nap = nap.reindex(series.index,method='pad')
+                    series = (series - nap) * 100
                 else:
-                    raise _('Illegal reference for screen %s') % unicode(self)
-                levels.append((index, level))
-            except:
-                pass # refpnt, maaiveld or value is None
-        levels.sort(key=bydate)
-        return levels
+                    series = pd.Series()
+
+        series.name = unicode(self)
+        return series
 
     def get_levels(self, ref='nap', **kwargs):
-        return self.get_series(ref,kind='COMP',**kwargs)        
+        series = self.get_series(ref,kind='COMP',**kwargs)
+        return zip(series.index, series.values)        
 
     def get_hand(self, ref='nap', **kwargs):
-        return self.get_series(ref,kind='HAND',**kwargs)        
-        
+        series = self.get_series(ref,kind='HAND',**kwargs)
+        return zip(series.index, series.values)        
+                        
     def get_monfiles(self):
         return MonFile.objects.filter(source__screen=self).order_by('start_date')
-#         files = []
-#         for lp in self.loggerpos_set.order_by('start_date'):
-#             files.extend(lp.monfile_set.order_by('start_date'))
-#         return files
 
     def num_files(self):
         try:
@@ -326,13 +333,7 @@ class Screen(models.Model):
         return reverse('meetnet:screen-detail', args=[self.pk])
 
     def to_pandas(self, ref='nap',kind='COMP',**kwargs):
-        levels = self.get_series(ref,kind,**kwargs)
-        if len(levels) > 0:
-            x,y = zip(*levels)
-        else:
-            x = []
-            y = []
-        return pd.Series(index=x, data=y, name=unicode(self))
+        return self.get_series(ref,kind,**kwargs)
         
     def get_manual_series(self, **kwargs):
         if not self.manual_levels: 
