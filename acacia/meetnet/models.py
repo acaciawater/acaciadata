@@ -221,7 +221,6 @@ class Screen(models.Model):
     def get_series(self, ref = 'nap', kind='COMP', **kwargs):
         
         rule = kwargs.pop('rule',None)
-        filters = kwargs.pop('filters',[])
 
         # standen tov NAP ophalen
         series = self.get_manual_series(**kwargs) if kind.lower() == 'hand' else self.get_compensated_series(**kwargs)
@@ -232,11 +231,6 @@ class Screen(models.Model):
 
             ref = ref.lower()
             
-            for filt in filters:
-                # remove all points that do not pass filter
-                series, valid = filt.apply(series)
-                series = series.where(valid)
-    
             if rule:
                 # resample filtered points
                 series = series.resample(rule=rule).mean()

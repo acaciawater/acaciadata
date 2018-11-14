@@ -129,11 +129,11 @@ def json_series(request, pk):
     screen = get_object_or_404(Screen,pk=pk)
     what = request.GET.get('mode','comp') # choices: comp, hand
     ref = request.GET.get('ref','nap') # choices: nap, bkb, mv, cm
-    filters = [
-        RangeRule(name = 'range', lower = -5, upper = 5),
-        RollingRule(name = 'spike', count = 3, tolerance = 3, comp ='LT')
-        ]
-    series = screen.get_series(ref,what,rule='H',filters=filters)
+#     filters = [
+#         RangeRule(name = 'range', lower = -5, upper = 5),
+#         RollingRule(name = 'spike', count = 3, tolerance = 3, comp ='LT')
+#         ]
+    series = screen.get_series(ref,what,rule='H')#,filters=filters)
     if series is None or series.empty:
         values = []
     else:
