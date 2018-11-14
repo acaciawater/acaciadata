@@ -6,22 +6,22 @@ import numpy as np
 import pandas as pd
 from polymorphic.models import PolymorphicModel
 import logging
-import datetime
 from django.core.exceptions import ObjectDoesNotExist
-from django.utils.timezone import get_current_timezone, now
+from django.utils.timezone import now
+from django.utils.text import ugettext_lazy as _
 
 logger = logging.getLogger(__name__)
 
 COMPARE_CHOICES = (
-    ('GT', 'boven'), 
-    ('LT', 'onder'),
-    ('EQ', 'gelijk'),
-    ('NE', 'ongelijk'))
+    ('GT', _('boven')), 
+    ('LT', _('onder')),
+    ('EQ', _('gelijk')),
+    ('NE', _('ongelijk')))
 
 class BaseRule(PolymorphicModel):
     ''' Basic validation rule (compares a time series with zero)'''
     class Meta:
-        verbose_name = 'regel'
+        verbose_name = _('regel')
         ordering = ('name',)
         
     name = models.CharField(max_length=50,verbose_name='naam')
@@ -224,25 +224,63 @@ class ScriptRule(BaseRule):
         except Exception as e:
             raise e
 
+class Filter(models.Model):
+    
+    class Meta:
+        verbose_name = _('filter')
+        verbose_name_plural = _('filters')
+    
+    series = models.ManyToManyField(Series,verbose_name = _('tijdreeksen'))
+    rules = models.ManyToManyField(BaseRule, verbose_name = _('regels'),through='FilterOrder',related_name='filters')
+
+    def __unicode__(self):
+        rules = self.filterorder_set.all();
+        return ','.join([order.rule.name for order in rules]) if rules else 'Empty'
+
+    def apply(self, series):
+        ''' Apply filter for single series '''
+        for ro in self.filterorder_set.all():
+            rule = ro.rule
+            series, valid = rule.apply(series)
+            # remove duplicates
+            valid = valid.groupby(valid.index).last()
+            # retain only valid datapoints
+            series = series.where(valid)
+        return series
+
+class FilterOrder(models.Model):
+    ''' order of a filter rule '''
+    rule = models.ForeignKey(BaseRule, on_delete=models.CASCADE)
+    filter = models.ForeignKey(Filter, on_delete=models.CASCADE)
+    order = models.PositiveSmallIntegerField(default=1)
+
+    class Meta:
+        verbose_name = _('Filter Regel')
+        verbose_name_plural = _('Filter Regels')
+        ordering = ['order']
+
+    def __unicode__(self):
+        return self.rule.name
+    
 class ValidPoint(models.Model):
     ''' A datapoint that has passed a validation rule '''
     validation = models.ForeignKey('Validation')
     date = models.DateTimeField()
     value = models.FloatField(default=None,null=True)
-
+            
 class Validation(models.Model):
     
     class Meta:
-        verbose_name = 'validatie'
-        verbose_name_plural = 'validaties'
+        verbose_name = _('validatie')
+        verbose_name_plural = _('validaties')
         ordering = ('series',)
         
-    series = models.OneToOneField(Series,verbose_name = 'tijdreeks')
-    rules = models.ManyToManyField(BaseRule, verbose_name = 'validatieregels',through='RuleOrder',related_name='validations')
-    users = models.ManyToManyField(User,blank=True,help_text='Gebruikers die emails ontvangen over validatie')
-    valid = models.NullBooleanField(default=None,verbose_name='Valide')
-    validated = models.BooleanField(default=False,verbose_name='Gevalideerd')
-    last_validation = models.DateTimeField(null=True,blank=True,default=None,verbose_name='Laatste validatie')
+    series = models.OneToOneField(Series,verbose_name = _('tijdreeks'))
+    rules = models.ManyToManyField(BaseRule, verbose_name = _('validatieregels'),through='RuleOrder',related_name='validations')
+    users = models.ManyToManyField(User,blank=True,help_text=_('Gebruikers die emails ontvangen over validatie'))
+    valid = models.NullBooleanField(default=None,verbose_name=_('Valide'))
+    validated = models.BooleanField(default=False,verbose_name=_('Gevalideerd'))
+    last_validation = models.DateTimeField(null=True,blank=True,default=None,verbose_name=_('Laatste validatie'))
 
     valid.boolean = True
     validated.boolean = True
@@ -330,7 +368,7 @@ class Validation(models.Model):
     
             numinvalid = 0
             result = None
-            logger.debug('Validating {}: {} rules'.format(self.series, self.rules.count()))
+            logger.debug(_('Validating {}: {} rules').format(self.series, self.rules.count()))
             self.subresult_set.all().delete()
             for ro in self.ruleorder_set.all():
                 rule = ro.rule
@@ -350,22 +388,22 @@ class Validation(models.Model):
     
                 if invalid_count:
                     first = invalid.index[0]
-                    logger.warning('validation {}, rule "{}" failed at {}'.format(self.series,rule,first))
+                    logger.warning(_('validation {}, rule "{}" failed at {}').format(self.series,rule,first))
                 else:
                     first = None
-                    logger.info('validation {}, rule "{}" passed'.format(self.series,rule))
+                    logger.info(_('validation {}, rule "{}" passed').format(self.series,rule))
                 self.subresult_set.create(rule=rule,valid=valid_count,invalid=invalid_count,first_invalid=first)
     
             # set values to None where validation failed
             series = series.where(result,other=None)
             valid_points = [ValidPoint(validation=self,date=p[0],value=p[1]) for p in series.iteritems()]
             if numinvalid:
-                logger.warning('Validation {} failed'.format(self.series))
+                logger.warning(_('Validation {} failed').format(self.series))
             else:
-                logger.info('Validation {} passed'.format(self.series))
+                logger.info(_('Validation {} passed').format(self.series))
             return valid_points
         else:
-            logger.warning("Validation {}: no datapoints".format(self.series))
+            logger.warning(_("Validation {}: no datapoints").format(self.series))
             return []
 
     def reset(self):
@@ -439,14 +477,15 @@ class RuleOrder(models.Model):
     order = models.PositiveSmallIntegerField(default=1)
 
     class Meta:
-        verbose_name = 'Regel'
+        verbose_name = _('Validatieregel')
+        verbose_name = _('Validatieregels')
         ordering = ['order']
          
 class SubResult(models.Model):
     ''' Result of applying a single validation rule ''' 
     class Meta:
-        verbose_name = 'tussenresultaat'
-        verbose_name_plural = 'tussenresultaten'
+        verbose_name = _('tussenresultaat')
+        verbose_name_plural = _('tussenresultaten')
 
     validation = models.ForeignKey(Validation)
     rule = models.ForeignKey(BaseRule)
@@ -461,15 +500,15 @@ class SubResult(models.Model):
 class Result(models.Model):
     ''' Result of a validation, including uploaded datafile of a user '''
     class Meta:
-        verbose_name = 'resultaat'
-        verbose_name_plural = 'resultaten'
+        verbose_name = _('resultaat')
+        verbose_name_plural = _('resultaten')
         
-    validation = models.OneToOneField(Validation,verbose_name = 'validatie')
+    validation = models.OneToOneField(Validation,verbose_name = _('validatie'))
     begin = models.DateTimeField()
     end = models.DateTimeField()
     xlfile = models.FileField(upload_to='valid',blank=True,null=True)
     user = models.ForeignKey(User)
-    date = models.DateTimeField(auto_now=True,verbose_name='uploaded')
+    date = models.DateTimeField(auto_now=True,verbose_name=_('uploaded'))
     remarks = models.TextField(blank=True,null=True)
     valid = models.BooleanField(default = False)
 
