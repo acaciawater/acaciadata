@@ -342,11 +342,20 @@ class ContentTypeFilter(admin.SimpleListFilter):
         if self.value() is not None:
             return queryset.filter(polymorphic_ctype_id = self.value())
         return queryset
-   
+
+class FilterInline(admin.TabularInline):
+    from acacia.validation.models import Filter
+    model = Filter.series.through
+    verbose_name = 'filter'
+    verbose_name_plural = 'filters'
+    extra = 0
+    classes = ('grp-collapse grp-closed',)
+    
 class ParameterSeriesAdmin(PolymorphicChildModelAdmin):
     actions = [actions.copy_series, actions.download_series, actions.refresh_series, actions.replace_series, actions.series_thumbnails, actions.update_series_properties, actions.empty_series]
     list_filter = ('mlocatie', 'parameter__datasource', 'parameter__datasource__meetlocatie__projectlocatie__project', ContentTypeFilter)
     base_model = Series
+    inlines = [FilterInline,]
     #base_form = SeriesForm
     exclude = ('user',)
 
@@ -437,11 +446,18 @@ class FormulaSeriesAdmin(PolymorphicChildModelAdmin):
 #         except Exception as e:
 #             raise forms.ValidationError('Fout bij berekening formule: %s' % e)
 #         return data
-
+    
 #class SeriesAdmin(admin.ModelAdmin):
 class SeriesAdmin(PolymorphicParentModelAdmin):
-    actions = [actions.create_grid, actions.copy_series, actions.download_series_zip, actions.refresh_series, actions.replace_series, actions.series_thumbnails, actions.update_series_properties, actions.empty_series]
-    list_display = ('name', 'thumbtag', 'typename', 'parameter', 'datasource', 'mlocatie', 'timezone', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
+    actions = [actions.create_grid, 
+               actions.copy_series, 
+               actions.download_series_zip, 
+               actions.refresh_series, 
+               actions.replace_series, 
+               actions.series_thumbnails, 
+               actions.update_series_properties, 
+               actions.empty_series]
+    list_display = ('name', 'thumbtag', 'typename', 'parameter', 'datasource', 'mlocatie', 'timezone', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde', 'has_filters')
     base_model = Series
     child_models = ((ManualSeries, ManualSeriesAdmin), (Formula, FormulaSeriesAdmin), (Series, ParameterSeriesAdmin))
     exclude = ('user',)
