@@ -18,8 +18,21 @@ from acacia.meetnet.util import register_screen, register_well,\
 from django.core.exceptions import ObjectDoesNotExist
 from acacia.meetnet.models import LoggerStat
 from django.contrib import messages
+from django.http.response import HttpResponse
 logger = logging.getLogger(__name__)
 
+def download_metadata(modeladmin, request, queryset):
+    textbuffer = 'naam, nitg, filter, code, x, y, maaiveld, ahn, bovenkantbuis, bovenkantfilter, onderkantfilter, logger, ophangpunt, kabellengte\n'
+    for w in queryset:
+        for s in w.screen_set.all():
+            for lp in s.loggerpos_set.all():
+                textbuffer += ','.join([str(x) for x in [w.name, w.nitg, s.nr, unicode(s), w.location.x, w.location.y, w.maaiveld, w.ahn, s.refpnt, s.top, s.bottom, lp.logger, lp.refpnt, lp.depth]])
+                textbuffer += '\n'
+    resp = HttpResponse(textbuffer, content_type = "text/csv")
+    resp['Content-Disposition'] = 'attachment; filename=meta.csv'
+    return resp
+download_metadata.short_description = 'Download metadata voor geselecteerde putten'
+    
 def address_from_google(modeladmin, request, queryset):
     for well in queryset:
         if set_well_address(well):
