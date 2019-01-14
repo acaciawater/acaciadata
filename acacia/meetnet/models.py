@@ -227,6 +227,10 @@ class Screen(models.Model):
             for s in self.mloc.manualseries_set.all():
                 if s.name.endswith('HAND'):
                     return s.to_pandas(**kwargs)
+        elif hasattr(self.mloc, 'series_set'): #old django versions do not have a manualseries_set
+            for s in self.mloc.series_set.all():
+                if s.name.endswith('HAND'):
+                    return s.to_pandas(**kwargs)
         return None
             
     def get_compensated_series(self, **kwargs):
