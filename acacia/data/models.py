@@ -1042,7 +1042,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         return '%s - %s' % (src, self.name)
     
     def at(self,date):
-        ''' return datapoint at given date '''
+        ''' return (possibly interpolated) datapoint at given date '''
         try:
             return self.datapoints.get(date=date)
         except:
@@ -1166,6 +1166,10 @@ class Series(PolymorphicModel,LoggerSourceMixin):
             if self.offset_series is not None:
                 series = self.do_offset(series, self.offset_series.to_pandas())
 
+        # apply filtering
+        if self.has_filters():
+            series = self.do_filter(series)
+            
         # clip on time
         if start is None:
             start = self.from_limit
@@ -1181,6 +1185,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
             return series[start:stop]
          
     def get_series_data(self, data, start=None, stop=None):
+        ''' returns a pandas series with (processed) datapoints '''
         logger = self.getLogger()
        
         if self.parameter is None:
@@ -1194,9 +1199,11 @@ class Series(PolymorphicModel,LoggerSourceMixin):
             data = self.parameter.get_data(start=start,stop=stop,meetlocatie=self.mlocatie)
             if data is None:
                 return None
-        if isinstance(data,pd.DataFrame):
+        if isinstance(data, pd.DataFrame):
             dataframe = data
-        elif data:
+        elif isinstance(data, pd.Series):
+            dataframe = data.to_frame()
+        elif isinstance(data, dict):
             # multiple locations in dict
             if not self.mlocatie:
                 # use any location
@@ -1365,6 +1372,9 @@ class Series(PolymorphicModel,LoggerSourceMixin):
     thumbtag.short_description='thumbnail'
 
     def filter_points(self, **kwargs):
+        ''' returns a (filtered) queryset with datapoints
+            when validation is active, the result refers to validated points  
+        '''
         start = kwargs.get('start', None)
         stop = kwargs.get('stop', None)
 
@@ -1385,14 +1395,16 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         return queryset.filter(date__range=[start,stop])
     
     def to_array(self, **kwargs):
-        points = self.filter_points(**kwargs)
-        return [(dp.date,dp.value) for dp in points]
+        ''' return datapoints as array of tuples '''
+        return list(self.filter_points(**kwargs).values_list('date','value'))
 
     def to_json(self, **kwargs):
+        ''' return datapoints in json format '''
         pts = self.to_array()
         return json.dumps(pts,default=lambda x: time.mktime(x.timetuple())*1000.0)
     
     def to_pandas(self, **kwargs):
+        ''' return datapoints as pandas series '''
         arr = self.to_array(**kwargs)
         if arr:
             dates,values = zip(*arr)
@@ -1401,6 +1413,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
             return pd.Series(name=self.name)
             
     def to_csv(self, **kwargs):
+        ''' return datapoints in csv format '''
         ser = self.to_pandas(**kwargs)
         io = StringIO.StringIO()
         ser.to_csv(io, header=[self.name], index_label='Datum/tijd')
@@ -1426,11 +1439,30 @@ class Series(PolymorphicModel,LoggerSourceMixin):
             logger.exception('Error generating thumbnail: %s' % e)
         return self.thumbnail
 
+    def has_filters(self):
+        ''' returns true if datapoint filters have been defined '''
+        try:
+            return self.filter_set.exists() 
+        except ObjectDoesNotExist:
+            # no filters defined
+            return False
+    
+    has_filters.boolean = True
+    has_filters.short_description = 'gefilterd'
+    
+    def do_filter(self, series):
+        ''' apply all filters to series data '''
+        if self.has_filters():
+            for f in self.filter_set.all():
+                series = f.apply(series)
+        return series
+    
     @property
     def validpoints(self):
         try:
             for v in self.validation.validpoint_set.all():
                 if v.value is None:
+                    # stop generator upon first invalid point
                     break
                 yield v
         except ObjectDoesNotExist:

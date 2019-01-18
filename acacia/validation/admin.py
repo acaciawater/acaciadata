@@ -1,7 +1,8 @@
 from django.contrib import admin, messages
 from acacia.validation.models import Validation, Result,\
     BaseRule, ValueRule, SeriesRule, NoDataRule, OutlierRule, DiffRule,\
-    ScriptRule, SlotRule, SubResult, RuleOrder, RollingRule, RangeRule
+    ScriptRule, SlotRule, SubResult, RuleOrder, RollingRule, RangeRule, Filter,\
+    FilterOrder
 from acacia.validation.views import download
 from polymorphic.admin.parentadmin import PolymorphicParentModelAdmin
 from polymorphic.admin.childadmin import PolymorphicChildModelAdmin
@@ -29,6 +30,15 @@ def accept(modeladmin, request, queryset):
         v.accept(request.user)
     messages.success(request, '{} validaties geaccepteerd'.format(count))
 accept.short_description='Accepteren'
+
+def apply_filter(modeladmin, request, queryset):
+    count = queryset.count()
+    for filt in queryset:
+        for series in filt.series.all():
+            filtered_data = filt.apply(series)
+            series.replace(filtered_data)
+    messages.success(request, '{} filters toegepast'.format(count))
+apply_filter.short_description='Geselecteerde filters toepassen op betreffende tijdreeksen'
 
 @admin.register(BaseRule)
 class BaseRuleAdmin(PolymorphicParentModelAdmin):
@@ -132,3 +142,21 @@ class ResultAdmin(admin.ModelAdmin):
     list_display = ('validation', 'xlfile', 'begin','end', 'user','date',)
     list_filter = ('validation__series__mlocatie', 'date', 'user',)
 
+@admin.register(FilterOrder)
+class FilterOrderAdmin(admin.ModelAdmin):
+    pass
+
+class FilterInline(admin.TabularInline):
+    model = FilterOrder
+    extra = 1
+
+@admin.register(Filter)
+class FilterAdmin(admin.ModelAdmin):
+    inlines = [FilterInline]
+    actions = [apply_filter,]
+#     raw_id_fields = ['series']
+#     autocomplete_lookup_fields = {
+#         'm2m': ['series'],
+#     }
+    filter_horizontal = ('series',)
+    

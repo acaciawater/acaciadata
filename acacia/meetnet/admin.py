@@ -150,6 +150,7 @@ class WellAdmin(admin.ModelAdmin):
                actions.recomp_wells,
                actions.add_meteo_for_wells,
                actions.register_wells,
+               actions.download_metadata,
                actions.download_well_nitg,
                actions.elevation_from_ahn,
                actions.address_from_google]

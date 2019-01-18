@@ -25,10 +25,21 @@ from django.utils.timezone import get_current_timezone
 from django.utils.text import slugify
 from acacia.data.actions import download_series_csv
 from acacia.data.util import series_as_csv, unix_timestamp
+from acacia.validation.models import RollingRule, RangeRule
 
 logger = logging.getLogger(__name__)
 
-class WellView(DetailView):
+class NavMixin(object):
+    """ Mixin for browsing through devices sorted by name """
+
+    def nav(self,well):
+        nxt = Well.objects.filter(name__gt=well.name)
+        nxt = nxt.first() if nxt else None
+        prv = Well.objects.filter(name__lt=well.name)
+        prv = prv.last() if prv else None
+        return {'next': nxt, 'prev': prv}
+
+class WellView(NavMixin, DetailView):
     #template = 'meetnet/well_info.html'
     model = Well
 
@@ -36,6 +47,7 @@ class WellView(DetailView):
         context = super(WellView, self).get_context_data(**kwargs)
         well = self.get_object()
         context['chart'] = well.chart.url if well.chart.name else None
+        context['nav'] = self.nav(well)
         return context
 
 class ScreenView(DetailView):
@@ -116,37 +128,17 @@ class ScreenChartView(TemplateView):
 def json_series(request, pk):
     screen = get_object_or_404(Screen,pk=pk)
     what = request.GET.get('mode','comp') # choices: comp, hand
-    if what == 'comp':
-        series = screen.get_compensated_series()
-    elif what == 'hand':
-        series = screen.get_manual_series()
-    else:
-        raise 'Illegal series type requested'
-    
     ref = request.GET.get('ref','nap') # choices: nap, bkb, mv, cm
-    if ref == 'nap':
-        pass
-    elif ref =='bkb':
-        series = screen.refpnt - series
-    elif ref == 'mv':
-        series = screen.well.maaiveld - series
-    elif ref == 'cm':
-        # converteren naar cm boven sensor
-        depths = screen.loggerpos_set.order_by('start_date').values_list('start_date','depth')
-        if len(depths)>0:
-            x,y = zip(*depths)
-            nap = (screen.refpnt - pd.Series(index = x, data = y))
-            nap = nap.reindex(series.index,method='pad')
-            series = (series - nap) * 100
-        else:
-            series = pd.Series()
+#     filters = [
+#         RangeRule(name = 'range', lower = -5, upper = 5),
+#         RollingRule(name = 'spike', count = 3, tolerance = 3, comp ='LT')
+#         ]
+    series = screen.get_series(ref,what,rule='H')#,filters=filters)
     if series is None or series.empty:
         values = []
     else:
-        r = series.resample(rule='H').mean()
-        values = zip(r.index, r.values)
-        #values = zip(series.index, series.values)
-
+        values = zip(series.index, series.values)
+        
     data = {'screen%s'%screen.nr: values}
     stats = request.GET.get('stats','0')
     try:
@@ -162,12 +154,16 @@ def json_series(request, pk):
         pass
     return HttpResponse(json.dumps(data,ignore_nan=True,default=lambda x: int(unix_timestamp(x)*1000)),content_type='application/json')
     
-class WellChartView(TemplateView):
+class WellChartView(NavMixin, TemplateView):
     template_name = 'meetnet/chart_detail.html'
         
     def get_context_data(self, **kwargs):
         context = super(WellChartView, self).get_context_data(**kwargs)
         well = Well.objects.get(pk=context['pk'])
+        
+        context['object'] = well
+        context['nav'] = self.nav(well)
+
         if not well.nitg:
             title = well.name
         elif not well.name:
@@ -176,6 +172,7 @@ class WellChartView(TemplateView):
             title = well.name
         else:
             title = '{name} ({nitg})'.format(name=well.name, nitg=well.nitg)
+        
         options = {
              'rangeSelector': { 'enabled': True,
                                'inputEnabled': True,
@@ -305,7 +302,6 @@ class WellChartView(TemplateView):
         options['series'] = series
         
         context['options'] = json.dumps(options, default=lambda x: unix_timestamp(x)*1000)
-        context['object'] = well
         return context
 
 from acacia.data.views import DownloadSeriesAsZip
