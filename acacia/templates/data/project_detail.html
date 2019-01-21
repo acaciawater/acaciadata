@@ -29,13 +29,14 @@
 var map;
 function initialize() {
     map = new google.maps.Map(document.getElementById('map'), {
-        zoom: {{zoomlevel|default:12}},
+        zoom: {{zoom|default:12}},
         mapTypeId: google.maps.MapTypeId.{{maptype}}
     });
 	var json = {{content|safe}};
 	var bounds = new google.maps.LatLngBounds();
 	var infowindow = new google.maps.InfoWindow();
 	var marker;
+	var count = 0;
 	json.forEach(function(loc) {
    		marker = new google.maps.Marker({
    			position: new google.maps.LatLng(loc.lat,loc.lon),
@@ -50,7 +51,10 @@ function initialize() {
 	      })(marker));
 		bounds.extend(marker.position);
 	});
-	map.fitBounds(bounds);
+	if (json.length == 1)
+		map.panTo(marker.position, {{zoom}});
+	else
+		map.fitBounds(bounds);
 }
 
 $(function(){initialize();});
