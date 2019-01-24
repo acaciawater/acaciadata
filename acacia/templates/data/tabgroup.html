@@ -1,4 +1,5 @@
 {% extends 'bootbase.html' %}
+{% load i18n %}
 {% block title %}Dashboard {{group.name}}{% endblock title %}
 {% block style %}
 {{block.super}}
@@ -11,7 +12,7 @@
 {% endblock %}
 {% block breadcrumbs %}
 <ol class="breadcrumb">
-	<li><a href="{% url 'home' %}">Home</a></li>
+	<li><a href="{% url 'home' %}">{% trans "Home" %}</a></li>
 </ol>
 {% endblock breadcrumbs %}
 {% block admin_url %}data/tabgroup/{{group.id}}{% endblock %}

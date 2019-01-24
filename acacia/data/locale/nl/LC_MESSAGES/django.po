@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-02-09 15:52+0100\n"
+"POT-Creation-Date: 2019-01-24 10:58+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,1166 +18,1181 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: data/actions.py:16
+#: acacia/data/actions.py:16
 msgid "Read selected sourcefiles and update properties"
 msgstr "Geselecteerde bronbestanden doorlezen en eigenschappen actualiseren"
 
-#: data/actions.py:22
+#: acacia/data/actions.py:22
 msgid "Read sourcefiles of selected datasources and update properties"
 msgstr ""
 "Bestanden in geselecteerde gegevensbronnen doorlezen en eigenschappen "
 "actualiseren"
 
-#: data/actions.py:28
+#: acacia/data/actions.py:28
 msgid "Create measuring point at selected locations"
 msgstr "Standaard meetlocatie aanmaken voor geselecteerde projectlocaties"
 
-#: data/actions.py:33
+#: acacia/data/actions.py:33
 msgid "Create weather stations"
 msgstr "Meteostation, neerslagstation en regenradar toevoegen"
 
-#: data/actions.py:38
+#: acacia/data/actions.py:38
 msgid "Upload selected datasources to the server"
 msgstr "Upload de geselecteerde gegevensbronnen naar de server"
 
-#: data/actions.py:46
+#: acacia/data/actions.py:46
 msgid "Update parameter list for selected datasources"
 msgstr "Update de parameterlijst van de geselecteerde gegevensbronnen"
 
-#: data/actions.py:52
+#: acacia/data/actions.py:52
 #, python-format
 msgid "%(count)d parameters deleted for datasource %(datasource)s"
 msgstr "%(count)d parameters verwijderd uit gegevensbrond %(datasource)s"
 
-#: data/actions.py:55
+#: acacia/data/actions.py:55
 msgid "Replace parameter list of selected datasoures"
 msgstr "Vervang de parameterlijst van de geselecteerde gegevensbronnen"
 
-#: data/actions.py:71
+#: acacia/data/actions.py:71
 msgid "Replace thumbnails of selected parameters"
 msgstr "Thumbnails vernieuwen van geselecteerde parameters"
 
-#: data/actions.py:94 data/actions.py:129
+#: acacia/data/actions.py:94 acacia/data/actions.py:129
 msgid "Creating series {} for location {}"
 msgstr "Tijdreeks {} aanmaken voor locatie {}"
 
-#: data/actions.py:101
+#: acacia/data/actions.py:101
 #, python-format
 msgid "ERROR creating series %(series)s for location %(loc)s: %(ex)s"
 msgstr "ERROR bij aanmaken tijdreeks %(series)s voor locatie %(loc)s: %(ex)s"
 
-#: data/actions.py:104 data/actions.py:137
+#: acacia/data/actions.py:104 acacia/data/actions.py:137
 #, python-format
 msgid "ERROR creating series %(name)s: %(ex)s"
 msgstr "ERROR bij aanmaken tijdreeks %(name)s: %(ex)s"
 
-#: data/actions.py:106
+#: acacia/data/actions.py:106
 msgid "{} series successfully created."
 msgstr ""
 
-#: data/actions.py:108
+#: acacia/data/actions.py:108
 #, fuzzy
 #| msgid "{} new locations created"
 msgid "{} series were not created."
 msgstr "{} nieuwe locaties aangemaakt"
 
-#: data/actions.py:110
+#: acacia/data/actions.py:110
 msgid "Create timeseries for selected parameters"
 msgstr "Standaard tijdreeksen aanmaken voor geselecteerde parameters"
 
-#: data/actions.py:135
+#: acacia/data/actions.py:135
 #, python-format
 msgid "ERROR creating series %(name)s for location %(loc)s: %(ex)s"
 msgstr "ERROR bij aanmaken tijdreeks %(name)s voor locatie %(loc)s: %(ex)s"
 
-#: data/actions.py:139
+#: acacia/data/actions.py:139
 msgid "Create timeseries for all parameters in selected datasources"
 msgstr ""
 "Standaard tijdreeksen aanmaken voor alle parameters in geselecteerde "
 "gegevensbronnen"
 
-#: data/actions.py:148
+#: acacia/data/actions.py:149
 msgid "Update timeseries of selected datasources"
 msgstr "Tijdreeksen actualiseren voor geselecteerde gegevensbronnen"
 
-#: data/actions.py:154
+#: acacia/data/actions.py:155
 msgid "Download source files of selected timeseries"
 msgstr "Bronbestanden van geselecteerde tijdreeksen downloaden"
 
-#: data/actions.py:167
+#: acacia/data/actions.py:168
 msgid "Not sending emails: empty queryset"
 msgstr "Geen email verstuurd: geen gegevens"
 
-#: data/actions.py:169
+#: acacia/data/actions.py:170
 #, python-format
 msgid "Not sending emails: no email address for user %s"
 msgstr "Geen email verstuurd: geen email adres voor gebruiker %s"
 
-#: data/actions.py:172
+#: acacia/data/actions.py:173
 #, python-format
 msgid "Preparing zip file %s"
 msgstr "Aanmaken zip bestand %s"
 
-#: data/actions.py:184
+#: acacia/data/actions.py:185
 #, python-format
 msgid "adding %s"
 msgstr "%s toevoegen"
 
-#: data/actions.py:189
+#: acacia/data/actions.py:190
 #, python-format
 msgid "Done, sending email with link to %(name)s (%(email)s)"
 msgstr "Klaar, email met link struren naar %(name)s (%(email)s)"
 
-#: data/actions.py:196
+#: acacia/data/actions.py:197
 msgid "Timeseries ready"
 msgstr "Tijdreeksen gereed"
 
-#: data/actions.py:198
+#: acacia/data/actions.py:199
 msgid "Failed to send email"
 msgstr "Fout bij verzenden email"
 
-#: data/actions.py:200
+#: acacia/data/actions.py:201
 msgid "Email sent"
 msgstr "Email verzonden"
 
-#: data/actions.py:210
+#: acacia/data/actions.py:211
 msgid "Convert selected timeseries to csv format and email link to zip file"
 msgstr ""
 "Geselecteerde tijdreeksen converteren naar csv en link naar zip bestand "
 "emailen"
 
-#: data/actions.py:226
+#: acacia/data/actions.py:227
 msgid "Download selected timeseries as zip file"
 msgstr "Geselecteerde tijdreeksen downloaden als gezipt csv bestand"
 
-#: data/actions.py:231
+#: acacia/data/actions.py:232
 msgid "Update selected timeseries"
 msgstr "Geselecteerde tijdreeksen actualiseren"
 
-#: data/actions.py:238
+#: acacia/data/actions.py:239
 msgid "Recreate selected timeseries"
 msgstr "Geselecteerde tijdreeksen opnieuw aanmaken"
 
-#: data/actions.py:243
+#: acacia/data/actions.py:244
 msgid "Delete datapoints from selected timeseries"
 msgstr "Data van geselecteerde tijdreeksen verwijderen"
 
-#: data/actions.py:249
+#: acacia/data/actions.py:250
 msgid "Refresh thumbnails"
 msgstr "Thumbnails van tijdreeksen vernieuwen"
 
-#: data/actions.py:253 data/actions.py:283
+#: acacia/data/actions.py:254 acacia/data/actions.py:284
 #, python-format
 msgid "copy of %s"
 msgstr "kopie van %s"
 
-#: data/actions.py:257 data/actions.py:287
+#: acacia/data/actions.py:258 acacia/data/actions.py:288
 #, python-format
 msgid "copy %(count)d of %(name)s"
 msgstr "kopie %(count)d van %(name)s"
 
-#: data/actions.py:262
+#: acacia/data/actions.py:263
 msgid "Copy selected timeseries"
 msgstr "Geselecteerde tijdreeksen dupliceren"
 
-#: data/actions.py:267
+#: acacia/data/actions.py:268
 msgid "Update properties of selected timeseries"
 msgstr "Eigenschappen van geselecteerde tijdreeksen bijwerken"
 
-#: data/actions.py:279
+#: acacia/data/actions.py:280
 msgid "Set location of selected timeseries"
 msgstr "Update meetlocatie voor gerelateerde tijdreeksen"
 
-#: data/actions.py:292
+#: acacia/data/actions.py:293
 msgid "Copy selected charts"
 msgstr "Geselecteerde grafieken dupliceren"
 
-#: data/actions.py:296
+#: acacia/data/actions.py:297
 msgid "Untitled"
 msgstr "Naamloos"
 
-#: data/actions.py:300
+#: acacia/data/actions.py:301
 #, python-format
 msgid "Untitled%d"
 msgstr "Naamloos%d"
 
-#: data/actions.py:311
+#: acacia/data/actions.py:312
 msgid "Created grid from selected timeseries"
 msgstr "Grid maken met geselecteerde tijdreeksen"
 
-#: data/actions.py:328
+#: acacia/data/actions.py:329
 msgid "Update grid"
 msgstr "Grid bijwerken"
 
-#: data/actions.py:352
+#: acacia/data/actions.py:353
 msgid "Created measuring point {}"
 msgstr "Meetlocatie {} aangemaakt"
 
-#: data/actions.py:357
+#: acacia/data/actions.py:358
 #, python-brace-format
 msgid "Cannot add secondary measuring point {loc} to datasource {ds}: {ex}"
 msgstr ""
 "Kan geen secundaire meetlocatie {loc} aanmaken voor gegevensbron {ds}: {ex}"
 
-#: data/actions.py:359
+#: acacia/data/actions.py:360
 msgid "Cannot create measuring point {}"
 msgstr "Meetlocatie {} niet aangemaakt"
 
-#: data/actions.py:360
+#: acacia/data/actions.py:361
 msgid "{} new locations created"
 msgstr "{} nieuwe locaties aangemaakt"
 
-#: data/actions.py:361
+#: acacia/data/actions.py:362
 msgid "Create measuring points for selected datasources"
 msgstr "Meetlocaties aanmaken voor geselecteerde gegevensbronnen"
 
-#: data/admin.py:96
+#: acacia/data/admin.py:96
 #, fuzzy
 #| msgid "Change password"
 msgid "password"
 msgstr "Wachtwoord veranderen"
 
-#: data/admin.py:96
+#: acacia/data/admin.py:96
 msgid "password for webservice"
 msgstr "wachtwoord voor webservice"
 
-#: data/admin.py:104
+#: acacia/data/admin.py:104
 #, python-format
 msgid "Invalid JSON dictionary: %s"
 msgstr "Ongeldige JSON dictionary: %s"
 
-#: data/admin.py:194
+#: acacia/data/admin.py:194
 msgid "Email address"
 msgstr "Email adres"
 
-#: data/admin.py:195 data/admin.py:228
+#: acacia/data/admin.py:195 acacia/data/admin.py:228
 msgid "Level"
 msgstr "Niveau"
 
-#: data/admin.py:208
+#: acacia/data/admin.py:208
 #, python-format
 msgid "%d datasources were tagged"
 msgstr "%d datasources getagged"
 
-#: data/admin.py:216
+#: acacia/data/admin.py:216
 msgid "Add email notification to selected datasources"
 msgstr "Berichtgeving toevoegen aan geselecteerde meetlocaties"
 
-#: data/admin.py:228
+#: acacia/data/admin.py:228
 msgid "Level of notification"
 msgstr "Niveau van notificatie"
 
-#: data/admin.py:236
+#: acacia/data/admin.py:236
 #, python-format
 msgid "% email notifications changed"
 msgstr ""
 
-#: data/admin.py:244
+#: acacia/data/admin.py:244
 msgid "Change notification level"
 msgstr ""
 
-#: data/admin.py:314
+#: acacia/data/admin.py:314
 msgid ""
 "Als een verschalingtijdreeks is opgegeven moet de verschalingsfactor gelijk "
 "aan 1 zijn"
 msgstr ""
 
-#: data/admin.py:322
+#: acacia/data/admin.py:322
 msgid ""
 "Als een compensatietijdreeks is opgegeven moet de compensatiefactor gelijk "
 "aan 0 zijn"
 msgstr ""
 
-#: data/admin.py:333 data/admin.py:452
+#: acacia/data/admin.py:333 acacia/data/admin.py:471
 msgid "Tijdreeks type"
 msgstr ""
 
-#: data/admin.py:360 data/admin.py:386 data/admin.py:407 data/admin.py:470
+#: acacia/data/admin.py:369 acacia/data/admin.py:396 acacia/data/admin.py:418
+#: acacia/data/admin.py:489
 msgid "Algemeen"
 msgstr ""
 
-#: data/admin.py:363 data/admin.py:389 data/admin.py:410 data/admin.py:473
+#: acacia/data/admin.py:372 acacia/data/admin.py:399 acacia/data/admin.py:421
+#: acacia/data/admin.py:492
 msgid "Tijdsinterval"
 msgstr ""
 
-#: data/admin.py:366 data/admin.py:392 data/admin.py:413 data/admin.py:476
+#: acacia/data/admin.py:375 acacia/data/admin.py:402 acacia/data/admin.py:424
+#: acacia/data/admin.py:495
 msgid "Bewerkingen"
 msgstr ""
 
-#: data/admin.py:416
+#: acacia/data/admin.py:427
 msgid "Berekening"
 msgstr ""
 
-#: data/admin.py:526
+#: acacia/data/admin.py:545
 msgid "'van' en 'tot' moeten een getal zijn"
 msgstr ""
 
-#: data/admin.py:533
+#: acacia/data/admin.py:552
 msgid "'van' en 'tot' moeten een datum zijn"
 msgstr ""
 
-#: data/admin.py:535
+#: acacia/data/admin.py:554
 msgid "'van' mag niet groter zijn dan 'tot'"
 msgstr ""
 
-#: data/admin.py:604
+#: acacia/data/admin.py:623
 #, python-brace-format
 msgid "{0} is een ongeldige python variable"
 msgstr ""
 
-#: data/models.py:25
+#: acacia/data/models.py:25
 msgid "default"
 msgstr ""
 
-#: data/models.py:26
+#: acacia/data/models.py:26
 msgid "blue"
 msgstr "blauw"
 
-#: data/models.py:27
+#: acacia/data/models.py:27
 msgid "green"
 msgstr "groen"
 
-#: data/models.py:28
+#: acacia/data/models.py:28
 msgid "gray"
 msgstr "grijs"
 
-#: data/models.py:29
+#: acacia/data/models.py:29
 msgid "grid"
 msgstr "grid"
 
-#: data/models.py:30
+#: acacia/data/models.py:30
 msgid "skies"
 msgstr "wolken"
 
-#: data/models.py:66 data/models.py:92 data/models.py:109 data/models.py:145
+#: acacia/data/models.py:67 acacia/data/models.py:93 acacia/data/models.py:110
+#: acacia/data/models.py:146
 msgid "description"
 msgstr "omschrijving"
 
-#: data/models.py:69
+#: acacia/data/models.py:70
 msgid "theme"
 msgstr "thema"
 
-#: data/models.py:69
+#: acacia/data/models.py:70
 msgid "Theme for charts"
 msgstr "Thema voor grafieken"
 
-#: data/models.py:79
+#: acacia/data/models.py:80
 msgid "Number of locations"
 msgstr "Aantal locaties"
 
-#: data/models.py:88
+#: acacia/data/models.py:89
 msgid "projects"
 msgstr "projecten"
 
-#: data/models.py:91 data/models.py:108 data/models.py:144
+#: acacia/data/models.py:92 acacia/data/models.py:109
+#: acacia/data/models.py:145
 msgid "name"
 msgstr "naam"
 
-#: data/models.py:93
+#: acacia/data/models.py:94
 msgid "url for snapshot"
 msgstr "url voor foto"
 
-#: data/models.py:94
+#: acacia/data/models.py:95
 msgid "url for streaming video"
 msgstr "url voor video"
 
-#: data/models.py:95
+#: acacia/data/models.py:96
 msgid "url for admin"
 msgstr "url voor beheer"
 
-#: data/models.py:114
+#: acacia/data/models.py:115
 msgid "Default dashboard"
 msgstr "Standaard dashboard"
 
-#: data/models.py:115 data/models.py:149
+#: acacia/data/models.py:116 acacia/data/models.py:150
 msgid "location"
 msgstr "locatie"
 
-#: data/models.py:115 data/models.py:149
+#: acacia/data/models.py:116 acacia/data/models.py:150
 #, fuzzy
 #| msgid "Location in Rijksdriehoekstelsel coordinates"
 msgid "Location in longitude/latitude coordinates"
 msgstr "Locatie in Rijksdriehoekstelsel coordinaten"
 
-#: data/models.py:121
+#: acacia/data/models.py:122
 msgid "Number of measure locations"
 msgstr "Aantal meetlocaties"
 
-#: data/models.py:162
+#: acacia/data/models.py:163
 msgid "Number of datasources"
 msgstr "Aantal gegevensbronnen"
 
-#: data/models.py:206 data/models.py:235 data/models.py:851 data/models.py:944
-#: data/models.py:1650 data/models.py:1785 data/models.py:1795
-#: data/models.py:1868 data/models.py:1900 data/models.py:1921
-#: data/models.py:1945
+#: acacia/data/models.py:207 acacia/data/models.py:236
+#: acacia/data/models.py:852 acacia/data/models.py:945
+#: acacia/data/models.py:1683 acacia/data/models.py:1818
+#: acacia/data/models.py:1828 acacia/data/models.py:1901
+#: acacia/data/models.py:1933 acacia/data/models.py:1957
+#: acacia/data/models.py:1981
 msgid "naam"
 msgstr "naam"
 
-#: data/models.py:207
+#: acacia/data/models.py:208
 msgid "python klasse"
 msgstr "python klasse"
 
-#: data/models.py:208
+#: acacia/data/models.py:209
 msgid ""
 "volledige naam van de generator klasse, bijvoorbeeld acacia.data.generators."
 "knmi.Meteo"
 msgstr ""
 
-#: data/models.py:209 data/models.py:236 data/models.py:852 data/models.py:945
-#: data/models.py:1869 data/models.py:1946
+#: acacia/data/models.py:210 acacia/data/models.py:237
+#: acacia/data/models.py:853 acacia/data/models.py:946
+#: acacia/data/models.py:1902 acacia/data/models.py:1982
 msgid "omschrijving"
 msgstr "omschrijving"
 
-#: data/models.py:210
+#: acacia/data/models.py:211
 #, fuzzy
 #| msgid "Default dashboard"
 msgid "Default url"
 msgstr "Standaard dashboard"
 
-#: data/models.py:222
+#: acacia/data/models.py:223
 msgid "Debug"
 msgstr "Debug"
 
-#: data/models.py:223
+#: acacia/data/models.py:224
 msgid "Informatie"
 msgstr "Informatie"
 
-#: data/models.py:224
+#: acacia/data/models.py:225
 msgid "Waarschuwingen"
 msgstr "Waarschuwingen"
 
-#: data/models.py:225
+#: acacia/data/models.py:226
 msgid "Fouten"
 msgstr "Fouten"
 
-#: data/models.py:237
+#: acacia/data/models.py:238
 msgid "Primaire meetlocatie"
 msgstr "Primaire meetlocatie"
 
-#: data/models.py:237
+#: acacia/data/models.py:238
 msgid "Primaire meetlocatie van deze gegevensbron"
 msgstr "Primaire meetlocatie van deze gegevensbron"
 
-#: data/models.py:238 data/models.py:548 data/models.py:623
+#: acacia/data/models.py:239 acacia/data/models.py:549
+#: acacia/data/models.py:624
 #, fuzzy
 #| msgid "location"
 msgid "locaties"
 msgstr "locatie"
 
-#: data/models.py:238
+#: acacia/data/models.py:239
 msgid "Secundaire meetlocaties die deze gegevensbron gebruiken"
 msgstr "Secundaire meetlocaties die deze gegevensbron gebruiken"
 
-#: data/models.py:239
+#: acacia/data/models.py:240
 msgid ""
 "volledige url van de gegevensbron. Leeg laten voor handmatige uploads of "
 "default url van generator"
 msgstr ""
 
-#: data/models.py:240
+#: acacia/data/models.py:241
 msgid "Generator voor het maken van tijdreeksen uit de datafiles"
 msgstr "Generator voor het maken van tijdreeksen uit de datafiles"
 
-#: data/models.py:241
+#: acacia/data/models.py:242
 msgid "Aangemaakt door"
 msgstr "Aangemaakt door"
 
-#: data/models.py:242
+#: acacia/data/models.py:243
 msgid "Aangemaakt op"
 msgstr "Aangemaakt op"
 
-#: data/models.py:243
+#: acacia/data/models.py:244
 msgid "geactualiseerd"
 msgstr "geactualiseerd"
 
-#: data/models.py:245
+#: acacia/data/models.py:246
 msgid "Additionele configuraties"
 msgstr "Additionele configuraties"
 
-#: data/models.py:245
+#: acacia/data/models.py:246
 #, fuzzy
 #| msgid "Invalid JSON dictionary: %s"
 msgid "Geldige JSON dictionary"
 msgstr "Ongeldige JSON dictionary: %s"
 
-#: data/models.py:246
+#: acacia/data/models.py:247
 msgid "Gebuikersnaam"
 msgstr "Gebruikersnaam"
 
-#: data/models.py:246
+#: acacia/data/models.py:247
 msgid "Gebruikersnaam voor downloads"
 msgstr "Gebruikersnaam voor downloads"
 
-#: data/models.py:247
+#: acacia/data/models.py:248
 msgid "Wachtwoord"
 msgstr "Wachtwoord"
 
-#: data/models.py:247
+#: acacia/data/models.py:248
 msgid "Wachtwoord voor downloads"
 msgstr "Wachtwoord voor downloads"
 
-#: data/models.py:248
+#: acacia/data/models.py:249
 msgid "Tijdzone"
 msgstr "Tijdzone"
 
-#: data/models.py:253 data/models.py:619
+#: acacia/data/models.py:254 acacia/data/models.py:620
 msgid "gegevensbron"
 msgstr "gegevensbron"
 
-#: data/models.py:254
+#: acacia/data/models.py:255
 msgid "gegevensbronnen"
 msgstr "gegevensbronnen"
 
-#: data/models.py:543
+#: acacia/data/models.py:544
 msgid "parameters"
 msgstr "parameters"
 
-#: data/models.py:553
+#: acacia/data/models.py:554
 msgid "files"
 msgstr "files"
 
-#: data/models.py:558
+#: acacia/data/models.py:559
 msgid "IJkpunten"
 msgstr "IJkpunten"
 
-#: data/models.py:563 data/models.py:1865
+#: acacia/data/models.py:564 acacia/data/models.py:1898
 msgid "tijdreeksen"
 msgstr "tijdreeksen"
 
-#: data/models.py:575 data/models.py:1870
+#: acacia/data/models.py:576 acacia/data/models.py:1903
 msgid "grafieken"
 msgstr "grafieken"
 
-#: data/models.py:591
+#: acacia/data/models.py:592
 msgid "Gegevensbron welke gevolgd wordt"
 msgstr "Gegevensbron welke gevolgd wordt"
 
-#: data/models.py:592
+#: acacia/data/models.py:593
 msgid "Gebruiker"
 msgstr "Gebruiker"
 
-#: data/models.py:592
+#: acacia/data/models.py:593
 msgid "Gebruiker die berichtgeving ontvangt over updates"
 msgstr "Gebruiker die berichtgeving ontvangt over updates"
 
-#: data/models.py:595
+#: acacia/data/models.py:596
 msgid "Niveau"
 msgstr "Niveau"
 
-#: data/models.py:595
+#: acacia/data/models.py:596
 msgid "Niveau van berichtgeving"
 msgstr "Niveau van berichtgeving"
 
-#: data/models.py:596
+#: acacia/data/models.py:597
 msgid "activeren"
 msgstr "activeren"
 
-#: data/models.py:602 data/models.py:603
+#: acacia/data/models.py:603 acacia/data/models.py:604
 #, fuzzy
 #| msgid "Email sent"
 msgid "Email berichten"
 msgstr "Email verzonden"
 
-#: data/models.py:621
+#: acacia/data/models.py:622
 msgid "rijen"
 msgstr "rijen"
 
-#: data/models.py:622
+#: acacia/data/models.py:623
 msgid "kolommen"
 msgstr "kolommen"
 
-#: data/models.py:628
+#: acacia/data/models.py:629
 msgid "aangemaakt"
 msgstr "aangemaakt"
 
-#: data/models.py:636
+#: acacia/data/models.py:637
 msgid "bronbestand"
 msgstr "bronbestand"
 
-#: data/models.py:637
+#: acacia/data/models.py:638
 msgid "bronbestanden"
 msgstr "bronbestanden"
 
-#: data/models.py:653
+#: acacia/data/models.py:654
 msgid "bestandsnaam"
 msgstr "bestandsnaam"
 
-#: data/models.py:662
+#: acacia/data/models.py:663
 msgid "bestandsgrootte"
 msgstr "bestandsgrootte"
 
-#: data/models.py:672
+#: acacia/data/models.py:673
 msgid "bestandsdatum"
 msgstr "bestandsdatum"
 
-#: data/models.py:680
+#: acacia/data/models.py:681
 msgid "bestandslocatie"
 msgstr "bestandslocatie"
 
-#: data/models.py:685
+#: acacia/data/models.py:686
 msgid "bestand"
 msgstr "bestand"
 
-#: data/models.py:842
+#: acacia/data/models.py:843
 msgid "lijn"
 msgstr "lijn"
 
-#: data/models.py:843
+#: acacia/data/models.py:844
 msgid "staaf"
 msgstr "staaf"
 
-#: data/models.py:844
+#: acacia/data/models.py:845
 msgid "punt"
 msgstr "punt"
 
-#: data/models.py:845
+#: acacia/data/models.py:846
 msgid "area"
 msgstr "area"
 
-#: data/models.py:846
+#: acacia/data/models.py:847
 msgid "spline"
 msgstr "spline"
 
-#: data/models.py:853 data/models.py:946 data/models.py:1722
+#: acacia/data/models.py:854 acacia/data/models.py:947
+#: acacia/data/models.py:1755
 msgid "eenheid"
 msgstr "eenheid"
 
-#: data/models.py:878
+#: acacia/data/models.py:879
 msgid "Aantal tijdreeksen"
 msgstr "Aantal tijdreeksen"
 
-#: data/models.py:887 data/models.py:1516
+#: acacia/data/models.py:888 acacia/data/models.py:1549
 #, fuzzy
 #| msgid "Refresh thumbnails"
 msgid "thumbnail"
 msgstr "Thumbnails van tijdreeksen vernieuwen"
 
-#: data/models.py:919
+#: acacia/data/models.py:920
 msgid "minuut"
 msgstr "minuut"
 
-#: data/models.py:920
+#: acacia/data/models.py:921
 msgid "kwartier"
 msgstr "kwartier"
 
-#: data/models.py:921 data/models.py:1640
+#: acacia/data/models.py:922 acacia/data/models.py:1673
 msgid "uur"
 msgstr "uur"
 
-#: data/models.py:922 data/models.py:1641
+#: acacia/data/models.py:923 acacia/data/models.py:1674
 msgid "dag"
 msgstr "dag"
 
-#: data/models.py:923 data/models.py:1642
+#: acacia/data/models.py:924 acacia/data/models.py:1675
 msgid "week"
 msgstr "week"
 
-#: data/models.py:924 data/models.py:1643
+#: acacia/data/models.py:925 acacia/data/models.py:1676
 msgid "maand"
 msgstr "maand"
 
-#: data/models.py:925 data/models.py:1644
+#: acacia/data/models.py:926 acacia/data/models.py:1677
 msgid "jaar"
 msgstr "jaar"
 
-#: data/models.py:928
+#: acacia/data/models.py:929
 msgid "gemiddelde"
 msgstr "gemiddelde"
 
-#: data/models.py:929
+#: acacia/data/models.py:930
 msgid "maximum"
 msgstr "maximum"
 
-#: data/models.py:930
+#: acacia/data/models.py:931
 msgid "minimum"
 msgstr "minimum"
 
-#: data/models.py:931
+#: acacia/data/models.py:932
 msgid "som"
 msgstr "som"
 
-#: data/models.py:932
+#: acacia/data/models.py:933
 msgid "verschil"
 msgstr "verschil"
 
-#: data/models.py:933
+#: acacia/data/models.py:934
 msgid "eerste"
 msgstr "eerste"
 
-#: data/models.py:934
+#: acacia/data/models.py:935
 msgid "laatste"
 msgstr "laatste"
 
-#: data/models.py:943
+#: acacia/data/models.py:944
 #, fuzzy
 #| msgid "location"
 msgid "meetlocatie"
 msgstr "locatie"
 
-#: data/models.py:947
+#: acacia/data/models.py:948
 msgid "weergave"
 msgstr "weergave"
 
-#: data/models.py:947
+#: acacia/data/models.py:948
 msgid "Standaard weeggave op grafieken"
 msgstr "Standaard weeggave op grafieken"
 
-#: data/models.py:952 data/models.py:1659
+#: acacia/data/models.py:953 acacia/data/models.py:1692
 msgid "tijdzone"
 msgstr "tijdzone"
 
-#: data/models.py:955
+#: acacia/data/models.py:956
 msgid "tijdsrestrictie"
 msgstr "tijdsrestrictie"
 
-#: data/models.py:955
+#: acacia/data/models.py:956
 msgid "Beperk tijdreeks tot gegeven tijdsinterval"
 msgstr "Beperk tijdreeks tot gegeven tijdsinterval"
 
-#: data/models.py:956
+#: acacia/data/models.py:957
 msgid "Begintijd"
 msgstr "Begintijd"
 
-#: data/models.py:957
+#: acacia/data/models.py:958
 msgid "Eindtijd"
 msgstr "Eindtijd"
 
-#: data/models.py:961
+#: acacia/data/models.py:962
 msgid "frequentie"
 msgstr "frequentie"
 
-#: data/models.py:961
+#: acacia/data/models.py:962
 msgid "Frequentie voor resampling van tijdreeks"
 msgstr "Frequentie voor resampling van tijdreeks"
 
-#: data/models.py:963
+#: acacia/data/models.py:964
 msgid "aggregatie"
 msgstr "aggregatie"
 
-#: data/models.py:963
+#: acacia/data/models.py:964
 msgid "Aggregatiemethode bij resampling van tijdreeks"
 msgstr "Aggregatiemethode bij resampling van tijdreeks"
 
-#: data/models.py:964 data/models.py:1725
+#: acacia/data/models.py:965 acacia/data/models.py:1758
 msgid "verschalingsfactor"
 msgstr "verschalingsfactor"
 
-#: data/models.py:964
+#: acacia/data/models.py:965
 msgid "constante factor voor verschaling van de meetwaarden (voor compensatie)"
 msgstr ""
 "constante factor voor verschaling van de meetwaarden (voor compensatie)"
 
-#: data/models.py:965
+#: acacia/data/models.py:966
 msgid "verschalingsreeks"
 msgstr "verschalingsreeks"
 
-#: data/models.py:965
+#: acacia/data/models.py:966
 msgid "tijdreeks voor verschaling van de meetwaarden (voor compensatie)"
 msgstr "tijdreeks voor verschaling van de meetwaarden (voor compensatie)"
 
-#: data/models.py:967
+#: acacia/data/models.py:968
 msgid "compensatieconstante"
 msgstr "compensatieconstante"
 
-#: data/models.py:967
+#: acacia/data/models.py:968
 msgid "constante voor compensatie van de meetwaarden (na verschaling)"
 msgstr "constante voor compensatie van de meetwaarden (na verschaling)"
 
-#: data/models.py:968
+#: acacia/data/models.py:969
 msgid "compensatiereeks"
 msgstr "compensatiereeks"
 
-#: data/models.py:968
+#: acacia/data/models.py:969
 msgid "tijdreeks voor compensatie van de meetwaarden (na verschaling)"
 msgstr "tijdreeks voor compensatie van de meetwaarden (na verschaling)"
 
-#: data/models.py:970
+#: acacia/data/models.py:971
 msgid "accumuleren"
 msgstr "accumuleren"
 
-#: data/models.py:970
+#: acacia/data/models.py:971
 msgid "reeks transformeren naar accumulatie"
 msgstr "reeks transformeren naar accumulatie"
 
-#: data/models.py:971
+#: acacia/data/models.py:972
 msgid "start accumulatie"
 msgstr "start accumulatie"
 
-#: data/models.py:976
+#: acacia/data/models.py:977
 msgid "Tijdreeks"
 msgstr "Tijdreeks"
 
-#: data/models.py:977
+#: acacia/data/models.py:978
 msgid "Tijdreeksen"
 msgstr "Tijdreeksen"
 
-#: data/models.py:985
+#: acacia/data/models.py:986
 msgid "reekstype"
 msgstr "reekstype"
 
-#: data/models.py:1506 data/models.py:1522
+#: acacia/data/models.py:1539 acacia/data/models.py:1555
 msgid "variabele"
 msgstr "variabele"
 
-#: data/models.py:1507
+#: acacia/data/models.py:1540
 msgid "reeks"
 msgstr "reeks"
 
-#: data/models.py:1523 data/models.py:1542 data/models.py:1947
+#: acacia/data/models.py:1556 acacia/data/models.py:1575
+#: acacia/data/models.py:1983
 msgid "variabelen"
 msgstr "variabelen"
 
-#: data/models.py:1536
+#: acacia/data/models.py:1569
 msgid "Handmatige reeks"
 msgstr "Handmatige reeks"
 
-#: data/models.py:1537
+#: acacia/data/models.py:1570
 msgid "Handmatige reeksen"
 msgstr "Handmatige reeksen"
 
-#: data/models.py:1541 data/models.py:1948
+#: acacia/data/models.py:1574 acacia/data/models.py:1984
 msgid "berekening"
 msgstr "berekening"
 
-#: data/models.py:1543
+#: acacia/data/models.py:1576
 msgid "bereken alleen voor overlappend tijdsinterval"
 msgstr "bereken alleen voor overlappend tijdsinterval"
 
-#: data/models.py:1597
+#: acacia/data/models.py:1630
 msgid "Berekende reeks"
 msgstr "Berekende reeks"
 
-#: data/models.py:1598
+#: acacia/data/models.py:1631
 msgid "Berekende reeksen"
 msgstr "Berekende reeksen"
 
-#: data/models.py:1627
+#: acacia/data/models.py:1660
 msgid "Tijdstip"
 msgstr "Tijdstip"
 
-#: data/models.py:1628
+#: acacia/data/models.py:1661
 msgid "Waarde"
 msgstr "Waarde"
 
-#: data/models.py:1631
+#: acacia/data/models.py:1664
 msgid "Meetwaarde"
 msgstr "Meetwaarde"
 
-#: data/models.py:1632
+#: acacia/data/models.py:1665
 msgid "Meetwaarden"
 msgstr "Meetwaarden"
 
-#: data/models.py:1651
+#: acacia/data/models.py:1684
 msgid "toelichting"
 msgstr "toelichting"
 
-#: data/models.py:1651
+#: acacia/data/models.py:1684
 msgid "Toelichting bij grafiek op het dashboard"
 msgstr "Toelichting bij grafiek op het dashboard"
 
-#: data/models.py:1652
+#: acacia/data/models.py:1685
 msgid "titel"
 msgstr "titel"
 
-#: data/models.py:1657
+#: acacia/data/models.py:1690
 msgid "aantal perioden"
 msgstr "aantal perioden"
 
-#: data/models.py:1657
+#: acacia/data/models.py:1690
 msgid "maximaal aantal periodes terug in de tijd (0 = alle perioden)"
 msgstr "maximaal aantal periodes terug in de tijd (0 = alle perioden)"
 
-#: data/models.py:1658
+#: acacia/data/models.py:1691
 msgid "periodelengte"
 msgstr "periodelengte"
 
-#: data/models.py:1709 data/models.py:1889 data/models.py:1895
+#: acacia/data/models.py:1742 acacia/data/models.py:1922
+#: acacia/data/models.py:1928
 msgid "Grafiek"
 msgstr "Grafiek"
 
-#: data/models.py:1710 data/models.py:1896
+#: acacia/data/models.py:1743 acacia/data/models.py:1929
 msgid "Grafieken"
 msgstr "Grafieken"
 
-#: data/models.py:1718
+#: acacia/data/models.py:1751
 msgid "tijdstap"
 msgstr "tijdstap"
 
-#: data/models.py:1718
+#: acacia/data/models.py:1751
 msgid "tijdstap in uren"
 msgstr "tijdstap in uren"
 
-#: data/models.py:1719
+#: acacia/data/models.py:1752
 msgid "rijhoogte"
 msgstr "rijhoogte"
 
-#: data/models.py:1720
+#: acacia/data/models.py:1753
 msgid "y-minimum"
 msgstr "y-minimum"
 
-#: data/models.py:1721
+#: acacia/data/models.py:1754
 msgid "grootheid"
 msgstr "grootheid"
 
-#: data/models.py:1723
+#: acacia/data/models.py:1756
 msgid "z-minimum"
 msgstr "z-minimum"
 
-#: data/models.py:1724
+#: acacia/data/models.py:1757
 msgid "z-maximum"
 msgstr "z-maximum"
 
-#: data/models.py:1766
+#: acacia/data/models.py:1799
 msgid "Standaard"
 msgstr "Standaard"
 
-#: data/models.py:1767
+#: acacia/data/models.py:1800
 msgid "Gestreept"
 msgstr "Gestreept"
 
-#: data/models.py:1768
+#: acacia/data/models.py:1801
 msgid "Gestippeld"
 msgstr "Gestippeld"
 
-#: data/models.py:1770
+#: acacia/data/models.py:1803
 msgid "horizontaal"
 msgstr "horizontaal"
 
-#: data/models.py:1770
+#: acacia/data/models.py:1803
 msgid "vertikaal"
 msgstr "vertikaal"
 
-#: data/models.py:1786
+#: acacia/data/models.py:1819
 msgid "achtergrondkleur"
 msgstr "achtergrondkleur"
 
-#: data/models.py:1787
+#: acacia/data/models.py:1820
 msgid "randkleur"
 msgstr "randkleur"
 
-#: data/models.py:1788
+#: acacia/data/models.py:1821
 msgid "breedte rand"
 msgstr "breedte rand"
 
-#: data/models.py:1789 data/models.py:1799 data/models.py:1840
-#: data/models.py:1891 data/models.py:1922
+#: acacia/data/models.py:1822 acacia/data/models.py:1832
+#: acacia/data/models.py:1873 acacia/data/models.py:1924
+#: acacia/data/models.py:1958
 msgid "volgorde"
 msgstr "volgorde"
 
-#: data/models.py:1796
+#: acacia/data/models.py:1829
 msgid "kleur"
 msgstr "kleur"
 
-#: data/models.py:1797 data/models.py:1808 data/models.py:1822
+#: acacia/data/models.py:1830 acacia/data/models.py:1841
+#: acacia/data/models.py:1855
 msgid "stijl"
 msgstr "stijl"
 
-#: data/models.py:1798
+#: acacia/data/models.py:1831
 msgid "breedte"
 msgstr "breedte"
 
-#: data/models.py:1806 data/models.py:1820 data/models.py:1839
+#: acacia/data/models.py:1839 acacia/data/models.py:1853
+#: acacia/data/models.py:1872
 msgid "grafiek"
 msgstr "grafiek"
 
-#: data/models.py:1809 data/models.py:1823
+#: acacia/data/models.py:1842 acacia/data/models.py:1856
 msgid "orientatie"
 msgstr "orientatie"
 
-#: data/models.py:1811 data/models.py:1952
+#: acacia/data/models.py:1844 acacia/data/models.py:1988
 msgid "waarde"
 msgstr "waarde"
 
-#: data/models.py:1812 data/models.py:1827
+#: acacia/data/models.py:1845 acacia/data/models.py:1860
 msgid "herhaling"
 msgstr "herhaling"
 
-#: data/models.py:1815
+#: acacia/data/models.py:1848
 msgid "Lijn"
 msgstr "Lijn"
 
-#: data/models.py:1816
+#: acacia/data/models.py:1849
 msgid "Lijnen"
 msgstr "Lijnen"
 
-#: data/models.py:1825
+#: acacia/data/models.py:1858
 msgid "van"
 msgstr "van"
 
-#: data/models.py:1826
+#: acacia/data/models.py:1859
 msgid "tot"
 msgstr "tot"
 
-#: data/models.py:1830
+#: acacia/data/models.py:1863
 msgid "Strook"
 msgstr "Strook"
 
-#: data/models.py:1831
+#: acacia/data/models.py:1864
 msgid "Stroken"
 msgstr "Stroken"
 
-#: data/models.py:1834
+#: acacia/data/models.py:1867
 msgid "links"
 msgstr "links"
 
-#: data/models.py:1835
+#: acacia/data/models.py:1868
 msgid "rechts"
 msgstr "rechts"
 
-#: data/models.py:1841 data/models.py:1864
+#: acacia/data/models.py:1874 acacia/data/models.py:1897
 msgid "tijdreeks"
 msgstr "tijdreeks"
 
-#: data/models.py:1842
+#: acacia/data/models.py:1875
 msgid "tweede tijdreeks"
 msgstr "tweede tijdreeks"
 
-#: data/models.py:1842
+#: acacia/data/models.py:1875
 msgid "tijdreeks voor ondergrens bij area grafiek"
 msgstr "tijdreeks voor ondergrens bij area grafiek"
 
-#: data/models.py:1843
+#: acacia/data/models.py:1876
 msgid "legendanaam"
 msgstr "legendanaam"
 
-#: data/models.py:1844
+#: acacia/data/models.py:1877
 msgid "Nummer y-as"
 msgstr "Nummer y-as"
 
-#: data/models.py:1845
+#: acacia/data/models.py:1878
 msgid "Positie y-as"
 msgstr "Positie y-as"
 
-#: data/models.py:1846
+#: acacia/data/models.py:1879
 msgid "Kleur"
 msgstr "Kleur"
 
-#: data/models.py:1846
+#: acacia/data/models.py:1879
 msgid ""
 "Standaard kleur (bv Orange) of rgba waarde (bv rgba(128,128,0,1)) of "
 "hexadecimaal getal (bv #ffa500)"
 msgstr ""
 
-#: data/models.py:1848
+#: acacia/data/models.py:1881
 msgid "stapel"
 msgstr "stapel"
 
-#: data/models.py:1848
+#: acacia/data/models.py:1881
 msgid "leeg laten of <i>normal</i> of <i>percent</i>"
 msgstr "leeg laten of <i>normal</i> of <i>percent</i>"
 
-#: data/models.py:1849
+#: acacia/data/models.py:1882
 msgid "label op de y-as"
 msgstr "label op de y-as"
 
-#: data/models.py:1850
+#: acacia/data/models.py:1883
 msgid "ymin"
 msgstr "ymin"
 
-#: data/models.py:1851
+#: acacia/data/models.py:1884
 msgid "ymax"
 msgstr "ymax"
 
-#: data/models.py:1852
+#: acacia/data/models.py:1885
 msgid "start"
 msgstr "start"
 
-#: data/models.py:1853
+#: acacia/data/models.py:1886
 msgid "stop"
 msgstr "stop"
 
-#: data/models.py:1899
+#: acacia/data/models.py:1932
 #, fuzzy
 #| msgid "projects"
 msgid "projectlocatie"
 msgstr "projecten"
 
-#: data/models.py:1900
+#: acacia/data/models.py:1933
 msgid "naam van dashboard groep"
 msgstr "naam van dashboard groep"
 
-#: data/models.py:1904
+#: acacia/data/models.py:1937
 msgid "aantal tabs"
 msgstr "aantal tabs"
 
-#: data/models.py:1916
+#: acacia/data/models.py:1952
 msgid "Dashboardgroep"
 msgstr "Dashboardgroep"
 
-#: data/models.py:1917
+#: acacia/data/models.py:1953
 msgid "Dashboardgroepen"
 msgstr "Dashboardgroepen"
 
-#: data/models.py:1922
+#: acacia/data/models.py:1958
 msgid "volgorde van tabblad"
 msgstr "volgorde van tabblad"
 
-#: data/models.py:1929
+#: acacia/data/models.py:1965
 msgid "Tabblad"
 msgstr "Tabblad"
 
-#: data/models.py:1930
+#: acacia/data/models.py:1966
 msgid "Tabbladen"
 msgstr "Tabbladen"
 
-#: data/models.py:1935
+#: acacia/data/models.py:1971
 msgid "meetwaarde"
 msgstr "meetwaarde"
 
-#: data/models.py:1936
+#: acacia/data/models.py:1972
 msgid "ijkwaarde"
 msgstr "ijkwaarde"
 
-#: data/models.py:1939
+#: acacia/data/models.py:1975
 msgid "IJkpunt"
 msgstr "IJkpunt"
 
-#: data/models.py:1940
+#: acacia/data/models.py:1976
 msgid "IJkset"
 msgstr "IJkset"
 
-#: data/models.py:1949
+#: acacia/data/models.py:1985
 msgid "bijgewerkt"
 msgstr "bijgewerkt"
 
-#: data/models.py:1985
+#: acacia/data/models.py:2021
 msgid "Kental"
 msgstr "Kental"
 
-#: data/models.py:1986
+#: acacia/data/models.py:2022
 msgid "Kentallen"
 msgstr "Kentallen"
 
-#: data/util.py:55
+#: acacia/data/util.py:55
 msgid "django.contrib.gis.geos.Point expected"
 msgstr "object van type 'django.contrib.gis.geos.Point' verwacht"
 
-#: data/util.py:134
+#: acacia/data/util.py:134
 msgid "Cannot add file {} to zip archive: {}"
 msgstr "Kan bestand {} niet aan zipfile toevoegen: {}"
 
-#: data/util.py:141
+#: acacia/data/util.py:141
 #, python-format
 msgid "creating csv file for datasource %s"
 msgstr "csv bestand aanmaken voor gegevensbron %s"
 
-#: data/util.py:144
+#: acacia/data/util.py:144
 #, python-format
 msgid "csv file created, size = %d bytes"
 msgstr "csv bestand aangemaakt, grootte = %d bytes"
 
-#: data/views.py:114
+#: acacia/data/views.py:114
 #, python-brace-format
 msgid "Cannot align series {a} and {b} for area fill in chart {c}"
 msgstr "Kan tijdreeks {a} en {b} niet uitlijnen voor grafiek {c}"
 
-#: data/views.py:533
+#: acacia/data/views.py:533
 #, python-format
 msgid "Dashboard %(name)s - %(page)s"
 msgstr "Dashboard %(name)s - %(page)s"
 
-#: data/views.py:603
+#: acacia/data/views.py:603
 msgid "Diepte"
 msgstr ""
 

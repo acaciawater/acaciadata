@@ -2,7 +2,7 @@
 {% block title %}{%if title %} {{title}} {%else%} Dashboard {{group.name}}{%endif%}{% endblock title %}
 {% block breadcrumbs %}
 <ol class="breadcrumb">
-	<li><a href="{% url 'home' %}">Home</a></li>
+	<li><a href="{% url 'home' %}">{% trans "Home" %}</a></li>
 	<li class="active"><a href="{% url 'dashboard-view' group.name %}">{{group.name}}</a></li>
 </ol>
 {% endblock breadcrumbs %}
