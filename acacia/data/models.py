@@ -176,10 +176,10 @@ class MeetLocatie(geo.Model):
         unique_together = ('projectlocatie', 'name')
 
     def filecount(self):
-        return sum([d.filecount() or 0 for d in self.datasources.all()])
+        return sum([d.filecount() or 0 for d in self.datasource_set.all()])
 
     def paramcount(self):
-        return sum([d.parametercount() or 0 for d in self.datasources.all()])
+        return sum([d.parametercount() or 0 for d in self.datasource_set.all()])
 
     def series(self):
         return self.series_set.all()
@@ -1938,6 +1938,9 @@ class TabGroup(models.Model):
     
     def pages(self):
         return self.tabpage_set.order_by('order')
+
+    def pagenames(self):
+        return ','.join(map(lambda p: p.name, self.pages()))
     
     def __unicode__(self):
         return self.name
