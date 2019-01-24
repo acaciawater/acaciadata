@@ -61,7 +61,7 @@ $(function(){initialize();});
 <tr>
 <td><a href="{% url 'acacia:meetlocatie-detail' loc.id %}">{{loc.name}}</a></td>
 <td>{% if loc.webcam %}<br/>{{loc.webcam.snapshot|safe}}{%endif%}</td>
-<td>{{loc.datasources.count}}</td>
+<td>{{loc.datasource_set.count}}</td>
 <td>{{loc.filecount}}</td>
 <td>{{loc.paramcount}}</td>
 <td>{{loc.series|length}}</td>
