@@ -847,7 +847,7 @@ def addmonfile(request,network,f,force_name=None):
         mon.datasource = ds
         mon.source = pos
         mon.user = ds.user
-        mon.file.save(name=filename, content=ContentFile(contents))
+        mon.file.save(name=basename, content=ContentFile(contents))
         mon.get_dimensions()
         mon.channel_set.add(*channels,bulk=False)
         mon.save()
