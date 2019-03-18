@@ -163,7 +163,23 @@ from threading import Thread
 from datetime import datetime, timedelta
 from django.template.loader import render_to_string
 
-def email_series_zip(request, queryset, zf):
+def store_csv(queryset, zf):
+    for series in queryset:
+        ml = series.meetlocatie()
+        if ml:
+            src = slugify('{}-{}'.format(ml.name, series.name))
+        else:
+            ds = series.datasource()
+            if ds:
+                src = slugify('{}-{}'.format(ds.name, series.name))
+            else:
+                src = slugify(unicode(series))
+        filename = src + '.csv'
+        logger.debug(_('adding %s') % filename)
+        csv = series.to_csv()
+        zf.writestr(filename,csv)
+
+def email_series_zip(request, queryset, zf, store=store_csv):
     if not queryset:
         logger.warning(_('Not sending emails: empty queryset'))
     elif not request.user.email:
@@ -171,20 +187,7 @@ def email_series_zip(request, queryset, zf):
     else:
         url = request.build_absolute_uri(settings.EXPORT_URL+os.path.basename(zf.filename))
         logger.debug(_('Preparing zip file %s') % url)
-        for series in queryset:
-            ml = series.meetlocatie()
-            if ml:
-                src = slugify('{}-{}'.format(ml.name, series.name))
-            else:
-                ds = series.datasource()
-                if ds:
-                    src = slugify('{}-{}'.format(ds.name, series.name))
-                else:
-                    src = slugify(unicode(series))
-            filename = src + '.csv'
-            logger.debug(_('adding %s') % filename)
-            csv = series.to_csv()
-            zf.writestr(filename,csv)
+        store(queryset, zf)
         zf.close()
         name = request.user.get_full_name() or request.user.username
         logger.debug(_('Done, sending email with link to %(name)s (%(email)s)') % {'name':name, 'email':request.user.email})
@@ -200,13 +203,13 @@ def email_series_zip(request, queryset, zf):
         else:
             logger.debug(_('Email sent'))
 
-def download_series_zip(modeladmin, request, queryset):
+def download_series_zip(modeladmin, request, queryset, store=store_csv):
     if not os.path.exists(settings.EXPORT_ROOT):
         os.mkdir(settings.EXPORT_ROOT)
     tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.zip', dir=settings.EXPORT_ROOT, delete=False)
     zipfile = ZipFile(tmp,'w')
     series = list(queryset)
-    t = Thread(target=email_series_zip, args=(request,series,zipfile))
+    t = Thread(target=email_series_zip, args=(request,series,zipfile,store))
     t.start()
 download_series_zip.short_description = _('Convert selected timeseries to csv format and email link to zip file')
     
