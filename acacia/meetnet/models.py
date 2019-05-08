@@ -217,7 +217,8 @@ class Screen(models.Model):
     aquifer = models.CharField(max_length=20,blank=True,null=True,verbose_name=_('aquifer'))
     manual_levels = models.ForeignKey(Series, null=True, blank=True, on_delete=SET_NULL, verbose_name=_('manual measurements'), related_name='manual')
     logger_levels = models.ForeignKey(Series, null=True, blank=True, on_delete=SET_NULL, verbose_name=_('water level'), related_name='waterlevel')
-
+    group = models.CharField(_('group'),max_length=100,blank=True,null=True)
+    
     def get_series(self, ref = 'nap', kind='COMP', **kwargs):
         
         rule = kwargs.pop('rule',None)
@@ -265,7 +266,7 @@ class Screen(models.Model):
         return zip(series.index, series.values)        
                         
     def get_monfiles(self):
-        return MonFile.objects.filter(source__screen=self).order_by('start_date')
+        return MonFile.objects.filter(source__screen=self).order_by('start_date','date')
 
     def num_files(self):
         try:
@@ -364,6 +365,9 @@ class Screen(models.Model):
         else:
             return None
         
+#     def group_names(self):
+#         return ','.join([group.name for group in self.screengroup_set.all()])
+
     class Meta:
         unique_together = ('well', 'nr',)
         verbose_name = _('screen')
@@ -514,3 +518,12 @@ class Handpeiling(ManualSeries):
         verbose_name = 'Handpeiling'
         verbose_name_plural = 'Handpeilingen'
     
+# class ScreenGroup(models.Model):
+#     name = models.CharField(max_length=100,verbose_name=_('group'))
+#     screen = models.ManyToManyField(Screen,verbose_name=_('screen'))
+# 
+#     class Meta:
+#         verbose_name = _('Group')
+#         verbose_name_plural = _('Groups')
+#     
+#     
