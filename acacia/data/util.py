@@ -36,6 +36,10 @@ def unix_timestamp(dt):
         dt = timezone.localtime(dt,pytz.utc)
     return (dt-EPOCH).total_seconds()
 
+def to_millis(dt):
+    ''' conversion of datetime to unix timestamp in milliseconds ''' 
+    return int(unix_timestamp(dt)*1000) if isinstance(dt, (datetime.date, datetime.datetime,)) else dt
+    
 # thumbnail size and resolution
 THUMB_DPI=72
 THUMB_SIZE=(9,3) # inch
