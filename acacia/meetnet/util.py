@@ -307,7 +307,7 @@ def recomp(screen,series,baros={}):
                 seriesdata = data
             else:
                 seriesdata = seriesdata.append(data)
-        if seriesdata:
+        if seriesdata is not None:
             seriesdata = series.do_postprocess(seriesdata)
             
     if seriesdata is None:
