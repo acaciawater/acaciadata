@@ -14,7 +14,7 @@ from django.shortcuts import get_object_or_404
 
 import StringIO
 from acacia.meetnet.util import register_screen, register_well,\
-    drift_correct_screen, set_well_address
+    drift_correct_screen, set_well_address, moncorrect
 from django.core.exceptions import ObjectDoesNotExist
 from acacia.meetnet.models import LoggerStat
 from django.contrib import messages
@@ -141,6 +141,11 @@ def drift_screens(modeladmin, request, queryset):
         drift_correct_screen(screen,request.user)
 drift_screens.short_description = 'Filters corrigeren voor drift'
 
+def drift_monfile(modeladmin, request, queryset):
+    for monfile in queryset:
+        moncorrect(monfile)
+drift_monfile.short_description = 'Standen corrigeren voor drift'
+        
 def recomp_screens(modeladmin, request, queryset):
     for screen in queryset:
         register_screen(screen)

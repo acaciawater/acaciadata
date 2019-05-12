@@ -111,6 +111,7 @@ class ChannelAdmin(admin.ModelAdmin):
 class MonFileAdmin(SourceFileAdmin):
     model = MonFile
     inlines = [ChannelInline,]
+    actions = [actions.drift_monfile]
     list_display = ('name','datasource', 'source', 'serial_number', 'status', 'instrument_type', 'location', 'num_channels', 'num_points', 'start_date', 'end_date', 'uploaded',)
     list_filter = ('serial_number', 'datasource', 'datasource__meetlocatie', 'datasource__meetlocatie__projectlocatie__project', 'uploaded',)
     search_fields = ['name','serial_number']
