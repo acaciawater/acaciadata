@@ -401,7 +401,6 @@ def moncorrect(monfile, tolerance = datetime.timedelta(hours=4), tz = pytz.timez
     corrected = '{} CORR'.format(screen)
     try:
         dup = screen.mloc.series_set.get(name=corrected)
-#         dup = Series.objects.get(name=corrected)
     except ObjectDoesNotExist:
         dup = copy_series(series, corrected)
     
