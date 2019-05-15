@@ -82,7 +82,7 @@ def chart_for_screen(screen,start=None,stop=None,loggerpos=True):
     ax=fig.gca()
 
     datemin=start or datetime.datetime(2013,1,1)
-    datemax=stop or datetime.datetime(2017,12,31)
+    datemax=stop or datetime.datetime(2018,12,31)
     if start or stop:
         ax.set_xlim(datemin, datemax)
 
@@ -140,7 +140,7 @@ def chart_for_well(well,start=None,stop=None):
     fig=plt.figure(figsize=THUMB_SIZE)
     ax=fig.gca()
     datemin=start or datetime.datetime(2013,1,1)
-    datemax=stop or datetime.datetime(2017,12,31)
+    datemax=stop or datetime.datetime(2018,12,31)
     if start or stop:
         ax.set_xlim(datemin, datemax)
     plt.grid(linestyle='-', color='0.9')
@@ -400,7 +400,8 @@ def moncorrect(monfile, tolerance = datetime.timedelta(hours=4), tz = pytz.timez
     # get or create corrected water levels
     corrected = '{} CORR'.format(screen)
     try:
-        dup = Series.objects.get(name=corrected)
+        dup = screen.mloc.series_set.get(name=corrected)
+#         dup = Series.objects.get(name=corrected)
     except ObjectDoesNotExist:
         dup = copy_series(series, corrected)
     
