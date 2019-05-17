@@ -36,6 +36,7 @@ LOCATIE,FILTERNUMMER,PEIL DATUM TIJD,STAND (NAP),BIJZONDERHEID
 28D0434,1,2004/10/15 06:00:00,7.139,0
 '''
 from datetime import datetime
+import pytz
 
 def write_header(f):
     f.write("TITEL: FEWS Menyanthes Export\n")
@@ -58,8 +59,8 @@ def write_meta(f,screens):
             well.nitg, 
             screen.nr, 
             well.name, 
-            loc.x, 
-            loc.y, 
+            round(loc.x,2), 
+            round(loc.y,2), 
             well.maaiveld, 
             well.ahn, 
             screen.refpnt, 
@@ -70,6 +71,7 @@ def write_meta(f,screens):
         f.write("\n")
     
 def write_data(f,screens,**kwargs):
+    tz = pytz.timezone('Etc/GMT-1')
     f.write("\n")
     f.write("LOCATIE,FILTERNUMMER,PEIL DATUM TIJD,STAND (NAP),BIJZONDERHEID\n")
     for screen in screens:
@@ -77,7 +79,7 @@ def write_data(f,screens,**kwargs):
             f.write('{nitg},{filt},{date:%Y/%m/%d %H:%M:%S},{value:.3f},\n'.format(
                 nitg = screen.well.nitg,
                 filt = screen.nr,
-                date = p.date,
+                date = p.date.astimezone(tz),
                 value = p.value))
 
 def export_screens(f,screens,**kwargs):
