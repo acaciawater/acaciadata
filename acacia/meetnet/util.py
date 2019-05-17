@@ -77,7 +77,7 @@ def getcolor(index):
 def screencolor(screen):
     return getcolor(screen.nr-1)
 
-def chart_for_screen(screen,start=None,stop=None,loggerpos=True):
+def chart_for_screen(screen,start=None,stop=None,loggerpos=True, corrected=True):
     fig=plt.figure(figsize=THUMB_SIZE)
     ax=fig.gca()
 
@@ -107,14 +107,19 @@ def chart_for_screen(screen,start=None,stop=None,loggerpos=True):
             ncol += 1
 
     data = screen.get_levels('nap',rule='H')
-#    n = len(data) / (THUMB_SIZE[0]*THUMB_DPI)
-#     if n > 1:
-#         #use data thinning: take very nth row
-#         data = data[::n]
     if len(data)>0:
         x,y = zip(*data)
         plt.plot_date(x, y, '-', label='loggerdata',color='blue')
         ncol += 1
+
+    # gecorrigeerde reeks toevoegen
+    if corrected:
+        corr = screen.mloc.series_set.filter(name__iendswith='corr').first()
+        if corr is not None and corr.aantal() > 0:
+            array = corr.to_array()
+            x,y = zip(*array)
+            plt.plot_date(x, y, '-', label='gecorrigeerd',color='purple')
+            ncol += 1
 
     # handpeilingen toevoegen
     hand = screen.get_hand('nap')
