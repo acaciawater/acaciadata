@@ -357,6 +357,8 @@ def drift_correct(levels, peilingen):
 def drift_correct_screen(screen,user,inplace=False):
     series = screen.get_compensated_series()
     manual = screen.get_manual_series()
+    if series is None or manual is None:
+        return None 
     data = drift_correct(series,manual)
     if inplace:
         name = unicode(screen) + ' COMP'
@@ -376,8 +378,13 @@ def drift_correct_screen(screen,user,inplace=False):
     cor.datapoints.bulk_create(datapoints)
     cor.make_thumbnail()
     cor.save()
-#     screen.logger_levels = cor
-#     screen.save()
+    # create chart for comparisons
+    chart, created = Chart.objects.get_or_create(name=str(screen),defaults={'title':str(screen),'user':user,'percount':0})
+    if not created:
+        chart.series.all().delete()
+    chart.series.create(order=1,series=screen.logger_levels,name='raw',label='m+NAP')
+    chart.series.create(order=2,series=cor,name='corrected')
+    chart.series.create(order=3,series=screen.manual_levels,name='handpeilingen',type='scatter')
     return cor
 
 def moncorrect(monfile, tolerance = datetime.timedelta(hours=4), tz = pytz.timezone('Etc/GMT-1')):
