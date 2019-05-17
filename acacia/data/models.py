@@ -1252,7 +1252,9 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         return pts
     
     def create_points(self, series, tz):
-        return self.datapoints.bulk_create(self.prepare_points(series, tz))
+        pts = self.datapoints.bulk_create(self.prepare_points(series, tz))
+        self.update_properties()
+        return pts
     
     def create(self, data=None, thumbnail=True):
         logger = self.getLogger()

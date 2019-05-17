@@ -364,7 +364,7 @@ def drift_correct_screen(screen,user,inplace=False):
         name = unicode(screen) + ' COMP'
     else:
         name = unicode(screen) + ' CORR'
-    cor, created = Series.objects.get_or_create(name=name,mlocatie=screen.mloc,defaults={'user':user})
+    cor, created = Series.objects.get_or_create(name=name,mlocatie=screen.mloc,defaults={'user':user,'unit':'m'})
     if created:
         cor.unit = 'm tov NAP'
     else:
@@ -376,6 +376,7 @@ def drift_correct_screen(screen,user,inplace=False):
             continue
         datapoints.append(DataPoint(series=cor, date=date, value=value))
     cor.datapoints.bulk_create(datapoints)
+    cor.update_properties()
     cor.make_thumbnail()
     cor.save()
     # create chart for comparisons
