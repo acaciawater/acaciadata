@@ -331,9 +331,9 @@ class ChartBaseView(TemplateView):
                 }
             }
         if chart.start:
-            options['xAxis']['min'] = tojs(chart.start)
+            options['xAxis']['min'] = chart.start
         if chart.stop:
-            options['xAxis']['max'] = tojs(chart.stop)
+            options['xAxis']['max'] = chart.stop
         allseries = []
 
         tmin = chart.start
