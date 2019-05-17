@@ -346,11 +346,11 @@ class ChartBaseView(TemplateView):
         for _,s in enumerate(chart.series.all()):
             ser = s.series
             if tmin:
-                tmin = min(tmin,s.t0 or ser.van() or chart.start)
+                tmin = min(tmin,s.t0 or ser.van() or chart.start or tmin)
             else:
                 tmin = s.t0 or ser.van() or chart.start
             if tmax:
-                tmax = max(tmax,s.t1 or ser.tot() or chart.stop)
+                tmax = max(tmax,s.t1 or ser.tot() or chart.stop or tmax)
             else:
                 tmax = s.t1 or ser.tot() or chart.stop
             if ymin:
