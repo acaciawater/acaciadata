@@ -323,7 +323,7 @@ def recomp(screen,series,baros={}):
     series.save()
     series.validate(reset=True)
 
-def drift_correct(series, manual):
+def drift_correct1(series, manual):
     ''' correct drift with manual measurements (both are pandas series)'''
     # TODO: extrapolate series to manual 
     # calculate differences
@@ -339,6 +339,20 @@ def drift_correct(series, manual):
     drift = right.reindex(series.index)
     drift = drift.fillna(0)
     return series-drift
+
+def drift_correct(levels, peilingen):
+    ''' correct for drift and/or offset.
+    both levels and peilingen are pandas series 
+    returns corrected levels '''
+    
+    # align levels and peilingen
+    left, _right = levels.align(peilingen)
+    # interpolate levels on time of peilingen
+    # fill forward and backwards with first and last reading for peilingen that are beyond range of levels
+    interp = left.interpolate(method='time').fillna(method='bfill').fillna(method='ffill')
+    # calculate difference between levels and peilingen (interpolate missing data)
+    diff = (peilingen - interp).interpolate(method='time').reindex(levels.index)
+    return levels + diff
 
 def drift_correct_screen(screen,user,inplace=False):
     series = screen.get_compensated_series()
