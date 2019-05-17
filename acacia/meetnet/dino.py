@@ -53,6 +53,7 @@ def write_meta(f,screens):
         well = screen.well
         series= screen.find_series()
         loc = well.RD()
+        mv = well.maaiveld or well.ahn or 0
         f.write(','.join(map(str,[
             well.nitg, 
             screen.nr, 
@@ -62,8 +63,8 @@ def write_meta(f,screens):
             well.maaiveld, 
             well.ahn, 
             screen.refpnt, 
-            screen.top, 
-            screen.bottom, 
+            mv-screen.top, 
+            mv-screen.bottom, 
             series.van().strftime('%Y/%m/%d'), 
             series.tot().strftime('%Y/%m/%d')])))
         f.write("\n")
