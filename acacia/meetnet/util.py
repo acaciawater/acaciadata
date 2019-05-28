@@ -113,12 +113,12 @@ def chart_for_screen(screen,start=None,stop=None,loggerpos=True, corrected=True)
         ncol += 1
 
     # gecorrigeerde reeks toevoegen
-    if corrected:
-        corr = screen.mloc.series_set.filter(name__iendswith='corr').first()
-        if corr is not None and corr.aantal() > 0:
-            res = corr.to_pandas().resample(rule='H').mean()
-            plt.plot_date(res.index, res.values, '-', label='gecorrigeerd',color='purple')
-            ncol += 1
+#     if corrected:
+#         corr = screen.mloc.series_set.filter(name__iendswith='corr').first()
+#         if corr is not None and corr.aantal() > 0:
+#             res = corr.to_pandas().resample(rule='H').mean()
+#             plt.plot_date(res.index.to_pydatetime(), res.values, '-', label='gecorrigeerd',color='purple')
+#             ncol += 1
 
     # handpeilingen toevoegen
     hand = screen.get_hand('nap')
