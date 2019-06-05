@@ -153,19 +153,23 @@ def chart_for_well(well,start=None,stop=None,chart_type='corrected'):
     index = 0
     for screen in well.screen_set.all():
         color=getcolor(index)
+        ok = False
         if chart_type == 'corrected':
             data = screen.mloc.series_set.filter(name__iendswith='corr').first()
             if data:
-                data = data.to_pandas().resample('H').mean()
+                data = data.to_pandas()
+                if data.size>1:
+                    data = data.resample('H').mean()
                 plt.plot_date(data.index.to_pydatetime(), data.values, '-',label='filter {}'.format(screen.nr),color=color)
                 ncol += 1
-        else:
+                ok = True
+        if not ok:
             data = screen.get_levels('nap',rule='H')
             if data:
                 x,y = zip(*data)
                 plt.plot_date(x, y, '-',label='filter {}'.format(screen.nr),color=color)
                 ncol += 1
-
+                ok = True
         hand = screen.get_hand('nap')
         if len(hand)>0:
             x,y = zip(*hand)
