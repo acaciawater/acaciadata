@@ -82,7 +82,7 @@ def chart_for_screen(screen,start=None,stop=None,loggerpos=True, corrected=True)
     ax=fig.gca()
 
     datemin=start or datetime.datetime(2013,1,1)
-    datemax=stop or datetime.datetime(2018,12,31)
+    datemax=stop or datetime.datetime(2019,5,15)
     if start or stop:
         ax.set_xlim(datemin, datemax)
 
@@ -113,12 +113,12 @@ def chart_for_screen(screen,start=None,stop=None,loggerpos=True, corrected=True)
         ncol += 1
 
     # gecorrigeerde reeks toevoegen
-#     if corrected:
-#         corr = screen.mloc.series_set.filter(name__iendswith='corr').first()
-#         if corr is not None and corr.aantal() > 0:
-#             res = corr.to_pandas().resample(rule='H').mean()
-#             plt.plot_date(res.index.to_pydatetime(), res.values, '-', label='gecorrigeerd',color='purple')
-#             ncol += 1
+    if corrected:
+        corr = screen.mloc.series_set.filter(name__iendswith='corr').first()
+        if corr is not None and corr.aantal() > 0:
+            res = corr.to_pandas().resample(rule='H').mean()
+            plt.plot_date(res.index.to_pydatetime(), res.values, '-', label='gecorrigeerd',color='purple')
+            ncol += 1
 
     # handpeilingen toevoegen
     hand = screen.get_hand('nap')
@@ -289,28 +289,30 @@ def recomp(screen,series,baros={}):
                 abaro = abaro.reindex(data.index)
                 abaro[:barostart] = np.NaN
                 abaro[baroend:] = np.NaN
-                data = data - abaro
-    
-                data.dropna(inplace=True)
-                
-                #clear datapoints with less than 5 cm of water
-                data[data<5] = np.nan
-                # count dry values
-                dry = data.isnull().sum()
-                if dry:
-                    logger.warning('Logger {}, MON file {}: {} out of {} measurements have less than 5 cm of water'.format(unicode(logpos),mon,dry,data.size))
-                
-                data = data / 100 + (logpos.refpnt - logpos.depth)
-                
-            else:
-                # no pressure or level in monfile
-                logger.error('Geen "PRESSURE" of "LEVEL" parameter gevonden in monfile {}'.format(mon))
-                continue
-    
-            if seriesdata is None:
-                seriesdata = data
-            else:
-                seriesdata = seriesdata.append(data)
+
+                if data.any() and abaro.any():
+                    # we have some data and some air pressure
+                    data = data - abaro
+                    data.dropna(inplace=True)
+                    
+                    #clear datapoints with less than 5 cm of water
+                    data[data<5] = np.nan
+                    # count dry values
+                    dry = data.isnull().sum()
+                    if dry:
+                        logger.warning('Logger {}, MON file {}: {} out of {} measurements have less than 5 cm of water'.format(unicode(logpos),mon,dry,data.size))
+                    
+                    data = data / 100 + (logpos.refpnt - logpos.depth)
+                    
+                else:
+                    # no pressure or level in monfile
+                    logger.error('Geen "PRESSURE" of "LEVEL" parameter gevonden in monfile {}'.format(mon))
+                    continue
+        
+                if seriesdata is None:
+                    seriesdata = data
+                else:
+                    seriesdata = seriesdata.append(data)
         if seriesdata is not None:
             seriesdata = series.do_postprocess(seriesdata)
             
