@@ -70,7 +70,7 @@ THUMB_DPI=72
 THUMB_SIZE=(12,5) # inch
 
 def getcolor(index):
-    colors = ['blue', 'red', 'green', 'black', 'orange', 'purple', 'brown', 'grey' ]
+    colors = ['blue', 'green', 'black', 'orange', 'purple', 'brown', 'grey' ]
     index = index % len(colors) 
     return colors[index]
 
@@ -118,7 +118,7 @@ def chart_for_screen(screen,start=None,stop=None,raw=True,loggerpos=True,correct
         corr = screen.mloc.series_set.filter(name__iendswith='corr').first()
         if corr is not None and corr.aantal() > 0:
             res = corr.to_pandas().resample(rule='H').mean()
-            plt.plot_date(res.index.to_pydatetime(), res.values, '-', label='gecorrigeerd',color='purple')
+            plt.plot_date(res.index.to_pydatetime(), res.values, '-', label='gecorrigeerd',color='grey')
             ncol += 1
 
     # handpeilingen toevoegen
@@ -173,9 +173,7 @@ def chart_for_well(well,start=None,stop=None,chart_type='corrected'):
         hand = screen.get_hand('nap')
         if len(hand)>0:
             x,y = zip(*hand)
-            if well.screen_set.count() == 1:
-                color = 'red'
-            plt.plot_date(x, y, 'o', color=color)
+            plt.plot_date(x, y, 'o', color='red')
             ncol += 1
 
         index += 1
