@@ -111,6 +111,7 @@ class ChannelAdmin(admin.ModelAdmin):
 class MonFileAdmin(SourceFileAdmin):
     model = MonFile
     inlines = [ChannelInline,]
+    actions = [actions.drift_monfile]
     list_display = ('name','datasource', 'source', 'serial_number', 'status', 'instrument_type', 'location', 'num_channels', 'num_points', 'start_date', 'end_date', 'uploaded',)
     list_filter = ('serial_number', 'datasource', 'datasource__meetlocatie', 'datasource__meetlocatie__projectlocatie__project', 'uploaded',)
     search_fields = ['name','serial_number']
@@ -135,9 +136,9 @@ class ScreenInline(admin.TabularInline):
         
 class ScreenAdmin(admin.ModelAdmin):
     actions = [actions.make_screencharts,actions.recomp_screens,actions.drift_screens,actions.register_screens,actions.download_screen_nitg]
-    list_display = ('__unicode__', 'refpnt', 'top', 'bottom', 'aquifer', 'num_files', 'num_standen', 'start', 'stop', 'manual_levels')
+    list_display = ('__unicode__', 'group', 'refpnt', 'top', 'bottom', 'aquifer', 'num_files', 'num_standen', 'start', 'stop', 'manual_levels')
     search_fields = ('well__name', 'well__nitg')
-    list_filter = ('well','well__network','aquifer')
+    list_filter = ('well','well__network','aquifer', 'group')
     inlines = [LoggerInline]
     
 from django.contrib.gis.db import models

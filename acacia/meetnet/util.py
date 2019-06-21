@@ -6,7 +6,7 @@ Created on Jun 3, 2014
 '''
 import logging
 import matplotlib
-from django.core.exceptions import MultipleObjectsReturned
+from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 from django.core.mail.message import EmailMessage
 from acacia.meetnet.models import MeteoData
 from acacia.data.util import get_address
@@ -70,19 +70,19 @@ THUMB_DPI=72
 THUMB_SIZE=(12,5) # inch
 
 def getcolor(index):
-    colors = ['blue', 'red', 'green', 'black', 'orange', 'purple', 'brown', 'grey' ]
+    colors = ['blue', 'green', 'black', 'orange', 'purple', 'brown', 'grey' ]
     index = index % len(colors) 
     return colors[index]
 
 def screencolor(screen):
     return getcolor(screen.nr-1)
 
-def chart_for_screen(screen,start=None,stop=None,loggerpos=True):
+def chart_for_screen(screen,start=None,stop=None,raw=True,loggerpos=True,corrected=True):
     fig=plt.figure(figsize=THUMB_SIZE)
     ax=fig.gca()
 
     datemin=start or datetime.datetime(2013,1,1)
-    datemax=stop or datetime.datetime(2017,12,31)
+    datemax=stop or datetime.datetime(2019,5,15)
     if start or stop:
         ax.set_xlim(datemin, datemax)
 
@@ -106,15 +106,20 @@ def chart_for_screen(screen,start=None,stop=None,loggerpos=True):
             plt.plot_date(x,y,'--',label='diverpositie',color='orange')
             ncol += 1
 
-    data = screen.get_levels('nap',rule='H')
-#    n = len(data) / (THUMB_SIZE[0]*THUMB_DPI)
-#     if n > 1:
-#         #use data thinning: take very nth row
-#         data = data[::n]
-    if len(data)>0:
-        x,y = zip(*data)
-        plt.plot_date(x, y, '-', label='loggerdata',color='blue')
-        ncol += 1
+    if raw:
+        data = screen.get_levels('nap',rule='H')
+        if len(data)>0:
+            x,y = zip(*data)
+            plt.plot_date(x, y, '-', label='loggerdata',color='blue')
+            ncol += 1
+
+    # gecorrigeerde reeks toevoegen
+    if corrected:
+        corr = screen.mloc.series_set.filter(name__iendswith='corr').first()
+        if corr is not None and corr.aantal() > 0:
+            res = corr.to_pandas().resample(rule='H').mean()
+            plt.plot_date(res.index.to_pydatetime(), res.values, '-', label='gecorrigeerd',color='grey')
+            ncol += 1
 
     # handpeilingen toevoegen
     hand = screen.get_hand('nap')
@@ -136,37 +141,42 @@ def chart_for_screen(screen,start=None,stop=None,loggerpos=True):
     plt.close()    
     return img.getvalue()
 
-def chart_for_well(well,start=None,stop=None):
+def chart_for_well(well,start=None,stop=None,chart_type='corrected'):
     fig=plt.figure(figsize=THUMB_SIZE)
     ax=fig.gca()
     datemin=start or datetime.datetime(2013,1,1)
-    datemax=stop or datetime.datetime(2017,12,31)
+    datemax=stop or datetime.datetime(2019,6,1)
     if start or stop:
         ax.set_xlim(datemin, datemax)
     plt.grid(linestyle='-', color='0.9')
     ncol = 0
     index = 0
     for screen in well.screen_set.all():
-        data = screen.get_levels('nap',rule='H')
-#         n = len(data) / (THUMB_SIZE[0]*THUMB_DPI)
-#         if n > 1:
-#             #use data thinning: take very nth row
-#             data = data[::n]
-        if len(data)>0:
-            x,y = zip(*data)
-            color=getcolor(index)
-            plt.plot_date(x, y, '-',label='filter {}'.format(screen.nr),color=color)
+        color=getcolor(index)
+        ok = False
+        if chart_type == 'corrected':
+            data = screen.mloc.series_set.filter(name__iendswith='corr').first()
+            if data:
+                data = data.to_pandas()
+                if data.size>1:
+                    data = data.resample('H').mean()
+                plt.plot_date(data.index.to_pydatetime(), data.values, '-',label='filter {}'.format(screen.nr),color=color)
+                ncol += 1
+                ok = True
+        if not ok:
+            data = screen.get_levels('nap',rule='H')
+            if data:
+                x,y = zip(*data)
+                plt.plot_date(x, y, '-',label='filter {}'.format(screen.nr),color=color)
+                ncol += 1
+                ok = True
+        hand = screen.get_hand('nap')
+        if len(hand)>0:
+            x,y = zip(*hand)
+            plt.plot_date(x, y, 'o', color='red')
             ncol += 1
 
-            hand = screen.get_hand('nap')
-            if len(hand)>0:
-                x,y = zip(*hand)
-                if well.screen_set.count() == 1:
-                    color = 'red'
-                plt.plot_date(x, y, 'o', color=color)
-                ncol += 1
-
-            index += 1
+        index += 1
             
     plt.ylabel('m tov NAP')
 
@@ -285,29 +295,31 @@ def recomp(screen,series,baros={}):
                 abaro = abaro.reindex(data.index)
                 abaro[:barostart] = np.NaN
                 abaro[baroend:] = np.NaN
-                data = data - abaro
-    
-                data.dropna(inplace=True)
-                
-                #clear datapoints with less than 5 cm of water
-                data[data<5] = np.nan
-                # count dry values
-                dry = data.isnull().sum()
-                if dry:
-                    logger.warning('Logger {}, MON file {}: {} out of {} measurements have less than 5 cm of water'.format(unicode(logpos),mon,dry,data.size))
-                
-                data = data / 100 + (logpos.refpnt - logpos.depth)
-                
-            else:
-                # no pressure or level in monfile
-                logger.error('Geen "PRESSURE" of "LEVEL" parameter gevonden in monfile {}'.format(mon))
-                continue
-    
-            if seriesdata is None:
-                seriesdata = data
-            else:
-                seriesdata = seriesdata.append(data)
-        if seriesdata:
+
+                if data.any() and abaro.any():
+                    # we have some data and some air pressure
+                    data = data - abaro
+                    data.dropna(inplace=True)
+                    
+                    #clear datapoints with less than 5 cm of water
+                    data[data<5] = np.nan
+                    # count dry values
+                    dry = data.isnull().sum()
+                    if dry:
+                        logger.warning('Logger {}, MON file {}: {} out of {} measurements have less than 5 cm of water'.format(unicode(logpos),mon,dry,data.size))
+                    
+                    data = data / 100 + (logpos.refpnt - logpos.depth)
+                    
+                else:
+                    # no pressure or level in monfile
+                    logger.error('Geen "PRESSURE" of "LEVEL" parameter gevonden in monfile {}'.format(mon))
+                    continue
+        
+                if seriesdata is None:
+                    seriesdata = data
+                else:
+                    seriesdata = seriesdata.append(data)
+        if seriesdata is not None:
             seriesdata = series.do_postprocess(seriesdata)
             
     if seriesdata is None:
@@ -323,220 +335,7 @@ def recomp(screen,series,baros={}):
     series.save()
     series.validate(reset=True)
 
-# def convert_to_nap(screen,series,parameter='Waterstand'):
-#     ''' offset timeseries from surface to NAP '''
-#     
-#     seriesdata = None
-#     for logpos in screen.loggerpos_set.all().order_by('start_date'):
-#         if logpos.refpnt is None:
-#             logger.warning('Referentiepunt ontbreekt voor {pos}'.format(pos=logpos))
-#             continue
-#         for ds in logpos.logger.datasources.all():
-#             print ' ', logpos.logger, logpos.start_date, logpos.refpnt
-#             try:
-#                 data = ds.get_data()
-#             except Exception as e:
-#                 logger.error('Error reading {}: {}'.format(ds,e))
-#                 continue
-#             if not data:
-#                 logger.error('No data found in {}'.format(ds))
-#                 continue
-# 
-#             if isinstance(data,dict):
-#                 data = data.itervalues().next()
-# 
-#             if not parameter in data:
-#                 logger.error('parameter {} not found in file {}'.format(parameter, ds))
-#             
-#             data = data[parameter]
-#             data = series.do_postprocess(data)
-#             data = data + logpos.refpnt
-#             if seriesdata is None:
-#                 seriesdata = data
-#             else:
-#                 seriesdata = seriesdata.append(data)
-#     return seriesdata
-#
-# def get_series_data1(screen,series,parameter='Waterstand'):
-#     
-#     seriesdata = None
-#     for logpos in screen.loggerpos_set.all().order_by('start_date'):
-#         for ds in logpos.logger.datasources.all():
-#             print ' ', logpos.logger, logpos.start_date, logpos.refpnt
-#             try:
-#                 data = ds.get_data()
-#             except Exception as e:
-#                 logger.error('Error reading {}: {}'.format(ds,e))
-#                 continue
-#             if not data:
-#                 logger.error('No data found in {}'.format(ds))
-#                 continue
-# 
-#             if isinstance(data,dict):
-#                 data = data.itervalues().next()
-# 
-#             if not parameter in data:
-#                 logger.error('parameter {} not found in file {}'.format(parameter, ds))
-#             
-#             data = data[parameter]
-#             data = series.do_postprocess(data)
-#             if seriesdata is None:
-#                 seriesdata = data
-#             else:
-#                 seriesdata = seriesdata.append(data)
-#     return seriesdata
-#
-# def compensate1(screen,series,baros,parameter='PRESSURE'):
-#     ''' compensate for air pressure '''
-#     well = screen.well
-#     if not hasattr(well,'meteo') or well.meteo.baro is None:
-#         logger.error('Luchtdruk ontbreekt voor put {well}'.format(well=well))
-#         return None
-#     
-#     baroseries = well.meteo.baro
-#     logger.info('Compenseren voor luchtdrukreeks {}'.format(baroseries))
-#     if baroseries in baros:
-#         baro = baros[baroseries]
-#     else:
-#         baro = baroseries.to_pandas()
-# 
-#         # if baro datasource = KNMI then convert from hPa to cm H2O
-#         dsbaro = baroseries.datasource()
-#         if dsbaro:
-#             gen = dsbaro.generator
-#             if 'knmi' in gen.name.lower() or 'knmi' in gen.classname.lower():
-#                 # TODO: use g at  baro location, not well location
-#                 baro = baro / (screen.well.g or 9.80638)
-#         
-#         baros[baroseries] = baro
-#         
-#     seriesdata = None
-#     sumdry = 0
-#     for logpos in screen.loggerpos_set.all().order_by('start_date'):
-#         if logpos.refpnt is None:
-#             logger.warning('Referentiepunt ontbreekt voor {pos}'.format(pos=logpos))
-#             continue
-#         if logpos.depth is None:
-#             logger.warning('Inhangdiepte ontbreekt voor {pos}'.format(pos=logpos))
-#             continue
-# 
-#         # invalidate statistics
-#         logpos.clear_stats()
-#         
-#         for mon in logpos.monfile_set.all().order_by('start_date'):
-#             print ' ', logpos.logger, logpos.start_date, mon
-#             try:
-#                 mondata = mon.get_data()
-#             except Exception as e:
-#                 logger.error('Error reading {}: {}'.format(mon,e))
-#                 continue
-#             if not mondata:
-#                 logger.error('No data found in {}'.format(mon))
-#                 continue
-# 
-#             if isinstance(mondata,dict):
-#                 # Nov 2016: new signature for get_data 
-#                 mondata = mondata.itervalues().next()
-# 
-#             data = mondata[parameter]
-#             data = series.do_postprocess(data)
-#             
-#             # issue warning if data has points beyond timespan of barometer
-#             barostart = baro.index[0]
-#             dataend = data.index[0]
-#             if dataend < barostart:
-#                 logger.warning('Geen luchtdruk gegevens beschikbaar voor {}'.format(barostart))
-#                 continue
-#             baroend = baro.index[-1]
-#             datastart = data.index[0]
-#             if datastart > baroend:
-#                 logger.warning('Geen luchtdruk gegevens beschikbaar na {}'.format(baroend))
-#                 continue
-# 
-#             adata, abaro = data.align(baro)
-#             abaro = abaro.interpolate(method='time')
-#             abaro = abaro.reindex(data.index)
-#             abaro[:barostart] = np.NaN
-#             abaro[baroend:] = np.NaN
-#             data = data - abaro
-# 
-#             data.dropna(inplace=True)
-#             
-#             # clip logger data on timerange of baros data
-#             # data = data[max(barostart,datastart):min(baroend,dataend)]
-# 
-#             #clear datapoints with less than 2 cm of water
-#             data[data<2] = np.nan
-#             # count dry values
-#             dry = data.isnull().sum()
-#             if dry:
-#                 logger.warning('Logger {}, MON file {}: {} out of {} measurements have less than 2 cm of water'.format(unicode(logpos),mon,dry,data.size))
-#             sumdry += dry
-#             
-#             data = data / 100 + (logpos.refpnt - logpos.depth)
-#             if seriesdata is None:
-#                 seriesdata = data
-#             else:
-#                 seriesdata = seriesdata.append(data)
-#     if sumdry:
-#         logger.warning('Screen {}: {} out of {} measurements have less than 2 cm of water'.format(unicode(screen),sumdry,seriesdata.size))
-#                 
-#     return seriesdata
-# 
-# def recomp1(screen,series,baros={}):
-#     ''' re-compensate timeseries for screen '''
-#     loggers = screen.get_loggers()
-#     data = None
-#     for datalogger in loggers:
-#         for ds in datalogger.datasources.all():
-#             if ds:
-#                 gen = ds.generator.classname.lower()
-#                 if 'sws.diver' in gen:
-#                     dsdata = None
-#                     pressureParameter = ds.parameter_set.filter(name='PRESSURE').first()
-#                     if pressureParameter:
-#                         dsdata=compensate(screen, series, baros, 'PRESSURE')
-#                     levelParameter = ds.parameter_set.filter(name='LEVEL').first()
-#                     if levelParameter:
-#                         # we have compensated data in mon files
-#                         levelData = get_series_data(screen,series,'LEVEL') / 100.0
-#                         if dsdata:
-#                             dsdata.append(levelData)
-#                         else:
-#                             dsdata = levelData
-#                 elif 'ellitrack' in gen:
-#                     dsdata=get_series_data(screen, series, 'Waterstand')
-#                 else:
-#                     logger.error('generator {} not supported'.format(gen))
-#             else:
-#                 logger.warning('no datasource for logger {}'.format(logger))
-#             if data is None:
-#                 data = dsdata
-#             else:
-#                 data = data.append(dsdata)
-#     if data is None:
-#         logger.warning('No data for {}'.format(screen))
-#         return
-# 
-#     # remove duplicates
-#     data = data.groupby(data.index).last()
-#     # sort data
-#     data.sort_index(inplace=True)
-#     datapoints=[]
-#     for date,value in data.iteritems():
-#         value = float(value)
-#         if math.isnan(value) or date is None:
-#             continue
-#         datapoints.append(DataPoint(series=series, date=date, value=value))
-#     series.datapoints.all().delete()
-#     series.datapoints.bulk_create(datapoints)
-#     series.unit = 'm tov NAP'
-#     series.make_thumbnail()
-#     series.save()
-# 
-#     series.validate(reset=True)
-
-def drift_correct(series, manual):
+def drift_correct1(series, manual):
     ''' correct drift with manual measurements (both are pandas series)'''
     # TODO: extrapolate series to manual 
     # calculate differences
@@ -553,15 +352,31 @@ def drift_correct(series, manual):
     drift = drift.fillna(0)
     return series-drift
 
+def drift_correct(levels, peilingen):
+    ''' correct for drift and/or offset.
+    both levels and peilingen are pandas series 
+    returns corrected levels '''
+    
+    # align levels and peilingen
+    left, _right = levels.align(peilingen)
+    # interpolate levels on time of peilingen
+    # fill forward and backwards with first and last reading for peilingen that are beyond range of levels
+    interp = left.interpolate(method='time').fillna(method='bfill').fillna(method='ffill')
+    # calculate difference between levels and peilingen (interpolate missing data)
+    diff = (peilingen - interp).interpolate(method='time').reindex(levels.index)
+    return levels + diff
+
 def drift_correct_screen(screen,user,inplace=False):
     series = screen.get_compensated_series()
     manual = screen.get_manual_series()
+    if series is None or manual is None:
+        return None 
     data = drift_correct(series,manual)
     if inplace:
         name = unicode(screen) + ' COMP'
     else:
         name = unicode(screen) + ' CORR'
-    cor, created = Series.objects.get_or_create(name=name,mlocatie=screen.mloc,defaults={'user':user})
+    cor, created = Series.objects.get_or_create(name=name,mlocatie=screen.mloc,defaults={'user':user,'unit':'m'})
     if created:
         cor.unit = 'm tov NAP'
     else:
@@ -573,12 +388,74 @@ def drift_correct_screen(screen,user,inplace=False):
             continue
         datapoints.append(DataPoint(series=cor, date=date, value=value))
     cor.datapoints.bulk_create(datapoints)
+    cor.update_properties()
     cor.make_thumbnail()
     cor.save()
-    screen.logger_levels = cor
-    screen.save()
+    # create chart for comparisons
+    chart, created = Chart.objects.get_or_create(name=str(screen),defaults={'title':str(screen),'user':user,'percount':0})
+    if not created:
+        chart.series.all().delete()
+    chart.series.create(order=1,series=screen.logger_levels,name='raw',label='m+NAP')
+    chart.series.create(order=2,series=cor,name='corrected')
+    chart.series.create(order=3,series=screen.manual_levels,name='handpeilingen',type='scatter')
     return cor
 
+def moncorrect(monfile, tolerance = datetime.timedelta(hours=4), tz = pytz.timezone('Etc/GMT-1')):
+
+    def copy_series(series, newname):
+        ''' create and return copy of (possibly validated) datapoints '''
+        series.pk = None
+        series.name = newname
+        series.save()
+        points = [DataPoint(series=series,date=d.date,value=d.value) for d in series.filter_points()]
+        DataPoint.objects.bulk_create(points)
+        return series
+
+    def drift_correct(levels, peilingen):
+        ''' correct for drift and/or offset.
+        both levels and peilingen are pandas series 
+        returns difference to apply to levels '''
+        
+        # align levels and peilingen
+        left, _right = levels.align(peilingen)
+        # interpolate levels on time of peilingen
+        # fill forward and backwards with first and last reading for peilingen that are beyond range of levels
+        interp = left.interpolate(method='time').fillna(method='bfill').fillna(method='ffill')
+        # return difference between levels and peilingen (interpolate missing data)
+        return (peilingen - interp).interpolate(method='time').reindex(levels.index)
+
+    if not monfile.source:
+        raise Exception('Monfile not in use')
+
+    screen = monfile.source.screen
+
+    # retrieve original series (waterlevels)
+    series = screen.find_series()
+    # get or create corrected water levels
+    corrected = '{} CORR'.format(screen)
+    try:
+        dup = screen.mloc.series_set.get(name=corrected)
+    except ObjectDoesNotExist:
+        dup = copy_series(series, corrected)
+    
+    start = monfile.start_date
+    stop = monfile.end_date
+    
+    # extract datapoints (levels) for this monfile
+    levels = series.to_pandas(start=start,stop=stop)
+    # retrieve peilingen for this monfile (allow 4 hours tolerance)
+    peilingen = screen.get_manual_series(start=start-tolerance,stop=stop+tolerance)
+    # calculate drift values
+    drift = drift_correct(levels,peilingen)
+    # calculate corrected levels for this monfile
+    corr = (levels + drift)[start:stop]
+
+    # replace values in database
+    dup.datapoints.filter(date__range=[start,stop]).delete()
+    dup.create_points(corr,tz)
+    
+    return dup
+            
 
 def register_well(well):
     # register well in acaciadata

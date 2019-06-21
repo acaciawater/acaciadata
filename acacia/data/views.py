@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import datetime,time,json,re,logging
+import json,re,logging
 from django.views.generic.list import ListView
 from django.views.generic import DetailView
 from django.views.generic.base import TemplateView
@@ -15,7 +15,7 @@ from django.contrib.auth.decorators import login_required
 from dateutil.parser import parse
 from acacia.data.models import aware
 import pandas as pd
-from acacia.data.util import resample_rule
+from acacia.data.util import resample_rule, to_millis
 from django.utils.translation import ugettext as _
 
 logger = logging.getLogger(__name__)
@@ -65,7 +65,7 @@ def SeriesToJson(request, pk):
     s = get_object_or_404(Series,pk=pk)
     pts = s.to_array()        
     # convert datetime to javascript datetime using unix timetamp conversion
-    j = json.dumps(pts, default=lambda x: time.mktime(x.timetuple())*1000.0)
+    j = json.dumps(pts, default=to_millis)
     return HttpResponse(j, content_type='application/json')
 
 def SeriesToDict(request, pk):
@@ -116,7 +116,7 @@ def ChartToJson(request, pk):
                 pass
         data['series_%d' % cs.series.id] = pts
         
-    return HttpResponse(json.dumps(data, default=lambda x: time.mktime(x.timetuple())*1000.0), content_type='application/json')
+    return HttpResponse(json.dumps(data, default=to_millis), content_type='application/json')
 
 @gzip_page
 def GridToJson(request, pk):
@@ -133,7 +133,7 @@ def GridToJson(request, pk):
         y += g.rowheight
         rowdata.extend(row)
     data = {'grid': rowdata, 'min': min(rowdata), 'max': max(rowdata) }
-    return HttpResponse(json.dumps(data,default=lambda x: time.mktime(x.timetuple())*1000.0), content_type='application/json')
+    return HttpResponse(json.dumps(data,default=to_millis), content_type='application/json')
     
 def get_key(request, pk):
     key = get_object_or_404(KeyFigure, pk)
@@ -150,11 +150,11 @@ def ChartAsCsv(request,pk):
     c = get_object_or_404(Chart,pk=pk)
     return chart_as_csv(c)
 
-def tojs(d):
-    return 'Date.UTC(%d,%d,%d,%d,%d,%d)' % (d.year, d.month-1, d.day, d.hour, d.minute, d.second)
-
-def date_handler(obj):
-    return tojs(obj) if isinstance(obj, (datetime.date, datetime.datetime,)) else obj
+# def tojs(d):
+#     return 'Date.UTC(%d,%d,%d,%d,%d,%d)' % (d.year, d.month-1, d.day, d.hour, d.minute, d.second)
+# 
+# def date_handler(obj):
+#     return tojs(obj) if isinstance(obj, (datetime.date, datetime.datetime,)) else obj
 
 from .tasks import update_meetlocatie, update_datasource
 
@@ -271,10 +271,7 @@ class SeriesView(DetailView):
                                 <td style = "text-align: right">: <b>{point.y}</b></td></tr>'}
         allseries.append(sop)
         options['series'] = allseries
-        jop = json.dumps(options,default=date_handler)
-        # remove quotes around date stuff
-        jop = re.sub(r'\"(Date\.UTC\([\d,]+\))\"',r'\1', jop)
-        context['options'] = jop
+        context['options'] = json.dumps(options,default=to_millis)
         context['theme'] = ' None' #ser.theme()
         return context
 
@@ -334,9 +331,9 @@ class ChartBaseView(TemplateView):
                 }
             }
         if chart.start:
-            options['xAxis']['min'] = tojs(chart.start)
+            options['xAxis']['min'] = chart.start
         if chart.stop:
-            options['xAxis']['max'] = tojs(chart.stop)
+            options['xAxis']['max'] = chart.stop
         allseries = []
 
         tmin = chart.start
@@ -349,11 +346,11 @@ class ChartBaseView(TemplateView):
         for _,s in enumerate(chart.series.all()):
             ser = s.series
             if tmin:
-                tmin = min(tmin,s.t0 or ser.van() or chart.start)
+                tmin = min(tmin,s.t0 or ser.van() or chart.start or tmin)
             else:
                 tmin = s.t0 or ser.van() or chart.start
             if tmax:
-                tmax = max(tmax,s.t1 or ser.tot() or chart.stop)
+                tmax = max(tmax,s.t1 or ser.tot() or chart.stop or tmax)
             else:
                 tmax = s.t1 or ser.tot() or chart.stop
             if ymin:
@@ -472,10 +469,7 @@ class ChartBaseView(TemplateView):
                 ax['plotLines'] = []
             ax['plotLines'].append(line_options) 
 
-        jop = json.dumps(options,default=date_handler)
-        # remove quotes around date stuff
-        jop = re.sub(r'\"(Date\.UTC\([\d,]+\))\"',r'\1', jop)
-        return jop
+        return json.dumps(options,default=to_millis)
     
     def get_context_data(self, **kwargs):
         context = super(ChartBaseView, self).get_context_data(**kwargs)
@@ -607,7 +601,7 @@ class GridBaseView(TemplateView):
             }]
         }
 
-        return json.dumps(options,default=lambda x: time.mktime(x.timetuple())*1000.0)
+        return json.dumps(options,default=to_millis)
     
     def get_context_data(self, **kwargs):
         context = super(GridBaseView, self).get_context_data(**kwargs)

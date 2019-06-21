@@ -113,7 +113,7 @@ class ValidationAdmin(admin.ModelAdmin):
     exclude = ('users','validated','valid')
     #filter_horizontal = ('users',)
     list_filter = ('series','last_validation','valid',RuleFilter)
-    list_display = ('series','last_validation','valid','rule_names')
+    list_display = ('series','last_validation','valid','num_invalid_points','rule_names')
     raw_id_fields = ['series']
     autocomplete_lookup_fields = {
         'fk': ['series'],

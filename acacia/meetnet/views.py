@@ -24,8 +24,7 @@ from util import handle_uploaded_files
 from django.utils.timezone import get_current_timezone
 from django.utils.text import slugify
 from acacia.data.actions import download_series_csv
-from acacia.data.util import series_as_csv, unix_timestamp
-from acacia.validation.models import RollingRule, RangeRule
+from acacia.data.util import series_as_csv, to_millis
 
 logger = logging.getLogger(__name__)
 
@@ -121,7 +120,7 @@ class ScreenChartView(TemplateView):
                        ]
             }
             
-        context['options'] = json.dumps(options, default=lambda x: int(unix_timestamp(x)*1000))
+        context['options'] = json.dumps(options, default=to_millis)
         context['screen'] = filt
         return context
 
@@ -152,7 +151,7 @@ def json_series(request, pk):
             data.update({'stats%s'%screen.nr: ranges})
     except:
         pass
-    return HttpResponse(json.dumps(data,ignore_nan=True,default=lambda x: int(unix_timestamp(x)*1000)),content_type='application/json')
+    return HttpResponse(json.dumps(data,ignore_nan=True,default=to_millis),content_type='application/json')
     
 class WellChartView(NavMixin, TemplateView):
     template_name = 'meetnet/chart_detail.html'
@@ -301,7 +300,7 @@ class WellChartView(NavMixin, TemplateView):
                                              })
         options['series'] = series
         
-        context['options'] = json.dumps(options, default=lambda x: unix_timestamp(x)*1000)
+        context['options'] = json.dumps(options, default=to_millis)
         return context
 
 from acacia.data.views import DownloadSeriesAsZip

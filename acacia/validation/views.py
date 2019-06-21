@@ -14,7 +14,7 @@ from django.core.urlresolvers import reverse
 from acacia.validation.models import Validation, Result, ValidPoint
 from acacia.data.util import slugify
 from acacia.validation.forms import UploadFileForm, ValidationForm
-from acacia.data.views import SeriesView, date_handler
+from acacia.data.views import SeriesView
 
 import logging
 from datetime import datetime
