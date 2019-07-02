@@ -233,7 +233,7 @@ class WellChartView(NavMixin, TemplateView):
                             })
 
             data = screen.get_manual_series()
-            if data is None:
+            if data is None or data.empty:
                 continue
             hand = zip(data.index.to_pydatetime(), data.values)
             series.append({'name': 'peiling {}'.format(screen.nr),
