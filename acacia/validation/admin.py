@@ -35,7 +35,7 @@ def apply_filter(modeladmin, request, queryset):
     count = queryset.count()
     for filt in queryset:
         for series in filt.series.all():
-            filtered_data = filt.apply(series)
+            filtered_data = filt.apply(series.to_pandas())
             series.replace(filtered_data)
     messages.success(request, '{} filters toegepast'.format(count))
 apply_filter.short_description='Geselecteerde filters toepassen op betreffende tijdreeksen'
@@ -113,7 +113,7 @@ class ValidationAdmin(admin.ModelAdmin):
     exclude = ('users','validated','valid')
     #filter_horizontal = ('users',)
     list_filter = ('series','last_validation','valid',RuleFilter)
-    list_display = ('series','last_validation','valid','rule_names')
+    list_display = ('series','last_validation','valid','num_invalid_points','rule_names')
     raw_id_fields = ['series']
     autocomplete_lookup_fields = {
         'fk': ['series'],

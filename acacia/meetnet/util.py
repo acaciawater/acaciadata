@@ -70,19 +70,19 @@ THUMB_DPI=72
 THUMB_SIZE=(12,5) # inch
 
 def getcolor(index):
-    colors = ['blue', 'red', 'green', 'black', 'orange', 'purple', 'brown', 'grey' ]
+    colors = ['blue', 'green', 'black', 'orange', 'purple', 'brown', 'grey' ]
     index = index % len(colors) 
     return colors[index]
 
 def screencolor(screen):
     return getcolor(screen.nr-1)
 
-def chart_for_screen(screen,start=None,stop=None,loggerpos=True, corrected=True):
+def chart_for_screen(screen,start=None,stop=None,raw=True,loggerpos=True,corrected=True):
     fig=plt.figure(figsize=THUMB_SIZE)
     ax=fig.gca()
 
     datemin=start or datetime.datetime(2013,1,1)
-    datemax=stop or datetime.datetime(2018,12,31)
+    datemax=stop or datetime.datetime(2019,5,15)
     if start or stop:
         ax.set_xlim(datemin, datemax)
 
@@ -106,11 +106,12 @@ def chart_for_screen(screen,start=None,stop=None,loggerpos=True, corrected=True)
             plt.plot_date(x,y,'--',label='diverpositie',color='orange')
             ncol += 1
 
-    data = screen.get_levels('nap',rule='H')
-    if len(data)>0:
-        x,y = zip(*data)
-        plt.plot_date(x, y, '-', label='loggerdata',color='blue')
-        ncol += 1
+    if raw:
+        data = screen.get_levels('nap',rule='H')
+        if len(data)>0:
+            x,y = zip(*data)
+            plt.plot_date(x, y, '-', label='loggerdata',color='blue')
+            ncol += 1
 
     # gecorrigeerde reeks toevoegen
     if corrected:
@@ -140,37 +141,42 @@ def chart_for_screen(screen,start=None,stop=None,loggerpos=True, corrected=True)
     plt.close()    
     return img.getvalue()
 
-def chart_for_well(well,start=None,stop=None):
+def chart_for_well(well,start=None,stop=None,chart_type='corrected'):
     fig=plt.figure(figsize=THUMB_SIZE)
     ax=fig.gca()
     datemin=start or datetime.datetime(2013,1,1)
-    datemax=stop or datetime.datetime(2018,12,31)
+    datemax=stop or datetime.datetime(2019,6,1)
     if start or stop:
         ax.set_xlim(datemin, datemax)
     plt.grid(linestyle='-', color='0.9')
     ncol = 0
     index = 0
     for screen in well.screen_set.all():
-        data = screen.get_levels('nap',rule='H')
-#         n = len(data) / (THUMB_SIZE[0]*THUMB_DPI)
-#         if n > 1:
-#             #use data thinning: take very nth row
-#             data = data[::n]
-        if len(data)>0:
-            x,y = zip(*data)
-            color=getcolor(index)
-            plt.plot_date(x, y, '-',label='filter {}'.format(screen.nr),color=color)
+        color=getcolor(index)
+        ok = False
+        if chart_type == 'corrected':
+            data = screen.mloc.series_set.filter(name__iendswith='corr').first()
+            if data:
+                data = data.to_pandas()
+                if data.size>1:
+                    data = data.resample('H').mean()
+                plt.plot_date(data.index.to_pydatetime(), data.values, '-',label='filter {}'.format(screen.nr),color=color)
+                ncol += 1
+                ok = True
+        if not ok:
+            data = screen.get_levels('nap',rule='H')
+            if data:
+                x,y = zip(*data)
+                plt.plot_date(x, y, '-',label='filter {}'.format(screen.nr),color=color)
+                ncol += 1
+                ok = True
+        hand = screen.get_hand('nap')
+        if len(hand)>0:
+            x,y = zip(*hand)
+            plt.plot_date(x, y, 'o', color='red')
             ncol += 1
 
-            hand = screen.get_hand('nap')
-            if len(hand)>0:
-                x,y = zip(*hand)
-                if well.screen_set.count() == 1:
-                    color = 'red'
-                plt.plot_date(x, y, 'o', color=color)
-                ncol += 1
-
-            index += 1
+        index += 1
             
     plt.ylabel('m tov NAP')
 
@@ -289,28 +295,30 @@ def recomp(screen,series,baros={}):
                 abaro = abaro.reindex(data.index)
                 abaro[:barostart] = np.NaN
                 abaro[baroend:] = np.NaN
-                data = data - abaro
-    
-                data.dropna(inplace=True)
-                
-                #clear datapoints with less than 5 cm of water
-                data[data<5] = np.nan
-                # count dry values
-                dry = data.isnull().sum()
-                if dry:
-                    logger.warning('Logger {}, MON file {}: {} out of {} measurements have less than 5 cm of water'.format(unicode(logpos),mon,dry,data.size))
-                
-                data = data / 100 + (logpos.refpnt - logpos.depth)
-                
-            else:
-                # no pressure or level in monfile
-                logger.error('Geen "PRESSURE" of "LEVEL" parameter gevonden in monfile {}'.format(mon))
-                continue
-    
-            if seriesdata is None:
-                seriesdata = data
-            else:
-                seriesdata = seriesdata.append(data)
+
+                if data.any() and abaro.any():
+                    # we have some data and some air pressure
+                    data = data - abaro
+                    data.dropna(inplace=True)
+                    
+                    #clear datapoints with less than 5 cm of water
+                    data[data<5] = np.nan
+                    # count dry values
+                    dry = data.isnull().sum()
+                    if dry:
+                        logger.warning('Logger {}, MON file {}: {} out of {} measurements have less than 5 cm of water'.format(unicode(logpos),mon,dry,data.size))
+                    
+                    data = data / 100 + (logpos.refpnt - logpos.depth)
+                    
+                else:
+                    # no pressure or level in monfile
+                    logger.error('Geen "PRESSURE" of "LEVEL" parameter gevonden in monfile {}'.format(mon))
+                    continue
+        
+                if seriesdata is None:
+                    seriesdata = data
+                else:
+                    seriesdata = seriesdata.append(data)
         if seriesdata is not None:
             seriesdata = series.do_postprocess(seriesdata)
             
