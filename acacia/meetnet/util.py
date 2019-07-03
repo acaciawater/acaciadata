@@ -158,11 +158,12 @@ def chart_for_well(well,start=None,stop=None,chart_type='corrected'):
             data = screen.mloc.series_set.filter(name__iendswith='corr').first()
             if data:
                 data = data.to_pandas()
-                if data.size>1:
+                if not data.empty:
                     data = data.resample('H').mean()
-                plt.plot_date(data.index.to_pydatetime(), data.values, '-',label='filter {}'.format(screen.nr),color=color)
-                ncol += 1
-                ok = True
+                if not data.empty:
+                    plt.plot_date(data.index.to_pydatetime(), data.values, '-',label='filter {}'.format(screen.nr),color=color)
+                    ncol += 1
+                    ok = True
         if not ok:
             data = screen.get_levels('nap',rule='H')
             if data:
