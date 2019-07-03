@@ -212,7 +212,7 @@ class WellChartView(NavMixin, TemplateView):
                     start = screen.start()
                     
                 if stop:
-                    stop = min(stop,screen.stop())
+                    stop = max(stop,screen.stop())
                 else:
                     stop = screen.stop()
 
