@@ -118,7 +118,7 @@ def chart_for_screen(screen,start=None,stop=None,raw=True,loggerpos=True,correct
         corr = screen.mloc.series_set.filter(name__iendswith='corr').first()
         if corr is not None and corr.aantal() > 0:
             res = corr.to_pandas().resample(rule='H').mean()
-            plt.plot_date(res.index.to_pydatetime(), res.values, '-', label='gecorrigeerd',color='grey')
+            plt.plot_date(res.index.to_pydatetime(), res.values, '-', label='gecorrigeerd',color='purple')
             ncol += 1
 
     # handpeilingen toevoegen
