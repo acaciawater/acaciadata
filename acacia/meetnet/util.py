@@ -174,7 +174,7 @@ def chart_for_well(well,start=None,stop=None,chart_type='corrected'):
         hand = screen.get_hand('nap')
         if len(hand)>0:
             x,y = zip(*hand)
-            plt.plot_date(x, y, 'o', color='red')
+            plt.plot_date(x, y, 'o', color=color)
             ncol += 1
 
         index += 1
