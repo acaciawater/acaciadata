@@ -106,20 +106,30 @@ def chart_for_screen(screen,start=None,stop=None,raw=True,loggerpos=True,correct
             plt.plot_date(x,y,'--',label='diverpositie',color='orange')
             ncol += 1
 
-    if raw:
+    corr = screen.mloc.series_set.filter(name__iendswith='corr').first()
+    hasCor = corr is not None and corr.aantal() > 0 
+    rawShown = False
+
+    if raw or not hasCor:
         data = screen.get_levels('nap',rule='H')
         if len(data)>0:
             x,y = zip(*data)
-            plt.plot_date(x, y, '-', label='loggerdata',color='blue')
+            plt.plot_date(x, y, '-', label='logger',color='blue')
             ncol += 1
-
+            rawShown = True
+            
     # gecorrigeerde reeks toevoegen
-    if corrected:
-        corr = screen.mloc.series_set.filter(name__iendswith='corr').first()
-        if corr is not None and corr.aantal() > 0:
-            res = corr.to_pandas().resample(rule='H').mean()
-            plt.plot_date(res.index.to_pydatetime(), res.values, '-', label='gecorrigeerd',color='purple')
-            ncol += 1
+    if corrected and hasCor:
+        res = corr.to_pandas().resample(rule='H').mean()
+        if not res.empty:
+            if rawShown:
+                label = 'gecorrigeerd'
+                color = 'purple'
+            else:
+                label = 'logger'
+                color = 'blue'
+        plt.plot_date(res.index.to_pydatetime(), res.values, '-', label=label,color=color)
+        ncol += 1
 
     # handpeilingen toevoegen
     hand = screen.get_hand('nap')
