@@ -161,6 +161,7 @@ def chart_for_well(well,start=None,stop=None,chart_type='corrected'):
     plt.grid(linestyle='-', color='0.9')
     ncol = 0
     index = 0
+    singlescreen = well.screen_set.count() == 1
     for screen in well.screen_set.all():
         color=getcolor(index)
         ok = False
@@ -184,7 +185,7 @@ def chart_for_well(well,start=None,stop=None,chart_type='corrected'):
         hand = screen.get_hand('nap')
         if len(hand)>0:
             x,y = zip(*hand)
-            plt.plot_date(x, y, 'o', label='handpeiling {}'.format(screen.nr), color=color)
+            plt.plot_date(x, y, 'o', label='handpeiling {}'.format(screen.nr), color='red' if singlescreen else color)
             ncol += 1
 
         index += 1
