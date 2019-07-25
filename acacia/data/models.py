@@ -1444,10 +1444,11 @@ class Series(PolymorphicModel,LoggerSourceMixin):
     def has_filters(self):
         ''' returns true if datapoint filters have been defined '''
         try:
-            return self.filter_set.exists() 
-        except ObjectDoesNotExist:
-            # no filters defined
-            return False
+            if hasattr(self,'filter_set'):
+                return self.filter_set.exists() 
+        except:
+            pass
+        return False
     
     has_filters.boolean = True
     has_filters.short_description = 'gefilterd'
