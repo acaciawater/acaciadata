@@ -22,7 +22,8 @@ class Network(models.Model):
     bound = models.URLField(blank=True,verbose_name = 'grens', help_text = _('url of kml file of network boundary'))
     last_round = models.DateField(null=True,blank=True,verbose_name = _('last measuring round'))
     next_round = models.DateField(null=True,blank=True,verbose_name = _('next measuring round'))
-    
+    display_name = models.CharField(_('displayname'), max_length=4,default='name',choices=(('name',_('well name')),('nitg',_('NITG-code'))),
+                                    help_text=_('display well names with NITG code or use custom names'))
     def __unicode__(self):
         return self.name
 
@@ -128,8 +129,8 @@ class Well(geo.Model):
         return reverse('meetnet:well-detail', args=[self.id])
 
     def __unicode__(self):
-        return self.nitg or self.name
-        #return self.name
+        #return self.nitg or self.name
+        return self.name if self.network.display_name=='name' else self.nitg
     
     def has_data(self):
         for s in self.screen_set.all():
@@ -321,7 +322,8 @@ class Screen(models.Model):
     
     def __unicode__(self):
         #return '%s/%03d' % (self.well.nitg, self.nr)
-        wid = self.well.nitg or self.well.name
+        # wid = self.well.nitg or self.well.name
+        wid = str(self.well)
         return '%s/%03d' % (wid, self.nr)
 
     def get_absolute_url(self):
