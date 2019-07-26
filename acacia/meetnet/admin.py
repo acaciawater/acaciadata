@@ -231,15 +231,20 @@ class HandpeilingAdmin(admin.ModelAdmin):
     exclude = ('user','parameter')
     inlines = [DataPointInline,]
     search_fields = ['screen', 'name',]
-    fieldsets = (
-                 (_('Algemeen'), {'fields': ('screen', 'refpnt', ('unit', 'type'), 'description','timezone'),
-                               'classes': ('grp-collapse grp-open',),
-                               }),
-    )
+    fields = ('screen','description', 'timezone', ('refpnt','unit'))
+#     fieldsets = (
+#                  (_('Algemeen'), {'fields': ('screen', 'refpnt', ('unit', 'type'), 'description','timezone'),
+#                                'classes': ('grp-collapse grp-open',),
+#                                }),
+#    )
     def get_changeform_initial_data(self, request):
         return {'type': 'scatter','user': request.user, 'unit': 'm', 'timezone': settings.TIME_ZONE}
-    
-admin.site.register(Network)
+
+class NetworkAdmin(admin.ModelAdmin):
+    model = Network
+    fields = ('name','display_name',('homepage','logo'),'bound',('last_round','next_round'))
+        
+admin.site.register(Network, NetworkAdmin)
 admin.site.register(Well, WellAdmin)
 admin.site.register(Screen, ScreenAdmin)
 admin.site.register(Photo,PhotoAdmin)
