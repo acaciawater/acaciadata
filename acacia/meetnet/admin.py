@@ -4,13 +4,11 @@ Created on Jun 1, 2014
 @author: theo
 '''
 from .models import Network, Well, Photo, Screen, Datalogger, LoggerPos, LoggerDatasource, MonFile, Channel
-from acacia.data.admin import DatasourceAdmin, SourceFileAdmin,\
-    ManualSeriesAdmin, DataPointInline, SeriesForm
+from acacia.data.admin import DatasourceAdmin, SourceFileAdmin, DataPointInline, SeriesForm
 from django.conf import settings
 from django.contrib import admin
 from acacia.meetnet.models import MeteoData, Handpeiling
 from acacia.meetnet.actions import update_statistics
-from acacia.data.models import Series
 from django.utils.translation import ugettext as _
 
 USE_GOOGLE_TERRAIN_TILES = False
@@ -224,9 +222,8 @@ class HandForm(SeriesForm):
         cleaned_data['mlocatie'] = screen.mloc
         return cleaned_data
     
-class HandpeilingAdmin(ManualSeriesAdmin):
+class HandpeilingAdmin(admin.ModelAdmin):
     model = Handpeiling
-    base_model = Series
     form = HandForm
     actions = []
     list_display = ('screen', 'thumbtag', 'unit', 'timezone', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
@@ -240,17 +237,17 @@ class HandpeilingAdmin(ManualSeriesAdmin):
                                }),
     )
     def get_changeform_initial_data(self, request):
-        return {'type': 'scatter','user': request.user}
+        return {'type': 'scatter','user': request.user, 'unit': 'm', 'timezone': settings.TIME_ZONE}
     
 admin.site.register(Network)
 admin.site.register(Well, WellAdmin)
 admin.site.register(Screen, ScreenAdmin)
 admin.site.register(Photo,PhotoAdmin)
 admin.site.register(MeteoData, MeteoDataAdmin)
+admin.site.register(Handpeiling, HandpeilingAdmin)
 
 admin.site.register(Datalogger, DataloggerAdmin)
 admin.site.register(LoggerPos, LoggerPosAdmin)
 admin.site.register(LoggerDatasource, LoggerDatasourceAdmin)
 admin.site.register(MonFile,MonFileAdmin)
 admin.site.register(Channel, ChannelAdmin)
-admin.site.register(Handpeiling, HandpeilingAdmin)
