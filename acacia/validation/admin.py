@@ -2,12 +2,12 @@ from django.contrib import admin, messages
 from acacia.validation.models import Validation, Result,\
     BaseRule, ValueRule, SeriesRule, NoDataRule, OutlierRule, DiffRule,\
     ScriptRule, SlotRule, SubResult, RuleOrder, RollingRule, RangeRule, Filter,\
-    FilterOrder
-from acacia.validation.views import download
+    FilterOrder, MaaiveldRule
 from polymorphic.admin.parentadmin import PolymorphicParentModelAdmin
 from polymorphic.admin.childadmin import PolymorphicChildModelAdmin
 from polymorphic.admin.filters import PolymorphicChildModelFilter
 from django.shortcuts import redirect
+from django.conf import settings
 
 def validate(modeladmin, request, queryset):
     count = queryset.count()
@@ -43,7 +43,7 @@ apply_filter.short_description='Geselecteerde filters toepassen op betreffende t
 @admin.register(BaseRule)
 class BaseRuleAdmin(PolymorphicParentModelAdmin):
     base_model = BaseRule
-    child_models = (ValueRule, SeriesRule, NoDataRule, OutlierRule, DiffRule, ScriptRule, SlotRule, RollingRule, RangeRule)
+    child_models = (ValueRule, SeriesRule, NoDataRule, OutlierRule, DiffRule, ScriptRule, SlotRule, RollingRule, RangeRule, MaaiveldRule)
     list_filter = (PolymorphicChildModelFilter,)
     search_fields = ('name','description')
 
@@ -160,3 +160,10 @@ class FilterAdmin(admin.ModelAdmin):
 #     }
     filter_horizontal = ('series',)
     
+    
+try:
+    @admin.register(MaaiveldRule)
+    class MaaiveldRuleAdmin(admin.ModelAdmin):
+        model = MaaiveldRule
+except:
+    pass

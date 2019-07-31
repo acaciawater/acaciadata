@@ -9,6 +9,8 @@ import logging
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.timezone import now
 from django.utils.text import ugettext_lazy as _
+from django.conf import settings
+from django.db.models.deletion import CASCADE
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +41,7 @@ class BaseRule(PolymorphicModel):
             return a != b
         return None
 
-    def apply(self,target):
+    def apply(self,target,context):
         return (target,self.compare(target, 0))
     
     def __unicode__(self):
@@ -53,7 +55,7 @@ class ValueRule(BaseRule):
         
     value = models.FloatField(null=True,blank=True,default=None,verbose_name='waarde',help_text='validatiewaarde waarde')
 
-    def apply(self,target):
+    def apply(self,target,**kwargs):
         return (target,self.compare(target, self.value))
 
 class SeriesRule(BaseRule):
@@ -65,7 +67,7 @@ class SeriesRule(BaseRule):
     constant = models.FloatField(default=0)
     factor = models.FloatField(default=1)
     
-    def apply(self,target):
+    def apply(self,target,context):
         series = self.series.to_pandas()
         series = series.reindex(target.index,method='nearest')
         return (target,self.compare(abs(target * self.factor + self.constant), series))
@@ -86,7 +88,7 @@ class NoDataRule(BaseRule):
     slot = models.CharField(max_length=10,default='D',choices=SLOT_CHOICES,verbose_name='Frequentie')
     count = models.PositiveIntegerField(default=1,verbose_name='Aantal')
     
-    def apply(self, target):
+    def apply(self, target, context):
         # count points in every time slot
         bins = target.resample(self.slot).count()
         # find missing data
@@ -109,7 +111,7 @@ class SlotRule(BaseRule):
     count = models.PositiveIntegerField(default=1,verbose_name='Aantal')
     slot = models.CharField(max_length=4,default='D',choices=SLOT_CHOICES,verbose_name='Eenheid')
 
-    def apply(self, target):
+    def apply(self, target, context):
         # count points in every time slot
         slot = '%d%s' % (self.count,self.slot)
         bins = target.resample(slot).count()
@@ -133,7 +135,7 @@ class OutlierRule(BaseRule):
 
     tolerance = models.FloatField(default=3,verbose_name = 'tolerantie', help_text = 'gemiddelde plus of min x maal de standaardafwijking')
     
-    def apply(self, target):
+    def apply(self, target, context):
         std = target.std() * self.tolerance
         dev = (target-target.mean()).abs()
         return (target,self.compare(dev,std))
@@ -145,7 +147,7 @@ class RollingRule(OutlierRule):
 
     count = models.PositiveIntegerField(default=3,verbose_name='Aantal punten')
     
-    def apply(self, target):
+    def apply(self, target, context):
         roll = target.rolling(window=self.count,center=True)
         mean = roll.median().fillna(method='bfill').fillna(method='ffill')
         std = target.std() * self.tolerance
@@ -160,7 +162,7 @@ class DiffRule(BaseRule):
     tolerance = models.FloatField(default=3,verbose_name = 'tolerantie', help_text = 'verschil plus of min x maal de standaardafwijking')
     direction = models.CharField(max_length = 1, default='b', choices=(('f','Vooruit'),('b','Achteruit')), verbose_name = 'kijkrichting')
 
-    def apply(self, target):
+    def apply(self, target, context):
         std = target.std() * self.tolerance
         dev = target.diff().abs()
         if dev.size > 0:
@@ -182,7 +184,7 @@ class ChangeRule(BaseRule):
     periods = models.PositiveIntegerField(default=1,verbose_name = 'periode', help_text = 'aantal periodes vooruit')
     change = models.FloatField(default=0, verbose_name='verandering', help_text='procentuele verandering')    
     
-    def apply(self, target):
+    def apply(self, target, context):
         ch = target.pct_change(periods=self.periods,freq = self.freq)
         return (target,self.compare(ch,self.change))
 
@@ -194,7 +196,7 @@ class RangeRule(BaseRule):
     lower = models.FloatField(verbose_name='Ondergrens')
     inclusive = models.BooleanField(default=True,verbose_name='inclusief')
 
-    def apply(self, target):
+    def apply(self, target, context):
         return (target,target.between(left=self.lower,right=self.upper,inclusive=self.inclusive))
     
 class ScriptRule(BaseRule):
@@ -207,9 +209,9 @@ class ScriptRule(BaseRule):
 
     script = models.TextField(default = "print 'running validation script ' + unicode(self)\nresult = (target,self.compare(target, 0))")
     
-    def apply(self, target):
+    def apply(self, target, context):
         try:
-            var = {'self': self, 'target': target}
+            var = {'self': self, 'target': target, 'context': context}
             ret = {}
             exec (self.script, var, ret)
             if not 'result' in ret:
@@ -237,11 +239,11 @@ class Filter(models.Model):
         rules = self.filterorder_set.all();
         return ','.join([order.rule.name for order in rules]) if rules else 'Empty'
 
-    def apply(self, series):
+    def apply(self, series, context):
         ''' Apply filter for single series '''
         for ro in self.filterorder_set.all():
             rule = ro.rule
-            series, valid = rule.apply(series)
+            series, valid = rule.apply(series, context)
             # remove duplicates
             valid = valid.groupby(valid.index).last()
             # retain only valid datapoints
@@ -372,7 +374,7 @@ class Validation(models.Model):
             self.subresult_set.all().delete()
             for ro in self.ruleorder_set.all():
                 rule = ro.rule
-                series, valid = rule.apply(series)
+                series, valid = rule.apply(series, context={'series':self.series,'validation':self})
                 valid = valid.groupby(valid.index).last()
                 if result is None:
                     # save result
@@ -514,3 +516,34 @@ class Result(models.Model):
 
     def __unicode__(self):
         return unicode(self.validation)
+
+if 'acacia.meetnet' in settings.INSTALLED_APPS:
+    class MaaiveldRule(BaseRule):
+        
+#         well = models.ForeignKey('meetnet.Well',on_delete=CASCADE,verbose_name=_('put'))
+
+        class Meta:
+            verbose_name = 'Maaiveld'
+            
+        def apply(self,target,context):
+
+            series = context.get('series')
+            if series is None:
+                raise Exception('MaaiveldRule: Series expected in context')
+            # find screen belonging to this series. TOSO: use series.waterlevel related manager
+            mloc = series.meetlocatie()
+            if mloc is None:
+                raise Exception('MaaiveldRule: Meetlocatie of series {} is not defined'.format(series))
+            if not mloc.screen_set.exists():
+                raise Exception('MaaiveldRule: No screen found at series.meetlocatie '+str(mloc))
+            if mloc.screen_set.count() > 1:
+                screens = ','.join([str(s) for s in mloc.screen_set.all()])
+                raise Exception('MaaiveldRule: Multiple screens found at series.meetlocatie {}: {}'.format(mloc,screens))
+            screen = mloc.screen_set.first()
+            well = screen.well
+            maaiveld = well.maaiveld or well.ahn
+            if maaiveld is None:
+                raise Exception('MaaiveldRule: No maaiveld for well')
+                
+            return (target,self.compare(target, maaiveld))
+    

@@ -138,6 +138,14 @@ class ScreenAdmin(admin.ModelAdmin):
     search_fields = ('well__name', 'well__nitg')
     list_filter = ('well','well__network','aquifer', 'group')
     inlines = [LoggerInline]
+    ordering = ()
+    
+    def get_queryset(self, request):
+        ''' override to perform custom sorting '''
+        queryset = admin.ModelAdmin.get_queryset(self, request)
+        # assume there is only one network. 
+        key = Network.objects.first().display_name
+        return queryset.order_by('well__'+key)
     
 from django.contrib.gis.db import models
 from django import forms
@@ -157,7 +165,7 @@ class WellAdmin(admin.ModelAdmin):
     list_display = ('name','nitg','network','owner','maaiveld', 'ahn', 'num_filters', 'num_photos', 'straat', 'plaats')
     #list_editable = ('location',)
     #list_per_page = 4
-    ordering = ('nitg',)
+#     ordering = ('nitg',)
     list_filter = ('network', 'owner','plaats')
     save_as = True
     search_fields = ['name', 'nitg', 'plaats']

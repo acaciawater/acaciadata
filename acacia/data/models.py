@@ -1457,7 +1457,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         ''' apply all filters to series data '''
         if self.has_filters():
             for f in self.filter_set.all():
-                series = f.apply(series)
+                series = f.apply(series,context={'series':self})
         return series
     
     @property
