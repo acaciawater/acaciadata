@@ -260,11 +260,13 @@ class Screen(models.Model):
         return series
 
     def get_levels(self, ref='nap', **kwargs):
-        series = self.get_series(ref,kind='COMP',**kwargs)
+#         series = self.get_series(ref,kind='COMP',**kwargs)
+        series = self.get_compensated_series(**kwargs)
         return zip(series.index, series.values)        
 
     def get_hand(self, ref='nap', **kwargs):
-        series = self.get_series(ref,kind='HAND',**kwargs)
+#         series = self.get_series(ref,kind='HAND',**kwargs)
+        series = self.get_manual_series(**kwargs)
         return zip(series.index, series.values)        
                         
     def get_monfiles(self):
@@ -334,20 +336,31 @@ class Screen(models.Model):
         return self.get_series(ref,kind,**kwargs)
         
     def get_manual_series(self, **kwargs):
-        if not self.manual_levels: 
-            # Handpeilingen ophalen
-            for s in self.mloc.series_set.instance_of(ManualSeries):
-                if s.name.endswith('HAND'):
-                    self.manual_levels = s
-                    self.save()
-            return None
-        return self.manual_levels.to_pandas(**kwargs)
+
+        if hasattr(self, 'handpeilingen'):
+            levels = self.handpeilingen.to_pandas(**kwargs)
+            if self.handpeilingen.refpnt == 'bkb':
+                # convert to NAP
+                levels = self.refpnt - levels
+            return levels
+        else:
+            if not self.manual_levels: 
+                # Handpeilingen ophalen
+                self.manual_levels = self.mloc.series_set.instance_of(ManualSeries).filter(name__endswith='HAND').first()
+                if self.manual_levels:
+                    self.save(update_fields='manual_levels')
+            return self.manual_levels.to_pandas(**kwargs) if self.manual_levels else None
             
     def get_compensated_series(self, **kwargs):
         # Gecompenseerde tijdreeksen (tov NAP) ophalen (Alleen voor Divers and Leiderdorp Instruments)
         try:
             series = self.find_series()
-            return series.to_pandas(**kwargs) if series else None
+            if series:
+                series = series.to_pandas(**kwargs)
+                rule = kwargs.pop('rule',None)
+                if rule:
+                    series = series.resample(rule=rule).mean()
+            return series
         except Exception as e:
             return None
     
@@ -513,12 +526,12 @@ HAND_CHOICES=(
     ('nap',_('NAP')),
     )
 
-class Handpeiling(ManualSeries):
-    screen = models.ForeignKey(Screen,on_delete=models.CASCADE,verbose_name=_('screen')) 
+class Handpeilingen(ManualSeries):
+    screen = models.OneToOneField(Screen,on_delete=models.CASCADE,verbose_name=_('screen')) 
     refpnt = models.CharField(max_length=4,choices=HAND_CHOICES,verbose_name=_('reference point'),default='bkb')
 
     class Meta:
-        verbose_name = 'Handpeiling'
+        verbose_name = 'Handpeilingen'
         verbose_name_plural = 'Handpeilingen'
     
 # class ScreenGroup(models.Model):

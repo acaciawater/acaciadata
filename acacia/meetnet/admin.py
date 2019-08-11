@@ -7,7 +7,7 @@ from .models import Network, Well, Photo, Screen, Datalogger, LoggerPos, LoggerD
 from acacia.data.admin import DatasourceAdmin, SourceFileAdmin, DataPointInline, SeriesForm
 from django.conf import settings
 from django.contrib import admin
-from acacia.meetnet.models import MeteoData, Handpeiling
+from acacia.meetnet.models import MeteoData, Handpeilingen
 from acacia.meetnet.actions import update_statistics
 from django.utils.translation import ugettext as _
 
@@ -224,29 +224,35 @@ class MeteoDataAdmin(admin.ModelAdmin):
 
 class HandForm(SeriesForm):
 
+    class Media:
+        js = ('/static/grappelli/jquery/jquery.min.js', 'js/handform.js',)
+        
     def clean(self):
         cleaned_data = super(HandForm,self).clean()
         screen = cleaned_data['screen']
         cleaned_data['mlocatie'] = screen.mloc
+        cleaned_data['name'] = '{}-HAND'.format(screen)
         return cleaned_data
     
-class HandpeilingAdmin(admin.ModelAdmin):
-    model = Handpeiling
+class HandpeilingenAdmin(admin.ModelAdmin):
+    model = Handpeilingen
     form = HandForm
     actions = []
-    list_display = ('screen', 'thumbtag', 'unit', 'timezone', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
+    list_display = ('screen', 'unit', 'refpnt', 'timezone', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
     list_filter = ('screen',)
-    exclude = ('user','parameter')
+    exclude = ('name', 'user','parameter','scale','offset')
     inlines = [DataPointInline,]
     search_fields = ['screen', 'name',]
     fields = ('screen','description', 'timezone', ('refpnt','unit'))
-#     fieldsets = (
-#                  (_('Algemeen'), {'fields': ('screen', 'refpnt', ('unit', 'type'), 'description','timezone'),
-#                                'classes': ('grp-collapse grp-open',),
-#                                }),
-#    )
+    fieldsets = ()
+
     def get_changeform_initial_data(self, request):
-        return {'type': 'scatter','user': request.user, 'unit': 'm', 'timezone': settings.TIME_ZONE}
+        return {'type': 'scatter','user': request.user, 'unit': 'm', 'timezone': settings.TIME_ZONE, 'scale': 1, 'offset': 0}
+
+    def save_model(self, request, obj, form, change):
+        obj.user = request.user
+        obj.save()
+        obj.getproperties().delete() # will be updated in due time
 
 class NetworkAdmin(admin.ModelAdmin):
     model = Network
@@ -257,7 +263,7 @@ admin.site.register(Well, WellAdmin)
 admin.site.register(Screen, ScreenAdmin)
 admin.site.register(Photo,PhotoAdmin)
 admin.site.register(MeteoData, MeteoDataAdmin)
-admin.site.register(Handpeiling, HandpeilingAdmin)
+admin.site.register(Handpeilingen, HandpeilingenAdmin)
 
 admin.site.register(Datalogger, DataloggerAdmin)
 admin.site.register(LoggerPos, LoggerPosAdmin)
