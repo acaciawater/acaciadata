@@ -19,7 +19,7 @@
 <script>
 function fetchSeries(name,id) {
 	var html = '<div id="screen'+id+'">Laden filter ' + name + '&hellip;</div>';
-	$("#container").append(html);
+	$("#status").append(html);
     $.getJSON('/net/data/'+id+'?{{request.GET.urlencode}}', function (data) {
 	  	var chart = $('#container').highcharts();
 	  	$.each(data,function(key,values) {
@@ -62,4 +62,5 @@ $(function () {
 
 {% block content %}
 {{ block.super }}
+<div id="status"></div>
 {% endblock %}
