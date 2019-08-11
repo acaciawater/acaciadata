@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-01-24 10:58+0100\n"
+"POT-Creation-Date: 2019-08-11 14:42+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,335 +17,355 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: acacia/meetnet/admin.py:237
-msgid "Algemeen"
-msgstr ""
-
-#: acacia/meetnet/forms.py:25
+#: forms.py:25
 #, python-format
 msgid ""
 "Ensure at least %(min_num)s files are uploaded (received %(num_files)s)."
 msgstr ""
 
-#: acacia/meetnet/forms.py:26
+#: forms.py:26
 #, python-format
 msgid "Ensure at most %(max_num)s files are uploaded (received %(num_files)s)."
 msgstr ""
 
-#: acacia/meetnet/forms.py:27
+#: forms.py:27
 #, python-format
 msgid "File %(uploaded_file_name)s exceeded maximum upload size."
 msgstr ""
 
-#: acacia/meetnet/models.py:19 acacia/meetnet/models.py:41
+#: models.py:20
+#: models.py:43
 msgid "name"
 msgstr "naam"
 
-#: acacia/meetnet/models.py:21
+#: models.py:22
 msgid "website of netork administrator"
 msgstr "website van meetnetbeheerder"
 
-#: acacia/meetnet/models.py:22
+#: models.py:23
 msgid "url of kml file of network boundary"
 msgstr "url van kml file van meetnet begrenzing"
 
-#: acacia/meetnet/models.py:23
+#: models.py:24
 msgid "last measuring round"
 msgstr "laatste meetronde"
 
-#: acacia/meetnet/models.py:24
+#: models.py:25
 msgid "next measuring round"
 msgstr "volgende meetronde"
 
-#: acacia/meetnet/models.py:33 acacia/meetnet/models.py:40
+#: models.py:26
+msgid "displayname"
+msgstr ""
+
+#: models.py:26
+#, fuzzy
+msgid "well name"
+msgstr "naam"
+
+#: models.py:26
+msgid "NITG-code"
+msgstr ""
+
+#: models.py:27
+msgid "display well names with NITG code or use custom names"
+msgstr ""
+
+#: models.py:35
+#: models.py:42
 msgid "network"
 msgstr "netwerk"
 
-#: acacia/meetnet/models.py:34
+#: models.py:36
 msgid "networks"
 msgstr "netwerken"
 
-#: acacia/meetnet/models.py:42
+#: models.py:44
 msgid "TNO/NITG identification"
 msgstr "TNO/NITG nummer"
 
-#: acacia/meetnet/models.py:43
+#: models.py:45
 msgid "BRO id"
 msgstr "BRO nummer"
 
-#: acacia/meetnet/models.py:44
+#: models.py:46
 msgid "location"
 msgstr "locatie"
 
-#: acacia/meetnet/models.py:44
+#: models.py:46
 #, fuzzy
 msgid "Location in longitude/latitude coordinates"
 msgstr "locatie in rijksdriehoeksstelsel coordinaten"
 
-#: acacia/meetnet/models.py:46
+#: models.py:48
 msgid "description"
 msgstr "omschrijving"
 
-#: acacia/meetnet/models.py:47
+#: models.py:49
 msgid "surface level"
 msgstr "maaiveld"
 
-#: acacia/meetnet/models.py:47
+#: models.py:49
 msgid "surface level in meter wrt NAP"
 msgstr "maaveld in meter tov NAP"
 
-#: acacia/meetnet/models.py:48
+#: models.py:50
 msgid "AHN surface level"
 msgstr "AHN maaiveld"
 
-#: acacia/meetnet/models.py:49
+#: models.py:51
 msgid "Date of construction"
 msgstr "Constructiedatum"
 
-#: acacia/meetnet/models.py:50
+#: models.py:52
 msgid "owner"
 msgstr "Beheerder"
 
-#: acacia/meetnet/models.py:51
+#: models.py:53
 msgid "street name"
 msgstr "straatnaam"
 
-#: acacia/meetnet/models.py:52
+#: models.py:54
 msgid "house number"
 msgstr "huisnummer"
 
-#: acacia/meetnet/models.py:53
+#: models.py:55
 msgid "postal code"
 msgstr "postcode"
 
-#: acacia/meetnet/models.py:54
+#: models.py:56
 msgid "locality"
 msgstr "plaats"
 
-#: acacia/meetnet/models.py:55
+#: models.py:57
 msgid "driller's log"
 msgstr "boorstaat"
 
-#: acacia/meetnet/models.py:56 acacia/meetnet/models.py:216
+#: models.py:58
+#: models.py:218
 msgid "chart"
 msgstr "grafiek"
 
-#: acacia/meetnet/models.py:57
+#: models.py:59
 msgid "gravitational acceleration"
 msgstr "valversnelling"
 
-#: acacia/meetnet/models.py:57
+#: models.py:59
 msgid "gravitational acceleration in m/s2"
 msgstr "valversnelling in m/s2"
 
-#: acacia/meetnet/models.py:68
+#: models.py:70
 msgid "number of screens"
 msgstr "aantal filters"
 
-#: acacia/meetnet/models.py:72
+#: models.py:74
 msgid "number of photos"
 msgstr "aantal fotos"
 
-#: acacia/meetnet/models.py:154 acacia/meetnet/models.py:164
-#: acacia/meetnet/models.py:207
+#: models.py:156
+#: models.py:166
+#: models.py:209
 msgid "well"
 msgstr "put"
 
-#: acacia/meetnet/models.py:155
+#: models.py:157
 msgid "wells"
 msgstr "putten"
 
-#: acacia/meetnet/models.py:165
+#: models.py:167
 msgid "air pressure"
 msgstr "luchtdruk"
 
-#: acacia/meetnet/models.py:166
+#: models.py:168
 msgid "precipitation"
 msgstr "neerslag"
 
-#: acacia/meetnet/models.py:167
+#: models.py:169
 msgid "evaporation"
 msgstr "verdamping"
 
-#: acacia/meetnet/models.py:168
+#: models.py:170
 msgid "temperature"
 msgstr "temperatuur"
 
-#: acacia/meetnet/models.py:174
+#: models.py:176
 msgid "meteo"
 msgstr "meteo"
 
-#: acacia/meetnet/models.py:175
+#: models.py:177
 msgid "Meteo"
 msgstr "Meteo"
 
-#: acacia/meetnet/models.py:193
+#: models.py:195
 msgid "sample"
 msgstr "voorbeeld"
 
-#: acacia/meetnet/models.py:196
+#: models.py:198
 msgid "photo"
 msgstr "foto"
 
-#: acacia/meetnet/models.py:197
+#: models.py:199
 msgid "photos"
 msgstr "foto's"
 
-#: acacia/meetnet/models.py:200
+#: models.py:202
 msgid "PVC"
 msgstr "PVC"
 
-#: acacia/meetnet/models.py:201
+#: models.py:203
 msgid "HDPE"
 msgstr "HDPE"
 
-#: acacia/meetnet/models.py:202
+#: models.py:204
 msgid "SS"
 msgstr "RVS"
 
-#: acacia/meetnet/models.py:203
+#: models.py:205
 msgid "steel"
 msgstr "staal"
 
-#: acacia/meetnet/models.py:208
+#: models.py:210
 msgid "screen number"
 msgstr "filternummer"
 
-#: acacia/meetnet/models.py:209
+#: models.py:211
 msgid "density"
 msgstr "dichtheid"
 
-#: acacia/meetnet/models.py:209
+#: models.py:211
 msgid "density of the water in observation tube (kg/m3)"
 msgstr "dichtheid van het water in de peilbuis (kg/m3)"
 
-#: acacia/meetnet/models.py:210
+#: models.py:212
 msgid "top of casing"
 msgstr "bovenkant buis"
 
-#: acacia/meetnet/models.py:210
+#: models.py:212
 msgid "top of casing in m wrt NAP"
 msgstr "bovenkant buis in meter tov NAP"
 
-#: acacia/meetnet/models.py:211
+#: models.py:213
 msgid "depth"
 msgstr "diepte"
 
-#: acacia/meetnet/models.py:211
+#: models.py:213
 msgid "depth of pipe in meters below the surface"
 msgstr "diepte buis in meter onder maaiveld"
 
-#: acacia/meetnet/models.py:212
+#: models.py:214
 msgid "top of screen"
 msgstr "bovenkant filter"
 
-#: acacia/meetnet/models.py:212
+#: models.py:214
 msgid "top of screen in meters below the surface"
 msgstr "bovenkant filter in meter onder maaiveld"
 
-#: acacia/meetnet/models.py:213
+#: models.py:215
 msgid "bottom of screen"
 msgstr "onderkant filter"
 
-#: acacia/meetnet/models.py:213
+#: models.py:215
 msgid "bottom of screen in meters below the surface"
 msgstr "onerkant filter in meter onder maaiveld"
 
-#: acacia/meetnet/models.py:214
+#: models.py:216
 msgid "diameter"
 msgstr "diameter"
 
-#: acacia/meetnet/models.py:214
+#: models.py:216
 msgid "diameter in mm (default = 32 mm)"
 msgstr "diameter buis in mm (standaard = 32 mm)"
 
-#: acacia/meetnet/models.py:215
+#: models.py:217
 msgid "material"
 msgstr "materiaal"
 
-#: acacia/meetnet/models.py:217
+#: models.py:219
 msgid "aquifer"
 msgstr "aquifer"
 
-#: acacia/meetnet/models.py:218
+#: models.py:220
 msgid "manual measurements"
 msgstr "handpeilingen"
 
-#: acacia/meetnet/models.py:219
+#: models.py:221
 #, fuzzy
 msgid "water level"
 msgstr "maaiveld"
 
-#: acacia/meetnet/models.py:369 acacia/meetnet/models.py:395
-#: acacia/meetnet/models.py:510
+#: models.py:222
+msgid "group"
+msgstr ""
+
+#: models.py:376
+#: models.py:402
+#: models.py:517
 msgid "screen"
 msgstr "filter"
 
-#: acacia/meetnet/models.py:370
+#: models.py:377
 msgid "screens"
 msgstr "filters"
 
-#: acacia/meetnet/models.py:384
+#: models.py:391
 msgid "serial number"
 msgstr "serienummer"
 
-#: acacia/meetnet/models.py:385
+#: models.py:392
 msgid "type"
 msgstr "type"
 
-#: acacia/meetnet/models.py:396
+#: models.py:403
 msgid "start"
 msgstr "start"
 
-#: acacia/meetnet/models.py:396
+#: models.py:403
 msgid "Start of datalogger"
 msgstr "start datalogger"
 
-#: acacia/meetnet/models.py:397
+#: models.py:404
 msgid "stop"
 msgstr "stop"
 
-#: acacia/meetnet/models.py:397
+#: models.py:404
 msgid "Stopping time of datalogger"
 msgstr "stop datalogger"
 
-#: acacia/meetnet/models.py:398 acacia/meetnet/models.py:511
+#: models.py:405
+#: models.py:518
 msgid "reference point"
 msgstr "referentiepunt"
 
-#: acacia/meetnet/models.py:398
+#: models.py:405
 #, fuzzy
 msgid "Reference point in meter wrt NAP"
 msgstr "maaveld in meter tov NAP"
 
-#: acacia/meetnet/models.py:399
+#: models.py:406
 msgid "cable length"
 msgstr "kabellengte"
 
-#: acacia/meetnet/models.py:399
+#: models.py:406
 msgid "length of cable in meter"
 msgstr "kabellengte in meter"
 
-#: acacia/meetnet/models.py:400
+#: models.py:407
 msgid "remarks"
 msgstr "opmerkingen"
 
-#: acacia/meetnet/models.py:406
+#: models.py:413
 msgid "LoggerInstallation"
 msgstr "Datalogger installatie"
 
-#: acacia/meetnet/models.py:428
+#: models.py:435
 msgid "Monfiles"
 msgstr ""
 
-#: acacia/meetnet/models.py:505
-#, fuzzy
+#: models.py:512
 msgid "Top of casing"
 msgstr "bovenkant buis"
 
-#: acacia/meetnet/models.py:506
+#: models.py:513
 msgid "NAP"
 msgstr "NAP"
 
-#~ msgid "Illegal reference for screen %s"
-#~ msgstr "Onbekend filter %s"

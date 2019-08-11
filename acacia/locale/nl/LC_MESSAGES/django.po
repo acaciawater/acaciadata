@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-01-24 10:58+0100\n"
+"POT-Creation-Date: 2019-08-11 12:23+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,175 +17,175 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: acacia/templates/bootbase.html:61 acacia/templates/data/dashgroup.html:5
+#: templates/bootbase.html:61 templates/data/dashgroup.html:5
+#: templates/data/tabgroup.html:15
 msgid "Home"
 msgstr "Startpagina"
 
-#: acacia/templates/bootbase.html:69
+#: templates/bootbase.html:69
 msgid "Admin"
 msgstr "Beheer"
 
-#: acacia/templates/bootbase.html:75
+#: templates/bootbase.html:75
 msgid "Log out"
 msgstr "Uitloggen"
 
-#: acacia/templates/bootbase.html:76
+#: templates/bootbase.html:76
 msgid "Change password"
 msgstr "Wachtwoord veranderen"
 
-#: acacia/templates/bootbase.html:80
+#: templates/bootbase.html:80
 msgid "Log in"
 msgstr "Inloggen"
 
-#: acacia/templates/data/chart_detail.html:37
-#: acacia/templates/data/plain_chart.html:62
+#: templates/data/chart_detail.html:37 templates/data/plain_chart.html:62
 msgid "Retrieving data..."
 msgstr "Gegevens ophalen..."
 
-#: acacia/templates/data/chart_detail.html:68
+#: templates/data/chart_detail.html:68
 msgid "Download time series of this chart as a csv file"
 msgstr "Tijdreeksen van deze grafiek downloaden als csv bestand"
 
-#: acacia/templates/data/chart_detail.html:68
+#: templates/data/chart_detail.html:68
 msgid "Download"
 msgstr "Downloaden"
 
-#: acacia/templates/data/plain_chart.html:11
+#: templates/data/plain_chart.html:11
 msgid "Chart"
 msgstr "Grafiek"
 
-#: acacia/templates/data/plain_chart.html:94
+#: templates/data/plain_chart.html:94
 msgid "Open in separate window"
 msgstr "Openen in apart venster"
 
-#: acacia/templates/data/projectlocatie_info.html:3
+#: templates/data/projectlocatie_info.html:3
 msgid "Location"
 msgstr "Locatie"
 
-#: acacia/validation/models.py:16
+#: validation/models.py:18
 msgid "boven"
 msgstr ""
 
-#: acacia/validation/models.py:17
+#: validation/models.py:19
 msgid "onder"
 msgstr ""
 
-#: acacia/validation/models.py:18
+#: validation/models.py:20
 msgid "gelijk"
 msgstr ""
 
-#: acacia/validation/models.py:19
+#: validation/models.py:21
 msgid "ongelijk"
 msgstr ""
 
-#: acacia/validation/models.py:24
+#: validation/models.py:26
 msgid "regel"
 msgstr ""
 
-#: acacia/validation/models.py:230
+#: validation/models.py:232
 msgid "filter"
 msgstr ""
 
-#: acacia/validation/models.py:231
+#: validation/models.py:233
 msgid "filters"
 msgstr ""
 
-#: acacia/validation/models.py:233
+#: validation/models.py:235
 msgid "tijdreeksen"
 msgstr ""
 
-#: acacia/validation/models.py:234
+#: validation/models.py:236
 msgid "regels"
 msgstr ""
 
-#: acacia/validation/models.py:258
+#: validation/models.py:260
 msgid "Filter Regel"
 msgstr ""
 
-#: acacia/validation/models.py:259
+#: validation/models.py:261
 msgid "Filter Regels"
 msgstr ""
 
-#: acacia/validation/models.py:274 acacia/validation/models.py:506
+#: validation/models.py:276 validation/models.py:508
 msgid "validatie"
 msgstr ""
 
-#: acacia/validation/models.py:275
+#: validation/models.py:277
 msgid "validaties"
 msgstr ""
 
-#: acacia/validation/models.py:278
+#: validation/models.py:280
 msgid "tijdreeks"
 msgstr ""
 
-#: acacia/validation/models.py:279
+#: validation/models.py:281
 msgid "validatieregels"
 msgstr ""
 
-#: acacia/validation/models.py:280
+#: validation/models.py:282
 msgid "Gebruikers die emails ontvangen over validatie"
 msgstr ""
 
-#: acacia/validation/models.py:281
+#: validation/models.py:283
 msgid "Valide"
 msgstr ""
 
-#: acacia/validation/models.py:282
+#: validation/models.py:284
 msgid "Gevalideerd"
 msgstr ""
 
-#: acacia/validation/models.py:283
+#: validation/models.py:285
 msgid "Laatste validatie"
 msgstr ""
 
-#: acacia/validation/models.py:371
+#: validation/models.py:373
 msgid "Validating {}: {} rules"
 msgstr ""
 
-#: acacia/validation/models.py:391
+#: validation/models.py:393
 msgid "validation {}, rule \"{}\" failed at {}"
 msgstr ""
 
-#: acacia/validation/models.py:394
+#: validation/models.py:396
 msgid "validation {}, rule \"{}\" passed"
 msgstr ""
 
-#: acacia/validation/models.py:401
+#: validation/models.py:403
 msgid "Validation {} failed"
 msgstr ""
 
-#: acacia/validation/models.py:403
+#: validation/models.py:405
 msgid "Validation {} passed"
 msgstr ""
 
-#: acacia/validation/models.py:406
+#: validation/models.py:408
 msgid "Validation {}: no datapoints"
 msgstr ""
 
-#: acacia/validation/models.py:480
+#: validation/models.py:482
 msgid "Validatieregel"
 msgstr ""
 
-#: acacia/validation/models.py:481
+#: validation/models.py:483
 msgid "Validatieregels"
 msgstr ""
 
-#: acacia/validation/models.py:487
+#: validation/models.py:489
 msgid "tussenresultaat"
 msgstr ""
 
-#: acacia/validation/models.py:488
+#: validation/models.py:490
 msgid "tussenresultaten"
 msgstr ""
 
-#: acacia/validation/models.py:503
+#: validation/models.py:505
 msgid "resultaat"
 msgstr ""
 
-#: acacia/validation/models.py:504
+#: validation/models.py:506
 msgid "resultaten"
 msgstr ""
 
-#: acacia/validation/models.py:511
+#: validation/models.py:513
 msgid "uploaded"
 msgstr ""
