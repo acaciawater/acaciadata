@@ -132,7 +132,12 @@ def json_series(request, pk):
 #         RangeRule(name = 'range', lower = -5, upper = 5),
 #         RollingRule(name = 'spike', count = 3, tolerance = 3, comp ='LT')
 #         ]
-    series = screen.get_series(ref,what,rule='H')#,filters=filters)
+    # determine resampling rule
+    rule = request.GET.get('rule', 'H')
+#     if rule is None:
+#         series = screen.find_series()
+#         rule = 'H' if series.aantal() < 10000 else 'D'
+    series = screen.get_series(ref,what,rule=rule)#,filters=filters)
     if series is None or series.empty:
         values = []
     else:
