@@ -7,7 +7,8 @@ from .models import Network, Well, Photo, Screen, Datalogger, LoggerPos, LoggerD
 from acacia.data.admin import DatasourceAdmin, SourceFileAdmin, DataPointInline, SeriesForm
 from django.conf import settings
 from django.contrib import admin
-from acacia.meetnet.models import MeteoData, Handpeilingen
+from acacia.meetnet.models import MeteoData
+from acacia.meetnet.models import Handpeilingen as Peilingen
 from acacia.meetnet.actions import update_statistics
 from django.utils.translation import ugettext as _
 from django.contrib.admin.decorators import register
@@ -235,9 +236,8 @@ class HandForm(SeriesForm):
         cleaned_data['name'] = '{}-HAND'.format(screen)
         return cleaned_data
 
-@register(Handpeilingen)    
+@register(Peilingen)    
 class HandpeilingenAdmin(admin.ModelAdmin):
-    model = Handpeilingen
     form = HandForm
     actions = []
     list_display = ('screen', 'unit', 'refpnt', 'timezone', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde')
@@ -248,9 +248,6 @@ class HandpeilingenAdmin(admin.ModelAdmin):
     fields = ('screen','description', 'timezone', ('refpnt','unit'))
     fieldsets = ()
 
-    def get_urls(self):
-        return admin.ModelAdmin.get_urls(self)
-    
     def get_changeform_initial_data(self, request):
         return {'type': 'scatter','user': request.user, 'unit': 'm', 'timezone': settings.TIME_ZONE, 'scale': 1, 'offset': 0}
 
