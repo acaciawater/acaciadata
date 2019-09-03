@@ -10,6 +10,7 @@ from django.contrib import admin
 from acacia.meetnet.models import MeteoData, Handpeilingen
 from acacia.meetnet.actions import update_statistics
 from django.utils.translation import ugettext as _
+from django.contrib.admin.decorators import register
 
 USE_GOOGLE_TERRAIN_TILES = False
 
@@ -233,7 +234,8 @@ class HandForm(SeriesForm):
         cleaned_data['mlocatie'] = screen.mloc
         cleaned_data['name'] = '{}-HAND'.format(screen)
         return cleaned_data
-    
+
+@register(Handpeilingen)    
 class HandpeilingenAdmin(admin.ModelAdmin):
     model = Handpeilingen
     form = HandForm
@@ -246,6 +248,9 @@ class HandpeilingenAdmin(admin.ModelAdmin):
     fields = ('screen','description', 'timezone', ('refpnt','unit'))
     fieldsets = ()
 
+    def get_urls(self):
+        return admin.ModelAdmin.get_urls(self)
+    
     def get_changeform_initial_data(self, request):
         return {'type': 'scatter','user': request.user, 'unit': 'm', 'timezone': settings.TIME_ZONE, 'scale': 1, 'offset': 0}
 
@@ -263,7 +268,6 @@ admin.site.register(Well, WellAdmin)
 admin.site.register(Screen, ScreenAdmin)
 admin.site.register(Photo,PhotoAdmin)
 admin.site.register(MeteoData, MeteoDataAdmin)
-admin.site.register(Handpeilingen, HandpeilingenAdmin)
 
 admin.site.register(Datalogger, DataloggerAdmin)
 admin.site.register(LoggerPos, LoggerPosAdmin)

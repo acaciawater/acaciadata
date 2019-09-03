@@ -339,6 +339,8 @@ class Screen(models.Model):
 
         if hasattr(self, 'handpeilingen'):
             levels = self.handpeilingen.to_pandas(**kwargs)
+            if self.handpeilingen.unit == 'cm':
+                levels /= 100.0
             if self.handpeilingen.refpnt == 'bkb':
                 # convert to NAP
                 levels = self.refpnt - levels
@@ -533,7 +535,7 @@ class Handpeilingen(ManualSeries):
     class Meta:
         verbose_name = 'Handpeilingen'
         verbose_name_plural = 'Handpeilingen'
-    
+   
 # class ScreenGroup(models.Model):
 #     name = models.CharField(max_length=100,verbose_name=_('group'))
 #     screen = models.ManyToManyField(Screen,verbose_name=_('screen'))

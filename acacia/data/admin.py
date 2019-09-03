@@ -16,7 +16,7 @@ import json
 import actions
 from acacia.data.models import PlotLine, LineStyle, PlotBand, BandStyle
 import dateutil
-
+    
 class Media:
     js = [
         '/static/grappelli/tinymce/jscripts/tiny_mce/tiny_mce.js',
@@ -459,7 +459,14 @@ class SeriesAdmin(PolymorphicParentModelAdmin):
                actions.empty_series]
     list_display = ('name', 'thumbtag', 'typename', 'parameter', 'datasource', 'mlocatie', 'timezone', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde', 'has_filters')
     base_model = Series
-    child_models = ((ManualSeries, ManualSeriesAdmin), (Formula, FormulaSeriesAdmin), (Series, ParameterSeriesAdmin))
+    try:
+        from acacia.meetnet.models import Handpeilingen
+        from acacia.meetnet.admin import HandpeilingenAdmin
+        # allow redirection to meetnet admin
+        child_models = ((ManualSeries, ManualSeriesAdmin), (Formula, FormulaSeriesAdmin), (Series, ParameterSeriesAdmin), (Handpeilingen, HandpeilingenAdmin))
+    except:
+        child_models = ((ManualSeries, ManualSeriesAdmin), (Formula, FormulaSeriesAdmin), (Series, ParameterSeriesAdmin))
+        
     exclude = ('user',)
 
     raw_id_fields = ('scale_series','offset_series')
@@ -473,7 +480,13 @@ class SeriesAdmin(PolymorphicParentModelAdmin):
 
         def lookups(self, request, modeladmin):
             ''' Possibilities are: series, formula and manual '''
-            ct_types = ContentType.objects.get_for_models(Series,Formula,ManualSeries)
+            models = [Series,Formula,ManualSeries]
+            try:
+                from acacia.meetnet.models import Handpeilingen
+                models.append(Handpeilingen)
+            except:
+                pass
+            ct_types = ContentType.objects.get_for_models(*models)
             return [(ct.id, ct.name) for ct in sorted(ct_types.values(), key=lambda x: x.name)]
 
         def queryset(self, request, queryset):
