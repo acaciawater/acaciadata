@@ -10,6 +10,7 @@ from django.core.urlresolvers import reverse
 from acacia.data.models import Datasource, Series, SourceFile, ProjectLocatie,\
     MeetLocatie
 from acacia.data import util
+from numpy.distutils.fcompiler import none
 
 class Network(models.Model):
     name = models.CharField(max_length=50, unique=True, verbose_name = 'naam')
@@ -223,15 +224,20 @@ class Screen(models.Model):
         
     def get_manual_series(self, **kwargs):
         # Handpeilingen ophalen
-        if hasattr(self.mloc, 'manualseries_set'):
-            for s in self.mloc.manualseries_set.all():
-                if s.name.endswith('HAND'):
-                    return s.to_pandas(**kwargs)
-        elif hasattr(self.mloc, 'series_set'): #old django versions do not have a manualseries_set
-            for s in self.mloc.series_set.all():
-                if s.name.endswith('HAND'):
-                    return s.to_pandas(**kwargs)
-        return None
+        series = self.mloc.series_set.filter(name__endswith='HAND').first()
+        if series is None:
+            return None
+        return series.to_pandas(**kwargs)
+        
+#         if hasattr(self.mloc, 'manualseries_set'):
+#             for s in self.mloc.manualseries_set.all():
+#                 if s.name.endswith('HAND'):
+#                     return s.to_pandas(**kwargs)
+#         elif hasattr(self.mloc, 'series_set'): #old django versions do not have a manualseries_set
+#             for s in self.mloc.series_set.all():
+#                 if s.name.endswith('HAND'):
+#                     return s.to_pandas(**kwargs)
+#         return None
             
     def get_compensated_series(self, **kwargs):
         # Gecompenseerde tijdreeksen (tov NAP) ophalen (Alleen voor Divers and Leiderdorp Instruments)
