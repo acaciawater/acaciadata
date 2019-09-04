@@ -301,7 +301,8 @@ class ReadonlyTabularInline(admin.TabularInline):
 class DataPointInline(admin.TabularInline):
     model = DataPoint
     ordering = ['date']
-    classes = ('grp-collapse grp-closed',)
+    classes = ('grp-collapse grp-open',)
+    extra = 0
 
 class SeriesForm(forms.ModelForm):
     model =  Series
