@@ -12,6 +12,7 @@ from acacia.meetnet.models import Handpeilingen as Peilingen
 from acacia.meetnet.actions import update_statistics
 from django.utils.translation import ugettext as _
 from django.contrib.admin.decorators import register
+from django.forms.forms import Form
 
 USE_GOOGLE_TERRAIN_TILES = False
 
@@ -225,9 +226,16 @@ class MeteoDataAdmin(admin.ModelAdmin):
     list_filter = ('well','baro','neerslag','verdamping','temperatuur')
 
 class HandForm(SeriesForm):
-
+    bkb = forms.FloatField(label=_('Bovenkant buis'), required=False)
+    
     class Media:
         js = ('/static/grappelli/jquery/jquery.min.js', 'js/handform.js',)
+        
+    def __init__(self,*args,**kwargs):
+        super(HandForm,self).__init__(*args,**kwargs)
+        if self.instance and self.instance.pk:
+            self.initial['bkb'] = self.instance.screen.refpnt
+            self.fields['bkb'].widget.attrs['readonly'] = True
         
     def clean(self):
         cleaned_data = super(HandForm,self).clean()
@@ -245,7 +253,7 @@ class HandpeilingenAdmin(admin.ModelAdmin):
     exclude = ('name', 'user','parameter','scale','offset')
     inlines = [DataPointInline,]
     search_fields = ['screen', 'name',]
-    fields = ('screen','description', 'timezone', ('refpnt','unit'))
+    fields = ('screen','description', 'timezone', ('bkb', 'refpnt','unit'))
     fieldsets = ()
 
     def get_changeform_initial_data(self, request):

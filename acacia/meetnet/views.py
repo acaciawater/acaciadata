@@ -25,6 +25,7 @@ from django.utils.timezone import get_current_timezone
 from django.utils.text import slugify
 from acacia.data.actions import download_series_csv
 from acacia.data.util import series_as_csv, to_millis
+from acacia.meetnet.models import Handpeilingen
 
 logger = logging.getLogger(__name__)
 
@@ -430,3 +431,21 @@ class UploadFileView(FormView):
         
         return super(UploadFileView,self).form_valid(form)
 
+from django.db import transaction
+def change_refpnt(request, pk):
+    ''' change reference point (top of casing) for Handpeilingen '''
+    hp = get_object_or_404(Handpeilingen,pk=pk)
+    refpnt = request.GET.get('ref')
+    if refpnt != hp.refpnt and hp.screen.refpnt:
+        bkb = hp.screen.refpnt
+        with transaction.atomic():
+            for p in hp.datapoints.all():
+                p.value = bkb - p.value
+                p.save(update_fields=('value',))
+            hp.refpnt = refpnt
+            hp.save(update_fields=('refpnt',))
+    url = request.GET.get('next')
+    if url:
+        return redirect(url)
+    else:
+        return HttpResponse(status=200)
