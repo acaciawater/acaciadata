@@ -354,7 +354,7 @@ class Screen(models.Model):
                 # Handpeilingen ophalen
                 self.manual_levels = self.mloc.series_set.instance_of(ManualSeries).filter(name__endswith='HAND').first()
                 if self.manual_levels:
-                    self.save(update_fields='manual_levels')
+                    self.save(update_fields=['manual_levels'])
             return self.manual_levels.to_pandas(**kwargs) if self.manual_levels else None
             
     def get_compensated_series(self, **kwargs):

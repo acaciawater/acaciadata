@@ -133,7 +133,7 @@ def chart_for_screen(screen,start=None,stop=None,raw=True,loggerpos=True,correct
 
     # handpeilingen toevoegen
     hand = screen.get_hand('nap')
-    if len(hand)>0:
+    if hand is not None and len(hand)>0:
         x,y = zip(*hand)
         plt.plot_date(x, y, 'o',label='handpeiling',color='red')
         ncol += 1
@@ -538,7 +538,7 @@ def createmeteo(request, well):
     gen = Generator.objects.get(classname__icontains='KNMI.meteo')
     closest = Station.closest(well.location)
     name = 'Meteostation {} (dagwaarden)'.format(closest.naam)
-    res = docreate(name,closest,gen,'20170101',{'TG':'Temperatuur','RH': 'Neerslag','EV24': 'Verdamping'})
+    res = docreate(name,closest,gen,'20190101',{'TG':'Temperatuur','RH': 'Neerslag','EV24': 'Verdamping'})
     if res:
         meteo.temperatuur = find(lambda s: s.name.startswith('Temperatuur'),res) 
         meteo.neerslag = find(lambda s: s.name.startswith('Neerslag'),res)
@@ -547,12 +547,12 @@ def createmeteo(request, well):
     gen = Generator.objects.get(classname__icontains='KNMI.neerslag')
     closest = NeerslagStation.closest(well.location)
     name = 'Neerslagstation {}'.format(closest.naam)
-    docreate(name,closest,gen,'20170101',{'RD':'Neerslag'})
+    docreate(name,closest,gen,'20190101',{'RD':'Neerslag'})
 
     gen = Generator.objects.get(classname__icontains='KNMI.uur')
     closest = Station.closest(well.location)
     name = 'Meteostation {} (uurwaarden)'.format(closest.naam)
-    res = docreate(name,closest,gen,'2017010101',{'P':'Luchtdruk','RH': 'Neerslag'})
+    res = docreate(name,closest,gen,'2019010101',{'P':'Luchtdruk','RH': 'Neerslag'})
     if res:
         meteo.baro = find(lambda s: s.name.startswith('Lucht'),res)
     #meteo.neerslag = find(lambda s: s.name.startswith('Neer'),res)
