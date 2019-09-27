@@ -183,7 +183,7 @@ def chart_for_well(well,start=None,stop=None,chart_type='corrected'):
                 ncol += 1
                 ok = True
         hand = screen.get_hand('nap')
-        if len(hand)>0:
+        if hand and len(hand)>0:
             x,y = zip(*hand)
             plt.plot_date(x, y, 'o', label='handpeiling {}'.format(screen.nr), color='red' if singlescreen else color)
             ncol += 1
