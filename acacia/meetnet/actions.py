@@ -204,9 +204,9 @@ def create_handpeilingen(modeladmin, request, queryset):
             num_created += 1
             screen.manual_levels = hand
             screen.save(update_fields=['manual_levels'])
-        if num_created:
-            messages.success(request, '{} reeksen toegevoegd.'.format(num_created))
-        else:
-            messages.warning(request, 'geen reeksen toegevoegd.')
+    if num_created:
+        messages.success(request, '{} reeksen toegevoegd.'.format(num_created))
+    else:
+        messages.warning(request, 'geen reeksen toegevoegd.')
             
 create_handpeilingen.short_description = 'Maak tijdreeksen voor handpeilingen'
