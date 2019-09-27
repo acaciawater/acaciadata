@@ -262,11 +262,15 @@ class Screen(models.Model):
     def get_levels(self, ref='nap', **kwargs):
 #         series = self.get_series(ref,kind='COMP',**kwargs)
         series = self.get_compensated_series(**kwargs)
+        if series is None or series.empty:
+            return None
         return zip(series.index, series.values)        
 
     def get_hand(self, ref='nap', **kwargs):
 #         series = self.get_series(ref,kind='HAND',**kwargs)
         series = self.get_manual_series(**kwargs)
+        if series is None or series.empty:
+            return None
         return zip(series.index, series.values)        
                         
     def get_monfiles(self):
@@ -378,7 +382,7 @@ class Screen(models.Model):
         
     def last_measurement(self):
         series = self.find_series()
-        if series and series.datapoints:
+        if series and series.datapoints and series.datapoints.exists():
             return series.datapoints.latest('date')
         else:
             return None
