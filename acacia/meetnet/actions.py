@@ -16,9 +16,10 @@ import StringIO
 from acacia.meetnet.util import register_screen, register_well,\
     drift_correct_screen, set_well_address, moncorrect
 from django.core.exceptions import ObjectDoesNotExist
-from acacia.meetnet.models import LoggerStat
+from acacia.meetnet.models import LoggerStat, Handpeilingen
 from django.contrib import messages
 from django.http.response import HttpResponse
+from django.conf import settings
 logger = logging.getLogger(__name__)
 
 def download_metadata(modeladmin, request, queryset):
@@ -186,3 +187,26 @@ def register_screens(modeladmin, request, queryset):
     for screen in queryset:
         register_screen(screen)
 register_screens.short_description = 'Registreer geselecteerde filters bij acaciadata.com'
+
+def create_handpeilingen(modeladmin, request, queryset):
+    num_created = 0
+    for screen in queryset:
+        hand, created = Handpeilingen.objects.get_or_create(screen=screen,defaults={
+            'refpnt': 'bkb',
+            'user': request.user,
+            'mlocatie': screen.mloc,
+            'name': '{} HAND'.format(screen),
+            'unit': 'm',
+            'type': 'scatter',
+            'timezone': settings.TIME_ZONE
+        })
+        if created:
+            num_created += 1
+            screen.manual_levels = hand
+            screen.save(update_fields=['manual_levels'])
+        if num_created:
+            messages.success(request, '{} reeksen toegevoegd.'.format(num_created))
+        else:
+            messages.warning(request, 'geen reeksen toegevoegd.')
+            
+create_handpeilingen.short_description = 'Maak tijdreeksen voor handpeilingen'
