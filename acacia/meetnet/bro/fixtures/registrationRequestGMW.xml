@@ -1,0 +1,58 @@
+      <ns:registrationRequest xmlns:ns="http://www.broservices.nl/xsd/isgmw/1.1" xmlns:ns1="http://www.broservices.nl/xsd/brocommon/3.0" xmlns:ns2="http://www.broservices.nl/xsd/gmwcommon/1.1" xmlns:ns3="http://www.opengis.net/gml/3.2">
+         <ns1:requestReference>Dummy registratie Onze Lieve Vrouwentoren Amersfoort</ns1:requestReference>
+         <ns1:deliveryAccountableParty>52766179</ns1:deliveryAccountableParty>
+         <ns1:qualityRegime>IMBRO</ns1:qualityRegime>
+         <ns:sourceDocument>
+            <ns:GMW_Construction>
+               <ns:objectIdAccountableParty>00000000</ns:objectIdAccountableParty>
+               <ns:deliveryContext codeSpace="urn:bro:gmw:DeliveryContext">KRW</ns:deliveryContext>
+               <ns:constructionStandard codeSpace="urn:bro:gmw:ConstructionStandard">NEN5104</ns:constructionStandard>
+               <ns:initialFunction codeSpace="urn:bro:gmw:InitialFunction">kwaliteit</ns:initialFunction>
+               <ns:numberOfMonitoringTubes>1</ns:numberOfMonitoringTubes>
+               <ns:groundLevelStable>ja</ns:groundLevelStable>
+               <ns:mapSheetCode>07F</ns:mapSheetCode>
+               <ns:owner>27376655</ns:owner>
+               <ns:wellHeadProtector codeSpace="urn:bro:gmw:WellHeadProtector">kokerMetaal</ns:wellHeadProtector>
+               <ns:wellConstructionDate>
+                  <ns1:date>2017-12-15</ns1:date>
+               </ns:wellConstructionDate>
+               <ns:deliveredLocation>
+                  <ns2:location ns3:id="id-426a1f26-360b-45e8-8c9d-469e6b33c7c3" srsName="urn:ogc:def:crs:EPSG::28992">
+                     <ns3:pos>155000.0 463000.0</ns3:pos>
+                  </ns2:location>
+                  <ns2:horizontalPositioningMethod codeSpace="urn:bro:gmw:HorizontalPositioningMethod">RTKGPS2tot5cm</ns2:horizontalPositioningMethod>
+               </ns:deliveredLocation>
+               <ns:deliveredVerticalPosition>
+                  <ns2:localVerticalReferencePoint codeSpace="urn:bro:gmw:LocalVerticalReferencePoint">NAP</ns2:localVerticalReferencePoint>
+                  <ns2:offset uom="m">0.000</ns2:offset>
+                  <ns2:verticalDatum codeSpace="urn:bro:gmw:VerticalDatum">NAP</ns2:verticalDatum>
+                  <ns2:groundLevelPosition uom="m">0.000</ns2:groundLevelPosition>
+                  <ns2:groundLevelPositioningMethod codeSpace="urn:bro:gmw:GroundLevelPositioningMethod">tachymetrie0tot10cm</ns2:groundLevelPositioningMethod>
+               </ns:deliveredVerticalPosition>
+               <ns:monitoringTube>
+                  <ns:tubeNumber>1</ns:tubeNumber>
+                  <ns:tubeType codeSpace="urn:bro:gmw:TubeType">standaardbuis</ns:tubeType>
+                  <ns:artesianWellCapPresent>nee</ns:artesianWellCapPresent>
+                  <ns:sedimentSumpPresent>nee</ns:sedimentSumpPresent>
+                  <ns:numberOfGeoOhmCables>0</ns:numberOfGeoOhmCables>
+                  <ns:tubeTopDiameter uom="mm">32</ns:tubeTopDiameter>
+                  <ns:variableDiameter>nee</ns:variableDiameter>
+                  <ns:tubeStatus codeSpace="urn:bro:gmw:TubeStatus">gebruiksklaar</ns:tubeStatus>
+                  <ns:tubeTopPosition uom="m">3.420</ns:tubeTopPosition>
+                  <ns:tubeTopPositioningMethod codeSpace="urn:bro:gmw:TubeTopPositioningMethod">tachymetrie0tot10cm</ns:tubeTopPositioningMethod>
+                  <ns:materialUsed>
+                     <ns2:tubePackingMaterial codeSpace="urn:bro:gmw:TubePackingMaterial">bentoniet</ns2:tubePackingMaterial>
+                     <ns2:tubeMaterial codeSpace="urn:bro:gmw:TubeMaterial">pvc</ns2:tubeMaterial>
+                     <ns2:glue codeSpace="urn:bro:gmw:Glue">geen</ns2:glue>
+                  </ns:materialUsed>
+                  <ns:screen>
+                     <ns:screenLength uom="m">1.000</ns:screenLength>
+                     <ns:sockMaterial codeSpace="urn:bro:gmw:SockMaterial">nylon</ns:sockMaterial>
+                  </ns:screen>
+                  <ns:plainTubePart>
+                     <ns2:plainTubePartLength uom="m">6.640</ns2:plainTubePartLength>
+                  </ns:plainTubePart>
+               </ns:monitoringTube>
+            </ns:GMW_Construction>
+         </ns:sourceDocument>
+      </ns:registrationRequest>

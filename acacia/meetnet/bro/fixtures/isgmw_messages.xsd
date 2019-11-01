@@ -1,0 +1,379 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright 2012-2017 TNO Geologische Dienst Nederland
+
+    Alle rechten voorbehouden.
+    Niets uit deze software mag worden vermenigvuldigd en/of openbaar gemaakt door middel van druk, fotokopie,
+    microfilm of op welke andere wijze dan ook, zonder voorafgaande toestemming van TNO.
+
+    Indien deze software in opdracht werd uitgebracht, wordt voor de rechten en verplichtingen van opdrachtgever
+    en opdrachtnemer verwezen naar de Algemene Voorwaarden voor opdrachten aan TNO, dan wel de betreffende
+    terzake tussen de partijen gesloten overeenkomst.
+
+-->
+<!--gebaseerd op 0.7.3 Fase 2 -->
+<schema xmlns="http://www.w3.org/2001/XMLSchema" xmlns:gml="http://www.opengis.net/gml/3.2" xmlns:msg="http://www.broservices.nl/xsd/isgmw/1.1" xmlns:gmwcom="http://www.broservices.nl/xsd/gmwcommon/1.1"
+    xmlns:brocom="http://www.broservices.nl/xsd/brocommon/3.0" targetNamespace="http://www.broservices.nl/xsd/isgmw/1.1" elementFormDefault="qualified" version="1.1.0">
+    <annotation>
+        <documentation>
+            This XSD describes the message elements and complex types for the intake of a GroundwaterMonitoringWell in the BRO.
+
+            Version:1.1.0
+            - Public version of 1.0.0, 1.0.1 and 1.0.3
+
+            Version:1.0.3
+            Changes compared to Version:1.0.2:
+            - changed NITGCode into nitgCode
+            - removed root element CorrectionResponse (obsolete).
+
+            Version:1.0.2
+            Changes compared to Version:1.0.1:
+            - MoveRequestType.dateToBeCorrected changed from date into brocom:PartialDateType
+
+            Version:1.0.1
+            Changes compared to Version:1.0.0:
+            - historicalId replaced by NITGCode and mapSheetCode.
+
+            Version:1.0.0
+            Changes compared to Version:0.8.6:
+            - based on
+            brocommon:3.0
+            - Based on preproduction release from FDO.
+            - Geohmcable back to MonitoringTube
+
+            Version:0.8.6
+            Changes compared to Version:0.8.5:
+            - geoOhmCable temporarily back to GMW_Construction
+            in support of Bouw
+            - Stricter separation between intake and dispatch
+            - New design for operations and messages
+            with less operations and logic based on SourceDocumentTypes
+
+            Changes compared to
+            Version:0.8.4:
+            - Translated comments into English.
+            - Added import for namespace "http://www.opengis.net/gml/3.2".
+            - Added elements and complex types for CD_GMW_R_Construction,
+            CD_GMW_R_Lengthening, CD_GMW_R_Owner,
+            CD_GMW_I_Lengthening and CD_GMW_I_Owner.
+            - Added elements and complex types for C_ConstructionRequest, C_LengtheningRequest and C_OwnerRequest.
+            - Renamed
+            names of complexType for
+            sourceDocuments from Wrap_XX_GMW_XXXType into XX_GMW_XXXPropertyType as per WSI best practice.
+            - Replaced definition of complexTypes for sourceDocuments from
+            'element name="XX_GMW_XXX"
+            type="msg:XX_GMW_XXXType"' into 'element ref="msg:XX_GMW_XXX"' as per WSI best practice.
+            - Removed redundant attributes minOccurs="1"
+            - Removed redundant attributes
+            maxOccurs="1"
+        </documentation>
+    </annotation>
+
+    <!-- importeer datatypes -->
+    <import namespace="http://www.broservices.nl/xsd/gmwcommon/1.1" schemaLocation="https://schema.broservices.nl/xsd/gmwcommon/1.1/gmwcommon.xsd" />
+    <import namespace="http://www.broservices.nl/xsd/brocommon/3.0" schemaLocation="https://schema.broservices.nl/xsd/brocommon/3.0/brocommon.xsd" />
+    <import namespace="http://www.opengis.net/gml/3.2" schemaLocation="https://schema.broservices.nl/profile/gml/1.0/gml-profile.xsd" />
+
+    <!-- registratie en aanvul berichten (requests en responses) -->
+    <element name="registrationRequest" type="msg:RegistrationRequestType" />
+    <element name="insertRequest" type="msg:CorrectionRequestType" />
+    <element name="replaceRequest" type="msg:CorrectionRequestType" />
+    <element name="moveRequest" type="msg:MoveRequestType" />
+    <element name="deleteRequest" type="msg:CorrectionRequestType" />
+    <element name="intakeResponse" type="brocom:IntakeResponseType" />
+
+    <!-- gemeenschappelijk foutbericht -->
+    <element name="parseFault" type="brocom:ParseFaultType" />
+
+    <!-- root elementen voor de brondocumenten, zodat deze door het innameloket separaat geconstrueerd en gevalideerd kunnen worden -->
+    <!-- root elementen voor de brondocumenten van de registratie en correctie berichten -->
+    <element name="GMW_Construction" type="msg:GroundwaterMonitoringWellType" />
+    <element name="GMW_Owner" type="msg:GMW_OwnerType" />
+    <element name="GMW_Lengthening" type="msg:GMW_LengtheningType" />
+    <element name="GMW_GroundLevel" type="msg:GMW_GroundLevelType" />
+    <element name="GMW_Shortening" type="msg:GMW_ShorteningType" />
+    <element name="GMW_Positions" type="msg:GMW_PositionsType" />
+    <element name="GMW_ElectrodeStatus" type="msg:GMW_ElectrodeStatusType" />
+    <element name="GMW_Maintainer" type="msg:GMW_MaintainerType" />
+    <element name="GMW_TubeStatus" type="msg:GMW_TubeStatusType" />
+    <element name="GMW_Insertion" type="msg:GMW_InsertionType" />
+    <element name="GMW_Shift" type="msg:GMW_ShiftType" />
+    <element name="GMW_Removal" type="msg:GMW_RemovalType" />
+    <element name="GMW_WellHeadProtector" type="msg:GMW_WellHeadProtectorType" />
+
+
+    <!-- complexTypes voor registreren en aanvullen -->
+    <complexType name="RegistrationRequestType">
+        <complexContent>
+            <extension base="brocom:RegistrationRequestType">
+                <sequence>
+                    <element name="sourceDocument" type="msg:SourceDocumentType" />
+                </sequence>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType name="CorrectionRequestType">
+        <complexContent>
+            <extension base="brocom:CorrectionRequestType">
+                <sequence>
+                    <element name="correctionReason" type="msg:CorrectionReasonType" minOccurs="1" maxOccurs="1" />
+                    <element name="sourceDocument" type="msg:SourceDocumentType" />
+                </sequence>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType name="MoveRequestType">
+        <complexContent>
+            <extension base="msg:CorrectionRequestType">
+                <sequence>
+                    <element name="dateToBeCorrected" type="brocom:PartialDateType" minOccurs="1" maxOccurs="1" />
+                </sequence>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType name="SourceDocumentType">
+        <choice minOccurs="1" maxOccurs="1">
+            <element ref="msg:GMW_Construction" />
+            <element ref="msg:GMW_Owner" />
+            <element ref="msg:GMW_Lengthening" />
+            <element ref="msg:GMW_GroundLevel" />
+            <element ref="msg:GMW_Shortening" />
+            <element ref="msg:GMW_Positions" />
+            <element ref="msg:GMW_ElectrodeStatus" />
+            <element ref="msg:GMW_Maintainer" />
+            <element ref="msg:GMW_TubeStatus" />
+            <element ref="msg:GMW_Insertion" />
+            <element ref="msg:GMW_Shift" />
+            <element ref="msg:GMW_Removal" />
+            <element ref="msg:GMW_WellHeadProtector" />
+        </choice>
+    </complexType>
+
+
+    <!-- correctieverzoek types -->
+
+    <!-- brondocumenten registreren en aanvullen types -->
+
+    <complexType name="GroundwaterMonitoringWellType">
+        <sequence>
+            <element name="objectIdAccountableParty" type="string" minOccurs="1" maxOccurs="1" />
+            <element name="deliveryContext" type="gmwcom:DeliveryContextType" minOccurs="1" maxOccurs="1" />
+            <element name="constructionStandard" type="gmwcom:ConstructionStandardType" minOccurs="1" maxOccurs="1" />
+            <element name="initialFunction" type="gmwcom:InitialFunctionType" minOccurs="1" maxOccurs="1" />
+            <element name="numberOfMonitoringTubes" type="integer" minOccurs="1" maxOccurs="1" />
+            <element name="groundLevelStable" type="brocom:IndicationYesNoUnknownEnumeration" minOccurs="1" maxOccurs="1" />
+            <element name="wellStability" type="gmwcom:WellStabilityType" minOccurs="0" maxOccurs="1"/>
+            <choice minOccurs="1" maxOccurs="1">
+                <element name="nitgCode" type="string" minOccurs="1" maxOccurs="1" />
+                <element name="mapSheetCode" type="string" minOccurs="1" maxOccurs="1" />
+            </choice>
+            <element name="owner" type="brocom:ChamberOfCommerceNumberType" minOccurs="1" maxOccurs="1" nillable="true" />
+            <element name="maintenanceResponsibleParty" type="brocom:ChamberOfCommerceNumberType" minOccurs="0" maxOccurs="1"/>
+            <element name="wellHeadProtector" type="gmwcom:WellHeadProtectorType" minOccurs="1" maxOccurs="1" />
+            <element name="wellConstructionDate" type="brocom:PartialDateType" minOccurs="1" maxOccurs="1" />
+            <element name="deliveredLocation" type="gmwcom:DeliveredLocationType" minOccurs="1" maxOccurs="1" />
+            <element name="deliveredVerticalPosition" type="gmwcom:DeliveredVerticalPositionType" minOccurs="1" maxOccurs="1" />
+            <element name="monitoringTube" type="msg:MonitoringTubeType" minOccurs="1" maxOccurs="unbounded" />
+        </sequence>
+    </complexType>
+
+    <complexType name="GeoOhmCableType">
+        <sequence>
+            <element name="cableNumber" type="integer" minOccurs="1" maxOccurs="1" />
+            <element name="electrode" type="gmwcom:ElectrodeType" minOccurs="2" maxOccurs="unbounded" />
+        </sequence>
+    </complexType>
+
+    <complexType name="MonitoringTubeType">
+        <sequence>
+            <element name="tubeNumber" type="integer" minOccurs="1" maxOccurs="1" />
+            <element name="tubeType" type="gmwcom:TubeTypeType" minOccurs="1" maxOccurs="1" />
+            <element name="artesianWellCapPresent" type="brocom:IndicationYesNoUnknownEnumeration" minOccurs="1" maxOccurs="1" />
+            <element name="sedimentSumpPresent" type="brocom:IndicationYesNoUnknownEnumeration" minOccurs="1" maxOccurs="1" />
+            <element name="numberOfGeoOhmCables" type="integer" />
+            <element name="tubeTopDiameter" type="gmwcom:DiameterType" minOccurs="1" maxOccurs="1" nillable="true" />
+            <element name="variableDiameter" type="brocom:IndicationYesNoUnknownEnumeration" minOccurs="1" maxOccurs="1" />
+            <element name="tubeStatus" type="gmwcom:TubeStatusType" minOccurs="1" maxOccurs="1" />
+            <element name="tubeTopPosition" type="gmwcom:VerticalPositionType" minOccurs="1" maxOccurs="1" />
+            <element name="tubeTopPositioningMethod" type="gmwcom:TubeTopPositioningMethodType" minOccurs="1" maxOccurs="1" />
+            <element name="materialUsed" type="gmwcom:MaterialUsedType" minOccurs="1" maxOccurs="1" />
+            <element name="screen" type="msg:ScreenType" minOccurs="1" maxOccurs="1" />
+            <element name="plainTubePart" type="gmwcom:PlainTubePartType" minOccurs="1" maxOccurs="1" />
+            <element name="sedimentSump" type="gmwcom:SedimentSumpType" minOccurs="0" maxOccurs="1" />
+            <element name="geoOhmCable" type="msg:GeoOhmCableType" minOccurs="0" maxOccurs="unbounded" />
+        </sequence>
+    </complexType>
+
+    <complexType name="ScreenType">
+        <sequence>
+            <element name="screenLength" type="gmwcom:TubePartLengthType" minOccurs="1" maxOccurs="1" />
+            <element name="sockMaterial" type="gmwcom:SockMaterialType" minOccurs="1" maxOccurs="1" />
+        </sequence>
+    </complexType>
+
+
+    <complexType name="GMW_OwnerType">
+        <sequence>
+            <element name="eventDate" type="brocom:PartialDateType" />
+            <element name="owner" type="brocom:ChamberOfCommerceNumberType" />
+        </sequence>
+    </complexType>
+
+    <complexType name="GMW_WellHeadProtectorType">
+        <sequence>
+            <element name="eventDate" type="brocom:PartialDateType" />
+            <element name="wellHeadProtector" type="gmwcom:WellHeadProtectorType" />
+        </sequence>
+    </complexType>
+
+    <complexType name="GMW_LengtheningType">
+        <sequence>
+            <element name="eventDate" type="brocom:PartialDateType" />
+            <element name="wellHeadProtector" type="gmwcom:WellHeadProtectorType" minOccurs="0"/>
+            <element name="numberOfTubesLengthened" type="integer" />
+            <element name="monitoringTube" type="msg:MonitoringTubeLengtheningType" maxOccurs="unbounded" />
+        </sequence>
+    </complexType>
+
+    <complexType name="MonitoringTubeLengtheningType">
+        <sequence>
+            <element name="tubeNumber" type="integer" />
+            <element name="tubeTopDiameter" type="gmwcom:DiameterType" minOccurs="0" />
+            <element name="variableDiameter" type="brocom:IndicationYesNoUnknownEnumeration" minOccurs="0" />
+            <element name="tubeTopPosition" type="gmwcom:VerticalPositionType" />
+            <element name="tubeTopPositioningMethod" type="gmwcom:TubeTopPositioningMethodType" />
+            <element name="tubeMaterial" type="gmwcom:TubeMaterialType" minOccurs="0" />
+            <element name="glue" type="gmwcom:GlueType" minOccurs="0" />
+            <element name="plainTubePartLength" type="gmwcom:TubePartLengthType" />
+        </sequence>
+    </complexType>
+
+    <complexType name="GMW_GroundLevelType">
+        <sequence>
+            <element name="eventDate" type="brocom:PartialDateType" />
+            <element name="wellStability" type="gmwcom:WellStabilityType" />
+            <element name="groundLevelStable" type="brocom:IndicationYesNoEnumeration" />
+            <element name="groundLevelPosition" type="gmwcom:VerticalPositionType" />
+            <element name="groundLevelPositioningMethod" type="gmwcom:GroundLevelPositioningMethodType" />
+        </sequence>
+    </complexType>
+
+    <complexType name="GMW_ShorteningType">
+        <sequence>
+            <element name="eventDate" type="brocom:PartialDateType" />
+            <element name="wellHeadProtector" type="gmwcom:WellHeadProtectorType"  minOccurs="0"/>
+            <element name="numberOfTubesShortened" type="integer" />
+            <element name="monitoringTube" type="msg:MonitoringTubeShorteningType" maxOccurs="unbounded" />
+        </sequence>
+    </complexType>
+
+    <complexType name="MonitoringTubeShorteningType">
+        <sequence>
+            <element name="tubeNumber" type="integer" />
+            <element name="tubeTopPosition" type="gmwcom:VerticalPositionType" />
+            <element name="tubeTopPositioningMethod" type="gmwcom:TubeTopPositioningMethodType" />
+            <element name="plainTubePartLength" type="gmwcom:TubePartLengthType" />
+        </sequence>
+    </complexType>
+
+
+    <complexType name="GMW_ElectrodeStatusType">
+        <sequence>
+            <element name="eventDate" type="brocom:PartialDateType" />
+            <element name="numberOfElectrodesChanged" type="integer" />
+            <element name="electrode" type="msg:ElectrodeType" maxOccurs="unbounded" />
+        </sequence>
+    </complexType>
+
+    <complexType name="ElectrodeType">
+        <sequence>
+            <element name="tubeNumber" type="integer" />
+            <element name="cableNumber" type="integer" />
+            <element name="electrodeNumber" type="integer" />
+            <element name="electrodeStatus" type="gmwcom:ElectrodeStatusType" />
+        </sequence>
+    </complexType>
+
+
+    <complexType name="GMW_PositionsType">
+        <sequence>
+            <element name="eventDate" type="brocom:PartialDateType" />
+            <element name="wellStability" type="gmwcom:WellStabilityType" />
+            <element name="groundLevelStable" type="brocom:IndicationYesNoEnumeration" />
+            <element name="numberOfMonitoringTubes" type="integer" />
+            <element name="groundLevelPosition" type="gmwcom:VerticalPositionType" />
+            <element name="groundLevelPositioningMethod" type="gmwcom:GroundLevelPositioningMethodType" />
+            <element name="monitoringTube" type="msg:MonitoringTubePositionsType" maxOccurs="unbounded" />
+        </sequence>
+    </complexType>
+
+    <complexType name="MonitoringTubePositionsType">
+        <sequence>
+            <element name="tubeNumber" type="integer" />
+            <element name="tubeTopPosition" type="gmwcom:VerticalPositionType" />
+            <element name="tubeTopPositioningMethod" type="gmwcom:TubeTopPositioningMethodType" />
+        </sequence>
+    </complexType>
+
+    <complexType name="GMW_MaintainerType">
+        <sequence>
+            <element name="eventDate" type="brocom:PartialDateType" />
+            <element name="maintenanceResponsibleParty" type="brocom:ChamberOfCommerceNumberType" />
+        </sequence>
+    </complexType>
+
+    <complexType name="GMW_TubeStatusType">
+        <sequence>
+            <element name="eventDate" type="brocom:PartialDateType" />
+            <element name="numberOfTubesChanged" type="integer" />
+            <element name="monitoringTube" type="msg:MonitoringTubeStatusType" maxOccurs="unbounded" />
+        </sequence>
+    </complexType>
+
+    <complexType name="MonitoringTubeStatusType">
+        <sequence>
+            <element name="tubeNumber" type="integer" />
+            <element name="tubeStatus" type="gmwcom:TubeStatusType" />
+        </sequence>
+    </complexType>
+
+    <complexType name="GMW_InsertionType">
+        <sequence>
+            <element name="tubeNumber" type="integer" />
+            <element name="eventDate" type="brocom:PartialDateType" />
+            <element name="tubeTopPosition" type="gmwcom:VerticalPositionType" />
+            <element name="tubeTopPositioningMethod" type="gmwcom:TubeTopPositioningMethodType" />
+            <element name="insertedPartLength" type="gmwcom:TubePartLengthType" />
+            <element name="insertedPartDiameter" type="gmwcom:DiameterType" />
+            <element name="insertedPartMaterial" type="gmwcom:TubeMaterialType" />
+        </sequence>
+    </complexType>
+
+
+    <complexType name="GMW_ShiftType">
+        <sequence>
+            <element name="eventDate" type="brocom:PartialDateType" />
+            <element name="groundLevelPosition" type="gmwcom:VerticalPositionType" />
+            <element name="groundLevelPositioningMethod" type="gmwcom:GroundLevelPositioningMethodType" />
+        </sequence>
+    </complexType>
+
+    <complexType name="GMW_RemovalType">
+        <sequence>
+            <element name="wellRemovalDate" type="brocom:PartialDateType" />
+        </sequence>
+    </complexType>
+
+    <complexType name="CorrectionReasonType">
+        <simpleContent>
+            <restriction base="gml:CodeWithAuthorityType">
+                <attribute name="codeSpace" type="anyURI" use="required" fixed="urn:bro:gmw:CorrectionReason" />
+            </restriction>
+        </simpleContent>
+    </complexType>
+
+</schema>
