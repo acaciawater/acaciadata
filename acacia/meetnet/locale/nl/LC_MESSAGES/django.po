@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-08-11 14:42+0200\n"
+"POT-Creation-Date: 2019-11-01 16:10+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,24 +17,57 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: forms.py:25
+#: admin.py:229
+msgid "Bovenkant buis"
+msgstr ""
+
+#: forms.py:30
 #, python-format
 msgid ""
 "Ensure at least %(min_num)s files are uploaded (received %(num_files)s)."
 msgstr ""
 
-#: forms.py:26
+#: forms.py:31
 #, python-format
 msgid "Ensure at most %(max_num)s files are uploaded (received %(num_files)s)."
 msgstr ""
 
-#: forms.py:27
+#: forms.py:32
 #, python-format
 msgid "File %(uploaded_file_name)s exceeded maximum upload size."
 msgstr ""
 
-#: models.py:20
-#: models.py:43
+#: forms.py:68
+#, python-format
+msgid "A datalogger with serial number %(value)s already exists"
+msgstr "Er is al een datalogger met serienummer %(value)s geregistreerd"
+
+#: forms.py:73
+#, python-format
+msgid "A datasource with name %(value)s already exists"
+msgstr "Er is al een gegevensbron met naam %(value)s geregistreerd"
+
+#: forms.py:79
+msgid "loggermodel"
+msgstr "logger model"
+
+#: forms.py:80
+msgid "serialnumber"
+msgstr "serienummer"
+
+#: forms.py:81 models.py:395 models.py:421 models.py:536
+msgid "screen"
+msgstr "filter"
+
+#: forms.py:82
+msgid "installationdepth"
+msgstr "kabellengte"
+
+#: forms.py:107
+msgid "Invalid serial number"
+msgstr "ongeldig serienummer"
+
+#: models.py:20 models.py:43
 msgid "name"
 msgstr "naam"
 
@@ -71,8 +104,7 @@ msgstr ""
 msgid "display well names with NITG code or use custom names"
 msgstr ""
 
-#: models.py:35
-#: models.py:42
+#: models.py:35 models.py:42
 msgid "network"
 msgstr "netwerk"
 
@@ -141,8 +173,7 @@ msgstr "plaats"
 msgid "driller's log"
 msgstr "boorstaat"
 
-#: models.py:58
-#: models.py:218
+#: models.py:58 models.py:218
 msgid "chart"
 msgstr "grafiek"
 
@@ -162,9 +193,7 @@ msgstr "aantal filters"
 msgid "number of photos"
 msgstr "aantal fotos"
 
-#: models.py:156
-#: models.py:166
-#: models.py:209
+#: models.py:156 models.py:166 models.py:209
 msgid "well"
 msgstr "put"
 
@@ -297,75 +326,67 @@ msgstr "maaiveld"
 msgid "group"
 msgstr ""
 
-#: models.py:376
-#: models.py:402
-#: models.py:517
-msgid "screen"
-msgstr "filter"
-
-#: models.py:377
+#: models.py:396
 msgid "screens"
 msgstr "filters"
 
-#: models.py:391
+#: models.py:410
 msgid "serial number"
 msgstr "serienummer"
 
-#: models.py:392
+#: models.py:411
 msgid "type"
 msgstr "type"
 
-#: models.py:403
+#: models.py:422
 msgid "start"
 msgstr "start"
 
-#: models.py:403
+#: models.py:422
 msgid "Start of datalogger"
 msgstr "start datalogger"
 
-#: models.py:404
+#: models.py:423
 msgid "stop"
 msgstr "stop"
 
-#: models.py:404
+#: models.py:423
 msgid "Stopping time of datalogger"
 msgstr "stop datalogger"
 
-#: models.py:405
-#: models.py:518
+#: models.py:424 models.py:537
 msgid "reference point"
 msgstr "referentiepunt"
 
-#: models.py:405
+#: models.py:424
 #, fuzzy
 msgid "Reference point in meter wrt NAP"
 msgstr "maaveld in meter tov NAP"
 
-#: models.py:406
+#: models.py:425
 msgid "cable length"
 msgstr "kabellengte"
 
-#: models.py:406
+#: models.py:425
 msgid "length of cable in meter"
 msgstr "kabellengte in meter"
 
-#: models.py:407
+#: models.py:426
 msgid "remarks"
 msgstr "opmerkingen"
 
-#: models.py:413
+#: models.py:432
 msgid "LoggerInstallation"
 msgstr "Datalogger installatie"
 
-#: models.py:435
+#: models.py:454
 msgid "Monfiles"
 msgstr ""
 
-#: models.py:512
+#: models.py:531
 msgid "Top of casing"
 msgstr "bovenkant buis"
 
-#: models.py:513
+#: models.py:532
 msgid "NAP"
 msgstr "NAP"
-

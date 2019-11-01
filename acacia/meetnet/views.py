@@ -21,11 +21,16 @@ import os, logging
 import simplejson as json
 
 from util import handle_uploaded_files
-from django.utils.timezone import get_current_timezone
+from django.utils.timezone import get_current_timezone, now
 from django.utils.text import slugify
 from acacia.data.actions import download_series_csv
 from acacia.data.util import series_as_csv, to_millis
-from acacia.meetnet.models import Handpeilingen
+from acacia.meetnet.models import Handpeilingen, Datalogger, LoggerDatasource
+from acacia.meetnet.forms import AddLoggerForm
+from django.contrib.auth.mixins import LoginRequiredMixin
+from acacia.data.models import Generator
+from _mysql import IntegrityError
+from django.core.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -449,3 +454,66 @@ def change_refpnt(request, pk):
         return redirect(url)
     else:
         return HttpResponse(status=200)
+    
+class AddLoggerView(LoginRequiredMixin, FormView):
+    form_class = AddLoggerForm
+    success_url = '/net/added/1'
+    #success_url = reverse('meetnet:add-logger') # automatisch nieuwe toevoegen
+    template_name = 'meetnet/addlogger.html'
+
+    def get_context_data(self, **kwargs):
+        context = FormView.get_context_data(self, **kwargs)
+        context['network'] = Network.objects.first()
+        return context
+    
+    def get_initial(self):
+        initial = FormView.get_initial(self)
+        initial['start'] = now()
+    
+    def form_valid(self, form):
+        try:
+            pos=self.add_logger(form.cleaned_data)
+            self.success_url='/net/added/{}'.format(pos.pk)
+        except IntegrityError as e:
+            raise ValidationError(e)
+        return FormView.form_valid(self, form)
+    
+    def form_invalid(self, form):
+        return FormView.form_invalid(self, form)
+
+    def get_form_kwargs(self):
+        kwargs = FormView.get_form_kwargs(self)
+        return kwargs
+    
+    def add_logger(self, data):
+        serial = data['serial']
+        model = data['model']
+        screen = data['screen']
+        depth = data['depth']
+        start = data['start']
+
+        logger = Datalogger.objects.create(
+            serial=serial,
+            model=model)
+        datasource = LoggerDatasource.objects.create(
+            logger = logger,
+            name = serial,
+            description= 'Ellitrack datalogger {}'.format(serial),
+            meetlocatie = screen.mloc,
+            timezone = 'Europe/Amsterdam',
+            user = self.request.user,
+            generator = Generator.objects.get(name='Ellitrack' if model.startswith('etd') else 'Schlumberger'),
+            url= settings.FTP_URL,
+            username = settings.FTP_USERNAME,
+            password = settings.FTP_PASSWORD)
+        datasource.locations.add(screen.mloc)
+        return logger.loggerpos_set.create(
+            screen=screen,
+            refpnt=screen.refpnt,
+            depth=depth,
+            start_date=start)
+        
+class LoggerAddedView(TemplateView):
+    template_name = 'meetnet/loggeradded.html'
+    
+    

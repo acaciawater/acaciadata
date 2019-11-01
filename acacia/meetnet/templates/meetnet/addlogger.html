@@ -1,0 +1,50 @@
+{% extends 'bootbase.html' %}
+{% load staticfiles %}
+{% load l10n %}
+{% block title %}Datalogger toevoegen{% endblock title %}
+{% block breadcrumbs %}{% endblock %}
+{% block brandname %}<div class="navbar-brand">Grondwatermeetnet {{network.name}}</div>
+{% endblock %}
+{% block content %}
+<form method="post">{% csrf_token %}
+	<div class="container">
+	<h3>Datalogger toevoegen aan meetnet {{network.name}}</h3>
+	<table class="table table-striped">
+	<thead></thead>
+	<tbody>
+	<tr>
+		<td>Datalogger</td>
+		<td>{{form.model}}</td>
+	</tr>
+	<tr>
+		<td>Serienummer</td>
+		<td>{{form.serial}}
+		{% if form.errors.serial %}
+			<span class="alert alert-danger">{{form.errors.serial|join:', '}}</span>
+		{% endif %}
+		</td>
+	</tr>
+	<tr>
+		<td>Filter</td>
+		<td>{{form.screen}}</td>
+	</tr>
+	<tr>
+		<td>Kabellengte</td>
+		<td>{{form.depth}}</td>
+	</tr>
+	<tr>
+		<td>Start datum</td>
+		<td>{{form.start}}</td>
+	</tr>
+	</tbody>
+	<tfoot>
+		<tr>
+			<td colspan=2>
+			<input type="submit" value="Toevoegen" class="btn btn-primary">
+			</td>
+		</tr>
+	</tfoot>
+	</table>
+	</div>
+</form>
+{% endblock %}

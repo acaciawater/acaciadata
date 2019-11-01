@@ -2,7 +2,7 @@ from django.conf.urls import url
 from .views import NetworkView, WellView, ScreenView, WellChartView, EmailNetworkSeries, EmailNetworkNITG, EmailScreenSeries, EmailWellSeries, UploadDoneView, UploadFileView
 from django.contrib.auth.decorators import login_required
 from acacia.meetnet.views import wellinfo, json_series, DownloadWellSeries,\
-    change_refpnt
+    change_refpnt, AddLoggerView, LoggerAddedView
 
 urlpatterns = [
     url(r'^$', NetworkView.as_view(), name='home'),
@@ -11,6 +11,8 @@ urlpatterns = [
     url(r'^screen/(?P<pk>\d+)$', ScreenView.as_view(), name='screen-detail'),
     url(r'^chart/(?P<pk>\d+)/$', WellChartView.as_view(), name='chart-detail'),
     url(r'^info/(?P<pk>\d+)/$', wellinfo, name='well-info'),
+    url(r'^added/(?P<pk>\d+)$', LoggerAddedView.as_view(), name='logger-added'),
+    url(r'^add', AddLoggerView.as_view(), name='add-logger'),
     # TODO redesign urls for download
     url(r'^data/(?P<pk>\d+)/$', json_series, name='screen-series'),
     url(r'^data/well/(?P<pk>\d+)/$', DownloadWellSeries, name='download-well'),
