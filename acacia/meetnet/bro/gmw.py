@@ -1,9 +1,9 @@
 from xml.etree.ElementTree import Element, SubElement
 from .models import MapSheet
-
+    
 def registration_request(well, kvk):
     ''' Creates xml with registration request (registratieverzoek) for BRO '''
-
+    # TODO: handle missing data, e.g. screen settings, reference point or surface level
     request = Element('ns:registrationRequest',
     {
         'xmlns:ns':'http://www.broservices.nl/xsd/isgmw/1.1',
@@ -33,7 +33,7 @@ def registration_request(well, kvk):
         if sheets.exists():
             SubElement(construction, 'ns:mapSheetCode').text = sheets.first().blad 
         else:
-            raise 'Could not determine mapSheetCode for well "{}"'.format(well.name)
+            raise Exception('Could not determine mapSheetCode for well "{}"'.format(well.name))
 
     SubElement(construction, 'ns:owner').text = kvk
     SubElement(construction, 'ns:maintenanceResponsibleParty').text = kvk
