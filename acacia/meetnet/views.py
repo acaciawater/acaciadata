@@ -469,6 +469,7 @@ class AddLoggerView(LoginRequiredMixin, FormView):
     def get_initial(self):
         initial = FormView.get_initial(self)
         initial['start'] = now()
+        return initial
     
     def form_valid(self, form):
         try:
@@ -491,7 +492,7 @@ class AddLoggerView(LoginRequiredMixin, FormView):
         screen = data['screen']
         depth = data['depth']
         start = data['start']
-
+        # TODO: for Schlumberger loggers modify description and credentials
         logger = Datalogger.objects.create(
             serial=serial,
             model=model)
