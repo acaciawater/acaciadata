@@ -85,12 +85,12 @@ class ElliTrack(GenericCSV):
                         dirlist.append(entry)
                     
                 ftp.dir(mask,collect)   
-                tz = timezone.get_current_timezone()
+                #tz = timezone.get_current_timezone()
                 for f in dirlist:
                     if start is not None:
                         date = dateutil.parser.parse(f['date'])
-                        date = timezone.make_aware(date,tz)
-                        if date < start:
+                        #date = timezone.make_aware(date,tz)
+                        if date.date < start.date:
                             continue
                     filename = f['file']
                     urlfile = url + '/' + filename
