@@ -13,8 +13,7 @@ from acacia.data import util
 from django.db.models.aggregates import Count
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
-from django.db.models.deletion import SET_NULL, CASCADE
-from django.conf import settings
+from django.db.models.deletion import SET_NULL
 
 class Network(models.Model):
     name = models.CharField(max_length=50, unique=True, verbose_name = _('name'))
