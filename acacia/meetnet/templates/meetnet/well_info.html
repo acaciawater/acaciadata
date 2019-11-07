@@ -15,12 +15,15 @@ td a img {
 </style>
 <div id="content">
 <div class="container-fluid">
-<a href="{% url 'meetnet:well-detail' object.id %}" ><h4>Grondwaterput {{ object }}</h4></a>
+<a href="{% url 'meetnet:well-detail' object.id %}" ><h4>Waarnemingsput {{ object.name }}</h4></a>
 <table class="table table-condensed">
-<tr><td class="col-md-2">Constructiedatum</div></td><td class="col-md-10">{%if object.dat %}{{object.date}}{%else%}<i>onbekend</i>{%endif%}</td></tr>
-<tr><td>Maaiveld</div></td><td>{%if object.maaiveld %}{{object.maaiveld|floatformat:2}} m NAP{%else%}<i>onbekend</i>{%endif%}</td></tr>
-<tr><td>Filters</td><td>{{object.num_filters}}</td></tr>
-<tr><td>Fotos</td><td>{%for f in object.photo_set.all %}<a href="/media/{{f.photo.name}}"><img src="/media/{{f.photo.name}}"/></a>{%empty%}<i>geen</i>{%endfor%}</td></tr>
+<tr><td class="col-md-3">Adres</div></td><td class="col-md-9">{{object.full_address}}</td></tr>
+{% with object.last_measurement as last %}
+{% if last %}
+<tr><td>Laatste meting</td><td>{{last.value|floatformat:2}}m op {{last.date}}</td></tr>
+{%endif%}
+{% endwith %}
+<tr></tr>
 {% if object.has_data %}
 <tr><td colspan="2">
 	<a href="{% url 'meetnet:chart-detail' object.id %}?stats=1" target="_blank"><img width="100%" src="{{object.chart.url}}"></a>

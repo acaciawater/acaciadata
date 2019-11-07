@@ -1,19 +1,28 @@
 {% extends 'highchart.html' %}
-{% block title %}Grafiek {{object}}{% endblock title %}
+{% load i18n %}
+{% block title %}{% trans Chart %} {{object.name}}{% endblock title %}
+{% block breadcrumbs %}
+<ol class="breadcrumb">
+	<li><a href="/">{% trans "Home" %}</a></li>
+</ol>
+{% endblock breadcrumbs %} 
+{% block brandname %}
+<div class="navbar-brand">
+	<a href="{{object.network.homepage}}"><img
+		src="/media/{{object.network.logo}}" /></a>
+</div>
+{% endblock %} 
 {% block extrastyle %}
-<link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+<style>
+.navbar-brand a img {
+	margin-top: -7px;
+	max-height: 32px;
+}
+#status {
+  padding-left: 4em;
+}
+</style>
 {% endblock %}
-{% block navbar-right %}
-<!--  <li class="dropdown"> -->
-<!--    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Referentie<b class="caret"></b></a> -->
-<!--    <ul class="dropdown-menu"> -->
-<!--      <li><a href="#"><i class="fa fa-check"></i>NAP</a></li> -->
-<!--      <li><a href="#">Maaiveld</a></li> -->
-<!--      <li><a href="#">Bovenkant buis</a></li> -->
-<!--      <li><a href="#">Sensor</a></li> -->
-<!--    </ul> -->
-<!--  </li> -->
-{% endblock navbar-right %}
 {% block script %}
 {{ block.super }}
 <script>
@@ -55,6 +64,24 @@ function fetchAll() {
 $(function () {
   var opt = {{options|safe}};
   opt.chart.events.load = fetchAll;
+  opt.exporting = {
+	        buttons: {
+	            contextButton: {
+	                menuItems: [{
+	                    text: 'Download figuur',
+	                    onclick: function () {
+	                        this.exportChart();
+	                    }
+	                }, {
+	                    text: 'Download tijdreeks',
+	                    onclick: function () {
+	            			window.location="{% url 'meetnet:download-well' object.id %}";
+	                    },
+	                    separator: false
+	                }]
+	            }
+	        }
+	  };
   chart = $('#container').highcharts(opt);
 });
 </script>
@@ -62,5 +89,9 @@ $(function () {
 
 {% block content %}
 {{ block.super }}
+<br/>
+<div class="text-center">
+<a href="{% url 'meetnet:download-well' object.id %}" class="btn btn-primary active" data-toggle="tooltip" title="Tijdreeksen van deze put downloaden als csv bestand" id="download">Downloaden</a>
+</div>
 <div id="status"></div>
 {% endblock %}
