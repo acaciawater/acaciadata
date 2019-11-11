@@ -90,7 +90,7 @@ class ElliTrack(GenericCSV):
                     if start is not None:
                         date = dateutil.parser.parse(f['date'])
                         #date = timezone.make_aware(date,tz)
-                        if date.date < start.date:
+                        if date.date() < start.date():
                             continue
                     filename = f['file']
                     urlfile = url + '/' + filename
