@@ -1249,7 +1249,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
                 pts.append(DataPoint(series=self, date=aware(date,tz), value=value))
             except Exception as e:
                 self.getLogger().debug('Datapoint %s,%s: %s' % (str(date), value, e))
-        return pts
+        return sorted(pts, key = lambda p: p.date)
     
     def create_points(self, series, tz):
         pts = self.datapoints.bulk_create(self.prepare_points(series, tz))
@@ -1277,11 +1277,11 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         self.datapoints.all().delete()
         return self.create(data)
 
-    def update(self, data=None, start=None, thumbnail=True):
+    def update(self, data=None, start=None, stop=None, thumbnail=True):
         logger = self.getLogger()
 
         logger.debug('Updating series %s' % self.name)
-        series = self.get_series_data(data, start)
+        series = self.get_series_data(data, start, stop)
         if series is None:
             logger.error('Update of series %s failed' % self.name)
             return 0
@@ -1301,11 +1301,9 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         self.getproperties().delete()
 
         # delete the points
-        if start is None:
-            start = min([p.date for p in pts])
-        query = self.datapoints.filter(date__gte=start)
+        query = self.datapoints.filter(date__range=[start or pts[0].date, stop or pts[-1].date])
         deleted = query.delete()
-        num_deleted = len(deleted) if deleted else 0
+        num_deleted = deleted[0] if deleted else 0
 
         created = self.datapoints.bulk_create(pts)
         num_created = len(created) - num_deleted
