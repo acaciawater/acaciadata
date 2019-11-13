@@ -12,7 +12,6 @@ from acacia.meetnet.models import Handpeilingen as Peilingen
 from acacia.meetnet.actions import update_statistics
 from django.utils.translation import ugettext as _
 from django.contrib.admin.decorators import register
-from django.forms.forms import Form
 
 USE_GOOGLE_TERRAIN_TILES = False
 
@@ -163,7 +162,7 @@ class WellAdmin(admin.ModelAdmin):
                actions.download_metadata,
                actions.download_well_nitg,
                actions.elevation_from_ahn,
-               actions.address_from_google]
+               actions.address_from_osm]
     inlines = [ScreenInline, MeteoInline, PhotoInline ]
     list_display = ('name','nitg','network','owner','maaiveld', 'ahn', 'num_filters', 'num_photos', 'straat', 'plaats')
     #list_editable = ('location',)

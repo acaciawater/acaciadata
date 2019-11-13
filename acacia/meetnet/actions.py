@@ -34,11 +34,11 @@ def download_metadata(modeladmin, request, queryset):
     return resp
 download_metadata.short_description = 'Download metadata voor geselecteerde putten'
     
-def address_from_google(modeladmin, request, queryset):
+def address_from_osm(modeladmin, request, queryset):
     for well in queryset:
         if set_well_address(well):
             well.save()
-address_from_google.short_description = 'Bepaal addres met Google geocoding API'        
+address_from_osm.short_description = 'Bepaal adres met Openstreetmap API'        
             
 def elevation_from_ahn(modeladmin, request, queryset):
     """ get elevation from AHN """

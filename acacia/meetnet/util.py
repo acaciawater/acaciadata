@@ -39,31 +39,22 @@ rcParams['font.size'] = '8'
 logger = logging.getLogger(__name__)
 
 def set_well_address(well):
-    ''' sets well's address fields using google geocoding api '''
+    ''' sets well's address fields using OSM geocoding api '''
     loc = well.latlon()
     data = get_address(loc.x, loc.y)
-    for address in data['results']:
-        logger.debug(address.get('formatted_address','Geen adres'))
-        # first result is closest address
-        found = False
-        for comp in address['address_components']:
-            types = comp['types']
-            value = comp['long_name']
-            if 'street_number' in types:
-                well.huisnummer = value
-                found = True
-            elif 'route' in types:
-                well.straat = value
-                found = True
-            elif 'locality' in types:
-                well.plaats = value
-                found = True
-            elif 'postal_code' in types:
-                well.postcode = value
-                found = True
-        if found:
-            return True
-    return False
+    if not 'address' in data:
+        return False
+    logger.debug(data.get('display_name','Geen adres'))
+    address = data['address']
+    if 'house_number' in address:
+        well.huisnummer = address['house_number']
+    if 'road' in address:
+        well.straat = address['road']
+    if 'town' in address:
+        well.plaats = address['town']
+    if 'postcode' in address:
+        well.postcode = address['postcode']
+    return True
 
 # thumbnail size and resolution
 THUMB_DPI=72
