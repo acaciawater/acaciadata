@@ -1,6 +1,5 @@
 from django.conf.urls import url
 from .views import NetworkView, WellView, ScreenView, WellChartView, EmailNetworkSeries, EmailNetworkNITG, EmailScreenSeries, EmailWellSeries, UploadDoneView, UploadFileView
-from django.contrib.auth.decorators import login_required
 from acacia.meetnet.views import wellinfo, json_series, DownloadWellSeries,\
     change_refpnt, AddLoggerView, LoggerAddedView
 
@@ -20,8 +19,8 @@ urlpatterns = [
     url(r'^email/nitg/(?P<pk>\d+)', EmailNetworkNITG,name='email-network-nitg'),
     url(r'^email/well/(?P<pk>\d+)', EmailWellSeries,name='email-well'),
     url(r'^email/screen/(?P<pk>\d+)', EmailScreenSeries,name='email-screen'),
-    url(r'^upload/(?P<id>\d+)/$', login_required(UploadFileView.as_view()), name='upload_files'),
-    url(r'^done/(?P<id>\d+)/$', login_required(UploadDoneView.as_view()), name='upload_done'),
-    url(r'^ref/(?P<pk>\d+)/$', login_required(change_refpnt), name='change_ref')
+    url(r'^upload/(?P<id>\d+)/$', UploadFileView.as_view(), name='upload_files'),
+    url(r'^done/(?P<id>\d+)/$', UploadDoneView.as_view(), name='upload_done'),
+    url(r'^ref/(?P<pk>\d+)/$', change_refpnt, name='change_ref')
     
     ]

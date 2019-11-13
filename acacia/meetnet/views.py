@@ -10,7 +10,7 @@ from django.core.urlresolvers import reverse
 from django.shortcuts import get_object_or_404, redirect
 from django.core.files.storage import default_storage
 from django.conf import settings
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 import pandas as pd
 
 from .models import Network, Well, Screen
@@ -31,8 +31,39 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from acacia.data.models import Generator
 from _mysql import IntegrityError
 from django.core.exceptions import ValidationError
+from django.contrib.auth import REDIRECT_FIELD_NAME
 
 logger = logging.getLogger(__name__)
+
+def should_login(user):
+    network = Network.objects.first()
+    return (network and not network.login_required) or user.is_authenticated
+
+def auth_required(function=None, redirect_field_name=REDIRECT_FIELD_NAME, login_url=None):
+    """
+    Decorator for views that checks that the user is logged in (if needed for this network), redirecting
+    to the log-in page if necessary.
+    """
+    actual_decorator = user_passes_test(
+        lambda u: should_login(u),
+        login_url=login_url,
+        redirect_field_name=redirect_field_name
+    )
+    if function:
+        return actual_decorator(function)
+    return actual_decorator
+
+class AuthRequiredMixin(LoginRequiredMixin):
+    """
+    CBV mixin which verifies that the current user is authenticated (if required by network).
+    """
+    def dispatch(self, request, *args, **kwargs):
+        network = Network.objects.first() # assume there is only one network!
+        if network and network.login_required:
+            return LoginRequiredMixin.dispatch(self, request, *args, **kwargs)
+        else:
+            return super(LoginRequiredMixin, self).dispatch(request, *args, **kwargs)
+
 
 class NavMixin(object):
     """ Mixin for browsing through devices sorted by name """
@@ -44,7 +75,7 @@ class NavMixin(object):
         prv = prv.last() if prv else None
         return {'next': nxt, 'prev': prv}
 
-class WellView(NavMixin, DetailView):
+class WellView(AuthRequiredMixin, NavMixin, DetailView):
     #template = 'meetnet/well_info.html'
     model = Well
 
@@ -55,7 +86,7 @@ class WellView(NavMixin, DetailView):
         context['nav'] = self.nav(well)
         return context
 
-class ScreenView(DetailView):
+class ScreenView(AuthRequiredMixin, DetailView):
     model = Screen
     
     def get_context_data(self, **kwargs):
@@ -64,13 +95,14 @@ class ScreenView(DetailView):
         context['chart'] = screen.chart.url if screen.chart.name else None 
         return context
 
+@auth_required
 def wellinfo(request, pk):
-    ''' return contents of info window for google maps '''
+    ''' return contents of popup for leaflet '''
     well = Well.objects.get(pk=pk)
     contents = render_to_string('meetnet/well_info.html', {'object': well})
     return HttpResponse(contents, content_type = 'application/text')
 
-class NetworkView(DetailView):
+class NetworkView(AuthRequiredMixin, DetailView):
     model = Network
     
     def get_context_data(self, **kwargs):
@@ -95,7 +127,7 @@ class NetworkView(DetailView):
         context['apikey'] = settings.GOOGLE_MAPS_API_KEY
         return context
         
-class ScreenChartView(TemplateView):
+class ScreenChartView(AuthRequiredMixin,TemplateView):
     template_name = 'plain_chart.html'
     
     def get_context_data(self, **kwargs):
@@ -130,6 +162,7 @@ class ScreenChartView(TemplateView):
         context['screen'] = filt
         return context
 
+@auth_required
 def json_series(request, pk):
     screen = get_object_or_404(Screen,pk=pk)
     what = request.GET.get('mode','comp') # choices: comp, hand
@@ -164,7 +197,7 @@ def json_series(request, pk):
         pass
     return HttpResponse(json.dumps(data,ignore_nan=True,default=to_millis),content_type='application/json')
     
-class WellChartView(NavMixin, TemplateView):
+class WellChartView(AuthRequiredMixin, NavMixin, TemplateView):
     template_name = 'meetnet/chart_detail.html'
         
     def get_context_data(self, **kwargs):
@@ -405,7 +438,7 @@ def save_file(file_obj,folder):
             destination.write(chunk)
     return path
 
-class UploadFileView(FormView):
+class UploadFileView(LoginRequiredMixin,FormView):
 
     template_name = 'upload.html'
     form_class = UploadFileForm
@@ -437,6 +470,8 @@ class UploadFileView(FormView):
         return super(UploadFileView,self).form_valid(form)
 
 from django.db import transaction
+
+@login_required
 def change_refpnt(request, pk):
     ''' change reference point (top of casing) for Handpeilingen '''
     hp = get_object_or_404(Handpeilingen,pk=pk)

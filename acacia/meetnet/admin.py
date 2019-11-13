@@ -265,7 +265,7 @@ class HandpeilingenAdmin(admin.ModelAdmin):
 
 class NetworkAdmin(admin.ModelAdmin):
     model = Network
-    fields = ('name','display_name',('homepage','logo'),'bound',('last_round','next_round'))
+    fields = ('name',('display_name','login_required'),('homepage','logo'),'bound',('last_round','next_round'))
         
 admin.site.register(Network, NetworkAdmin)
 admin.site.register(Well, WellAdmin)

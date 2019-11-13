@@ -19,6 +19,7 @@ class Network(models.Model):
     name = models.CharField(max_length=50, unique=True, verbose_name = _('name'))
     logo = models.ImageField(upload_to='logos')
     homepage = models.URLField(blank=True, help_text = _('website of netork administrator'))
+    login_required = models.BooleanField(_('login_required'),default=False)
     bound = models.URLField(blank=True,verbose_name = 'grens', help_text = _('url of kml file of network boundary'))
     last_round = models.DateField(null=True,blank=True,verbose_name = _('last measuring round'))
     next_round = models.DateField(null=True,blank=True,verbose_name = _('next measuring round'))
