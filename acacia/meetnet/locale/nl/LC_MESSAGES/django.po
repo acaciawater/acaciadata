@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-11-01 17:12+0100\n"
+"POT-Creation-Date: 2019-11-13 21:02+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: admin.py:229
+#: admin.py:228
 msgid "Bovenkant buis"
 msgstr ""
 
@@ -67,13 +67,17 @@ msgstr "kabellengte"
 msgid "Invalid serial number"
 msgstr "ongeldig serienummer"
 
-#: models.py:20 models.py:43
+#: models.py:19 models.py:43
 msgid "name"
 msgstr "naam"
 
-#: models.py:22
+#: models.py:21
 msgid "website of netork administrator"
 msgstr "website van meetnetbeheerder"
+
+#: models.py:22
+msgid "login_required"
+msgstr "Inloggen vereist"
 
 #: models.py:23
 msgid "url of kml file of network boundary"
@@ -102,7 +106,7 @@ msgstr ""
 
 #: models.py:27
 msgid "display well names with NITG code or use custom names"
-msgstr ""
+msgstr "Toon putten met NITG code of putnaam"
 
 #: models.py:35 models.py:42
 msgid "network"
@@ -324,7 +328,7 @@ msgstr "maaiveld"
 
 #: models.py:222
 msgid "group"
-msgstr ""
+msgstr "groep"
 
 #: models.py:396
 msgid "screens"
@@ -390,3 +394,7 @@ msgstr "bovenkant buis"
 #: models.py:532
 msgid "NAP"
 msgstr "NAP"
+
+#: templates/meetnet/chart_detail.html:6 templates/meetnet/well_detail.html:6
+msgid "Home"
+msgstr "Startpagina"
