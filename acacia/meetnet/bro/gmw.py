@@ -14,12 +14,11 @@ def registration_request(well, kvk):
     SubElement(request, 'ns1:requestReference').text = 'BRO registratieverzoek voor put {}'.format(well)
     SubElement(request, 'ns1:deliveryAccountableParty').text = kvk
     SubElement(request, 'ns1:qualityRegime').text = 'IMBRO/A'
-    SubElement(request, 'ns1:underPrivilege').text = 'ja'
     
     sourceDocument = SubElement(request, 'ns:sourceDocument')
     construction = SubElement(sourceDocument, 'ns:GMW_Construction')
 
-    SubElement(construction, 'ns:objectIdAccountableParty').text = kvk 
+    SubElement(construction, 'ns:objectIdAccountableParty').text = well.name 
     SubElement(construction, 'ns:deliveryContext', codeSpace='urn:bro:gmw:DeliveryContext').text = 'publiekeTaak'
     SubElement(construction, 'ns:constructionStandard', codeSpace='urn:bro:gmw:ConstructionStandard').text = 'onbekend'
     SubElement(construction, 'ns:initialFunction', codeSpace='urn:bro:gmw:InitialFunction').text = 'stand'
@@ -66,11 +65,11 @@ def registration_request(well, kvk):
         SubElement(monitoringTube, 'ns:tubeTopPosition', uom="m").text = '{:.2f}'.format(screen.refpnt)
         SubElement(monitoringTube, 'ns:tubeTopPositioningMethod', codeSpace="urn:bro:gmw:TubeTopPositioningMethod").text = 'waterpassing2tot4cm'
         materialsUsed = SubElement(monitoringTube, 'ns:materialUsed')
-        SubElement(materialsUsed,'ns2:tubePackingMaterial', codeSpace="urn:bro:gmw:TubePackingMaterial").text='bentoniet'
+        SubElement(materialsUsed,'ns2:tubePackingMaterial', codeSpace="urn:bro:gmw:TubePackingMaterial").text='bentonietFiltergrind'
         SubElement(materialsUsed,'ns2:tubeMaterial',codeSpace="urn:bro:gmw:TubeMaterial").text='pvc'
         SubElement(materialsUsed,'ns2:glue', codeSpace="urn:bro:gmw:Glue").text = 'geen' 
         screenElement = SubElement(monitoringTube, 'ns:screen')
-        SubElement(screenElement,'ns:screenLength', uom="m").text = '{:.2f}'.format(screen.bottom - screen.top)
+        SubElement(screenElement,'ns:screenLength', uom="m").text = '{:.2f}'.format(screen.top - screen.bottom)
         SubElement(screenElement,'ns:sockMaterial', codeSpace="urn:bro:gmw:SockMaterial").text='nylon'
         plainTubePart = SubElement(monitoringTube, 'ns:plainTubePart')
         SubElement(plainTubePart, 'ns2:plainTubePartLength', uom="m").text = '{:.2f}'.format(screen.top + screen.refpnt - well.maaiveld)

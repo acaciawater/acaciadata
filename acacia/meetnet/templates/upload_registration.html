@@ -1,0 +1,28 @@
+{% extends 'bootbase.html' %}
+{% load staticfiles %}
+{% load l10n %}
+{% block title %}Grondwatermeetnet {{network.name}}{% endblock title %}
+{% block breadcrumbs %}{% endblock %}
+{% block extrastyle %}	
+<style>
+.clabel {
+  padding-right: 2em;
+}
+</style>
+{% endblock extrastyle %}	
+
+{% block content %}
+<form enctype="multipart/form-data" method="post" action="">
+{% csrf_token %}
+{{ form.errors }}
+<div class="container">
+<table>
+<tr><td class="clabel">Excel bestand met metadata:</td><td>{{ form.metadata }}</td></tr>
+<tr><td class="clabel">Zip bestand met fotos:</td><td>{{ form.fotos }}</td></tr>
+<tr><td class="clabel">Zip bestand met boorstaten:</td><td>{{ form.boorstaten }}</td></tr>
+<tr><td colspan="2"><input type="submit" value="Upload" /></td></tr>
+</table>
+
+</form>
+</div>
+{% endblock content %}

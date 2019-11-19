@@ -105,3 +105,8 @@ class AddLoggerForm(forms.Form):
             if match:
                 return data
         raise forms.ValidationError(_('Invalid serial number'))
+    
+class UploadRegistrationForm(forms.Form):
+    metadata = forms.FileField(label=_('Metadata'),required=True)
+    fotos = forms.FileField(label=_('Fotos'),required=False)
+    boorstaten = forms.FileField(label=_('Boorstaten'),required=False)

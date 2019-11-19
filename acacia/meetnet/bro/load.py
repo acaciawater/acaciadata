@@ -1,7 +1,8 @@
 import os
 from django.contrib.gis.utils import LayerMapping
 from models import MapSheet
-
+import csv
+from acacia.meetnet.bro.models import Code
 # Auto-generated `LayerMapping` dictionary for MapSheet model
 mapping = {
     'area' : 'AREA',
@@ -24,3 +25,10 @@ def run(verbose=True):
     ''' load mapsheets from a shapefile '''
     lm = LayerMapping(MapSheet, shapefile, mapping, transform=False)
     lm.save(strict=True, verbose=verbose)
+    
+def load_codes(filename):
+    ''' load codes from csv file '''
+    with open(filename) as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            Code.objects.get_or_create(codeSpace = row['codeSpace'], code = row['code'])

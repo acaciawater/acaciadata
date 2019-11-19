@@ -8,7 +8,7 @@ import logging
 import matplotlib
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 from django.core.mail.message import EmailMessage
-from acacia.meetnet.models import MeteoData
+from acacia.meetnet.models import MeteoData, Network, Handpeilingen
 from acacia.data.util import get_address
 from __builtin__ import False
 
@@ -866,3 +866,4 @@ def handle_uploaded_files(request, network, localfiles, lookup={}):
             msg.send()
     finally:
         logger.removeHandler(buffer)
+

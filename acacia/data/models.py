@@ -815,7 +815,7 @@ def loaddata(signal_handler):
 def sourcefile_delete(sender, instance, **kwargs):
     logger = instance.getLogger()
     filename = instance.file.name
-    logger.debug('Deleting file %s for datafile %s' % (filename, instance.name))
+#     logger.debug('Deleting file %s for datafile %s' % (filename, instance.name))
     instance.file.delete(False)
     logger.debug('File %s deleted' % filename)
 

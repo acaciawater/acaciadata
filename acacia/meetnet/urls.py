@@ -1,7 +1,7 @@
 from django.conf.urls import url
 from .views import NetworkView, WellView, ScreenView, WellChartView, EmailNetworkSeries, EmailNetworkNITG, EmailScreenSeries, EmailWellSeries, UploadDoneView, UploadFileView
 from acacia.meetnet.views import wellinfo, json_series, DownloadWellSeries,\
-    change_refpnt, AddLoggerView, LoggerAddedView
+    change_refpnt, AddLoggerView, LoggerAddedView, UploadRegistrationView
 
 urlpatterns = [
     url(r'^$', NetworkView.as_view(), name='home'),
@@ -21,6 +21,7 @@ urlpatterns = [
     url(r'^email/screen/(?P<pk>\d+)', EmailScreenSeries,name='email-screen'),
     url(r'^upload/(?P<id>\d+)/$', UploadFileView.as_view(), name='upload_files'),
     url(r'^done/(?P<id>\d+)/$', UploadDoneView.as_view(), name='upload_done'),
-    url(r'^ref/(?P<pk>\d+)/$', change_refpnt, name='change_ref')
+    url(r'^ref/(?P<pk>\d+)/$', change_refpnt, name='change_ref'),
+    url(r'^reg/$', UploadRegistrationView.as_view(), name='upload_registration'),
     
     ]

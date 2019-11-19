@@ -12,6 +12,7 @@ from acacia.meetnet.models import Handpeilingen as Peilingen
 from acacia.meetnet.actions import update_statistics
 from django.utils.translation import ugettext as _
 from django.contrib.admin.decorators import register
+from django.contrib.admin.options import ModelAdmin
 
 USE_GOOGLE_TERRAIN_TILES = False
 
@@ -148,6 +149,14 @@ class ScreenAdmin(admin.ModelAdmin):
         # assume there is only one network. 
         key = Network.objects.first().display_name
         return queryset.order_by('well__'+key)
+
+    def get_inline_instances(self, request, obj=None):
+        instances = ModelAdmin.get_inline_instances(self, request, obj)
+        if hasattr(obj,'bro'):
+            # add bro inline
+            from acacia.meetnet.bro.admin import MonitoringTubeInline
+            instances.append(MonitoringTubeInline(self.model,self.admin_site))
+        return instances
     
 from django.contrib.gis.db import models
 from django import forms
@@ -174,7 +183,7 @@ class WellAdmin(admin.ModelAdmin):
     list_select_related = True
     fieldsets = (
                  ('Algemeen', {'classes': ('grp-collapse', 'grp-open'),
-                               'fields':('network', 'name', 'nitg', 'bro', 'maaiveld', 'date', 'log', 'chart')}),
+                               'fields':('network', 'name', 'nitg', 'broid', 'maaiveld', 'date', 'log', 'chart')}),
                  ('Locatie', {'classes': ('grp-collapse', 'grp-closed'),
                               'fields':(('straat', 'huisnummer'), ('postcode', 'plaats'),('location','g'),'description')}),
                 )
@@ -184,40 +193,19 @@ class WellAdmin(admin.ModelAdmin):
     else:
         pass # defaults to OSMGeoAdmin presets of OpenStreetMap tiles
 
-    # Default GeoDjango OpenLayers map options
-    # Uncomment and modify as desired
-    # To learn more about this jargon visit:
-    # www.openlayers.org
-   
-    #default_lon = 0
-    #default_lat = 0
     default_zoom = 12
-    #display_wkt = False
-    #display_srid = False
-    #extra_js = []
-    #num_zoom = 18
-    #max_zoom = False
-    #min_zoom = False
-    #units = False
-    #max_resolution = False
-    #max_extent = False
-    #modifiable = True
-    #mouse_position = True
-    #scale_text = True
-    #layerswitcher = True
     scrollable = False
-    #admin_media_prefix = settings.ADMIN_MEDIA_PREFIX
     map_width = 400
     map_height = 325
-    #map_srid = 4326
-    #map_template = 'gis/admin/openlayers.html'
-    #openlayers_url = 'http://openlayers.org/api/2.6/OpenLayers.js'
-    #wms_url = 'http://labs.metacarta.com/wms/vmap0'
-    #wms_layer = 'basic'
-    #wms_name = 'OpenLayers WMS'
-    #debug = False
-    #widget = OpenLayersWidget
 
+    def get_inline_instances(self, request, obj=None):
+        instances = ModelAdmin.get_inline_instances(self, request, obj)
+        if hasattr(obj,'bro'):
+            # add bro inline
+            from acacia.meetnet.bro.admin import GroundwaterMonitoringWellInline
+            instances.append(GroundwaterMonitoringWellInline(self.model,self.admin_site))
+        return instances
+     
 class MeteoDataAdmin(admin.ModelAdmin):
     model = MeteoData
     list_display = ('well','baro')

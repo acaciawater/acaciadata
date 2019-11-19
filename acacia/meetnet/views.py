@@ -3,66 +3,38 @@ Created on Jun 3, 2014
 
 @author: theo
 '''
-from django.views.generic import DetailView, FormView, TemplateView
-from django.template.loader import render_to_string
-from django.http import HttpResponse
-from django.core.urlresolvers import reverse
-from django.shortcuts import get_object_or_404, redirect
-from django.core.files.storage import default_storage
-from django.conf import settings
-from django.contrib.auth.decorators import login_required, user_passes_test
-import pandas as pd
-
-from .models import Network, Well, Screen
-from .forms import UploadFileForm
-from .actions import download_well_nitg
-
 import os, logging
-import simplejson as json
 
-from util import handle_uploaded_files
-from django.utils.timezone import get_current_timezone, now
-from django.utils.text import slugify
-from acacia.data.actions import download_series_csv
-from acacia.data.util import series_as_csv, to_millis
-from acacia.meetnet.models import Handpeilingen, Datalogger, LoggerDatasource
-from acacia.meetnet.forms import AddLoggerForm
-from django.contrib.auth.mixins import LoginRequiredMixin
-from acacia.data.models import Generator
 from _mysql import IntegrityError
+import pandas as pd
+import simplejson as json
+from django.conf import settings
+from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
-from django.contrib.auth import REDIRECT_FIELD_NAME
+from django.core.files.storage import default_storage
+from django.core.urlresolvers import reverse
+from django.db import transaction
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, redirect
+from django.template.loader import render_to_string
+from django.utils.text import slugify
+from django.utils.timezone import get_current_timezone, now
+from django.views.generic import DetailView, FormView, TemplateView
+
+from acacia.data.actions import download_series_csv
+from acacia.data.models import Generator
+from acacia.data.util import series_as_csv, to_millis
+from acacia.data.views import DownloadSeriesAsZip
+
+from .models import Network, Well, Screen, Handpeilingen, Datalogger, LoggerDatasource
+from .forms import UploadFileForm, AddLoggerForm, UploadRegistrationForm
+from .auth import AuthRequiredMixin, auth_required, StaffRequiredMixin, staff_required
+from .util import handle_uploaded_files
+from .actions import download_well_nitg
+from .register import handle_registration_files
+
 
 logger = logging.getLogger(__name__)
-
-def should_login(user):
-    network = Network.objects.first()
-    return (network and not network.login_required) or user.is_authenticated
-
-def auth_required(function=None, redirect_field_name=REDIRECT_FIELD_NAME, login_url=None):
-    """
-    Decorator for views that checks that the user is logged in (if needed for this network), redirecting
-    to the log-in page if necessary.
-    """
-    actual_decorator = user_passes_test(
-        lambda u: should_login(u),
-        login_url=login_url,
-        redirect_field_name=redirect_field_name
-    )
-    if function:
-        return actual_decorator(function)
-    return actual_decorator
-
-class AuthRequiredMixin(LoginRequiredMixin):
-    """
-    CBV mixin which verifies that the current user is authenticated (if required by network).
-    """
-    def dispatch(self, request, *args, **kwargs):
-        network = Network.objects.first() # assume there is only one network!
-        if network and network.login_required:
-            return LoginRequiredMixin.dispatch(self, request, *args, **kwargs)
-        else:
-            return super(LoginRequiredMixin, self).dispatch(request, *args, **kwargs)
 
 
 class NavMixin(object):
@@ -347,7 +319,6 @@ class WellChartView(AuthRequiredMixin, NavMixin, TemplateView):
         context['options'] = json.dumps(options, default=to_millis)
         return context
 
-from acacia.data.views import DownloadSeriesAsZip
 
 def get_series(screen):
     return screen.find_series()
@@ -438,8 +409,7 @@ def save_file(file_obj,folder):
             destination.write(chunk)
     return path
 
-class UploadFileView(LoginRequiredMixin,FormView):
-
+class UploadFileView(StaffRequiredMixin,FormView):
     template_name = 'upload.html'
     form_class = UploadFileForm
     success_url = '/done/1'
@@ -469,9 +439,8 @@ class UploadFileView(LoginRequiredMixin,FormView):
         
         return super(UploadFileView,self).form_valid(form)
 
-from django.db import transaction
 
-@login_required
+@staff_required
 def change_refpnt(request, pk):
     ''' change reference point (top of casing) for Handpeilingen '''
     hp = get_object_or_404(Handpeilingen,pk=pk)
@@ -490,7 +459,7 @@ def change_refpnt(request, pk):
     else:
         return HttpResponse(status=200)
     
-class AddLoggerView(LoginRequiredMixin, FormView):
+class AddLoggerView(StaffRequiredMixin, FormView):
     form_class = AddLoggerForm
     success_url = '/net/added/1'
     #success_url = reverse('meetnet:add-logger') # automatisch nieuwe toevoegen
@@ -552,4 +521,25 @@ class AddLoggerView(LoginRequiredMixin, FormView):
 class LoggerAddedView(TemplateView):
     template_name = 'meetnet/loggeradded.html'
     
+
+class UploadRegistrationView(StaffRequiredMixin, FormView):
+    form_class = UploadRegistrationForm
+    success_url = '/done/1'
+    template_name = 'upload_registration.html'
     
+    def get_context_data(self, **kwargs):
+        context = FormView.get_context_data(self, **kwargs)
+        context['network'] = Network.objects.first()
+        return context
+
+    def form_valid(self, form):
+        try:
+            handle_registration_files(self.request)
+            # start background process that handles uploaded file
+#             from threading import Thread
+#             t = Thread(target=handle_registration_files, args=(self.request))
+#             t.start()
+            
+        except Exception as e:
+            raise ValidationError(e)
+        return FormView.form_valid(self, form)

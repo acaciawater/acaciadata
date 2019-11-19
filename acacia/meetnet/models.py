@@ -42,7 +42,7 @@ class Well(geo.Model):
     network = models.ForeignKey(Network, verbose_name = _('network'))
     name = models.CharField(max_length=50, verbose_name = _('name'))
     nitg = models.CharField(max_length=50, verbose_name = _('TNO/NITG identification'), null=True, blank=True)
-    bro = models.CharField(max_length=50, verbose_name = _('BRO id'), null=True, blank=True)
+    broid = models.CharField(max_length=50, verbose_name = _('BRO id'), null=True, blank=True)
     location = geo.PointField(null=True,dim=2,srid=util.WGS84,verbose_name=_('location'), help_text=_('Location in longitude/latitude coordinates'))
 
     description = models.TextField(verbose_name=_('description'),null=True,blank=True)
