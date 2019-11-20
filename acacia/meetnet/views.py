@@ -520,11 +520,11 @@ class AddLoggerView(StaffRequiredMixin, FormView):
         
 class LoggerAddedView(TemplateView):
     template_name = 'meetnet/loggeradded.html'
-    
-
+        
 class UploadRegistrationView(StaffRequiredMixin, FormView):
     form_class = UploadRegistrationForm
-    success_url = '/done/1'
+    success_url = settings.LOGGING_URL + 'import.log'
+    
     template_name = 'upload_registration.html'
     
     def get_context_data(self, **kwargs):
@@ -533,13 +533,20 @@ class UploadRegistrationView(StaffRequiredMixin, FormView):
         return context
 
     def form_valid(self, form):
-        try:
-            handle_registration_files(self.request)
+        handle_registration_files(self.request)
             # start background process that handles uploaded file
 #             from threading import Thread
 #             t = Thread(target=handle_registration_files, args=(self.request))
 #             t.start()
             
-        except Exception as e:
-            raise ValidationError(e)
+#         except Exception as e:
+#             raise ValidationError(e)
         return FormView.form_valid(self, form)
+    
+class ImportResultView(TemplateView):
+    template_name = 'import_result.html'
+    
+    def get_context_data(self, **kwargs):
+        context = TemplateView.get_context_data(self, **kwargs)
+        
+    
