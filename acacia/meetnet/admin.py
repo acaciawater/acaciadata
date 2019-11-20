@@ -150,13 +150,13 @@ class ScreenAdmin(admin.ModelAdmin):
         key = Network.objects.first().display_name
         return queryset.order_by('well__'+key)
 
-    def get_inline_instances(self, request, obj=None):
-        instances = ModelAdmin.get_inline_instances(self, request, obj)
-        if hasattr(obj,'bro'):
-            # add bro inline
-            from acacia.meetnet.bro.admin import MonitoringTubeInline
-            instances.append(MonitoringTubeInline(self.model,self.admin_site))
-        return instances
+#     def get_inline_instances(self, request, obj=None):
+#         instances = ModelAdmin.get_inline_instances(self, request, obj)
+#         if hasattr(obj,'bro'):
+#             # add bro inline
+#             from acacia.meetnet.bro.admin import MonitoringTubeInline
+#             instances.append(MonitoringTubeInline(self.model,self.admin_site))
+#         return instances
     
 from django.contrib.gis.db import models
 from django import forms
@@ -198,13 +198,13 @@ class WellAdmin(admin.ModelAdmin):
     map_width = 400
     map_height = 325
 
-    def get_inline_instances(self, request, obj=None):
-        instances = ModelAdmin.get_inline_instances(self, request, obj)
-        if hasattr(obj,'bro'):
-            # add bro inline
-            from acacia.meetnet.bro.admin import GroundwaterMonitoringWellInline
-            instances.append(GroundwaterMonitoringWellInline(self.model,self.admin_site))
-        return instances
+#     def get_inline_instances(self, request, obj=None):
+#         instances = ModelAdmin.get_inline_instances(self, request, obj)
+#         if hasattr(obj,'bro'):
+#             # add bro inline
+#             from acacia.meetnet.bro.admin import GroundwaterMonitoringWellInline
+#             instances.append(GroundwaterMonitoringWellInline(self.model,self.admin_site))
+#         return instances
      
 class MeteoDataAdmin(admin.ModelAdmin):
     model = MeteoData
