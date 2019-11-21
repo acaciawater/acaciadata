@@ -11,26 +11,56 @@ from acacia.data.models import Generator
 from acacia.meetnet.models import Network, Well, Handpeilingen, \
     Datalogger, LoggerDatasource, DIVER_TYPES
 from acacia.meetnet.util import register_well, register_screen
+from datetime import datetime
+import pandas as pd
+import os
 
-logger = logging.getLogger('excel_import')
+logger = logging.getLogger(__name__)
+
+def asfloat(x):
+    if pd.isnull(x):
+        return None
+    try:
+        return float(x)
+    except:
+        return None
+
+def asdate(x):
+    if pd.isnull(x):
+        return None
+    return x
 
 def handle_registration_files(request):
-    import pandas as pd
     from django.contrib.gis.geos import Point
     from zipfile import ZipFile
+
+    # create dedicated log file
+    folder = os.path.join(settings.LOGGING_ROOT, request.user.username)
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+    filename = 'import_{:%Y%m%d%H%M}.log'.format(datetime.now())
+    logfile = os.path.join(folder, filename)
+    logurl = request.user.username + '/' + filename
+    handler = logging.FileHandler(logfile,'w')
+    root = logging.getLogger()
+    root.addHandler(handler)
 
     user = request.user
     network = Network.objects.first()
     
     metadata = request.FILES['metadata']
-    df = pd.read_excel(metadata,'Putgegevens')
-
+    logger.info('Metadata: {}'.format(metadata.name))
+    # TODO: save file somewhere
+    
     archive = request.FILES.get('fotos')
+    logger.info('Fotos: {}'.format(archive.name if archive else 'geen'))
     fotos = ZipFile(archive) if archive else None
 
     archive = request.FILES.get('boorstaten')
+    logger.info('Boorstaten: {}'.format(archive.name if archive else 'geen'))
     logs = ZipFile(archive) if archive else None
     
+    df = pd.read_excel(metadata,'Putgegevens')
     for _index, row in df.iterrows():
         id = str(row['ID'])
         x = row['X']
@@ -40,7 +70,7 @@ def handle_registration_files(request):
         housenumber= row['Huisnummer']
         town = row['Plaats']
         remarks = row['Opmerkingen locatie']
-        date = as_date(row['Constructiedatum'])
+        date = asdate(row['Constructiedatum'])
         surface = row['Maaiveld']
         owner = row['Eigenaar']
         coords = Point(x,y,srid=28992)
@@ -99,20 +129,20 @@ def handle_registration_files(request):
             logger.info('Tijdreeks voor handpeilingen {} bijgewerkt'.format(screen))
 
         serial = row['Logger ID']
-        model = row['Logger type']
-        if not model:
-            logger.error('Logger type ontbreekt')
-            continue
-
-        generator = Generator.objects.get(name='Ellitrack' if model.lower().startswith('elli') else 'Schlumberger')
-        # determine diver code from model name
-        choice = filter(lambda x: x[1].lower() == model.lower(), DIVER_TYPES)
-        if choice:
-            code = choice[0][0]
-        else:
-            logger.error('Onbekend logger type: {}'.format(model))
-            continue
         if serial:
+            model = row['Logger type']
+            if not model:
+                logger.error('Logger type ontbreekt')
+                continue
+    
+            generator = Generator.objects.get(name='Ellitrack' if model.lower().startswith('elli') else 'Schlumberger')
+            # determine diver code from model name
+            choice = filter(lambda x: x[1].lower() == model.lower(), DIVER_TYPES)
+            if choice:
+                code = choice[0][0]
+            else:
+                logger.error('Onbekend logger type: {}'.format(model))
+                continue
             datalogger, created = Datalogger.objects.get_or_create(serial=serial,defaults={'model':code})
             if created:
                 logger.info('Logger {} aangemaakt'.format(serial))
@@ -156,7 +186,7 @@ def handle_registration_files(request):
                             logger.error('Kan foto niet toevoegen: {}'.format(e))
                     else:
                         break                            
- 
+            
             if logs:
                 name = row['Boorstaat']
                 if not pd.isna(name):
@@ -167,4 +197,4 @@ def handle_registration_files(request):
                     except Exception as e:
                         logger.error('Kan boorstaat niet toevoegen: {}'.format(e))
             
-    return df
+    return logurl

@@ -523,9 +523,14 @@ class LoggerAddedView(TemplateView):
         
 class UploadRegistrationView(StaffRequiredMixin, FormView):
     form_class = UploadRegistrationForm
-    success_url = settings.LOGGING_URL + 'import.log'
+    success_url = '/'
     
     template_name = 'upload_registration.html'
+    
+    def get_success_url(self):
+        # download logfile auomatically
+        url = FormView.get_success_url(self)
+        return settings.LOGGING_URL + self.logfile if self.logfile else url
     
     def get_context_data(self, **kwargs):
         context = FormView.get_context_data(self, **kwargs)
@@ -533,7 +538,7 @@ class UploadRegistrationView(StaffRequiredMixin, FormView):
         return context
 
     def form_valid(self, form):
-        handle_registration_files(self.request)
+        self.logfile = handle_registration_files(self.request)
             # start background process that handles uploaded file
 #             from threading import Thread
 #             t = Thread(target=handle_registration_files, args=(self.request))
