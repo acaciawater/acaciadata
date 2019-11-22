@@ -32,6 +32,7 @@ from .auth import AuthRequiredMixin, auth_required, StaffRequiredMixin, staff_re
 from .util import handle_uploaded_files
 from .actions import download_well_nitg
 from .register import handle_registration_files
+from django.utils.http import urlencode
 
 
 logger = logging.getLogger(__name__)
@@ -410,12 +411,12 @@ def save_file(file_obj,folder):
     return path
 
 class UploadFileView(StaffRequiredMixin,FormView):
-    template_name = 'upload.html'
+    template_name = 'meetnet/upload.html'
     form_class = UploadFileForm
     success_url = '/done/1'
     
     def get_success_url(self):
-        return reverse('meetnet:upload_done',kwargs=self.kwargs)
+        return reverse('meetnet:upload-done',kwargs=self.kwargs)
 
     def get_context_data(self, **kwargs):
         context = super(UploadFileView, self).get_context_data(**kwargs)
@@ -461,8 +462,7 @@ def change_refpnt(request, pk):
     
 class AddLoggerView(StaffRequiredMixin, FormView):
     form_class = AddLoggerForm
-    success_url = '/net/added/1'
-    #success_url = reverse('meetnet:add-logger') # automatisch nieuwe toevoegen
+    success_url = '/net/add/done/1'
     template_name = 'meetnet/addlogger.html'
 
     def get_context_data(self, **kwargs):
@@ -478,7 +478,7 @@ class AddLoggerView(StaffRequiredMixin, FormView):
     def form_valid(self, form):
         try:
             pos=self.add_logger(form.cleaned_data)
-            self.success_url='/net/added/{}'.format(pos.pk)
+            self.success_url=reverse('meetnet:add-logger-done',args={'pk': pos.pk})
         except IntegrityError as e:
             raise ValidationError(e)
         return FormView.form_valid(self, form)
@@ -521,16 +521,14 @@ class AddLoggerView(StaffRequiredMixin, FormView):
 class LoggerAddedView(TemplateView):
     template_name = 'meetnet/loggeradded.html'
         
-class UploadRegistrationView(StaffRequiredMixin, FormView):
+class UploadMetadataView(StaffRequiredMixin, FormView):
     form_class = UploadRegistrationForm
     success_url = '/'
     
-    template_name = 'upload_registration.html'
+    template_name = 'meetnet/upload_metadata.html'
     
     def get_success_url(self):
-        # download logfile auomatically
-        url = FormView.get_success_url(self)
-        return settings.LOGGING_URL + self.logfile if self.logfile else url
+        return reverse('meetnet:upload-metadata-done') + '?' + urlencode({'url':self.logfile})
     
     def get_context_data(self, **kwargs):
         context = FormView.get_context_data(self, **kwargs)
@@ -539,19 +537,13 @@ class UploadRegistrationView(StaffRequiredMixin, FormView):
 
     def form_valid(self, form):
         self.logfile = handle_registration_files(self.request)
-            # start background process that handles uploaded file
-#             from threading import Thread
-#             t = Thread(target=handle_registration_files, args=(self.request))
-#             t.start()
-            
-#         except Exception as e:
-#             raise ValidationError(e)
         return FormView.form_valid(self, form)
     
-class ImportResultView(TemplateView):
-    template_name = 'import_result.html'
+class UploadMetadataDoneView(TemplateView):
+    template_name = 'meetnet/upload_metadata_done.html'
     
     def get_context_data(self, **kwargs):
         context = TemplateView.get_context_data(self, **kwargs)
-        
+        context['url'] = self.request.GET.get('url')
+        return context
     

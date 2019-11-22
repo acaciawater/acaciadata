@@ -12,23 +12,12 @@ from acacia.meetnet.models import Network, Well, Handpeilingen, \
     Datalogger, LoggerDatasource, DIVER_TYPES
 from acacia.meetnet.util import register_well, register_screen
 from datetime import datetime
+from dateutil.parser import parser, parse
 import pandas as pd
 import os
+import pytz
 
 logger = logging.getLogger(__name__)
-
-def asfloat(x):
-    if pd.isnull(x):
-        return None
-    try:
-        return float(x)
-    except:
-        return None
-
-def asdate(x):
-    if pd.isnull(x):
-        return None
-    return x
 
 def handle_registration_files(request):
     from django.contrib.gis.geos import Point
@@ -40,13 +29,16 @@ def handle_registration_files(request):
         os.makedirs(folder)
     filename = 'import_{:%Y%m%d%H%M}.log'.format(datetime.now())
     logfile = os.path.join(folder, filename)
-    logurl = request.user.username + '/' + filename
+    logurl = settings.LOGGING_URL + request.user.username + '/' + filename
     handler = logging.FileHandler(logfile,'w')
+    formatter = logging.Formatter('%(levelname)s %(asctime)s %(message)s')
+    handler.setFormatter(formatter)
     root = logging.getLogger()
     root.addHandler(handler)
 
     user = request.user
     network = Network.objects.first()
+    tz = pytz.timezone('Europe/Amsterdam')
     
     metadata = request.FILES['metadata']
     logger.info('Metadata: {}'.format(metadata.name))
@@ -62,17 +54,32 @@ def handle_registration_files(request):
     
     df = pd.read_excel(metadata,'Putgegevens')
     for _index, row in df.iterrows():
-        id = str(row['ID'])
-        x = row['X']
-        y = row['Y']
-        pobox = row['Postcode']
-        street = row['Straat']
-        housenumber= row['Huisnummer']
-        town = row['Plaats']
-        remarks = row['Opmerkingen locatie']
-        date = asdate(row['Constructiedatum'])
-        surface = row['Maaiveld']
-        owner = row['Eigenaar']
+
+        def get(col, astype=str):
+            ''' get a value from a cell in the spreadsheet, converting to specified type. 
+                returns None when conversion fails or cell is blank, NaN, NaT or null
+            '''
+            value = row.get(col)
+            if pd.isnull(value): 
+                return None
+            if astype:
+                try:
+                    value = astype(value)
+                except:
+                    return None
+            return value
+        
+        id = get('ID')
+        x = get('X',float)
+        y = get('Y',float)
+        pobox = get('Postcode')
+        street = get('Straat')
+        housenumber= get('Huisnummer')
+        town = get('Plaats')
+        remarks = get('Opmerkingen locatie')
+        date = get('Constructiedatum')
+        surface = get('Maaiveld')
+        owner = get('Eigenaar')
         coords = Point(x,y,srid=28992)
         coords.transform(4326)
         try:
@@ -88,19 +95,19 @@ def handle_registration_files(request):
                 'plaats': town
                 })
             if created:
-                logger.info('Put {} aangemaakt'.format(id))
+                logger.info('Metadata voor put {} aangemaakt'.format(id))
                 register_well(well)
             else:
-                logger.info('Put {} bijgewerkt'.format(id))
+                logger.info('Metadata voor put {} bijgewerkt'.format(id))
         except Exception as e:
             logger.exception(e)
             continue
-        nr = row['Filternummer']
-        refpnt = row['Bovenkant buis']
-        top = row['Bovenkant filter m-MV']
-        bottom = row['Onderkant filter m-MV']
-        diameter = row['Diameter buis']
-        material = row['Materiaal']
+        nr = get('Filternummer',int)
+        refpnt = get('Bovenkant buis',float)
+        top = get('Bovenkant filter m-MV',float)
+        bottom = get('Onderkant filter m-MV',float)
+        diameter = get('Diameter buis',float)
+        material = get('Materiaal')
         screen, created = well.screen_set.update_or_create(nr=nr, defaults = {
             'refpnt': refpnt,
             'top': top,
@@ -109,10 +116,10 @@ def handle_registration_files(request):
             'material': material,
             })
         if created:
-            logger.info('Filter {} aangemaakt'.format(screen))
+            logger.info('Metadata voor filter {} aangemaakt'.format(screen))
             register_screen(screen)
         else:
-            logger.info('Filter {} bijgewerkt'.format(screen))
+            logger.info('Metadata voor filter {} bijgewerkt'.format(screen))
 
         hand, created = Handpeilingen.objects.update_or_create(screen=screen,defaults={
             'refpnt': 'bkb',
@@ -124,13 +131,15 @@ def handle_registration_files(request):
             'timezone': settings.TIME_ZONE
         })
         if created:
-            logger.info('Tijdreeks voor handpeilingen {} aangemaakt'.format(screen))
+            logger.info('Metadata voor handpeilingen {} aangemaakt'.format(screen))
         else:
-            logger.info('Tijdreeks voor handpeilingen {} bijgewerkt'.format(screen))
+            logger.info('Metadata voor handpeilingen {} bijgewerkt'.format(screen))
 
-        serial = row['Logger ID']
+        serial = get('Logger ID',None)
         if serial:
-            model = row['Logger type']
+            if type(serial) == float:
+                serial = str(int(serial))
+            model = get('Logger type')
             if not model:
                 logger.error('Logger type ontbreekt')
                 continue
@@ -147,15 +156,23 @@ def handle_registration_files(request):
             if created:
                 logger.info('Logger {} aangemaakt'.format(serial))
         
+            start = get('Datum installatie',None)
+            if start:
+                start = tz.localize(start)
+            depth = get('Kabellengte', float)
+            if depth:
+                depth /= 100.0
             defaults = {
                 'screen': screen,
-                'start_date' : row.get('Datum installatie'),
+                'start_date' : start,
                 'refpnt': screen.refpnt,
-                'depth': row['Kabellengte'],
+                'depth': depth,
                 }
             pos, created = datalogger.loggerpos_set.update_or_create(logger=datalogger,defaults=defaults)
             if created:
-                logger.info('Logger geinstallleerd op {}'.format(pos))
+                logger.info('Logger {} geinstallleerd in filter {}'.format(datalogger, screen))
+            else:
+                logger.info('Metadata van logger {} in filter {} bijgewerkt'.format(datalogger, screen))
 
             ds, created = LoggerDatasource.objects.update_or_create(
                 logger = datalogger,
@@ -173,11 +190,13 @@ def handle_registration_files(request):
             if created:
                 ds.locations.add(screen.mloc)
                 logger.info('Gegevensbron {} aangemaakt'.format(ds))
+            else:
+                logger.info('Gegevensbron {} bijgewerkt'.format(ds))
                 
             if fotos:    
                 for nr in range(1,6):
-                    name = row['Foto %d'%nr]
-                    if not pd.isna(name):
+                    name = get('Foto %d'%nr)
+                    if name:
                         try:
                             with fotos.open(name,'r') as foto:
                                 well.add_photo(name,foto)
@@ -188,8 +207,8 @@ def handle_registration_files(request):
                         break                            
             
             if logs:
-                name = row['Boorstaat']
-                if not pd.isna(name):
+                name = get('Boorstaat')
+                if name:
                     try:
                         with logs.open(name) as log:
                             well.set_log(name,log)
