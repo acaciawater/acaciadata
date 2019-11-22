@@ -3,45 +3,30 @@ Created on Nov 15, 2019
 
 @author: theo
 '''
+from datetime import datetime, timedelta
 import logging
+import os
 
 from django.conf import settings
+from django.contrib.gis.geos import Point
+import pytz
 
 from acacia.data.models import Generator
-from acacia.meetnet.models import Network, Well, Handpeilingen, \
-    Datalogger, LoggerDatasource, DIVER_TYPES
+from acacia.meetnet.models import Network, Well, Datalogger, LoggerDatasource, DIVER_TYPES, Screen,\
+    Handpeilingen
 from acacia.meetnet.util import register_well, register_screen
-from datetime import datetime
-from dateutil.parser import parser, parse
 import pandas as pd
-import os
-import pytz
+from zipfile import ZipFile
+
 
 logger = logging.getLogger(__name__)
 
-def handle_registration_files(request):
-    from django.contrib.gis.geos import Point
-    from zipfile import ZipFile
-
-    # create dedicated log file
-    folder = os.path.join(settings.LOGGING_ROOT, request.user.username)
-    if not os.path.exists(folder):
-        os.makedirs(folder)
-    filename = 'import_{:%Y%m%d%H%M}.log'.format(datetime.now())
-    logfile = os.path.join(folder, filename)
-    logurl = settings.LOGGING_URL + request.user.username + '/' + filename
-    handler = logging.FileHandler(logfile,'w')
-    formatter = logging.Formatter('%(levelname)s %(asctime)s %(message)s')
-    handler.setFormatter(formatter)
-    root = logging.getLogger()
-    root.addHandler(handler)
-
-    user = request.user
+def import_metadata(request, sheet='Putgegevens'):
+    tz =pytz.timezone('Europe/Amsterdam')
     network = Network.objects.first()
-    tz = pytz.timezone('Europe/Amsterdam')
     
-    metadata = request.FILES['metadata']
-    logger.info('Metadata: {}'.format(metadata.name))
+    book = request.FILES['metadata']
+    logger.info('Metadata: {}'.format(book.name))
     # TODO: save file somewhere
     
     archive = request.FILES.get('fotos')
@@ -51,8 +36,8 @@ def handle_registration_files(request):
     archive = request.FILES.get('boorstaten')
     logger.info('Boorstaten: {}'.format(archive.name if archive else 'geen'))
     logs = ZipFile(archive) if archive else None
-    
-    df = pd.read_excel(metadata,'Putgegevens')
+
+    df = pd.read_excel(book, sheet)
     for _index, row in df.iterrows():
 
         def get(col, astype=str):
@@ -83,7 +68,7 @@ def handle_registration_files(request):
         coords = Point(x,y,srid=28992)
         coords.transform(4326)
         try:
-            well, created = Well.objects.update_or_create(network=network, name=id, defaults = {
+            well, created = network.well_set.update_or_create(name=id, defaults = {
                 'location': coords,
                 'description': remarks,
                 'maaiveld': surface,
@@ -121,20 +106,6 @@ def handle_registration_files(request):
         else:
             logger.info('Metadata voor filter {} bijgewerkt'.format(screen))
 
-        hand, created = Handpeilingen.objects.update_or_create(screen=screen,defaults={
-            'refpnt': 'bkb',
-            'user': user,
-            'mlocatie': screen.mloc,
-            'name': '{} HAND'.format(screen),
-            'unit': 'm',
-            'type': 'scatter',
-            'timezone': settings.TIME_ZONE
-        })
-        if created:
-            logger.info('Metadata voor handpeilingen {} aangemaakt'.format(screen))
-        else:
-            logger.info('Metadata voor handpeilingen {} bijgewerkt'.format(screen))
-
         serial = get('Logger ID',None)
         if serial:
             if type(serial) == float:
@@ -161,7 +132,7 @@ def handle_registration_files(request):
                 start = tz.localize(start)
             depth = get('Kabellengte', float)
             if depth:
-                depth /= 100.0
+                depth /= 100.0 # kabellengte is in cm tov bovenkant buis
             defaults = {
                 'screen': screen,
                 'start_date' : start,
@@ -180,7 +151,7 @@ def handle_registration_files(request):
                 defaults={'description': '{} datalogger {}'.format(model, serial),
                           'meetlocatie': screen.mloc,
                           'timezone': 'Europe/Amsterdam',
-                          'user': user,
+                          'user': request.user,
                           'generator': generator,
                           'url': settings.FTP_URL,
                           'username': settings.FTP_USERNAME,
@@ -216,4 +187,64 @@ def handle_registration_files(request):
                     except Exception as e:
                         logger.error('Kan boorstaat niet toevoegen: {}'.format(e))
             
+
+def import_handpeilingen(request, sheet='Handpeilingen'):
+    ''' import manual measurements from excel sheet '''
+    tz =pytz.timezone('Europe/Amsterdam')
+    book = request.FILES['metadata']
+    df = pd.read_excel(book,sheet)
+    for row in df.itertuples(index=False):
+        if len(row) < 5:
+            raise ValueError('Vijf kolommen verwacht: (put, filternummer, datum, tijd en waarde)')
+        try:
+            id,nr,date,time,level = row[0:5]
+            level /= 100.0 # convert from centimeter to meter
+            date = tz.localize(date + timedelta(hours=time.hour,minutes=time.minute,seconds=time.second))
+            well = Well.objects.get(name=id)
+            screen = well.screen_set.get(nr=nr)
+            series_name = '%s HAND' % screen.mloc.name
+            series,created = Handpeilingen.objects.get_or_create(screen=screen, defaults = {
+                'name': series_name,
+                'mlocatie':screen.mloc,
+                'description':'Handpeiling', 
+                'timezone':'Europe/Amsterdam', 
+                'unit':'m NAP', 
+                'type':'scatter', 
+                'user':request.user,
+                'refpnt': 'bkb'})
+            if not created:
+                if series.refpnt == 'nap':
+                    # existing series wit different reference point. Convert level
+                    if not screen.refpnt:
+                        logger.error('Bovenkant filter onbekend')
+                        continue
+                    level = series.refpnt - level
+            pt, created = series.datapoints.update_or_create(date=date,defaults={'value': level})
+            if created:
+                logger.info('Filter {}: handpeiling toegevoegd: ({}, {})'.format(screen, date, level))
+            else:
+                logger.info('Filter {}: handpeiling bijgewerkt: ({}, {})'.format(screen, date, level))
+        except Well.DoesNotExist:
+            logger.error('Well %s not found' % id)
+        except Screen.DoesNotExist:
+            logger.error('Screen %s/%03d not found' % (id, nr))
+        
+def handle_registration_files(request):
+
+    # create dedicated log file
+    folder = os.path.join(settings.LOGGING_ROOT, request.user.username)
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+    filename = 'import_{:%Y%m%d%H%M}.log'.format(datetime.now())
+    logfile = os.path.join(folder, filename)
+    logurl = settings.LOGGING_URL + request.user.username + '/' + filename
+    handler = logging.FileHandler(logfile,'w')
+    formatter = logging.Formatter('%(levelname)s %(asctime)s %(message)s')
+    handler.setFormatter(formatter)
+    root = logging.getLogger()
+    root.addHandler(handler)
+
+    import_metadata(request)
+    import_handpeilingen(request)
+        
     return logurl
