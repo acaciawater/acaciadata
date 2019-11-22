@@ -8,6 +8,8 @@ from django.contrib.gis.db import models
 from django.contrib.gis.geos import Point
 from acacia.meetnet.models import Well, Screen
 from django.utils.translation import ugettext_lazy as _
+from django.db.models.signals import post_init
+from django.dispatch.dispatcher import receiver
 
 class MapSheet(models.Model):
     '''
@@ -40,7 +42,7 @@ class Code(models.Model):
     ''' code from a urn:bro:gmw:CodeSpace '''
     codeSpace = models.CharField(_('codeSpace'),max_length=40)
     code = models.CharField(_('code'),max_length=40)
-    default_value = models.BooleanField(default=False)
+    is_default = models.BooleanField(default=False)
     
     @classmethod
     def get(cls,codeSpace,code):
@@ -49,6 +51,13 @@ class Code(models.Model):
     def urn(self):    
         return 'urn:bro:gmw:{}:{}'.format(self.codeSpace, self.code)
 
+    @classmethod
+    def default(cls, codeSpace):
+        q = cls.objects.filter(codeSpace=codeSpace, is_default = True)
+        if q.count() == 1:
+            return q.first()
+        return None
+    
     def __unicode__(self):
         return self.code
     
@@ -95,6 +104,16 @@ class GroundwaterMonitoringWell(models.Model):
     deliveredVerticalPosition = models.FloatField(_('Maaiveld'))
     groundLevelPositioningMethod = CodeField('groundLevelPositioningMethod',_('Maaiveld positiebepaling'),default='RTKGPS0tot4cm')
     
+    def __init__(self, *args, **kwargs):
+        models.Model.__init__(self,*args, **kwargs)
+        self.set_defaults((
+            'deliveryContext',
+            'constructionStandard',
+            'initialFunction',
+            'wellHeadProtector',
+            'horizontalPositioningMethod',
+            'groundLevelPositioningMethod'))
+
     def update(self):
         self.numberOfMonitoringTubes = self.well.screen_set.count()
         self.nitgCode = self.well.nitg
@@ -104,11 +123,11 @@ class GroundwaterMonitoringWell(models.Model):
         self.deliveredLocation = self.well.location
         self.deliveredVerticalPosition = self.well.maaiveld or self.well.ahn
 
-        def save(self, force_insert=False, force_update=False, using=None, 
-            update_fields=None):
-            return models.Model.save(self, force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
-        
-        
+    def set_defaults(self, fields):
+        for fieldname in fields:
+            if not hasattr(self, fieldname) or getattr(self,fieldname) is None:
+                setattr(self,fieldname,Code.default(fieldname))
+                        
 class MonitoringTube(models.Model):
     ''' Screen data for BRO '''
     screen = models.OneToOneField(Screen,on_delete=models.CASCADE,related_name='bro')

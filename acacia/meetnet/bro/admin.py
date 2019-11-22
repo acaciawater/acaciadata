@@ -23,7 +23,7 @@ class MonitoringTubeAdmin(admin.ModelAdmin):
 
 @register(Code)
 class CodeAdmin(admin.ModelAdmin):
-    list_display = ('code', 'codeSpace', 'default_value')    
-    list_filter = ('codeSpace','default_value')
+    list_display = ('code', 'codeSpace', 'is_default')    
+    list_filter = ('codeSpace','is_default')
     list_search = ('code','codeSpace')
     ordering = ('codeSpace','code')
