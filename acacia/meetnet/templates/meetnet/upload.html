@@ -1,9 +1,9 @@
 {% extends 'bootbase.html' %}
 {% load staticfiles %}
-{% load l10n %}
+{% load i18n %}
 {% block title %}Grondwatermeetnet {{network.name}}{% endblock title %}
 {% block breadcrumbs %}{% endblock %}
-{% block brandname %}<div class="navbar-brand"><img style="margin-top: -7px;max-width: 100px;" src="/media/{{network.logo}}"/>Grondwatermeetnet {{network.name}}</div>{% endblock %}
+{% block brandname %}<div class="navbar-brand"><a href="{{network.homepage}}"><img src="/media/{{network.logo}}"/></a>{% trans "Monitoring network" %} {{network.name}}</div>{% endblock %}
 {% block extrastyle %}	
 <style>
 .btn-file {
@@ -30,6 +30,13 @@ input[readonly] {
 	background-color: white !important;
 	cursor: text !important;
 }
+
+.navbar-brand img {
+	margin-top: -7px;
+	max-height: 32px;
+	padding-right: 4px;
+}
+
 </style>
 {% endblock extrastyle %}
 {% block script %}
