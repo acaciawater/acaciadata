@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-11-13 21:02+0100\n"
+"POT-Creation-Date: 2019-11-22 11:32+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: admin.py:228
+#: admin.py:216
 msgid "Bovenkant buis"
 msgstr ""
 
@@ -66,6 +66,20 @@ msgstr "kabellengte"
 #: forms.py:107
 msgid "Invalid serial number"
 msgstr "ongeldig serienummer"
+
+#: forms.py:110
+msgid "Metadata"
+msgstr ""
+
+#: forms.py:111
+#, fuzzy
+#| msgid "photos"
+msgid "Fotos"
+msgstr "foto's"
+
+#: forms.py:112
+msgid "Boorstaten"
+msgstr ""
 
 #: models.py:19 models.py:43
 msgid "name"
@@ -398,3 +412,37 @@ msgstr "NAP"
 #: templates/meetnet/chart_detail.html:6 templates/meetnet/well_detail.html:6
 msgid "Home"
 msgstr "Startpagina"
+
+#: templates/meetnet/upload.html:6
+msgid "Monitoring network"
+msgstr ""
+
+#, fuzzy
+#~| msgid "type"
+#~ msgid "Buistype"
+#~ msgstr "type"
+
+#, fuzzy
+#~| msgid "diameter"
+#~ msgid "Diameter"
+#~ msgstr "diameter"
+
+#, fuzzy
+#~| msgid "diameter"
+#~ msgid "Variabele diameter"
+#~ msgstr "diameter"
+
+#, fuzzy
+#~| msgid "material"
+#~ msgid "Aanvul materiaal"
+#~ msgstr "materiaal"
+
+#, fuzzy
+#~| msgid "material"
+#~ msgid "Buismateriaal"
+#~ msgstr "materiaal"
+
+#, fuzzy
+#~| msgid "material"
+#~ msgid "Kousmateriaal"
+#~ msgstr "materiaal"
