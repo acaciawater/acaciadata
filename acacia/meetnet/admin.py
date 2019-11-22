@@ -13,6 +13,7 @@ from acacia.meetnet.actions import update_statistics
 from django.utils.translation import ugettext as _
 from django.contrib.admin.decorators import register
 from django.contrib.admin.options import ModelAdmin
+from django.forms.widgets import Select
 
 USE_GOOGLE_TERRAIN_TILES = False
 
@@ -214,10 +215,13 @@ class MeteoDataAdmin(admin.ModelAdmin):
 
 class HandForm(SeriesForm):
     bkb = forms.FloatField(label=_('Bovenkant buis'), required=False)
-    
+
     class Media:
         js = ('/static/grappelli/jquery/jquery.min.js', 'js/handform.js',)
-        
+
+    class Meta:
+        widgets = {'unit': Select(choices=(('cm','centimeter'),('m','meter')))}
+                
     def __init__(self,*args,**kwargs):
         super(HandForm,self).__init__(*args,**kwargs)
         if self.instance and self.instance.pk:
