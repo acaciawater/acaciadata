@@ -1,0 +1,14 @@
+{% extends 'bootbase.html' %}
+{% load staticfiles %}
+{% load l10n %}
+{% block title %}Datalogger toegevoegd{% endblock title %}
+{% block breadcrumbs %}{% endblock %}
+{% block brandname %}<div class="navbar-brand">Grondwatermeetnet {{network.name}}</div>
+{% endblock %}
+{% block content %}
+<div class="container">
+<h3>Metadata geimporteerd!</h3>
+{% if url %}<a href="{{url}}" class="btn btn-primary">Log file bekijken</a>{% endif %}
+<a href="/" class="btn btn-default">Startpagina</a>
+</div>
+{% endblock %}
