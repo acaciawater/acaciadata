@@ -277,6 +277,20 @@ class Screen(models.Model):
 
         if not series.empty:
             if rule:
+                if rule == '*':
+                    # determine suitable rule
+                    start = series.index.min()
+                    stop = series.index.max()
+                    range = stop - start
+                    days = range.days
+                    if days < 365:
+                        rule= 'H' # 1 year, max 8760 points
+                    elif days < 3650:
+                        rule = 'D' # 10 year, max 3650 points
+                    elif days < 36500:
+                        rule = 'M' # 100 year, max 1200 points 
+                    else:
+                        rule = 'A' # Years
                 # resample filtered points
                 series = series.resample(rule=rule).mean()
 
