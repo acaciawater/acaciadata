@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-11-22 11:32+0100\n"
+"POT-Creation-Date: 2019-11-23 18:46+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: admin.py:216
+#: admin.py:217
 msgid "Bovenkant buis"
 msgstr ""
 
@@ -55,7 +55,10 @@ msgstr "logger model"
 msgid "serialnumber"
 msgstr "serienummer"
 
-#: forms.py:81 models.py:395 models.py:421 models.py:536
+#: forms.py:81
+#: models.py:426
+#: models.py:452
+#: models.py:567
 msgid "screen"
 msgstr "filter"
 
@@ -73,7 +76,6 @@ msgstr ""
 
 #: forms.py:111
 #, fuzzy
-#| msgid "photos"
 msgid "Fotos"
 msgstr "foto's"
 
@@ -81,7 +83,8 @@ msgstr "foto's"
 msgid "Boorstaten"
 msgstr ""
 
-#: models.py:19 models.py:43
+#: models.py:19
+#: models.py:43
 msgid "name"
 msgstr "naam"
 
@@ -122,7 +125,8 @@ msgstr ""
 msgid "display well names with NITG code or use custom names"
 msgstr "Toon putten met NITG code of putnaam"
 
-#: models.py:35 models.py:42
+#: models.py:35
+#: models.py:42
 msgid "network"
 msgstr "netwerk"
 
@@ -191,7 +195,8 @@ msgstr "plaats"
 msgid "driller's log"
 msgstr "boorstaat"
 
-#: models.py:58 models.py:218
+#: models.py:58
+#: models.py:228
 msgid "chart"
 msgstr "grafiek"
 
@@ -211,7 +216,9 @@ msgstr "aantal filters"
 msgid "number of photos"
 msgstr "aantal fotos"
 
-#: models.py:156 models.py:166 models.py:209
+#: models.py:156
+#: models.py:166
+#: models.py:219
 msgid "well"
 msgstr "put"
 
@@ -264,185 +271,182 @@ msgid "HDPE"
 msgstr "HDPE"
 
 #: models.py:204
-msgid "SS"
-msgstr "RVS"
+msgid "stainless steel"
+msgstr "Roestvrij staal"
 
 #: models.py:205
 msgid "steel"
 msgstr "staal"
 
+#: models.py:209
+#: models.py:563
+msgid "NAP"
+msgstr "NAP"
+
 #: models.py:210
+#, fuzzy
+msgid "Ground level"
+msgstr "maaiveld"
+
+#: models.py:211
+msgid "Top of tube"
+msgstr "Bovenkant buis"
+
+#: models.py:212
+#, fuzzy
+msgid "Top of screen"
+msgstr "bovenkant filter"
+
+#: models.py:213
+#, fuzzy
+msgid "Bottom of screen"
+msgstr "onderkant filter"
+
+#: models.py:214
+msgid "Sensor"
+msgstr ""
+
+#: models.py:220
 msgid "screen number"
 msgstr "filternummer"
 
-#: models.py:211
+#: models.py:221
 msgid "density"
 msgstr "dichtheid"
 
-#: models.py:211
+#: models.py:221
 msgid "density of the water in observation tube (kg/m3)"
 msgstr "dichtheid van het water in de peilbuis (kg/m3)"
 
-#: models.py:212
+#: models.py:222
 msgid "top of casing"
 msgstr "bovenkant buis"
 
-#: models.py:212
+#: models.py:222
 msgid "top of casing in m wrt NAP"
 msgstr "bovenkant buis in meter tov NAP"
 
-#: models.py:213
+#: models.py:223
 msgid "depth"
 msgstr "diepte"
 
-#: models.py:213
+#: models.py:223
 msgid "depth of pipe in meters below the surface"
 msgstr "diepte buis in meter onder maaiveld"
 
-#: models.py:214
+#: models.py:224
 msgid "top of screen"
 msgstr "bovenkant filter"
 
-#: models.py:214
+#: models.py:224
 msgid "top of screen in meters below the surface"
 msgstr "bovenkant filter in meter onder maaiveld"
 
-#: models.py:215
+#: models.py:225
 msgid "bottom of screen"
 msgstr "onderkant filter"
 
-#: models.py:215
+#: models.py:225
 msgid "bottom of screen in meters below the surface"
 msgstr "onerkant filter in meter onder maaiveld"
 
-#: models.py:216
+#: models.py:226
 msgid "diameter"
 msgstr "diameter"
 
-#: models.py:216
+#: models.py:226
 msgid "diameter in mm (default = 32 mm)"
 msgstr "diameter buis in mm (standaard = 32 mm)"
 
-#: models.py:217
+#: models.py:227
 msgid "material"
 msgstr "materiaal"
 
-#: models.py:219
+#: models.py:229
 msgid "aquifer"
 msgstr "aquifer"
 
-#: models.py:220
+#: models.py:230
 msgid "manual measurements"
 msgstr "handpeilingen"
 
-#: models.py:221
+#: models.py:231
 #, fuzzy
 msgid "water level"
 msgstr "maaiveld"
 
-#: models.py:222
+#: models.py:232
 msgid "group"
 msgstr "groep"
 
-#: models.py:396
+#: models.py:427
 msgid "screens"
 msgstr "filters"
 
-#: models.py:410
+#: models.py:441
 msgid "serial number"
 msgstr "serienummer"
 
-#: models.py:411
+#: models.py:442
 msgid "type"
 msgstr "type"
 
-#: models.py:422
+#: models.py:453
 msgid "start"
 msgstr "start"
 
-#: models.py:422
+#: models.py:453
 msgid "Start of datalogger"
 msgstr "start datalogger"
 
-#: models.py:423
+#: models.py:454
 msgid "stop"
 msgstr "stop"
 
-#: models.py:423
+#: models.py:454
 msgid "Stopping time of datalogger"
 msgstr "stop datalogger"
 
-#: models.py:424 models.py:537
+#: models.py:455
+#: models.py:568
 msgid "reference point"
 msgstr "referentiepunt"
 
-#: models.py:424
+#: models.py:455
 #, fuzzy
 msgid "Reference point in meter wrt NAP"
 msgstr "maaveld in meter tov NAP"
 
-#: models.py:425
+#: models.py:456
 msgid "cable length"
 msgstr "kabellengte"
 
-#: models.py:425
+#: models.py:456
 msgid "length of cable in meter"
 msgstr "kabellengte in meter"
 
-#: models.py:426
+#: models.py:457
 msgid "remarks"
 msgstr "opmerkingen"
 
-#: models.py:432
+#: models.py:463
 msgid "LoggerInstallation"
 msgstr "Datalogger installatie"
 
-#: models.py:454
+#: models.py:485
 msgid "Monfiles"
 msgstr ""
 
-#: models.py:531
+#: models.py:562
 msgid "Top of casing"
 msgstr "bovenkant buis"
 
-#: models.py:532
-msgid "NAP"
-msgstr "NAP"
-
-#: templates/meetnet/chart_detail.html:6 templates/meetnet/well_detail.html:6
+#: templates/meetnet/chart_detail.html:6
+#: templates/meetnet/well_detail.html:6
 msgid "Home"
 msgstr "Startpagina"
 
 #: templates/meetnet/upload.html:6
 msgid "Monitoring network"
-msgstr ""
+msgstr "Monitoring netwerk"
 
-#, fuzzy
-#~| msgid "type"
-#~ msgid "Buistype"
-#~ msgstr "type"
-
-#, fuzzy
-#~| msgid "diameter"
-#~ msgid "Diameter"
-#~ msgstr "diameter"
-
-#, fuzzy
-#~| msgid "diameter"
-#~ msgid "Variabele diameter"
-#~ msgstr "diameter"
-
-#, fuzzy
-#~| msgid "material"
-#~ msgid "Aanvul materiaal"
-#~ msgstr "materiaal"
-
-#, fuzzy
-#~| msgid "material"
-#~ msgid "Buismateriaal"
-#~ msgstr "materiaal"
-
-#, fuzzy
-#~| msgid "material"
-#~ msgid "Kousmateriaal"
-#~ msgstr "materiaal"
