@@ -201,9 +201,19 @@ class Photo(models.Model):
 MATERIALS = (
              ('pvc', _('PVC')),
              ('hdpe', _('HDPE')),
-             ('ss', _('SS')),
+             ('ss', _('stainless steel')),
              ('ms', _('steel')),
+             )
+
+REFERENCE_LEVELS = (
+             ('nap', _('NAP')),
+             ('mv', _('Ground level')),
+             ('bkb', _('Top of tube')),
+             ('top', _('Top of screen')),
+             ('bot', _('Bottom of screen')),
+             ('sens', _('Sensor')),
              )                  
+                  
 class Screen(models.Model):
     mloc = models.ForeignKey(MeetLocatie, null=True, blank=True)
     well = models.ForeignKey(Well, verbose_name = _('well'))
@@ -221,54 +231,71 @@ class Screen(models.Model):
     logger_levels = models.ForeignKey(Series, null=True, blank=True, on_delete=SET_NULL, verbose_name=_('water level'), related_name='waterlevel')
     group = models.CharField(_('group'),max_length=100,blank=True,null=True)
     
-    def get_series(self, ref = 'nap', kind='COMP', **kwargs):
+    def convert(self, series, ref):
+        ''' convert pandas timeseries from NAP to other reference level '''
+        if ref == 'nap':
+            return series
+        elif ref == 'bkb':
+            # convert to m above top of tube
+            return series - self.refpnt
+        elif ref == 'mv':
+            # convert to m above surface
+            return series - self.well.maaiveld
+        elif ref == 'top':
+            # convert to m above top of screen
+            # screen setting is in m below surface
+            top = self.well.maaiveld - self.top
+            return series - top
+        elif ref == 'bot':
+            # convert to m above bottom of screen
+            # screen setting is in m below surface
+            bot = self.well.maaiveld - self.bot
+            return series - bot
+        elif ref == 'sens':
+            # convert to m above sensor
+            depths = self.loggerpos_set.order_by('start_date').values_list('start_date','depth')
+            if len(depths)>0:
+                # convert sensor depths to NAP
+                x,y = zip(*depths)
+                nap = (self.refpnt - pd.Series(index = x, data = y))
+                if isinstance(series, pd.Series):
+                    nap = nap.reindex(series.index,method='pad')
+                return series - nap
+
+        # else return empty series
+        return pd.Series()
         
+    def get_series(self, ref = 'nap', kind='COMP', **kwargs):
+        ''' get series data (levels or manual data), resample and convert to reference point '''
+
         rule = kwargs.pop('rule',None)
 
-        # standen tov NAP ophalen
+        # get levels wrt NAP
         series = self.get_manual_series(**kwargs) if kind.lower() == 'hand' else self.get_compensated_series(**kwargs)
         if series is None:
             series = pd.Series()
 
         if not series.empty:
-
-            ref = ref.lower()
-            
             if rule:
                 # resample filtered points
                 series = series.resample(rule=rule).mean()
-                        
-            # convert for reference point (database reference is NAP)    
-            if ref == 'nap':
-                pass
-            elif ref =='bkb':
-                series = self.refpnt - series
-            elif ref == 'mv':
-                series = self.well.maaiveld - series
-            elif ref == 'cm':
-                # converteren naar cm boven sensor
-                depths = self.loggerpos_set.order_by('start_date').values_list('start_date','depth')
-                if len(depths)>0:
-                    x,y = zip(*depths)
-                    nap = (self.refpnt - pd.Series(index = x, data = y))
-                    nap = nap.reindex(series.index,method='pad')
-                    series = (series - nap) * 100
-                else:
-                    series = pd.Series()
+
+            # convert to reference level
+            series = self.convert(series, ref.lower())
 
         series.name = unicode(self)
         return series
 
     def get_levels(self, ref='nap', **kwargs):
-#         series = self.get_series(ref,kind='COMP',**kwargs)
-        series = self.get_compensated_series(**kwargs)
+        ''' return levels as array (date,value) '''
+        series = self.get_series(ref, kind='comp', **kwargs)
         if series is None or series.empty:
             return None
         return zip(series.index, series.values)        
 
     def get_hand(self, ref='nap', **kwargs):
-#         series = self.get_series(ref,kind='HAND',**kwargs)
-        series = self.get_manual_series(**kwargs)
+        ''' return manual series as array (date,value) '''
+        series = self.get_series(ref, kind='hand', **kwargs)
         if series is None or series.empty:
             return None
         return zip(series.index, series.values)        
@@ -340,8 +367,11 @@ class Screen(models.Model):
         return self.get_series(ref,kind,**kwargs)
         
     def get_manual_series(self, **kwargs):
-
+        ''' return manual levels in m +NAP '''
         if hasattr(self, 'handpeilingen'):
+            if not self.manual_levels:
+                self.manual_levels = self.handpeilingen
+                self.save(update_fields=['manual_levels'])
             levels = self.handpeilingen.to_pandas(**kwargs)
             if self.handpeilingen.unit == 'cm':
                 levels /= 100.0
@@ -350,6 +380,7 @@ class Screen(models.Model):
                 levels = self.refpnt - levels
             return levels
         else:
+            # legacy code
             if not self.manual_levels: 
                 # Handpeilingen ophalen
                 self.manual_levels = self.mloc.series_set.instance_of(ManualSeries).filter(name__endswith='HAND').first()

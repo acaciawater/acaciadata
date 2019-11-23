@@ -26,7 +26,7 @@ td a img {
 <tr></tr>
 {% if object.has_data %}
 <tr><td colspan="2">
-	<a href="{% url 'meetnet:chart-detail' object.id %}?stats=1" target="_blank"><img width="100%" src="{{object.chart.url}}"></a>
+	<a href="{% url 'meetnet:chart-detail' object.id %}" target="_blank"><img width="100%" src="{{object.chart.url}}"></a>
 </td></tr>
 {% endif %}
 </table>

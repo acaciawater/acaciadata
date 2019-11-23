@@ -33,13 +33,16 @@ from .util import handle_uploaded_files
 from .actions import download_well_nitg
 from .register import handle_registration_files
 from django.utils.http import urlencode
+from acacia.meetnet.models import REFERENCE_LEVELS
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 
 
 logger = logging.getLogger(__name__)
 
 
 class NavMixin(object):
-    """ Mixin for browsing through devices sorted by name """
+    """ Mixin for browsing through wells sorted by name """
 
     def nav(self,well):
         nxt = Well.objects.filter(name__gt=well.name)
@@ -136,40 +139,38 @@ class ScreenChartView(AuthRequiredMixin,TemplateView):
         return context
 
 @auth_required
+@cache_page(60 * 5)    
 def json_series(request, pk):
     screen = get_object_or_404(Screen,pk=pk)
     what = request.GET.get('mode','comp') # choices: comp, hand
-    ref = request.GET.get('ref','nap') # choices: nap, bkb, mv, cm
-#     filters = [
-#         RangeRule(name = 'range', lower = -5, upper = 5),
-#         RollingRule(name = 'spike', count = 3, tolerance = 3, comp ='LT')
-#         ]
-    # determine resampling rule
+    ref = request.GET.get('ref','nap') # choices: nap, bkb, mv, sensor, top, bot
     rule = request.GET.get('rule', 'H')
-#     if rule is None:
-#         series = screen.find_series()
-#         rule = 'H' if series.aantal() < 10000 else 'D'
     series = screen.get_series(ref,what,rule=rule)#,filters=filters)
     if series is None or series.empty:
         values = []
     else:
         values = zip(series.index, series.values)
-        
-    data = {'screen%s'%screen.nr: values}
-    stats = request.GET.get('stats','0')
-    try:
-        stats = int(stats)
-        if stats:
-            mean = pd.expanding_mean(series)
-            std = pd.expanding_std(series)
-            a = (mean - std).dropna()
-            b = (mean + std).dropna()
-            ranges = zip(a.index.to_pydatetime(), a.values, b.values)
-            data.update({'stats%s'%screen.nr: ranges})
-    except:
-        pass
-    return HttpResponse(json.dumps(data,ignore_nan=True,default=to_millis),content_type='application/json')
     
+    if what == 'hand':
+        data = {'hand%s' % screen.nr: values}
+    elif what == 'comp':
+        data = {'screen%s' % screen.nr: values}
+        # TODO: how to deal with statistics on resampled data??
+        stats = request.GET.get('stats','0')
+        try:
+            stats = int(stats)
+            if stats:
+                mean = pd.expanding_mean(series)
+                std = pd.expanding_std(series)
+                a = (mean - std).dropna()
+                b = (mean + std).dropna()
+                ranges = zip(a.index.to_pydatetime(), a.values, b.values)
+                data.update({'stats%s'%screen.nr: ranges})
+        except:
+            pass
+    return HttpResponse(json.dumps(data,ignore_nan=True,default=to_millis),content_type='application/json')
+
+#@method_decorator(cache_page(60 * 5), name='dispatch')    
 class WellChartView(AuthRequiredMixin, NavMixin, TemplateView):
     template_name = 'meetnet/chart_detail.html'
         
@@ -180,15 +181,14 @@ class WellChartView(AuthRequiredMixin, NavMixin, TemplateView):
         context['object'] = well
         context['nav'] = self.nav(well)
 
-        if not well.nitg:
-            title = well.name
-        elif not well.name:
-            title = well.nitg
-        elif well.name == well.nitg:
+        if well.network.display_name == 'name':
             title = well.name
         else:
-            title = '{name} ({nitg})'.format(name=well.name, nitg=well.nitg)
-        
+            title = well.nitg or well.name
+
+        ref = self.request.GET.get('ref','nap')
+        ref_name = dict(REFERENCE_LEVELS).get(ref,'nap')
+
         options = {
              'rangeSelector': { 'enabled': True,
                                'inputEnabled': True,
@@ -197,7 +197,7 @@ class WellChartView(AuthRequiredMixin, NavMixin, TemplateView):
             'chart': {'zoomType': 'x','events':{'load':None}},
             'title': {'text': title},
             'xAxis': {'type': 'datetime'},
-            'yAxis': [{'title': {'text': 'Grondwaterstand\n(m tov NAP)'}}
+            'yAxis': [{'title': {'text': 'Grondwaterstand\n(m tov %s)' % ref_name}}
                       ],
             'tooltip': {'valueSuffix': ' m',
                         'valueDecimals': 2,
@@ -249,7 +249,7 @@ class WellChartView(AuthRequiredMixin, NavMixin, TemplateView):
                             'marker': {'enabled':False}
                             })
 
-            data = screen.get_manual_series()
+            data = screen.get_series(ref=ref,kind='hand')
             if data is None or data.empty:
                 continue
             hand = zip(data.index.to_pydatetime(), data.values)
@@ -266,18 +266,32 @@ class WellChartView(AuthRequiredMixin, NavMixin, TemplateView):
                         })
             
 
-        maaiveld = well.maaiveld or well.ahn
-        if maaiveld and start and stop:
-            tz = get_current_timezone()
-            maaiveld = float(maaiveld)
-            series.append({'name': 'maaiveld',
-                        'type': 'line',
-                        'lineWidth': 2,
-                        'color': '#009900',
-                        'dashStyle': 'Dash',
-                        'data': [(start.astimezone(tz),maaiveld),(stop.astimezone(tz),maaiveld)],
-                        'zIndex': 4,
-                        })
+        if ref in ('nap','mv') or well.screen_set.count() < 2:
+            # only show ground level when reference == nap or maaiveld or number of screens < 2
+            maaiveld = well.maaiveld or well.ahn
+            if maaiveld and start and stop:
+                tz = get_current_timezone()
+                maaiveld = float(maaiveld)
+                if ref != 'nap':
+                    if ref == 'mv':
+                        maaiveld = 0
+                    else:
+                        screen = well.screen_set.first()
+                        maaiveld = screen.convert(maaiveld, ref)
+
+                if isinstance(maaiveld, pd.Series):
+                    maaiveld = zip(maaiveld.index.to_pydatetime(), maaiveld.values) 
+                else:
+                    maaiveld = [(start.astimezone(tz),maaiveld),(stop.astimezone(tz),maaiveld)]
+                
+                series.append({'name': 'maaiveld',
+                            'type': 'line',
+                            'lineWidth': 2,
+                            'color': '#009900',
+                            'dashStyle': 'Dash',
+                            'data': maaiveld,
+                            'zIndex': 4,
+                            })
 
         # neerslag toevoegen
         if hasattr(well,'meteo'):

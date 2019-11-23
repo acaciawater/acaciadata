@@ -64,7 +64,6 @@ def trans(p, srid):
 
 def get_address(lon, lat):        
     ''' haal adres gegevens op met osm geocoding api '''
-#     url = 'https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lon}&key={key}'.format(lon=lon,lat=lat,key=settings.GOOGLE_MAPS_API_KEY2)
     url = 'https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}&zoom=18&addressdetails=1'.format(lon=lon,lat=lat)
     response = requests.get(url=url)
     response.raise_for_status()
