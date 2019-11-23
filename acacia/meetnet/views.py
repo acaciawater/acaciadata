@@ -139,7 +139,7 @@ class ScreenChartView(AuthRequiredMixin,TemplateView):
         return context
 
 @auth_required
-@cache_page(60 * 5)    
+@cache_page(60 * 30) # 30 minutes    
 def json_series(request, pk):
     screen = get_object_or_404(Screen,pk=pk)
     what = request.GET.get('mode','comp') # choices: comp, hand
@@ -197,7 +197,7 @@ class WellChartView(AuthRequiredMixin, NavMixin, TemplateView):
             'chart': {'zoomType': 'x','events':{'load':None}},
             'title': {'text': title},
             'xAxis': {'type': 'datetime'},
-            'yAxis': [{'title': {'text': 'Grondwaterstand\n(m tov %s)' % ref_name}}
+            'yAxis': [{'title': {'text': 'Grondwaterstand (m tov %s)' % ref_name}}
                       ],
             'tooltip': {'valueSuffix': ' m',
                         'valueDecimals': 2,
