@@ -88,12 +88,11 @@ class Well(geo.Model):
                 orientation = exif[ORIENTATION]
                 if orientation in TRANSPOSE:
                     image = image.transpose(TRANSPOSE[orientation])
-                    io = StringIO()
-                    image.save(io,fmt)
-                    fp = io
-        except:
+        except Exception:
             pass
-        return fp
+        io = StringIO()
+        image.save(io,fmt)
+        return io
     
     def add_photo(self, name, fp, fmt='JPEG'):
         ''' adds or replaces photo '''

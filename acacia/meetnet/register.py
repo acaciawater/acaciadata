@@ -169,7 +169,7 @@ def import_metadata(request, sheet='Putgegevens'):
                     name = get('Foto %d'%nr)
                     if name:
                         try:
-                            with fotos.open(name,'r') as foto:
+                            with fotos.open(name) as foto:
                                 well.add_photo(name,foto)
                                 logger.info('Foto toegevoegd: {}'.format(name))
                         except Exception as e:
