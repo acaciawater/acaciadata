@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-11-23 18:46+0100\n"
+"POT-Creation-Date: 2019-11-24 14:22+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,130 +18,159 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: bro/models.py:43
+#: models.py:42
 msgid "codeSpace"
-msgstr ""
+msgstr "Codelijst"
 
-#: bro/models.py:44
+#: models.py:43
+msgid "Description"
+msgstr "Omschrijving"
+
+#: models.py:44
+msgid "default code"
+msgstr "Standaard code"
+
+#: models.py:50
+msgid "Code space"
+msgstr "Codelijst"
+
+#: models.py:51
+msgid "Code spaces"
+msgstr "Codelijsten"
+
+#: models.py:56
 msgid "code"
+msgstr "code"
+
+#: models.py:62
+msgid "Code"
 msgstr ""
 
-#: bro/models.py:89
+#: models.py:63
+msgid "Codes"
+msgstr ""
+
+#: models.py:75
+msgid "Illegal chamber of commerce number"
+msgstr "Ongeldig Kamer van Koophandel  nummer"
+
+#: models.py:88
 msgid "ObjectID"
 msgstr ""
 
-#: bro/models.py:90
+#: models.py:89
 msgid "Kader aanlevering"
 msgstr ""
 
-#: bro/models.py:91
+#: models.py:90
 msgid "Kwaliteitsnorm inrichting"
 msgstr ""
 
-#: bro/models.py:92
+#: models.py:91
 msgid "Initiële functie"
 msgstr ""
 
-#: bro/models.py:93
+#: models.py:92
 msgid "Aantal monitoringbuizen"
 msgstr ""
 
-#: bro/models.py:94
+#: models.py:93
 msgid "Maaiveld stabiel"
 msgstr ""
 
-#: bro/models.py:95
+#: models.py:94
 msgid "Putstabiliteit"
 msgstr ""
 
-#: bro/models.py:96
+#: models.py:95
 msgid "NITG code"
 msgstr ""
 
-#: bro/models.py:97
+#: models.py:96
 msgid "Kaartblad"
 msgstr ""
 
-#: bro/models.py:98
+#: models.py:97
 msgid "Eigenaar"
 msgstr ""
 
-#: bro/models.py:99
+#: models.py:98
 msgid "Onderhoudende instantie"
 msgstr ""
 
-#: bro/models.py:100
+#: models.py:99
 msgid "Beschermconstructie"
 msgstr ""
 
-#: bro/models.py:102
+#: models.py:101
 msgid "Coordinaten"
 msgstr ""
 
-#: bro/models.py:103
+#: models.py:102
 msgid "Methode locatiebepaling"
 msgstr ""
 
-#: bro/models.py:104
+#: models.py:103
 msgid "Maaiveld"
 msgstr ""
 
-#: bro/models.py:105
+#: models.py:104
 msgid "Maaiveld positiebepaling"
 msgstr ""
 
-#: bro/models.py:136
+#: models.py:135
 msgid "Buistype"
 msgstr ""
 
-#: bro/models.py:137
+#: models.py:136
 msgid "Drukdop"
 msgstr ""
 
-#: bro/models.py:138
+#: models.py:137
 msgid "Zandvang"
 msgstr ""
 
-#: bro/models.py:140
+#: models.py:139
 msgid "Diameter"
 msgstr ""
 
-#: bro/models.py:141
+#: models.py:140
 msgid "Variabele diameter"
 msgstr ""
 
-#: bro/models.py:142
+#: models.py:141
 msgid "Status"
 msgstr ""
 
-#: bro/models.py:143
+#: models.py:142
 msgid "Bovenkant buis"
 msgstr ""
 
-#: bro/models.py:144
+#: models.py:143
 msgid "Methode positiebepaling bovenkant buis"
 msgstr ""
 
-#: bro/models.py:145
+#: models.py:144
 msgid "Aanvul materiaal"
 msgstr ""
 
-#: bro/models.py:146
+#: models.py:145
 msgid "Buismateriaal"
 msgstr ""
 
-#: bro/models.py:147
+#: models.py:146
 msgid "Filterlengte"
 msgstr ""
 
-#: bro/models.py:148
+#: models.py:147
 msgid "Kousmateriaal"
 msgstr ""
 
-#: bro/models.py:149
+#: models.py:148
 msgid "Lengte stijgbuis"
 msgstr ""
 
-#: bro/models.py:150
+#: models.py:149
 msgid "Lengte zandvang"
 msgstr ""
+
