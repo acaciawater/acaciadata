@@ -252,6 +252,10 @@ class WellChartView(AuthRequiredMixin, NavMixin, TemplateView):
             data = screen.get_series(ref=ref,kind='hand')
             if data is None or data.empty:
                 continue
+            if start:
+                start = min(min(data.index),start)
+            if stop:
+                stop = max(max(data.index),stop)
             hand = zip(data.index.to_pydatetime(), data.values)
             series.append({'name': 'peiling {}'.format(screen.nr),
                         'type': 'scatter',
