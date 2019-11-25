@@ -12,7 +12,6 @@ from acacia.meetnet.models import Handpeilingen as Peilingen
 from acacia.meetnet.actions import update_statistics
 from django.utils.translation import ugettext as _
 from django.contrib.admin.decorators import register
-from django.contrib.admin.options import ModelAdmin
 from django.forms.widgets import Select
 
 USE_GOOGLE_TERRAIN_TILES = False
@@ -137,7 +136,13 @@ class ScreenInline(admin.TabularInline):
     classes = ('grp-collapse', 'grp-closed',)
         
 class ScreenAdmin(admin.ModelAdmin):
-    actions = [actions.make_screencharts,actions.recomp_screens,actions.drift_screens,actions.register_screens,actions.download_screen_nitg,actions.create_handpeilingen]
+    actions = [actions.make_screencharts,
+               actions.recomp_screens,
+               actions.drift_screens,
+               actions.register_screens,
+               actions.download_screen_nitg,
+               actions.create_handpeilingen,
+               actions.add_bro_for_screens]
     list_display = ('__unicode__', 'group', 'refpnt', 'top', 'bottom', 'aquifer', 'num_files', 'num_standen', 'start', 'stop', 'manual_levels')
     search_fields = ('well__name', 'well__nitg')
     list_filter = ('well','well__network','aquifer', 'group')
@@ -172,7 +177,8 @@ class WellAdmin(admin.ModelAdmin):
                actions.download_metadata,
                actions.download_well_nitg,
                actions.elevation_from_ahn,
-               actions.address_from_osm]
+               actions.address_from_osm,
+               actions.add_bro_for_wells]
     inlines = [ScreenInline, MeteoInline, PhotoInline ]
     list_display = ('name','nitg','network','owner','maaiveld', 'ahn', 'num_filters', 'num_photos', 'straat', 'plaats')
     #list_editable = ('location',)
