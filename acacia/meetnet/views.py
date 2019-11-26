@@ -45,9 +45,9 @@ class NavMixin(object):
     """ Mixin for browsing through wells sorted by name """
 
     def nav(self,well):
-        nxt = Well.objects.filter(name__gt=well.name)
+        nxt = Well.objects.filter(name__gt=well.name).order_by('name')
         nxt = nxt.first() if nxt else None
-        prv = Well.objects.filter(name__lt=well.name)
+        prv = Well.objects.filter(name__lt=well.name).order_by('name')
         prv = prv.last() if prv else None
         return {'next': nxt, 'prev': prv}
 
