@@ -18,6 +18,8 @@ from acacia.data.views import SeriesView
 
 import logging
 from datetime import datetime
+from acacia.meetnet.models import Well
+import pytz
 logger = logging.getLogger(__name__)
 
 def accept(request, pk):
@@ -99,19 +101,37 @@ class UploadDoneView(TemplateView):
         return context
 
 def save_file(file_obj,folder):
-    path = default_storage.path(os.path.join(folder,file_obj.name))
+    basename = os.path.basename(file_obj.name)
+    path = default_storage.path(os.path.join(folder,basename))
     fldr = os.path.dirname(path)
     if not os.path.exists(fldr):
         os.makedirs(fldr)
     with open(path, 'wb') as destination:
-        for chunk in file_obj.chunks():
-            destination.write(chunk)
+        while True:
+            chunk = file_obj.read(1000)
+            if chunk:
+                destination.write(chunk)
+            else:
+                break
     return path
 
 class ValidationError(Exception):
     pass
 
-def process_file(request, path):
+def process_file(path, user, **kwargs):
+    # get validation instance
+    if 'pk' in kwargs:
+        val_id = int(kwargs['pk'])
+    else:
+        # get id of validation instance
+        raw, val = df.columns
+        m = re.search(r'id=(\d+)', val)
+        if m:
+            val_id = int(m.group(1))
+        else:
+            raise ValidationError('Format error in header')
+    val = Validation.objects.get(pk=val_id)
+    
     # read excel file as pandas dataframe
     logger.debug('Processing validation file '+path)
     df = pd.read_excel(path,index_col=0)
@@ -120,22 +140,19 @@ def process_file(request, path):
         raise ValidationError('Validation file must have three columns')
     logger.debug('{} rows read'.format(rows))
 
-    # get id of validation instance
-    raw, val = df.columns
-    m = re.search(r'id=(\d+)', val)
-    if m:
-        # get validation instance
-        val_id = int(m.group(1))
-        val = Validation.objects.get(pk=val_id)
-    else:
-        raise ValidationError('Format error in header')
     # drop N/A values
     df.dropna(how='all',inplace=True)
     df.sort_index(inplace=True)
+    df.index = df.index.tz_localize('UTC')
+
+    if not path.startswith(default_storage.location):
+        # copy file to default storage
+        with open(path,'rb') as f:
+            path = save_file(f,'valid')
     relpath = os.path.join(settings.MEDIA_URL,os.path.relpath(path,default_storage.location))
     begin = df.index[0]
     end = df.index[-1]
-    defaults={'begin':begin,'end':end,'user':request.user,'xlfile':relpath,'valid':True, 'date': datetime.now()}
+    defaults={'begin':begin,'end':end,'user':user,'xlfile':relpath,'valid':True, 'date': datetime.now()}
 
     #result,updated = Result.objects.update_or_create(validation=val,defaults=defaults)
     
@@ -145,22 +162,23 @@ def process_file(request, path):
         result.save()
     
     # update valid points
+    # TODO: extract series from column(2) and use iteritems (much faster)
     pts = [ValidPoint(validation=val,date=date,value=None if np.isnan(values[1]) else values[1]) for date,values in df.iterrows()]
     #val.validpoint_set.filter(date__range=[begin,end]).delete()
     val.validpoint_set.all().delete()
     val.validpoint_set.bulk_create(pts)
 
-    # revalidate
+    # revalidate remaining points
     val.persist()
     
-def process_uploaded_files(request, files):
+def process_uploaded_files(request,files,**kwargs):
     logger.debug('Processing {} uploaded validation files'.format(len(files)))
     for f in files:
-        process_file(request,f)
+        process_file(f,request.user,**kwargs)
         
 class UploadFileView(FormView):
 
-    template_name = 'upload.html'
+    template_name = 'validation/upload.html'
     form_class = UploadFileForm
     success_url = 'up/1/done'
     
@@ -172,7 +190,7 @@ class UploadFileView(FormView):
     
     def get_context_data(self, **kwargs):
         context = super(UploadFileView, self).get_context_data(**kwargs)
-        context['validation'] = get_object_or_404(Validation,pk=int(self.kwargs.get('pk')))
+        context['validation'] = get_object_or_404(Validation,pk=self.kwargs.get('pk'))
         return context
 
     def form_valid(self, form):
@@ -183,7 +201,7 @@ class UploadFileView(FormView):
             path = save_file(f,'valid')
             local_files.append(path)
 
-        process_uploaded_files(self.request, local_files)
+        process_uploaded_files(self.request, local_files, pk=self.kwargs.get('pk'))
         return super(UploadFileView,self).form_valid(form)
 
 class ValidationView(FormView):

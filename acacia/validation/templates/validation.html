@@ -176,8 +176,7 @@ a:hover {
 							  {% endif %}
 						  {% endwith %}
 						{% if result.xlfile %} <a href="{% url 'validation:remove_file' result.id %}" class="addrule pull-right glyphicon glyphicon-remove" title="Validatiebestand verwijderen"></a> {% endif %}
-<!-- 						<a href="{% url 'validation:upload' validation.id %}?next={{next}}" class="addrule pull-right glyphicon glyphicon-upload" title="Upload validatiebestand"></a>  -->
-						<a data-toggle="modal" href="#uploadModal"class="addrule pull-right glyphicon glyphicon-upload" title="Upload validatiebestand"></a>
+ 						<a href="{% url 'validation:upload' validation.id %}?next={{next}}" class="addrule pull-right glyphicon glyphicon-upload" title="Upload validatiebestand"></a>
 						<a href="{% url 'validation:download' validation.id %}" class="addrule pull-right glyphicon glyphicon-download" title="Download validatiebestand"></a>
 						<a href="{% url 'validation:accept' validation.id %}" class="addrule pull-right glyphicon glyphicon-ok" title="Accepteren en ongeldige punten verwijderen"></a> 
 						<input id=upload type="file" style="display:none"/>
@@ -191,8 +190,6 @@ a:hover {
 				</div>
 			</div>
 		</div>
-<!-- 		<a data-toggle="modal" href="#uploadModal">Upload</a> -->
-		{% include "upload_modal.html" %}
 	</div>
 	
 {% endblock content %}

@@ -286,7 +286,10 @@ class Validation(models.Model):
 
     valid.boolean = True
     validated.boolean = True
-    
+
+    def location(self):
+        return self.series.meetlocatie()
+        
     def get_absolute_url(self):
         return reverse('validation:validation-detail', args=[self.id])
 
@@ -397,7 +400,8 @@ class Validation(models.Model):
                 self.subresult_set.create(rule=rule,valid=valid_count,invalid=invalid_count,first_invalid=first)
     
             # set values to None where validation failed
-            series = series.where(result,other=None)
+            if result:
+                series = series.where(result,other=None)
             valid_points = [ValidPoint(validation=self,date=p[0],value=p[1]) for p in series.iteritems()]
             if numinvalid:
                 logger.warning(_('Validation {} failed').format(self.series))
@@ -444,7 +448,7 @@ class Validation(models.Model):
             begin = self.series.van()
             end = self.series.tot()
         q.delete()
-        defaults={'begin':begin,'end':end,'user':user,'xlfile':None,'valid':True, 'date': now(), 'remarks': 'Alles geaccepteerd'}
+        defaults={'begin':begin,'end':end,'user':user,'valid':True, 'date': now(), 'remarks': 'Alles geaccepteerd'}
         Result.objects.update_or_create(validation=self,defaults=defaults)
         self.check_valid()
         self.save()
