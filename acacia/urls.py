@@ -3,7 +3,6 @@ from django.conf.urls.static import static
 from django.conf import settings
 
 from django.contrib import admin
-admin.autodiscover()
 
 urlpatterns = [url(r'^$', 'acacia.views.home', name='home'),
     url(r'^cam/(?P<how>\w+)?$', 'acacia.views.cam', name='cam'),

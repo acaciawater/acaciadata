@@ -3,8 +3,6 @@ from views import download, UploadFileView, update_stats, accept, validate, remo
 from django.contrib import admin
 from acacia.validation.views import SeriesView, ValToJson, ValidationView, reset
 
-admin.autodiscover()
-
 urlpatterns = [url(r'down/(?P<pk>\d+)$', download, name='download'),
                url(r'up/(?P<pk>\d+)$', UploadFileView.as_view(), name='upload'),
 #               url(r'up/(?P<pk>\d+)/done$', UploadDoneView.as_view(), name='upload_done'),
