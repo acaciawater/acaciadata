@@ -153,11 +153,11 @@ class ScreenAdmin(admin.ModelAdmin):
     inlines = [LoggerInline]
     ordering = ()
     
-    def __init__(self,model, admin_site):
-        if 'acacia.meetnet.bro' in settings.INSTALLED_APPS:
-            from acacia.meetnet import bro
-            self.actions += [bro.actions.add_bro_for_screens]
-        admin.ModelAdmin.__init__(self, model, admin_site)
+#     def __init__(self,model, admin_site):
+#         if 'acacia.meetnet.bro' in settings.INSTALLED_APPS:
+#             from acacia.meetnet import bro
+#             self.actions += [bro.actions.add_bro_for_screens]
+#         admin.ModelAdmin.__init__(self, model, admin_site)
         
     def get_queryset(self, request):
         ''' override to perform custom sorting '''
@@ -212,11 +212,11 @@ class WellAdmin(admin.ModelAdmin):
     map_width = 400
     map_height = 325
 
-    def __init__(self,model, admin_site):
-        if 'acacia.meetnet.bro' in settings.INSTALLED_APPS:
-            from acacia.meetnet import bro
-            self.actions += [bro.actions.add_bro_for_wells]
-        admin.ModelAdmin.__init__(self, model, admin_site)
+#     def __init__(self,model, admin_site):
+#         if 'acacia.meetnet.bro' in settings.INSTALLED_APPS:
+#             from acacia.meetnet import bro
+#             self.actions += [bro.actions.add_bro_for_wells]
+#         admin.ModelAdmin.__init__(self, model, admin_site)
 
 #     def get_inline_instances(self, request, obj=None):
 #         instances = ModelAdmin.get_inline_instances(self, request, obj)
