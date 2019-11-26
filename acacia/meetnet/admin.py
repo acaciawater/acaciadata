@@ -3,23 +3,25 @@ Created on Jun 1, 2014
 
 @author: theo
 '''
-from .models import Network, Well, Photo, Screen, Datalogger, LoggerPos, LoggerDatasource, MonFile, Channel
-from acacia.data.admin import DatasourceAdmin, SourceFileAdmin, DataPointInline, SeriesForm
+from django import forms
 from django.conf import settings
 from django.contrib import admin
-from acacia.meetnet.models import MeteoData
-from acacia.meetnet.models import Handpeilingen as Peilingen
-from acacia.meetnet.actions import update_statistics
-from django.utils.translation import ugettext as _
 from django.contrib.admin.decorators import register
+from django.contrib.admin.widgets import AdminFileWidget
+from django.contrib.gis.db import models
 from django.forms.widgets import Select
+from django.utils.safestring import mark_safe
+from django.utils.translation import ugettext as _
+
+from acacia.data.admin import DatasourceAdmin, SourceFileAdmin, DataPointInline, SeriesForm
+from acacia.meetnet.actions import update_statistics
+from acacia.meetnet.models import Handpeilingen
+from acacia.meetnet.models import MeteoData
+import actions
+
+from .models import Network, Well, Photo, Screen, Datalogger, LoggerPos, LoggerDatasource, MonFile, Channel
 
 USE_GOOGLE_TERRAIN_TILES = False
-
-from django.contrib.admin.widgets import AdminFileWidget
-from django.utils.safestring import mark_safe
-
-import actions
 
 class AdminImageWidget(AdminFileWidget):
     def render(self, name, value, attrs=None):
@@ -43,7 +45,8 @@ class PhotoInline(admin.TabularInline):
             kwargs['widget'] = AdminImageWidget
             return db_field.formfield(**kwargs)
         return super(PhotoInline,self).formfield_for_dbfield(db_field, **kwargs)
-        
+
+@register(Photo)        
 class PhotoAdmin(admin.ModelAdmin):
     list_display=('well', 'thumb', )
     search_fields = ['well__name', ]
@@ -57,6 +60,7 @@ class PhotoAdmin(admin.ModelAdmin):
             return db_field.formfield(**kwargs)
         return super(PhotoAdmin,self).formfield_for_dbfield(db_field, **kwargs)
 
+@register(Datalogger)
 class DataloggerAdmin(admin.ModelAdmin):
     list_display=('serial', 'model')
     search_fields = ('serial',)
@@ -69,8 +73,8 @@ class MonFileInline(admin.TabularInline):
     extra = 0
     ordering = ('start',)
 
+@register(LoggerPos)
 class LoggerPosAdmin(admin.ModelAdmin):
-    model = LoggerPos
     actions = [update_statistics]
     list_display = ('logger', 'screen', 'start_date', 'end_date', 'refpnt', 'depth', 'num_monfiles', 'remarks')
     list_filter = ('screen__well', 'screen',)
@@ -83,8 +87,8 @@ class LoggerInline(admin.TabularInline):
     exclude = ('description',)
     classes = ('grp-collapse', 'grp-closed',)
     
+@register(LoggerDatasource)
 class LoggerDatasourceAdmin(DatasourceAdmin):
-    model = LoggerDatasource
     fieldsets = (
                  ('Algemeen', {'fields': (('name', 'logger'), 'description', 'timezone', 'meetlocatie','locations'),
                                'classes': ('grp-collapse grp-open',),
@@ -108,9 +112,9 @@ class ChannelInline(admin.TabularInline):
 
 class ChannelAdmin(admin.ModelAdmin):
     list_display = ('identification', 'monfile', 'number', 'range', 'range_unit')
-    
+
+@register(MonFile)    
 class MonFileAdmin(SourceFileAdmin):
-    model = MonFile
     inlines = [ChannelInline,]
     actions = [actions.drift_monfile]
     list_display = ('name','datasource', 'source', 'serial_number', 'status', 'instrument_type', 'location', 'num_channels', 'num_points', 'start_date', 'end_date', 'uploaded',)
@@ -135,20 +139,26 @@ class ScreenInline(admin.TabularInline):
     extra = 0
     classes = ('grp-collapse', 'grp-closed',)
         
+@register(Screen)
 class ScreenAdmin(admin.ModelAdmin):
     actions = [actions.make_screencharts,
                actions.recomp_screens,
                actions.drift_screens,
                actions.register_screens,
                actions.download_screen_nitg,
-               actions.create_handpeilingen,
-               actions.add_bro_for_screens]
+               actions.create_handpeilingen]
     list_display = ('__unicode__', 'group', 'refpnt', 'top', 'bottom', 'aquifer', 'num_files', 'num_standen', 'start', 'stop', 'manual_levels')
     search_fields = ('well__name', 'well__nitg')
     list_filter = ('well','well__network','aquifer', 'group')
     inlines = [LoggerInline]
     ordering = ()
     
+    def __init__(self,model, admin_site):
+        if 'acacia.meetnet.bro' in settings.INSTALLED_APPS:
+            from acacia.meetnet import bro
+            self.actions += [bro.actions.add_bro_for_screens]
+        admin.ModelAdmin.__init__(self, model, admin_site)
+        
     def get_queryset(self, request):
         ''' override to perform custom sorting '''
         queryset = admin.ModelAdmin.get_queryset(self, request)
@@ -163,11 +173,9 @@ class ScreenAdmin(admin.ModelAdmin):
 #             from acacia.meetnet.bro.admin import MonitoringTubeInline
 #             instances.append(MonitoringTubeInline(self.model,self.admin_site))
 #         return instances
-    
-from django.contrib.gis.db import models
-from django import forms
-    
+        
 #class WellAdmin(geo.OSMGeoAdmin):
+@register(Well)
 class WellAdmin(admin.ModelAdmin):
     formfield_overrides = {models.PointField:{'widget': forms.TextInput(attrs={'size': '100'})}}
     actions = [actions.make_wellcharts,
@@ -177,8 +185,7 @@ class WellAdmin(admin.ModelAdmin):
                actions.download_metadata,
                actions.download_well_nitg,
                actions.elevation_from_ahn,
-               actions.address_from_osm,
-               actions.add_bro_for_wells]
+               actions.address_from_osm]
     inlines = [ScreenInline, MeteoInline, PhotoInline ]
     list_display = ('name','nitg','network','owner','maaiveld', 'ahn', 'num_filters', 'num_photos', 'straat', 'plaats')
     #list_editable = ('location',)
@@ -205,6 +212,12 @@ class WellAdmin(admin.ModelAdmin):
     map_width = 400
     map_height = 325
 
+    def __init__(self,model, admin_site):
+        if 'acacia.meetnet.bro' in settings.INSTALLED_APPS:
+            from acacia.meetnet import bro
+            self.actions += [bro.actions.add_bro_for_wells]
+        admin.ModelAdmin.__init__(self, model, admin_site)
+
 #     def get_inline_instances(self, request, obj=None):
 #         instances = ModelAdmin.get_inline_instances(self, request, obj)
 #         if hasattr(obj,'bro'):
@@ -213,8 +226,8 @@ class WellAdmin(admin.ModelAdmin):
 #             instances.append(GroundwaterMonitoringWellInline(self.model,self.admin_site))
 #         return instances
      
+@register(MeteoData)
 class MeteoDataAdmin(admin.ModelAdmin):
-    model = MeteoData
     list_display = ('well','baro')
     search_fields = ('well__nitg','baro__name')
     list_filter = ('well','baro','neerslag','verdamping','temperatuur')
@@ -241,7 +254,7 @@ class HandForm(SeriesForm):
         cleaned_data['name'] = '{}-HAND'.format(screen)
         return cleaned_data
 
-@register(Peilingen)    
+@register(Handpeilingen)    
 class HandpeilingenAdmin(admin.ModelAdmin):
     form = HandForm
     actions = []
@@ -261,18 +274,6 @@ class HandpeilingenAdmin(admin.ModelAdmin):
         obj.save()
         obj.getproperties().delete() # will be updated in due time
 
+@register(Network)
 class NetworkAdmin(admin.ModelAdmin):
-    model = Network
     fields = ('name',('display_name','login_required'),('homepage','logo'),'bound',('last_round','next_round'))
-        
-admin.site.register(Network, NetworkAdmin)
-admin.site.register(Well, WellAdmin)
-admin.site.register(Screen, ScreenAdmin)
-admin.site.register(Photo,PhotoAdmin)
-admin.site.register(MeteoData, MeteoDataAdmin)
-
-admin.site.register(Datalogger, DataloggerAdmin)
-admin.site.register(LoggerPos, LoggerPosAdmin)
-admin.site.register(LoggerDatasource, LoggerDatasourceAdmin)
-admin.site.register(MonFile,MonFileAdmin)
-admin.site.register(Channel, ChannelAdmin)

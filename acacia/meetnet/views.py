@@ -5,7 +5,6 @@ Created on Jun 3, 2014
 '''
 import os, logging
 
-from _mysql import IntegrityError
 import pandas as pd
 import simplejson as json
 from django.conf import settings
@@ -36,6 +35,7 @@ from django.utils.http import urlencode
 from acacia.meetnet.models import REFERENCE_LEVELS
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
+from django.db.utils import IntegrityError
 
 
 logger = logging.getLogger(__name__)
