@@ -400,7 +400,7 @@ class Validation(models.Model):
                 self.subresult_set.create(rule=rule,valid=valid_count,invalid=invalid_count,first_invalid=first)
     
             # set values to None where validation failed
-            if result:
+            if result is not None:
                 series = series.where(result,other=None)
             valid_points = [ValidPoint(validation=self,date=p[0],value=p[1]) for p in series.iteritems()]
             if numinvalid:
