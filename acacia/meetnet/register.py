@@ -3,7 +3,7 @@ Created on Nov 15, 2019
 
 @author: theo
 '''
-from datetime import datetime, timedelta
+from datetime import datetime, date, timedelta
 import logging
 import os
 
@@ -17,15 +17,28 @@ from acacia.meetnet.models import Network, Well, Datalogger, LoggerDatasource, D
 from acacia.meetnet.util import register_well, register_screen
 import pandas as pd
 from zipfile import ZipFile
+import dateutil
 
 
 logger = logging.getLogger(__name__)
+
+def parse_date(cell):
+    if cell is not None:
+        if isinstance(cell,(datetime,date)):
+            return cell
+        if len(cell)>0:
+            try:
+                return dateutil.parser.parse(cell)
+            except:
+                pass
+    return None
 
 def import_metadata(request, sheet='Putgegevens'):
     tz =pytz.timezone('Europe/Amsterdam')
     network = Network.objects.first()
     
     book = request.FILES['metadata']
+    book.seek(0)
     logger.info('Metadata: {}'.format(book.name))
     # TODO: save file somewhere
     
@@ -37,7 +50,8 @@ def import_metadata(request, sheet='Putgegevens'):
     logger.info('Boorstaten: {}'.format(archive.name if archive else 'geen'))
     logs = ZipFile(archive) if archive else None
 
-    df = pd.read_excel(book, sheet)
+#     df = pd.read_excel(book, sheet, converters={'Constructiedatum': date_parser, 'Datum installatie': date_parser})
+    df = pd.read_excel(book, sheet, parse_dates=['Constructiedatum', 'Datum installatie'])
     for _index, row in df.iterrows():
 
         def get(col, astype=str):
@@ -54,7 +68,8 @@ def import_metadata(request, sheet='Putgegevens'):
                     return None
             return value
         
-        id = get('ID')
+        id = get('ID').strip()
+        logger.info('Put {}'.format(id))
         x = get('X',float)
         y = get('Y',float)
         pobox = get('Postcode')
@@ -72,7 +87,7 @@ def import_metadata(request, sheet='Putgegevens'):
                 'location': coords,
                 'description': remarks,
                 'maaiveld': surface,
-                'date': date,
+                'date': parse_date(date),
                 'owner': owner,
                 'straat': street,
                 'huisnummer': housenumber,
@@ -192,6 +207,7 @@ def import_handpeilingen(request, sheet='Handpeilingen'):
     ''' import manual measurements from excel sheet '''
     tz =pytz.timezone('Europe/Amsterdam')
     book = request.FILES['metadata']
+    book.seek(0)
     df = pd.read_excel(book,sheet)
     for row in df.itertuples(index=False):
         if len(row) < 5:
@@ -239,7 +255,7 @@ def handle_registration_files(request):
     logfile = os.path.join(folder, filename)
     logurl = settings.LOGGING_URL + request.user.username + '/' + filename
     handler = logging.FileHandler(logfile,'w')
-    formatter = logging.Formatter('%(levelname)s %(asctime)s %(message)s')
+    formatter = logging.Formatter('%(levelname)s %(asctime)s %(name)s %(message)s')
     handler.setFormatter(formatter)
     root = logging.getLogger()
     root.addHandler(handler)
