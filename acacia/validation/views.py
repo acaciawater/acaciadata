@@ -119,6 +119,14 @@ class ValidationError(Exception):
     pass
 
 def process_file(path, user, **kwargs):
+    # read excel file as pandas dataframe
+    logger.debug('Processing validation file '+path)
+    df = pd.read_excel(path,index_col=0)
+    rows,cols = df.shape
+    if cols != 2:
+        raise ValidationError('Validation file must have three columns')
+    logger.debug('{} rows read'.format(rows))
+
     # get validation instance
     if 'pk' in kwargs:
         val_id = int(kwargs['pk'])
@@ -132,15 +140,7 @@ def process_file(path, user, **kwargs):
             raise ValidationError('Format error in header')
     val = Validation.objects.get(pk=val_id)
     
-    # read excel file as pandas dataframe
-    logger.debug('Processing validation file '+path)
-    df = pd.read_excel(path,index_col=0)
-    rows,cols = df.shape
-    if cols != 2:
-        raise ValidationError('Validation file must have three columns')
-    logger.debug('{} rows read'.format(rows))
-
-    # drop N/A values
+    # drop N/A values from dataframe
     df.dropna(how='all',inplace=True)
     df.sort_index(inplace=True)
     df.index = df.index.tz_localize('UTC')
