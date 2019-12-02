@@ -463,7 +463,7 @@ class Datalogger(models.Model):
 class LoggerPos(models.Model):
     logger = models.ForeignKey(Datalogger)
     screen = models.ForeignKey(Screen,verbose_name = _('screen'),blank=True, null=True)
-    start_date = models.DateTimeField(verbose_name = _('start'), help_text = _('Start of datalogger'))   
+    start_date = models.DateTimeField(verbose_name = _('start'), blank=True, null=True, help_text = _('Start of datalogger'))   
     end_date = models.DateTimeField(verbose_name = _('stop'), blank=True, null=True, help_text = _('Stopping time of datalogger'))   
     refpnt = models.FloatField(verbose_name = _('reference point'), blank=True, null=True, help_text = _('Reference point in meter wrt NAP'))
     depth = models.FloatField(verbose_name = _('cable length'), blank=True, null=True, help_text = _('length of cable in meter'))
