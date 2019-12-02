@@ -1373,18 +1373,24 @@ class Series(PolymorphicModel,LoggerSourceMixin):
 
     def filter_points(self, **kwargs):
         ''' returns a (filtered) queryset with datapoints
-            when validation is active, the result refers to validated points  
         '''
         start = kwargs.get('start', None)
         stop = kwargs.get('stop', None)
 
+        stype = kwargs.get('type', 'valid')
         queryset = self.datapoints.order_by('date')
-        raw = kwargs.get('raw', False)
-        if self.validated and not raw:
-            queryset = self.validation.validpoint_set.order_by('date')
-            first = self.validation.invalid_points.first()
-            if first:
-                queryset = queryset.filter(date__lt=first.date)
+        if self.validated and stype != 'raw':
+            valdata = self.validation.validpoint_set.order_by('date')
+#             first = self.validation.invalid_points.first()
+#             if first:
+#                 # truncate valdata at first invalid point
+#                 valdata = valdata.filter(date__lt=first.date)
+#             else:
+#                 valdata = valdata.filter(date__lt=self.validation.result.end)
+
+            valdata = valdata.filter(date__lt=self.validation.result.end)
+            
+            queryset = valdata
                 
         if start is None and stop is None:
             return queryset.all()
@@ -1396,7 +1402,15 @@ class Series(PolymorphicModel,LoggerSourceMixin):
     
     def to_array(self, **kwargs):
         ''' return datapoints as array of tuples '''
-        return list(self.filter_points(**kwargs).values_list('date','value'))
+        pts = list(self.filter_points(**kwargs).values_list('date','value'))
+        if 'type' in kwargs:
+            if kwargs['type'] == 'both':
+                # add raw datapoints
+                kwargs['type'] = 'raw'
+                kwargs['start'] = pts[-1][0]
+                rest = list(self.filter_points(**kwargs).values_list('date','value'))
+                pts += rest
+        return pts
 
     def to_json(self, **kwargs):
         ''' return datapoints in json format '''
