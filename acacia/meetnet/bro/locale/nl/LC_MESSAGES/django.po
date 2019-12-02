@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-11-24 14:22+0100\n"
+"POT-Creation-Date: 2019-11-27 16:09+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,159 +18,213 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: models.py:42
+#: actions.py:25
+#, python-format
+msgid "BRO information created for %d wells"
+msgstr ""
+
+#: actions.py:27
+#, python-format
+msgid "BRO information updated for %d wells"
+msgstr ""
+
+#: actions.py:29
+#, python-format
+msgid "Could not create or update BRO information for %d wells"
+msgstr ""
+
+#: actions.py:48
+#, python-format
+msgid "BRO information created for %d screens"
+msgstr ""
+
+#: actions.py:50
+#, python-format
+msgid "BRO information updated for %d screens"
+msgstr ""
+
+#: actions.py:52
+#, python-format
+msgid "Could not create or update BRO information for %d screens"
+msgstr ""
+
+#: models.py:43
 msgid "codeSpace"
 msgstr "Codelijst"
 
-#: models.py:43
+#: models.py:44
 msgid "Description"
 msgstr "Omschrijving"
 
-#: models.py:44
+#: models.py:45
 msgid "default code"
 msgstr "Standaard code"
 
-#: models.py:50
+#: models.py:54
 msgid "Code space"
 msgstr "Codelijst"
 
-#: models.py:51
+#: models.py:55
 msgid "Code spaces"
 msgstr "Codelijsten"
 
-#: models.py:56
+#: models.py:60
 msgid "code"
 msgstr "code"
 
-#: models.py:62
+#: models.py:66
 msgid "Code"
 msgstr ""
 
-#: models.py:63
+#: models.py:67
 msgid "Codes"
 msgstr ""
 
-#: models.py:75
+#: models.py:100
 msgid "Illegal chamber of commerce number"
 msgstr "Ongeldig Kamer van Koophandel  nummer"
 
-#: models.py:88
+#: models.py:103
+msgid "requestReference"
+msgstr "Verzoekkenmerk"
+
+#: models.py:104
+msgid "deliveryAccountableParty"
+msgstr "Bronhouder"
+
+#: models.py:104
+msgid "KVK nummer van bronhouder"
+msgstr ""
+
+#: models.py:105
+msgid "Kwaliteitsregime"
+msgstr ""
+
+#: models.py:107
+msgid "Onder voorrecht"
+msgstr ""
+
+#: models.py:112
 msgid "ObjectID"
 msgstr ""
 
-#: models.py:89
+#: models.py:113
 msgid "Kader aanlevering"
 msgstr ""
 
-#: models.py:90
+#: models.py:114
 msgid "Kwaliteitsnorm inrichting"
 msgstr ""
 
-#: models.py:91
+#: models.py:115
 msgid "Initiële functie"
 msgstr ""
 
-#: models.py:92
+#: models.py:116
 msgid "Aantal monitoringbuizen"
 msgstr ""
 
-#: models.py:93
+#: models.py:117
 msgid "Maaiveld stabiel"
 msgstr ""
 
-#: models.py:94
+#: models.py:118
 msgid "Putstabiliteit"
 msgstr ""
 
-#: models.py:95
+#: models.py:119
 msgid "NITG code"
 msgstr ""
 
-#: models.py:96
+#: models.py:120
 msgid "Kaartblad"
 msgstr ""
 
-#: models.py:97
+#: models.py:121
 msgid "Eigenaar"
 msgstr ""
 
-#: models.py:98
+#: models.py:122
 msgid "Onderhoudende instantie"
 msgstr ""
 
-#: models.py:99
+#: models.py:123
 msgid "Beschermconstructie"
 msgstr ""
 
-#: models.py:101
+#: models.py:125
 msgid "Coordinaten"
 msgstr ""
 
-#: models.py:102
+#: models.py:126
 msgid "Methode locatiebepaling"
 msgstr ""
 
-#: models.py:103
+#: models.py:127
 msgid "Maaiveld"
 msgstr ""
 
-#: models.py:104
+#: models.py:128
 msgid "Maaiveld positiebepaling"
 msgstr ""
 
-#: models.py:135
+#: models.py:159
 msgid "Buistype"
 msgstr ""
 
-#: models.py:136
+#: models.py:160
 msgid "Drukdop"
 msgstr ""
 
-#: models.py:137
+#: models.py:161
 msgid "Zandvang"
 msgstr ""
 
-#: models.py:139
+#: models.py:163
 msgid "Diameter"
 msgstr ""
 
-#: models.py:140
+#: models.py:164
 msgid "Variabele diameter"
 msgstr ""
 
-#: models.py:141
+#: models.py:165
 msgid "Status"
 msgstr ""
 
-#: models.py:142
+#: models.py:166
 msgid "Bovenkant buis"
 msgstr ""
 
-#: models.py:143
+#: models.py:167
 msgid "Methode positiebepaling bovenkant buis"
 msgstr ""
 
-#: models.py:144
+#: models.py:168
 msgid "Aanvul materiaal"
 msgstr ""
 
-#: models.py:145
+#: models.py:169
 msgid "Buismateriaal"
 msgstr ""
 
-#: models.py:146
+#: models.py:170
 msgid "Filterlengte"
 msgstr ""
 
-#: models.py:147
+#: models.py:171
 msgid "Kousmateriaal"
 msgstr ""
 
-#: models.py:148
+#: models.py:172
 msgid "Lengte stijgbuis"
 msgstr ""
 
-#: models.py:149
+#: models.py:173
 msgid "Lengte zandvang"
 msgstr ""
+
+#, fuzzy
+msgid "Constructionstandard"
+msgstr "apapapapapap"
 
