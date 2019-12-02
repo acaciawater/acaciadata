@@ -145,7 +145,7 @@ def json_series(request, pk):
     what = request.GET.get('mode','comp') # choices: comp, hand
     ref = request.GET.get('ref','nap') # choices: nap, bkb, mv, sensor, top, bot
     rule = request.GET.get('rule', 'H')
-    series = screen.get_series(ref,what,rule=rule)#,filters=filters)
+    series = screen.get_series(ref,what,rule=rule,type='both')#,filters=filters)
     if series is None or series.empty:
         values = []
     else:
@@ -223,6 +223,7 @@ class WellChartView(AuthRequiredMixin, NavMixin, TemplateView):
                             'zIndex': 2,
                             'id': 'screen%d' % screen.nr
                             })
+                levels = screen.find_series()
                 if start:
                     start = min(start,screen.start())
                 else:
@@ -231,8 +232,13 @@ class WellChartView(AuthRequiredMixin, NavMixin, TemplateView):
                 if stop:
                     stop = max(stop,screen.stop())
                 else:
-                    stop = screen.stop()
-
+                    #stop = screen.stop()
+                    stop = levels.datapoints.latest('date').date
+                    
+                if levels.validated:
+                    # draw red vertical line where validation ends
+                    latest = levels.validation.result.end
+                    options['xAxis']['plotLines'] = [{'color': 'red', 'width': 2, 'value': latest}]
                 # add statistics if requested
                 stats = self.request.GET.get('stats','0')
                 stats = int(stats)
@@ -257,7 +263,7 @@ class WellChartView(AuthRequiredMixin, NavMixin, TemplateView):
             if stop:
                 stop = max(max(data.index),stop)
             hand = zip(data.index.to_pydatetime(), data.values)
-            series.append({'name': 'peiling {}'.format(screen.nr),
+            series.append({'name': 'handmeting {}'.format(screen.nr),
                         'type': 'scatter',
                         'data': hand,
                         'zIndex': 3,
