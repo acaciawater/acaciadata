@@ -440,13 +440,15 @@ class Validation(models.Model):
     
     def accept(self,user,daterange=None):
         ''' accept validation. remove all invalid points and save result to database '''
-        q = self.validpoint_set.filter(value__isnull=True)
+        q = self.invalid_points
         if daterange:
             begin,end = daterange
             q = q.filter(date__range=daterange)
         else:
-            begin = self.series.van()
-            end = self.series.tot()
+#             begin = self.series.van()
+#             end = self.series.tot()
+            begin = self.validpoint_set.earliest('date').date
+            end = self.validpoint_set.latest('date').date
         q.delete()
         defaults={'begin':begin,'end':end,'user':user,'valid':True, 'date': now(), 'remarks': 'Alles geaccepteerd'}
         Result.objects.update_or_create(validation=self,defaults=defaults)
