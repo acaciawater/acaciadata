@@ -1,26 +1,34 @@
 # -*- coding: utf-8 -*-
-import os,datetime,math,binascii
-from django.db import models
-from django.db.models import Avg, Max, Min, Sum
-from django.contrib.auth.models import User
-from django.core.files.base import ContentFile
-from django.utils import timezone
-from django.core.urlresolvers import reverse
-from django.contrib.gis.db import models as geo
-from django.utils.text import slugify
-from django.conf import settings
-import upload as up
-import numpy as np
-import pandas as pd
-import json,util,StringIO,pytz,logging
+from exceptions import IOError
+from functools import wraps
+import json, util, StringIO, pytz, logging
+import os, datetime, math, binascii
+
 import dateutil
-from django.db.models.aggregates import StdDev
+from django.conf import settings
+from django.contrib.auth.models import User
+from django.contrib.gis.db import models as geo
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.files.base import ContentFile
+from django.core.urlresolvers import reverse
+from django.db import models
+from django.db.models import Max, Min, Sum
+from django.db.models.signals import pre_delete, pre_save, post_save
+from django.dispatch.dispatcher import receiver
+from django.utils import timezone
+from django.utils.deconstruct import deconstructible
+from django.utils.text import slugify
 from django.utils.timezone import get_current_timezone
 from django.utils.translation import ugettext_lazy as _
+from polymorphic.manager import PolymorphicManager
+from polymorphic.models import PolymorphicModel
 import six
-from exceptions import IOError
-import time
+
+from acacia.data.util import to_millis
+import numpy as np
+import pandas as pd
+import upload as up
+
 
 THEME_CHOICES = ((None,_('default')),
                  ('dark-blue',_('blue')),
@@ -49,7 +57,6 @@ def aware(d,tz=None):
                     pass
     return d            
 
-from django.utils.deconstruct import deconstructible
 
 @deconstructible
 class LoggerSourceMixin(object):
@@ -796,9 +803,6 @@ class SourceFile(models.Model,LoggerSourceMixin):
             else:
                 self.get_data_dimensions(data)
             
-from django.db.models.signals import pre_delete, pre_save, post_save
-from django.dispatch.dispatcher import receiver
-from functools import wraps
 
 def loaddata(signal_handler):
     @wraps(signal_handler)
@@ -937,8 +941,6 @@ AGGREGATION_METHOD = (
 # set  default series type from parameter type in sqlite database: 
 # update data_series set type = (select p.type from data_parameter p where id = data_series.parameter_id) 
 
-from polymorphic.manager import PolymorphicManager
-from polymorphic.models import PolymorphicModel
 
 class Series(PolymorphicModel,LoggerSourceMixin):
     mlocatie = models.ForeignKey(MeetLocatie,null=True,blank=True,verbose_name=_('meetlocatie'))
@@ -1401,21 +1403,20 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         return queryset.filter(date__range=[start,stop])
     
     def to_array(self, **kwargs):
-        ''' return datapoints as array of tuples '''
-        pts = list(self.filter_points(**kwargs).values_list('date','value'))
-        if 'type' in kwargs:
-            if kwargs['type'] == 'both':
-                # add raw datapoints
-                kwargs['type'] = 'raw'
-                kwargs['start'] = pts[-1][0]
-                rest = list(self.filter_points(**kwargs).values_list('date','value'))
-                pts += rest
-        return pts
+        ''' points generator '''
+        for p in self.filter_points(**kwargs):
+            yield (p.date, p.value)
+        if kwargs.get('type') == 'both':
+            # add raw datapoints
+            kwargs['type'] = 'raw'
+            kwargs['start'] = p.date
+            for p in self.filter_points(**kwargs):
+                yield (p.date, p.value)
 
     def to_json(self, **kwargs):
         ''' return datapoints in json format '''
-        pts = self.to_array()
-        return json.dumps(pts,default=lambda x: time.mktime(x.timetuple())*1000.0)
+        pts = self.to_array(**kwargs)
+        return json.dumps(pts,default=to_millis)
     
     def to_pandas(self, **kwargs):
         ''' return datapoints as pandas series '''
@@ -1525,27 +1526,30 @@ class SeriesProperties(models.Model):
     beforelast = models.ForeignKey('DataPoint', null = True, related_name='beforelast')  
 
     def update(self, save = True):
-        agg = self.series.datapoints.aggregate(van=Min('date'), tot=Max('date'), min=Min('value'), max=Max('value'), avg=Avg('value'), std = StdDev('value'))
-        self.aantal = self.series.datapoints.count()
-        self.van = agg.get('van', datetime.datetime.now())
-        self.tot = agg.get('tot', datetime.datetime.now())
-        self.min = agg.get('min', 0)
-        self.max = agg.get('max', 0)
-        self.gemiddelde = agg.get('avg', 0)
-        self.stddev = agg.get('std', 0)
+        ''' no aggregates used: doesn't work with union queries '''
+        query = self.series.filter_points().order_by('date')
+        self.aantal = query.count()
         if self.aantal == 0:
             self.eerste = None
             self.laatste = None
             self.beforelast = None
         else:
-            self.eerste = self.series.datapoints.order_by('date')[0]
+            self.eerste = query.first()
             if self.aantal == 1:
                 self.laatste = self.eerste
                 self.beforelast = self.eerste
             else:
-                points = self.series.datapoints.order_by('-date')
+                points = query.reverse()
                 self.laatste = points[0]
                 self.beforelast = points[1]
+            self.van = self.eerste.date
+            self.tot = self.laatste.date
+            values = np.array([p.value for p in query])
+            self.min = values.min()
+            self.max = values.max()
+            self.gemiddelde = values.mean()
+            self.stddev = values.std()
+            
         if save:
             self.save()
 
@@ -1570,7 +1574,7 @@ class Variable(models.Model):
         verbose_name=_('variabele')
         verbose_name_plural=_('variabelen')
         unique_together = ('locatie', 'name', )
-
+    
 # Series that can be edited manually
 class ManualSeries(Series):
     ''' Series that can be edited manually (no datasource, nor parameter)'''
