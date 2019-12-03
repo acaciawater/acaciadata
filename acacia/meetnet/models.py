@@ -583,13 +583,37 @@ class Handpeilingen(ManualSeries):
     class Meta:
         verbose_name = 'Handpeilingen'
         verbose_name_plural = 'Handpeilingen'
-   
-# class ScreenGroup(models.Model):
-#     name = models.CharField(max_length=100,verbose_name=_('group'))
-#     screen = models.ManyToManyField(Screen,verbose_name=_('screen'))
-# 
-#     class Meta:
-#         verbose_name = _('Group')
-#         verbose_name_plural = _('Groups')
-#     
-#     
+       
+class CompoundSeries(Series):
+
+    more = models.ManyToManyField(Series,related_name='more') 
+    
+    def at(self,date):
+        raise NotImplementedError('CompoundSeries.at')
+    
+    def filter_points(self, **kwargs):
+        return reduce(lambda q,s: 
+                      q.union(s.filter_points(**kwargs)),
+                      self.more.all(),
+                      Series.filter_points(self, **kwargs))
+    
+    def get_series_data(self, data, start=None, stop=None):
+        return reduce(lambda d,s: 
+                      d.append(s.get_series_data(data,start,stop)), 
+                      self.more.all(),
+                      Series.get_series_data(self,data,start,stop)).group_by(data.index).last()
+                      
+    def add(self, series):
+        if not isinstance(series,(list,tuple)):
+            series = [series]
+        for s in series:
+            self.more.add(s)
+
+    def create(self, data=None, thumbnail=True):
+        pass
+    
+    def replace(self, data=None):
+        pass
+    
+    def update(self, data=None, start=None, stop=None, thumbnail=True):
+        pass
