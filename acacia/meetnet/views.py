@@ -307,7 +307,7 @@ class WellChartView(AuthRequiredMixin, NavMixin, TemplateView):
         if hasattr(well,'meteo'):
             neerslag = well.meteo.neerslag
             if neerslag:
-                data = neerslag.to_array(start=start, stop=stop)
+                data = list(neerslag.to_array(start=start, stop=stop))
                 if data:
                     aantal = len(data)
                     if aantal>1:
