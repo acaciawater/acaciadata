@@ -60,7 +60,7 @@ class RegistrationRequest(models.Model):
         SubElement(construction, 'ns:wellHeadProtector', codeSpace='urn:bro:gmw:WellHeadProtector').text = self.gmw.wellHeadProtector
         
         constructionDate = SubElement(construction, 'ns:wellConstructionDate')
-        SubElement(constructionDate, 'ns1:date').text = self.gmw.constructionDate
+        SubElement(constructionDate, 'ns1:date').text = self.gmw.wellConstructionDate
         deliveredLocation = SubElement(construction, 'ns:deliveredLocation')
         location = SubElement(deliveredLocation, 'ns2:location', {'ns3:id': 'id-426a1f26-360b-45e8-8c9d-469e6b33c7c3', 'srsName': 'urn:ogc:def:crs:EPSG::28992'})
         SubElement(location, 'ns3:pos').text = '{:.2f} {:.2f}'.format(self.gmw.location.x, self.gmw.location.y)

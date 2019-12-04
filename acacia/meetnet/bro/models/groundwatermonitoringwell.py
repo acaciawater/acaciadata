@@ -28,7 +28,7 @@ class GroundwaterMonitoringWell(models.Model):
     wellConstructionDate = models.DateField()
     location = models.PointField(_('Coordinaten'))
     horizontalPositioningMethod = CodeField(codeSpace='HorizontalPositioningMethod',verbose_name=_('Methode locatiebepaling'), default='RTKGPS2tot5cm')
-    deliveredVerticalPosition = models.FloatField(_('Maaiveld'))
+    groundLevelPosition = models.FloatField(_('Maaiveld'))
     groundLevelPositioningMethod = CodeField(codeSpace='GroundLevelPositioningMethod',verbose_name=_('Maaiveld positiebepaling'),default='RTKGPS0tot4cm')
     
     def __unicode__(self):
@@ -43,10 +43,10 @@ class GroundwaterMonitoringWell(models.Model):
         self.wellConstructionDate = self.well.date
         self.location = self.well.location
         if self.well.maaiveld is not None:
-            self.deliveredVerticalPosition = self.well.maaiveld
+            self.groundLevelPosition = self.well.maaiveld
             self.groundLevelPositioningMethod = CodeSpace.objects.get(codeSpace__iexact='groundLevelPositioningMethod').default_code
         elif self.well.ahn is not None:
-            self.deliveredVerticalPosition = self.well.ahn
+            self.groundLevelPosition = self.well.ahn
             self.groundLevelPositioningMethod = Code.objects.get(codeSpace__iexact='groundLevelPositioningMethod',code__iexact='AHN3')
                             
     @classmethod
