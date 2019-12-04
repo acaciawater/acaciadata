@@ -25,7 +25,7 @@ class MonitoringTube(models.Model):
     tubeMaterial = CodeField(codeSpace='TubeMaterial',verbose_name=_('Buismateriaal'),default='pvc')
     screenLength = models.FloatField(_('Filterlengte'))
     sockMaterial = CodeField(codeSpace='SockMaterial',verbose_name=_('Kousmateriaal'),default='onbekend')
-    plainTubePart = models.FloatField(_('Lengte stijgbuis'))
+    plainTubePartLength = models.FloatField(_('Lengte stijgbuis'))
     sedimentSump = models.FloatField(_('Lengte zandvang'),default = 0)
     
     def __unicode__(self):
@@ -45,7 +45,7 @@ class MonitoringTube(models.Model):
         if not (top is None or bottom is None):
             self.screenLength = top - bottom
         if not (top is None or refpnt is None or maaiveld is None):
-            self.plainTubePart = top + refpnt - maaiveld
+            self.plainTubePartLength = top + refpnt - maaiveld
         if not (depth is None or bottom is None):
             self.sedimentSump = depth - bottom
         
@@ -54,4 +54,7 @@ class MonitoringTube(models.Model):
         tube = MonitoringTube(screen=screen)
         tube.update()
         tube.save()
-   
+        
+    class Meta:
+        verbose_name = _('MonitoringTube')
+        verbose_name_plural = _('MonitoringTubes')        

@@ -260,6 +260,8 @@ class Screen(models.Model):
                 if isinstance(series, pd.Series):
                     nap = nap.reindex(series.index,method='pad')
                 return series - nap
+        else:
+            raise ValueError('Unknown reference level: "{}"'.format(ref))
 
         # else return empty series
         return pd.Series()

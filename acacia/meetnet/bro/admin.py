@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from django.contrib import admin
-
-from django.contrib.admin.decorators import register
-from acacia.meetnet.bro.models import GroundwaterMonitoringWell, MonitoringTube,\
-    Code, CodeSpace
-
-from django.contrib.gis.db import models
 from django import forms
-from django.forms.models import ModelForm
+from django.contrib import admin
+from django.contrib.admin.decorators import register
+from django.contrib.gis.db import models
+
+from .models import GroundwaterMonitoringWell, MonitoringTube, \
+    Code, CodeSpace, RegistrationRequest
+
 
 class GroundwaterMonitoringWellInline(admin.TabularInline):
     model = GroundwaterMonitoringWell
@@ -17,22 +16,36 @@ class GroundwaterMonitoringWellInline(admin.TabularInline):
 class MonitoringTubeInline(admin.TabularInline):
     model = MonitoringTube
     
-# class GroundwaterMonitoringWellForm(ModelForm):
-#     model = GroundwaterMonitoringWell
-#     deliveryContext = forms.ModelChoiceField(queryset=Code.objects.filter(codeSpace__codeSpace='deliveryContext'), initial=CodeSpace.objects.get(codeSpace='deliveryContext').default_code)
-# 
-#     def __init__(self,*args, **kwargs):
-#         super(GroundwaterMonitoringWellForm,self).__init__(*args, **kwargs)
-#         
 @register(GroundwaterMonitoringWell)
 class GroundwaterMonitoringWellAdmin(admin.ModelAdmin):
-    #form = GroundwaterMonitoringWellForm
-    formfield_overrides = {
-        models.PointField:{'widget': forms.TextInput(attrs={'class': 'vTextField'})}
-    }
+    exclude = ('objectIdAccountableParty',
+               'numberOfMonitoringTubes',
+               'nitgCode',
+               'mapSheetCode',
+               'wellConstructionDate',
+               'location',
+               'deliveredVerticalPosition',
+               'groundLevelPositioningMethod',
+               ''
+               )
+    
+    def save_model(self, request, obj, form, change):
+        obj.update()
+        admin.ModelAdmin.save_model(self, request, obj, form, change)
+        
 @register(MonitoringTube)
 class MonitoringTubeAdmin(admin.ModelAdmin):
-    pass
+    exclude = ('tubeNumber',
+               'tubeTopDiameter',
+               'tubeTopPosition',
+               'screenLength',
+               'plainTubePartLength',
+               'sedimentSump'
+               )
+    
+    def save_model(self, request, obj, form, change):
+        obj.update()
+        admin.ModelAdmin.save_model(self, request, obj, form, change)
 
 @register(CodeSpace)
 class CodeSpaceAdmin(admin.ModelAdmin):
@@ -46,3 +59,7 @@ class CodeAdmin(admin.ModelAdmin):
     list_filter = ('codeSpace',)
     list_search = ('code','codeSpace')
     ordering = ('codeSpace','code')
+    
+@register(RegistrationRequest)
+class RegisterAdmmin(admin.ModelAdmin):
+    pass

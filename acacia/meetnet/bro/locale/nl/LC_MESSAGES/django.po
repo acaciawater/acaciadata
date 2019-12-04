@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-11-27 16:09+0100\n"
+"POT-Creation-Date: 2019-12-04 15:53+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -21,210 +21,236 @@ msgstr ""
 #: actions.py:25
 #, python-format
 msgid "BRO information created for %d wells"
-msgstr ""
+msgstr "BRO informatie aangemaakt voor %d putten"
 
 #: actions.py:27
 #, python-format
 msgid "BRO information updated for %d wells"
-msgstr ""
+msgstr "Bro informatie bijgewerkt voor %d putten"
 
 #: actions.py:29
 #, python-format
 msgid "Could not create or update BRO information for %d wells"
-msgstr ""
+msgstr "Kan BRO informatie niet bijwerken voor %d putten"
 
 #: actions.py:48
 #, python-format
 msgid "BRO information created for %d screens"
-msgstr ""
+msgstr "BRO informatie aangemaakt voor %d filters"
 
 #: actions.py:50
 #, python-format
 msgid "BRO information updated for %d screens"
-msgstr ""
+msgstr "BRO informatie bijgewerkt voor %d filters"
 
 #: actions.py:52
 #, python-format
 msgid "Could not create or update BRO information for %d screens"
-msgstr ""
+msgstr "Kan BRO informatie niet bijwerken voor %d filters"
 
-#: models.py:43
-msgid "codeSpace"
-msgstr "Codelijst"
-
-#: models.py:44
-msgid "Description"
-msgstr "Omschrijving"
-
-#: models.py:45
-msgid "default code"
-msgstr "Standaard code"
-
-#: models.py:54
-msgid "Code space"
-msgstr "Codelijst"
-
-#: models.py:55
-msgid "Code spaces"
-msgstr "Codelijsten"
-
-#: models.py:60
+#: models/code.py:16
 msgid "code"
 msgstr "code"
 
-#: models.py:66
+#: models/code.py:22
 msgid "Code"
 msgstr ""
 
-#: models.py:67
+#: models/code.py:23
 msgid "Codes"
 msgstr ""
 
-#: models.py:100
-msgid "Illegal chamber of commerce number"
-msgstr "Ongeldig Kamer van Koophandel  nummer"
+#: models/codespace.py:14
+msgid "codeSpace"
+msgstr "Codelijst"
 
-#: models.py:103
-msgid "requestReference"
-msgstr "Verzoekkenmerk"
+#: models/codespace.py:15
+msgid "Description"
+msgstr "Omschrijving"
 
-#: models.py:104
-msgid "deliveryAccountableParty"
-msgstr "Bronhouder"
+#: models/codespace.py:16
+msgid "default code"
+msgstr "Standaard code"
 
-#: models.py:104
-msgid "KVK nummer van bronhouder"
-msgstr ""
+#: models/codespace.py:29
+msgid "Code space"
+msgstr "Codelijst"
 
-#: models.py:105
-msgid "Kwaliteitsregime"
-msgstr ""
+#: models/codespace.py:30
+msgid "Code spaces"
+msgstr "Codelijsten"
 
-#: models.py:107
-msgid "Onder voorrecht"
-msgstr ""
-
-#: models.py:112
+#: models/groundwatermonitoringwell.py:16
 msgid "ObjectID"
 msgstr ""
 
-#: models.py:113
+#: models/groundwatermonitoringwell.py:17
 msgid "Kader aanlevering"
 msgstr ""
 
-#: models.py:114
+#: models/groundwatermonitoringwell.py:18
 msgid "Kwaliteitsnorm inrichting"
 msgstr ""
 
-#: models.py:115
-msgid "Initiële functie"
-msgstr ""
+#: models/groundwatermonitoringwell.py:19
+msgid "Initial function"
+msgstr "Initiele functie"
 
-#: models.py:116
-msgid "Aantal monitoringbuizen"
-msgstr ""
+#: models/groundwatermonitoringwell.py:20
+msgid "Number of monitoring tubes"
+msgstr "Aantal filters"
 
-#: models.py:117
-msgid "Maaiveld stabiel"
-msgstr ""
+#: models/groundwatermonitoringwell.py:21
+msgid "Ground level stable"
+msgstr "Maaiveld stabiel"
 
-#: models.py:118
-msgid "Putstabiliteit"
-msgstr ""
+#: models/groundwatermonitoringwell.py:22
+msgid "WellStability"
+msgstr "Putstabiliteit"
 
-#: models.py:119
+#: models/groundwatermonitoringwell.py:23
 msgid "NITG code"
 msgstr ""
 
-#: models.py:120
-msgid "Kaartblad"
-msgstr ""
+#: models/groundwatermonitoringwell.py:24
+msgid "Mapsheet"
+msgstr "Kaartblad"
 
-#: models.py:121
-msgid "Eigenaar"
-msgstr ""
+#: models/groundwatermonitoringwell.py:25
+msgid "Owner"
+msgstr "Eigenaaqr"
 
-#: models.py:122
+#: models/groundwatermonitoringwell.py:26
 msgid "Onderhoudende instantie"
 msgstr ""
 
-#: models.py:123
+#: models/groundwatermonitoringwell.py:27
 msgid "Beschermconstructie"
 msgstr ""
 
-#: models.py:125
+#: models/groundwatermonitoringwell.py:29
 msgid "Coordinaten"
 msgstr ""
 
-#: models.py:126
+#: models/groundwatermonitoringwell.py:30
 msgid "Methode locatiebepaling"
 msgstr ""
 
-#: models.py:127
+#: models/groundwatermonitoringwell.py:31
 msgid "Maaiveld"
 msgstr ""
 
-#: models.py:128
+#: models/groundwatermonitoringwell.py:32
 msgid "Maaiveld positiebepaling"
 msgstr ""
 
-#: models.py:159
+#: models/groundwatermonitoringwell.py:59
+#: models/registrationrequest.py:17
+msgid "GroundwaterMonitoringWell"
+msgstr "Grondwatermonitoringput"
+
+#: models/groundwatermonitoringwell.py:60
+msgid "GroundwaterMonitoringWells"
+msgstr "Grondwatermonitoringputten"
+
+#: models/monitoringtube.py:15
 msgid "Buistype"
 msgstr ""
 
-#: models.py:160
+#: models/monitoringtube.py:16
 msgid "Drukdop"
 msgstr ""
 
-#: models.py:161
+#: models/monitoringtube.py:17
 msgid "Zandvang"
 msgstr ""
 
-#: models.py:163
+#: models/monitoringtube.py:19
 msgid "Diameter"
 msgstr ""
 
-#: models.py:164
+#: models/monitoringtube.py:20
 msgid "Variabele diameter"
 msgstr ""
 
-#: models.py:165
+#: models/monitoringtube.py:21
 msgid "Status"
 msgstr ""
 
-#: models.py:166
+#: models/monitoringtube.py:22
 msgid "Bovenkant buis"
 msgstr ""
 
-#: models.py:167
+#: models/monitoringtube.py:23
 msgid "Methode positiebepaling bovenkant buis"
 msgstr ""
 
-#: models.py:168
+#: models/monitoringtube.py:24
 msgid "Aanvul materiaal"
 msgstr ""
 
-#: models.py:169
+#: models/monitoringtube.py:25
 msgid "Buismateriaal"
 msgstr ""
 
-#: models.py:170
+#: models/monitoringtube.py:26
 msgid "Filterlengte"
 msgstr ""
 
-#: models.py:171
+#: models/monitoringtube.py:27
 msgid "Kousmateriaal"
 msgstr ""
 
-#: models.py:172
+#: models/monitoringtube.py:28
 msgid "Lengte stijgbuis"
 msgstr ""
 
-#: models.py:173
+#: models/monitoringtube.py:29
 msgid "Lengte zandvang"
 msgstr ""
 
-#, fuzzy
-msgid "Constructionstandard"
-msgstr "apapapapapap"
+#: models/monitoringtube.py:59
+msgid "MonitoringTube"
+msgstr "Monitoringbuis"
+
+#: models/monitoringtube.py:60
+msgid "MonitoringTubes"
+msgstr "Monitoringbuizen"
+
+#: models/registrationrequest.py:12
+msgid "requestReference"
+msgstr "Verzoekkenmerk"
+
+#: models/registrationrequest.py:12
+#, python-format
+msgid "Verzoek voor put %s"
+msgstr ""
+
+#: models/registrationrequest.py:13
+msgid "deliveryAccountableParty"
+msgstr "Bronhouder"
+
+#: models/registrationrequest.py:13
+msgid "KVK nummer van bronhouder"
+msgstr ""
+
+#: models/registrationrequest.py:14
+msgid "Kwaliteitsregime"
+msgstr ""
+
+#: models/registrationrequest.py:16
+msgid "Onder voorrecht"
+msgstr ""
+
+#: models/registrationrequest.py:20
+msgid "RegistrationRequest"
+msgstr "Registratieverzoek"
+
+#: models/registrationrequest.py:21
+msgid "RegistrationRequests"
+msgstr "Registratieverzoeken"
+
+#: validators.py:4
+msgid "Illegal chamber of commerce number"
+msgstr "Ongeldig Kamer van Koophandel nummer"
 

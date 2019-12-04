@@ -26,7 +26,7 @@ class GroundwaterMonitoringWell(models.Model):
     maintenanceResponsibleParty = models.CharField(_('Onderhoudende instantie'),max_length=8,validators=[ChamberOfCommerceValidator],null=True,blank=True)
     wellHeadProtector = CodeField(codeSpace='WellHeadProtector',verbose_name=_('Beschermconstructie'),default='onbekend')
     wellConstructionDate = models.DateField()
-    deliveredLocation = models.PointField(_('Coordinaten'))
+    location = models.PointField(_('Coordinaten'))
     horizontalPositioningMethod = CodeField(codeSpace='HorizontalPositioningMethod',verbose_name=_('Methode locatiebepaling'), default='RTKGPS2tot5cm')
     deliveredVerticalPosition = models.FloatField(_('Maaiveld'))
     groundLevelPositioningMethod = CodeField(codeSpace='GroundLevelPositioningMethod',verbose_name=_('Maaiveld positiebepaling'),default='RTKGPS0tot4cm')
@@ -41,13 +41,13 @@ class GroundwaterMonitoringWell(models.Model):
         if sheets.exists():
             self.mapSheetCode = sheets.first().blad
         self.wellConstructionDate = self.well.date
-        self.deliveredLocation = self.well.location
+        self.location = self.well.location
         if self.well.maaiveld is not None:
             self.deliveredVerticalPosition = self.well.maaiveld
-            self.groundLevelPositioningMethod = CodeSpace.objects.get(codespace__iexact='groundLevelPositioningMethod').default_code
+            self.groundLevelPositioningMethod = CodeSpace.objects.get(codeSpace__iexact='groundLevelPositioningMethod').default_code
         elif self.well.ahn is not None:
             self.deliveredVerticalPosition = self.well.ahn
-            self.groundLevelPositioningMethod = Code.objects.get(codespace__iexact='groundLevelPositioningMethod',code__iexact='AHN3')
+            self.groundLevelPositioningMethod = Code.objects.get(codeSpace__iexact='groundLevelPositioningMethod',code__iexact='AHN3')
                             
     @classmethod
     def create_for_well(cls, well):
@@ -55,3 +55,6 @@ class GroundwaterMonitoringWell(models.Model):
         gmw.update()
         gmw.save()
         
+    class Meta:
+        verbose_name = _('GroundwaterMonitoringWell')
+        verbose_name_plural = _('GroundwaterMonitoringWells')        
