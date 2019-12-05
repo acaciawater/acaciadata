@@ -4,7 +4,8 @@ from __future__ import unicode_literals
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
-from acacia.meetnet.bro.fields import CodeField
+from acacia.meetnet.bro.fields import CodeField,\
+    IndicationYesNoUnknownEnumeration
 from acacia.meetnet.bro.validators import ChamberOfCommerceValidator
 from acacia.meetnet.bro.models import GroundwaterMonitoringWell
 
@@ -13,7 +14,7 @@ class RegistrationRequest(models.Model):
     deliveryAccountableParty = models.CharField(_('deliveryAccountableParty'),max_length=8,validators=[ChamberOfCommerceValidator],help_text=_('KVK nummer van bronhouder'))
     qualityRegime = CodeField(codeSpace='qualityRegime',verbose_name=_('Kwaliteitsregime'))
 #     broId = models.CharField(_('broid'),max_length=20)
-    underPrivilege = models.NullBooleanField(_('Onder voorrecht'))
+    underPrivilege = IndicationYesNoUnknownEnumeration(_('Onder voorrecht'))
     gmw = models.ForeignKey(GroundwaterMonitoringWell, on_delete=models.CASCADE, verbose_name=_('GroundwaterMonitoringWell'))
 
     class Meta:
@@ -23,7 +24,7 @@ class RegistrationRequest(models.Model):
     def __str__(self):
         return self.requestReference
     
-    def as_xml(self):
+    def _element(self):
         ''' Returns xml Element with registration request for BRO '''
         from xml.etree.ElementTree import Element, SubElement
         
@@ -47,7 +48,7 @@ class RegistrationRequest(models.Model):
         SubElement(construction, 'ns:deliveryContext', codeSpace='urn:bro:gmw:DeliveryContext').text = self.gmw.deliveryContext
         SubElement(construction, 'ns:constructionStandard', codeSpace='urn:bro:gmw:ConstructionStandard').text = self.gmw.constructionStandard
         SubElement(construction, 'ns:initialFunction', codeSpace='urn:bro:gmw:InitialFunction').text = self.gmw.initialFunction
-        SubElement(construction, 'ns:numberOfMonitoringTubes').text = self.gmw.numberOfMonitoringTubes
+        SubElement(construction, 'ns:numberOfMonitoringTubes').text = str(self.gmw.numberOfMonitoringTubes)
         SubElement(construction, 'ns:groundLevelStable').text = self.gmw.groundLevelStable
         SubElement(construction, 'ns:wellStability', codeSpace='urn:bro:gmw:WellStability').text = self.gmw.wellStability
         if self.gmw.nitgCode:
@@ -60,7 +61,7 @@ class RegistrationRequest(models.Model):
         SubElement(construction, 'ns:wellHeadProtector', codeSpace='urn:bro:gmw:WellHeadProtector').text = self.gmw.wellHeadProtector
         
         constructionDate = SubElement(construction, 'ns:wellConstructionDate')
-        SubElement(constructionDate, 'ns1:date').text = self.gmw.wellConstructionDate
+        SubElement(constructionDate, 'ns1:date').text = '{:%Y-%m-%d}'.format(self.gmw.wellConstructionDate)
         deliveredLocation = SubElement(construction, 'ns:deliveredLocation')
         location = SubElement(deliveredLocation, 'ns2:location', {'ns3:id': 'id-426a1f26-360b-45e8-8c9d-469e6b33c7c3', 'srsName': 'urn:ogc:def:crs:EPSG::28992'})
         SubElement(location, 'ns3:pos').text = '{:.2f} {:.2f}'.format(self.gmw.location.x, self.gmw.location.y)
@@ -97,4 +98,14 @@ class RegistrationRequest(models.Model):
     
         return xml
     
-        
+    def as_xml(self):
+        ''' return xml of this request '''
+#         from xml.etree.ElementTree import ElementTree
+#         import StringIO
+#         io = StringIO.StringIO()
+#         element = self._element()
+#         ElementTree(element).write(io,xml_declaration=True,encoding='utf-8')
+#         return io.getvalue()
+    
+        from xml.etree import ElementTree
+        return ElementTree.tostring(self._element(),encoding='utf-8') # no xml-declaration

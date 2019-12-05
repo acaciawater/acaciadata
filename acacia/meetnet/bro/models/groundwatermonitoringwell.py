@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 from django.contrib.gis.db import models
 from acacia.meetnet.models import Well
 from django.utils.translation import ugettext_lazy as _
-from ..fields import CodeField
+from ..fields import CodeField, IndicationYesNoUnknownEnumeration
 from ..validators import ChamberOfCommerceValidator
 from .mapsheet import MapSheet
 from .codespace import CodeSpace
@@ -18,8 +18,8 @@ class GroundwaterMonitoringWell(models.Model):
     constructionStandard = CodeField(codeSpace='ConstructionStandard',verbose_name=_('Kwaliteitsnorm inrichting'),default='onbekend')
     initialFunction = CodeField(codeSpace='InitialFunction',verbose_name=_('Initial function'),default='stand')
     numberOfMonitoringTubes = models.PositiveIntegerField(_('Number of monitoring tubes'), default=1)
-    groundLevelStable = models.NullBooleanField(_('Ground level stable'))
-    wellStability = models.NullBooleanField(_('WellStability'), max_length=16)
+    groundLevelStable = IndicationYesNoUnknownEnumeration(_('Ground level stable'))
+    wellStability = IndicationYesNoUnknownEnumeration(_('WellStability'))
     nitgCode = models.CharField(_('NITG code'),max_length=8,blank=True,null=True)
     mapSheetCode = models.CharField(_('Mapsheet'),max_length=3,blank=True,null=True)
     owner = models.CharField(_('Owner'),max_length=8,validators=[ChamberOfCommerceValidator],help_text='KVK-nummer van de eigenaar')

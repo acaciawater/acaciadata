@@ -18,7 +18,8 @@ class TestRegister(TestCase):
         ''' test creation of xml document '''
         req = RegistrationRequest.objects.first()
         xml = req.as_xml()
-        print(xml)
+        with open('registrationrequest.xml', 'w') as f:
+            f.write(xml)
         
     def test_register(self):
         ''' test actual registration '''

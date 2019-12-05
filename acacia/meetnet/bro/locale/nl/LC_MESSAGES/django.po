@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-12-04 15:53+0100\n"
+"POT-Creation-Date: 2019-12-04 17:36+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -118,7 +118,7 @@ msgstr "Kaartblad"
 
 #: models/groundwatermonitoringwell.py:25
 msgid "Owner"
-msgstr "Eigenaaqr"
+msgstr "Eigenaar"
 
 #: models/groundwatermonitoringwell.py:26
 msgid "Onderhoudende instantie"
@@ -144,8 +144,7 @@ msgstr ""
 msgid "Maaiveld positiebepaling"
 msgstr ""
 
-#: models/groundwatermonitoringwell.py:59
-#: models/registrationrequest.py:17
+#: models/groundwatermonitoringwell.py:59 models/registrationrequest.py:20
 msgid "GroundwaterMonitoringWell"
 msgstr "Grondwatermonitoringput"
 
@@ -217,40 +216,39 @@ msgstr "Monitoringbuis"
 msgid "MonitoringTubes"
 msgstr "Monitoringbuizen"
 
-#: models/registrationrequest.py:12
+#: models/registrationrequest.py:15
 msgid "requestReference"
 msgstr "Verzoekkenmerk"
 
-#: models/registrationrequest.py:12
+#: models/registrationrequest.py:15
 #, python-format
 msgid "Verzoek voor put %s"
 msgstr ""
 
-#: models/registrationrequest.py:13
+#: models/registrationrequest.py:16
 msgid "deliveryAccountableParty"
 msgstr "Bronhouder"
 
-#: models/registrationrequest.py:13
+#: models/registrationrequest.py:16
 msgid "KVK nummer van bronhouder"
 msgstr ""
 
-#: models/registrationrequest.py:14
+#: models/registrationrequest.py:17
 msgid "Kwaliteitsregime"
 msgstr ""
 
-#: models/registrationrequest.py:16
+#: models/registrationrequest.py:19
 msgid "Onder voorrecht"
 msgstr ""
 
-#: models/registrationrequest.py:20
+#: models/registrationrequest.py:23
 msgid "RegistrationRequest"
 msgstr "Registratieverzoek"
 
-#: models/registrationrequest.py:21
+#: models/registrationrequest.py:24
 msgid "RegistrationRequests"
 msgstr "Registratieverzoeken"
 
 #: validators.py:4
 msgid "Illegal chamber of commerce number"
 msgstr "Ongeldig Kamer van Koophandel nummer"
-

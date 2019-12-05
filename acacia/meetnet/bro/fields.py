@@ -4,17 +4,25 @@ from __future__ import unicode_literals
 from django.db import models
 from .models import CodeSpace
 
-class CodeCharField(models.CharField):
+class CodeField(models.CharField):
     ''' BRO code implemented as CharField '''
+    
     def __init__(self, *args, **kwargs):
-        self.codeSpace = kwargs.pop('codeSpace',None)
         if 'max_length' not in kwargs:
             kwargs['max_length'] = 20
-        if 'default' not in kwargs:
-            kwargs['default'] = CodeSpace.objects.get(codeSpace=self.codeSpace).default_code.code
-        super(CodeCharField,self).__init__(*args, **kwargs)
+        self.codeSpace = kwargs.pop('codeSpace',None)
+                
+        if self.codeSpace:
+            try:
+                space = CodeSpace.objects.get(codeSpace=self.codeSpace)
+                if 'default' not in kwargs and space.default_code:
+                    kwargs['default'] = space.default_code.code
+                # choices are set in admin.py
+            except:
+                pass
+        models.CharField.__init__(self, *args, **kwargs)
 
-class CodeField(models.ForeignKey):
+class CodeFKField(models.ForeignKey):
     ''' BRO code implemented as ForeignKey. 
     This is a bit hacky, because lambda functions (to set default) are not supported in migrations
     ''' 
@@ -23,7 +31,6 @@ class CodeField(models.ForeignKey):
         kwargs['to'] = 'bro.Code'
         kwargs['on_delete'] = models.CASCADE
         kwargs['related_name'] = '+'
-#         kwargs['verbose_name'] = _(self.codeSpace) # does this work?
         try:
             if 'default' in kwargs:
                 kwargs.pop('default')
@@ -34,4 +41,12 @@ class CodeField(models.ForeignKey):
                 kwargs['limit_choices_to'] = {'codeSpace': instance }
         except:
             pass
-        super(CodeField,self).__init__(**kwargs)
+        models.ForeignKey.__init__(self,**kwargs)
+
+class IndicationYesNoEnumeration(CodeField):
+    def __init__(self,*args, **kwargs):
+        return CodeField.__init__(self,codeSpace='indicationYesNoEnumeration', **kwargs)
+    
+class IndicationYesNoUnknownEnumeration(CodeField):
+    def __init__(self,*args, **kwargs):
+        return CodeField.__init__(self,codeSpace='indicationYesNoUnknownEnumeration', **kwargs)

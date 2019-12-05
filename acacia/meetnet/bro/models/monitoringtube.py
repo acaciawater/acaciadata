@@ -5,7 +5,7 @@ from django.db import models
 
 from acacia.meetnet.models import Screen
 from django.utils.translation import ugettext_lazy as _
-from ..fields import CodeField
+from ..fields import CodeField, IndicationYesNoUnknownEnumeration
     
 class MonitoringTube(models.Model):
     ''' Screen data for BRO '''
@@ -13,8 +13,8 @@ class MonitoringTube(models.Model):
 
     tubeNumber = models.PositiveSmallIntegerField(default = 1)
     tubeType = CodeField(codeSpace='TubeType', verbose_name=_('Buistype'), default='standaardbuis')
-    artesianWellCapPresent = models.NullBooleanField(_('Drukdop'))
-    sedimentSumpPresent = models.NullBooleanField(_('Zandvang')) # True als diepte > onderkant filter
+    artesianWellCapPresent = IndicationYesNoUnknownEnumeration(_('Drukdop'))
+    sedimentSumpPresent = IndicationYesNoUnknownEnumeration(_('Zandvang')) # True als diepte > onderkant filter
     numberOfGeoOhmCables = models.PositiveSmallIntegerField(default = 0)
     tubeTopDiameter = models.FloatField(_('Diameter'))
     variableDiameter = models.BooleanField(_('Variabele diameter'),default=False)
