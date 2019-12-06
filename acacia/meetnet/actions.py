@@ -151,14 +151,12 @@ drift_monfile.short_description = 'Standen corrigeren voor drift'
 def recomp_screens(modeladmin, request, queryset):
     for screen in queryset:
         register_screen(screen)
-        series = screen.find_series()
-        if not series:
-            name = '%s COMP' % unicode(screen)
-            series, created = Series.objects.update_or_create(name=name,defaults={
-                'user':request.user,
-                'mlocatie':screen.mloc,
-                'timezone': 'Etc/GMT-1'
-            })
+        name = '%s COMP' % unicode(screen)
+        series, created = Series.objects.update_or_create(name=name,defaults={
+            'user':request.user,
+            'mlocatie':screen.mloc,
+            'timezone': 'Etc/GMT-1'
+        })
         recomp(screen, series)
         series.validate(reset=True, accept=True, user=request.user)
 
