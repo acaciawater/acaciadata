@@ -210,7 +210,6 @@ class WellChartView(AuthRequiredMixin, NavMixin, TemplateView):
                         'href': 'http://www.acaciawater.com',
                        },
             }
-
         series = []
         start = stop = None
 
@@ -292,8 +291,8 @@ class WellChartView(AuthRequiredMixin, NavMixin, TemplateView):
                 if isinstance(maaiveld, pd.Series):
                     maaiveld = zip(maaiveld.index.to_pydatetime(), maaiveld.values) 
                 else:
-                    maaiveld = [(start.astimezone(tz),maaiveld),(stop.astimezone(tz),maaiveld)]
-                
+                    options['yAxis'][0]['plotLines'] = [{'color': '#009900', 'dashStyle': 'Dash', 'width': 2, 'value': maaiveld}]
+                    maaiveld = [(start.astimezone(tz),maaiveld),(start.astimezone(tz),maaiveld)]
                 series.append({'name': 'maaiveld',
                             'type': 'line',
                             'lineWidth': 2,
@@ -302,7 +301,7 @@ class WellChartView(AuthRequiredMixin, NavMixin, TemplateView):
                             'data': maaiveld,
                             'zIndex': 4,
                             })
-
+             
         # neerslag toevoegen
         if hasattr(well,'meteo'):
             neerslag = well.meteo.neerslag
