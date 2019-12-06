@@ -45,8 +45,8 @@ class CodeFKField(models.ForeignKey):
 
 class IndicationYesNoEnumeration(CodeField):
     def __init__(self,*args, **kwargs):
-        return CodeField.__init__(self,codeSpace='indicationYesNoEnumeration', **kwargs)
+        return CodeField.__init__(self,codeSpace__iexact='indicationYesNoEnumeration', **kwargs)
     
 class IndicationYesNoUnknownEnumeration(CodeField):
     def __init__(self,*args, **kwargs):
-        return CodeField.__init__(self,codeSpace='indicationYesNoUnknownEnumeration', **kwargs)
+        return CodeField.__init__(self,codeSpace__iexact='indicationYesNoUnknownEnumeration', **kwargs)
