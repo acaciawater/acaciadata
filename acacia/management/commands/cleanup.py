@@ -3,8 +3,8 @@ Created on Feb 13, 2014
 
 @author: theo
 '''
-import os, re
-from django.core.management.base import BaseCommand, CommandError
+import os
+from django.core.management.base import BaseCommand
 from acacia.data.models import Project, ProjectLocatie, MeetLocatie, Datasource, Parameter, Series
 from django.conf import settings
 
@@ -27,12 +27,12 @@ class Command(BaseCommand):
     def process_folder(self,folder,inuse,dry,verbose=0):
         count = 0
         bytes = 0
-	size = 0
-        for path, folders, files in os.walk(folder):
+        size = 0
+        for path, _folders, files in os.walk(folder):
             for f in files:
                 name = os.path.join(path,f)
                 if not name in inuse:
-                    if verbose:
+                    if dry or verbose:
                         self.stdout.write('Deleting %s\n' % name)
                     try:
                         size = os.path.getsize(name)
@@ -43,7 +43,7 @@ class Command(BaseCommand):
                     except Exception as e:
                         self.stdout.write('Error deleting %s: %s\n' % (name,e))
                 else:
-                    if dry and verbose:
+                    if dry or verbose>1:
                         self.stdout.write('Keeping %s\n' % name)
                     pass
         return (count, bytes)
