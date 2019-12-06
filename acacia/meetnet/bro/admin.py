@@ -59,6 +59,11 @@ class CodeSpaceAdmin(admin.ModelAdmin):
     list_display = ('codeSpace','default_code')    
     list_filter = ('codeSpace',)
     ordering = ('codeSpace',)
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = admin.ModelAdmin.get_form(self, request, obj=obj, **kwargs)
+        form.base_fields['default_code'].queryset = obj.code_set.all()
+        return form
     
 @register(Code)
 class CodeAdmin(admin.ModelAdmin):
