@@ -1527,7 +1527,7 @@ class SeriesProperties(models.Model):
 
     def update(self, save = True):
         ''' no aggregates used: doesn't work with union queries '''
-        query = self.series.filter_points().order_by('date')
+        query = self.series.filter_points(type='raw').order_by('date')
         self.aantal = query.count()
         if self.aantal == 0:
             self.eerste = None
