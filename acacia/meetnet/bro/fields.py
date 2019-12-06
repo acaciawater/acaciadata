@@ -14,7 +14,7 @@ class CodeField(models.CharField):
                 
         if self.codeSpace:
             try:
-                space = CodeSpace.objects.get(codeSpace=self.codeSpace)
+                space = CodeSpace.objects.get(codeSpace__iexact=self.codeSpace)
                 if 'default' not in kwargs and space.default_code:
                     kwargs['default'] = space.default_code.code
                 # choices are set in admin.py
@@ -45,8 +45,8 @@ class CodeFKField(models.ForeignKey):
 
 class IndicationYesNoEnumeration(CodeField):
     def __init__(self,*args, **kwargs):
-        return CodeField.__init__(self,codeSpace='indicationYesNoEnumeration', **kwargs)
+        return CodeField.__init__(self,codeSpace='IndicationYesNoEnumeration', **kwargs)
     
 class IndicationYesNoUnknownEnumeration(CodeField):
     def __init__(self,*args, **kwargs):
-        return CodeField.__init__(self,codeSpace='indicationYesNoUnknownEnumeration', **kwargs)
+        return CodeField.__init__(self,codeSpace='IndicationYesNoUnknownEnumeration', **kwargs)
