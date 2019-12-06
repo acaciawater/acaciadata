@@ -334,6 +334,21 @@ class Screen(models.Model):
                 self.save()
         return self.logger_levels
     
+    def iter_pandas(self, **kwargs):
+        ''' returns a pandas Series for every waterlevel Series defined for this screen '''  
+        from django.db.models import Q
+        query = self.mloc.series_set.filter(Q(name__iendswith='comp')|Q(name__istartswith='waterstand')|Q(name__iendswith='value'))
+        for series in query:
+            yield series.to_pandas(**kwargs)
+
+    def to_pandas(self, **kwargs):
+        ''' returns a compound pandas series for all waterlevel series for this screen '''
+        series = pd.Series()
+        for s in self.iter_pandas(**kwargs):
+            series = series.append(s)
+#         series = reduce(lambda a, b: a.append(b), self.iter_pandas(**kwargs), pd.Series())
+        return series.sort_index().groupby(series.index).last()
+        
     def start(self):
         try:
             return self.find_series().van()
@@ -378,8 +393,8 @@ class Screen(models.Model):
     def get_absolute_url(self):
         return reverse('meetnet:screen-detail', args=[self.pk])
 
-    def to_pandas(self, ref='nap',kind='COMP',**kwargs):
-        return self.get_series(ref,kind,**kwargs)
+#     def to_pandas(self, ref='nap',kind='COMP',**kwargs):
+#         return self.get_series(ref,kind,**kwargs)
         
     def get_manual_series(self, **kwargs):
         ''' return manual levels in m +NAP '''
@@ -403,7 +418,7 @@ class Screen(models.Model):
                     self.save(update_fields=['manual_levels'])
             return self.manual_levels.to_pandas(**kwargs) if self.manual_levels else None
             
-    def get_compensated_series(self, **kwargs):
+    def get_compensated_series_old(self, **kwargs):
         # Gecompenseerde tijdreeksen (tov NAP) ophalen (Alleen voor Divers and Leiderdorp Instruments)
         try:
             series = self.find_series()
@@ -412,6 +427,17 @@ class Screen(models.Model):
                 rule = kwargs.pop('rule',None)
                 if rule:
                     series = series.resample(rule=rule).mean()
+            return series
+        except Exception as e:
+            return None
+
+    def get_compensated_series(self, **kwargs):
+        # Gecompenseerde tijdreeksen (tov NAP) ophalen (Alleen voor Divers and Leiderdorp Instruments)
+        try:
+            series = self.to_pandas(**kwargs)
+            rule = kwargs.pop('rule',None)
+            if rule:
+                series = series.resample(rule=rule).mean()
             return series
         except Exception as e:
             return None
