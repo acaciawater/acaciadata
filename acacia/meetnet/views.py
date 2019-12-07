@@ -448,17 +448,22 @@ class UploadFileView(StaffRequiredMixin,FormView):
 
     def form_valid(self, form):
 
+        screen = form.cleaned_data['screen']
+        lookup = {}
+        
         # download files to upload folder
         local_files = []
         for f in form.files.getlist('filename'):
             path = save_file(f,'upload')
             local_files.append(path)
-            
+            if screen:
+                lookup[os.path.basename(path)] = '{}-{}'.format(screen.well.name, screen.nr) 
+
         network = get_object_or_404(Network,pk=int(self.kwargs.get('id')))
 
         # start background process that handles uploaded files
         from threading import Thread
-        t = Thread(target=handle_uploaded_files, args=(self.request, network, local_files))
+        t = Thread(target=handle_uploaded_files, args=(self.request, network, local_files, lookup or None))
         t.start()
         
         return super(UploadFileView,self).form_valid(form)

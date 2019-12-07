@@ -61,7 +61,8 @@ class MultiFileField(forms.FileField):
 
 class UploadFileForm(forms.Form):
     filename = MultiFileField(label='Selecteer MON bestand(en)')
-
+    screen = forms.ModelChoiceField(queryset=Screen.objects.order_by('well__name','nr'), required=False)
+    
 def validate_serial(value):
     if Datalogger.objects.filter(serial=value).exists():
         raise ValidationError(
