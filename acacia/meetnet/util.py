@@ -632,7 +632,7 @@ def addmonfile(request,network,f,force_name=None):
         logger.info('Opgegeven putnaam: {put}'.format(put=put))
     try:
         # find logger datasource by well/screen combination
-        match = re.match(r'(\w+)[\.\-](\d{1,3}$)',put)
+        match = re.match(r'(.+)[\.\-](\d{1,3})$',put)
         if match:
             put = match.group(1)
             filter = int(match.group(2))
@@ -651,14 +651,14 @@ def addmonfile(request,network,f,force_name=None):
         if created:
             logger.info('Nieuwe datalogger toegevoegd met serienummer {ser}'.format(ser=serial))
     
-        # get installation depth from last existing logger
-#         existing_loggers = screen.loggerpos_set.all().order_by('start_date')
-#         last = existing_loggers.last()
-#         depth = last.depth if last else None
-        
         # get installation depth from previous logger
         prev = screen.loggerpos_set.filter(end_date__lte=mon.start_date)
         depth = prev.latest('end_date').depth if prev else None
+
+        if depth is None:
+            # get installation depth from subsequent logger
+            subsequent = screen.loggerpos_set.filter(end_date__gte=mon.start_date)
+            depth = subsequent.earliest('end_date').depth if subsequent else None
             
         pos, created = datalogger.loggerpos_set.get_or_create(screen=screen,refpnt=screen.refpnt,start_date=mon.start_date, defaults={'depth': depth, 'end_date': mon.end_date})
         if created:
