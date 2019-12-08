@@ -1420,7 +1420,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
     
     def to_pandas(self, **kwargs):
         ''' return datapoints as pandas series '''
-        arr = self.to_array(**kwargs)
+        arr = list(self.to_array(**kwargs))
         if arr:
             dates,values = zip(*arr)
             return pd.Series(values,index=dates,name=self.name).sort_index()
