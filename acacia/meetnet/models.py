@@ -325,19 +325,23 @@ class Screen(models.Model):
         except:
             return 0
         
+    def all_series(self):
+        from django.db.models import Q
+        return self.mloc.series_set.filter(Q(name__iendswith='comp')|Q(name__istartswith='waterstand')|Q(name__iendswith='value'))
+    
     def find_series(self):
         if not self.logger_levels:
             from django.db.models import Q
-            series = self.mloc.series_set.filter(Q(name__iendswith='comp')|Q(name__istartswith='waterstand')|Q(name__iendswith='value')).first()
+            series = self.all_series().first()
             if series:
                 self.logger_levels = series
                 self.save()
         return self.logger_levels
-    
+
     def iter_pandas(self, **kwargs):
         ''' returns a pandas Series for every waterlevel Series defined for this screen '''  
         from django.db.models import Q
-        query = self.mloc.series_set.filter(Q(name__iendswith='comp')|Q(name__istartswith='waterstand')|Q(name__iendswith='value'))
+        query = self.all_series()
         for series in query:
             yield series.to_pandas(**kwargs)
 
@@ -351,21 +355,19 @@ class Screen(models.Model):
         
     def start(self):
         try:
-            return self.find_series().van()
+            return min([s.van() for s in self.all_series() if s.aantal()>0])
         except:
             return None
 
     def stop(self):
         try:
-            return self.find_series().tot()
+            return max([s.tot() for s in self.all_series() if s.aantal()>0])
         except:
             return None
         
     def num_standen(self):
         try:
-            s = self.find_series()
-            return s.aantal()
-            #return self.find_series().aantal()
+            return sum([s.aantal() for s in self.all_series()])
         except:
             return 0
         
