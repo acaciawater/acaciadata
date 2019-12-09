@@ -65,7 +65,7 @@ def SeriesToJson(request, pk):
     s = get_object_or_404(Series,pk=pk)
     pts = s.to_array()        
     # convert datetime to javascript datetime using unix timetamp conversion
-    j = json.dumps(pts, default=to_millis)
+    j = json.dumps(list(pts), default=to_millis)
     return HttpResponse(j, content_type='application/json')
 
 def SeriesToDict(request, pk):
@@ -84,7 +84,7 @@ def ChartToJson(request, pk):
     for cs in c.series.all():
         
         def getseriesdata(s):
-            pts = s.to_array(start=start,stop=stop)
+            pts = list(s.to_array(start=start,stop=stop))
             num = len(pts)
             
             #resample test
