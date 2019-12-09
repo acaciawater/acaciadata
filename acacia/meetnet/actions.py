@@ -149,18 +149,27 @@ def drift_monfile(modeladmin, request, queryset):
 drift_monfile.short_description = 'Standen corrigeren voor drift'
         
 def recomp_screens(modeladmin, request, queryset):
+    successes = []
+    failures = []
     for screen in queryset:
         register_screen(screen)
         name = '%s COMP' % unicode(screen)
-        series, created = Series.objects.update_or_create(name=name,defaults={
+        series, _created = screen.mloc.series_set.update_or_create(name=name,defaults={
             'user':request.user,
-            'mlocatie':screen.mloc,
             'timezone': 'Etc/GMT-1'
         })
-        recomp(screen, series)
-        series.validate(reset=True, accept=True, user=request.user)
-
-    make_screencharts(modeladmin, request, queryset)
+        success = recomp(screen, series)
+        if success:
+            series.validate(reset=True, accept=True, user=request.user)
+            successes.append(screen)
+        else:
+            failures.append(screen)
+    if successes:
+        messages.success(request, 'Timeseries for {} screens were successfully compensated.'.format(len(successes)))
+        make_screencharts(modeladmin, request, successes)
+    if failures:
+        messages.error(request, 'Compensation failed for {}.'.format(','.join(map(str,failures))))
+                       
 recomp_screens.short_description = "Gecompenseerde tijdreeksen opnieuw aanmaken voor geselecteerde filters"
         
 def recomp_wells(modeladmin, request, queryset):
