@@ -241,9 +241,10 @@ def recomp(screen,series,baros={}):
     seriesdata = None
     monfiles = screen.get_monfiles()
     if not monfiles:
-        #logger.warning('Geen monfiles gevonden voor {}'.format(screen))
-        logger.info('Reeds gecompenseerde gegevens ophalen'.format(screen))
-        seriesdata = series.get_series_data(data=None)
+        logger.warning('Geen monfiles gevonden voor {}'.format(screen))
+        return False
+#         logger.info('Reeds gecompenseerde gegevens ophalen'.format(screen))
+#         seriesdata = series.get_series_data(data=None)
     else:
         for mon in monfiles:
             print mon.start_date, mon.end_date, mon
@@ -327,7 +328,7 @@ def recomp(screen,series,baros={}):
             
     if seriesdata is None:
         logger.warning('No data for {}'.format(screen))
-        return
+        return False
 
     tz = pytz.timezone(series.timezone)
     series.datapoints.all().delete()
@@ -337,6 +338,7 @@ def recomp(screen,series,baros={}):
     series.make_thumbnail()
     series.save()
     series.validate(reset=True)
+    return True
 
 def drift_correct1(series, manual):
     ''' correct drift with manual measurements (both are pandas series)'''
@@ -652,13 +654,13 @@ def addmonfile(request,network,f,force_name=None):
             logger.info('Nieuwe datalogger toegevoegd met serienummer {ser}'.format(ser=serial))
     
         # get installation depth from previous logger
-        prev = screen.loggerpos_set.filter(end_date__lte=mon.start_date)
+        prev = screen.loggerpos_set.filter(depth__isnull=False, end_date__lte=mon.end_date)
         depth = prev.latest('end_date').depth if prev else None
 
         if depth is None:
             # get installation depth from subsequent logger
-            subsequent = screen.loggerpos_set.filter(end_date__gte=mon.start_date)
-            depth = subsequent.earliest('end_date').depth if subsequent else None
+            subsequent = screen.loggerpos_set.filter(depth__isnull=False, start_date__gte=mon.start_date)
+            depth = subsequent.earliest('start_date').depth if subsequent else None
             
         pos, created = datalogger.loggerpos_set.get_or_create(screen=screen,refpnt=screen.refpnt,start_date=mon.start_date, defaults={'depth': depth, 'end_date': mon.end_date})
         if created:
@@ -740,14 +742,15 @@ def addmonfile(request,network,f,force_name=None):
 def update_series(request,screen):
 
     user=request.user
-    
-    series = screen.find_series()    
-    if series is None:
-        # Make sure screen has been registered
-        register_screen(screen)
-        name = '%s COMP' % screen
-        series, created = Series.objects.get_or_create(name=name,mlocatie=screen.mloc,defaults={'user':user})
-
+    # Make sure screen has been registered
+    register_screen(screen)
+     
+    # get or create compensated series
+    name = '%s COMP' % screen
+    try:
+        series = screen.mloc.series_set.get(name__iexact=name)
+    except:
+        series = screen.mloc.series_set.create(name=name,defaults={'user':user})
     recomp(screen, series)
                  
     #maak/update grafiek
@@ -764,7 +767,6 @@ def update_series(request,screen):
             chart.series.get_or_create(series=hand,defaults={'type':'scatter', 'order': 2})
     
     make_chart(screen)
-
    
 def handle_uploaded_files(request, network, localfiles, lookup={}):
     
@@ -779,6 +781,7 @@ def handle_uploaded_files(request, network, localfiles, lookup={}):
             logger.warning('Bestand {name} overgeslagen'.format(name=name))
             return False
         else:
+            monfiles.add(mon)
             screens.add(screen)
             wells.add(screen.well)
             return True
@@ -810,6 +813,7 @@ def handle_uploaded_files(request, network, localfiles, lookup={}):
         logger.info('Verwerking van %d bestand(en)' % num)
         screens = set()
         wells = set()
+        monfiles = set()
         result = {}
         for pathname in localfiles:
             msg = []
@@ -828,6 +832,7 @@ def handle_uploaded_files(request, network, localfiles, lookup={}):
             
         logger.info('Bijwerken van tijdreeksen')
         num = 0
+        # TODO: only update relevant series, not just all series for a screen
         for s in screens:
             try:
                 logger.info('Tijdreeks {}'.format(unicode(s)))
