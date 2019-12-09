@@ -750,7 +750,7 @@ def update_series(request,screen):
     try:
         series = screen.mloc.series_set.get(name__iexact=name)
     except:
-        series = screen.mloc.series_set.create(name=name,defaults={'user':user})
+        series = screen.mloc.series_set.create(name=name,user=user)
     recomp(screen, series)
                  
     #maak/update grafiek
