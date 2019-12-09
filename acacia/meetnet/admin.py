@@ -166,6 +166,12 @@ class ScreenAdmin(admin.ModelAdmin):
         key = Network.objects.first().display_name
         return queryset.order_by('well__'+key)
 
+    def get_form(self, request, obj=None, **kwargs):
+        form = admin.ModelAdmin.get_form(self, request, obj=obj, **kwargs)
+        form.base_fields['logger_levels'].queryset = obj.mloc.series_set.all()
+        form.base_fields['manual_levels'].queryset = obj.mloc.series_set.all()
+        return form
+
 #     def get_inline_instances(self, request, obj=None):
 #         instances = ModelAdmin.get_inline_instances(self, request, obj)
 #         if hasattr(obj,'bro'):
