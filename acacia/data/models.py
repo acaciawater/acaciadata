@@ -1404,19 +1404,21 @@ class Series(PolymorphicModel,LoggerSourceMixin):
     
     def to_array(self, **kwargs):
         ''' points generator '''
+        p = None
         for p in self.filter_points(**kwargs):
             yield (p.date, p.value)
         if kwargs.get('type') == 'both':
             # add raw datapoints
             kwargs['type'] = 'raw'
-            kwargs['start'] = p.date
+            if p is not None:
+                kwargs['start'] = p.date
             for p in self.filter_points(**kwargs):
                 yield (p.date, p.value)
 
     def to_json(self, **kwargs):
         ''' return datapoints in json format '''
         pts = self.to_array(**kwargs)
-        return json.dumps(pts,default=to_millis)
+        return json.dumps(list(pts),default=to_millis)
     
     def to_pandas(self, **kwargs):
         ''' return datapoints as pandas series '''
