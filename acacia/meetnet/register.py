@@ -181,28 +181,28 @@ def import_metadata(request, sheet='Putgegevens'):
             else:
                 logger.info('Gegevensbron %s bijgewerkt' % ds)
                 
-            if fotos:    
-                for nr in range(1,6):
-                    name = get('Foto %d'%nr)
-                    if name:
-                        try:
-                            with fotos.open(name) as foto:
-                                well.add_photo(name,foto)
-                                logger.info('Foto toegevoegd: {}'.format(name))
-                        except Exception as e:
-                            logger.error('Kan foto niet toevoegen: {}'.format(e))
-                    else:
-                        break                            
-            
-            if logs:
-                name = get('Boorstaat')
+        if fotos:    
+            for nr in range(1,6):
+                name = get('Foto %d'%nr)
                 if name:
                     try:
-                        with logs.open(name) as log:
-                            well.set_log(name,log)
-                            logger.info('Boorstaat toegevoegd: {}'.format(name))
+                        with fotos.open(name) as foto:
+                            well.add_photo(name,foto)
+                            logger.info('Foto toegevoegd: {}'.format(name))
                     except Exception as e:
-                        logger.error('Kan boorstaat niet toevoegen: {}'.format(e))
+                        logger.error('Kan foto niet toevoegen: {}'.format(e))
+                else:
+                    break                            
+        
+        if logs:
+            name = get('Boorstaat')
+            if name:
+                try:
+                    with logs.open(name) as log:
+                        well.set_log(name,log)
+                        logger.info('Boorstaat toegevoegd: {}'.format(name))
+                except Exception as e:
+                    logger.error('Kan boorstaat niet toevoegen: {}'.format(e))
             
 
 def import_handpeilingen(request, sheet='Handpeilingen'):
@@ -232,7 +232,7 @@ def import_handpeilingen(request, sheet='Handpeilingen'):
                 'refpnt': 'bkb'})
             if not created:
                 if series.refpnt == 'nap':
-                    # existing series wit different reference point. Convert level
+                    # TODO: existing series with different reference point. Convert level
                     if not screen.refpnt:
                         logger.error('Bovenkant filter onbekend')
                         continue

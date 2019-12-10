@@ -4,9 +4,12 @@ from __future__ import unicode_literals
 from django.contrib import admin
 from django.contrib.admin.decorators import register
 
-from .models import GroundwaterMonitoringWell, MonitoringTube, \
-    Code, CodeSpace, RegistrationRequest
+from acacia.meetnet.models import Network
+
 from .fields import CodeField
+from .models import GroundwaterMonitoringWell, MonitoringTube, \
+    Code, CodeSpace, RegistrationRequest, Defaults
+
 
 class CodeFieldAdmin(admin.ModelAdmin):
     ''' Admin page with CodeFields '''
@@ -73,5 +76,19 @@ class CodeAdmin(admin.ModelAdmin):
     ordering = ('codeSpace','code')
     
 @register(RegistrationRequest)
-class RegisterAdmmin(CodeFieldAdmin):
-    pass
+class RegisterAdmin(CodeFieldAdmin):
+    def get_changeform_initial_data(self, request):
+        data = CodeFieldAdmin.get_changeform_initial_data(self, request)
+        try:
+            network = Network.objects.first() 
+            data['deliveryAccountableParty'] = network.bro.deliveryAccountableParty
+        except:
+            pass
+        return data
+
+@register(Defaults)
+class DefaultsAdmin(admin.ModelAdmin):
+    def get_changeform_initial_data(self, request):
+        data = admin.ModelAdmin.get_changeform_initial_data(self, request)
+        data['network'] = Network.objects.first()
+        return data

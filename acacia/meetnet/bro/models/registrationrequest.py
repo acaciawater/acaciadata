@@ -13,7 +13,6 @@ class RegistrationRequest(models.Model):
     requestReference = models.CharField(_('requestReference'),max_length=100,default=_('Verzoek voor put %s'))
     deliveryAccountableParty = models.CharField(_('deliveryAccountableParty'),max_length=8,validators=[ChamberOfCommerceValidator],help_text=_('KVK nummer van bronhouder'))
     qualityRegime = CodeField(codeSpace='qualityRegime',verbose_name=_('Kwaliteitsregime'))
-#     broId = models.CharField(_('broid'),max_length=20)
     underPrivilege = IndicationYesNoUnknownEnumeration(_('Onder voorrecht'))
     gmw = models.ForeignKey(GroundwaterMonitoringWell, on_delete=models.CASCADE, verbose_name=_('GroundwaterMonitoringWell'))
 
