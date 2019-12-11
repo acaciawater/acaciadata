@@ -69,7 +69,7 @@ def registration_request(well, kvk):
         SubElement(materialsUsed,'ns2:tubeMaterial',codeSpace="urn:bro:gmw:TubeMaterial").text='pvc'
         SubElement(materialsUsed,'ns2:glue', codeSpace="urn:bro:gmw:Glue").text = 'geen' 
         screenElement = SubElement(monitoringTube, 'ns:screen')
-        SubElement(screenElement,'ns:screenLength', uom="m").text = '{:.2f}'.format(screen.top - screen.bottom)
+        SubElement(screenElement,'ns:screenLength', uom="m").text = '{:.2f}'.format(screen.bottom - screen.top)
         SubElement(screenElement,'ns:sockMaterial', codeSpace="urn:bro:gmw:SockMaterial").text='nylon'
         plainTubePart = SubElement(monitoringTube, 'ns:plainTubePart')
         SubElement(plainTubePart, 'ns2:plainTubePartLength', uom="m").text = '{:.2f}'.format(screen.top + screen.refpnt - well.maaiveld)
