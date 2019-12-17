@@ -41,7 +41,7 @@ class GroundwaterMonitoringWell(models.Model):
     def update(self):
         
         try:
-            bro = self.network.bro
+            bro = self.well.network.bro
             if not self.owner:
                 self.owner = bro.owner
             if not self.maintenanceResponsibleParty:
