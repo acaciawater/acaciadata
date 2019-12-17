@@ -125,6 +125,8 @@ def import_metadata(request, sheet='Putgegevens'):
         if serial:
             if type(serial) == float:
                 serial = str(int(serial))
+            else:
+                serial = str(serial)
             model = get('Logger type')
             if not model:
                 logger.error('Logger type ontbreekt')
@@ -156,9 +158,9 @@ def import_metadata(request, sheet='Putgegevens'):
                 }
             pos, created = datalogger.loggerpos_set.update_or_create(logger=datalogger,defaults=defaults)
             if created:
-                logger.info('Logger {} geinstallleerd in filter {}'.format(datalogger, screen))
+                logger.info('Logger {} geinstallleerd in filter {}'.format(serial, str(screen)))
             else:
-                logger.info('Metadata van logger {} in filter {} bijgewerkt'.format(datalogger, screen))
+                logger.info('Metadata van logger {} in filter {} bijgewerkt'.format(serial, str(screen)))
 
             ds, created = LoggerDatasource.objects.update_or_create(
                 logger = datalogger,
@@ -175,9 +177,9 @@ def import_metadata(request, sheet='Putgegevens'):
                           })
             if created:
                 ds.locations.add(screen.mloc)
-                logger.info('Gegevensbron {} aangemaakt'.format(ds))
+                logger.info('Gegevensbron %s aangemaakt' % ds)
             else:
-                logger.info('Gegevensbron {} bijgewerkt'.format(ds))
+                logger.info('Gegevensbron %s bijgewerkt' % ds)
                 
             if fotos:    
                 for nr in range(1,6):
@@ -237,9 +239,9 @@ def import_handpeilingen(request, sheet='Handpeilingen'):
                     level = series.refpnt - level
             pt, created = series.datapoints.update_or_create(date=date,defaults={'value': level})
             if created:
-                logger.info('Filter {}: handpeiling toegevoegd: ({}, {})'.format(screen, date, level))
+                logger.info('Filter {}: handpeiling toegevoegd: ({}, {})'.format(str(screen), date, level))
             else:
-                logger.info('Filter {}: handpeiling bijgewerkt: ({}, {})'.format(screen, date, level))
+                logger.info('Filter {}: handpeiling bijgewerkt: ({}, {})'.format(str(screen), date, level))
         except Well.DoesNotExist:
             logger.error('Well %s not found' % id)
         except Screen.DoesNotExist:
