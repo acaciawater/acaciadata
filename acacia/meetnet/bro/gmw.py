@@ -1,6 +1,6 @@
 from xml.etree.ElementTree import Element, SubElement
 from .models import MapSheet
-from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from django.core.exceptions import ObjectDoesNotExist
     
 def registration_request(well):
     ''' Creates xml with registration request (registratieverzoek) for BRO '''
@@ -8,7 +8,7 @@ def registration_request(well):
         bro = well.network.bro
     except ObjectDoesNotExist:
         # no bro defaults available
-        raise ValidationError('No BRO settings defined for network %s' % well.network)
+        raise ValueError('No BRO settings defined for network %s' % well.network)
     
     request = Element('ns:registrationRequest',
     {
@@ -82,5 +82,3 @@ def registration_request(well):
         SubElement(plainTubePart, 'ns2:plainTubePartLength', uom="m").text = '{:.2f}'.format(screen.top + screen.refpnt - well.maaiveld)
 
     return request
-    
-    
