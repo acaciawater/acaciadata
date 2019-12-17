@@ -8,14 +8,14 @@ from django.utils.translation import ugettext_lazy as _
 from ..fields import CodeField, IndicationYesNoUnknownEnumeration
     
 class MonitoringTube(models.Model):
-    ''' Screen data for BRO '''
-    screen = models.OneToOneField(Screen,on_delete=models.CASCADE,related_name='bro')
+    ''' Tube data for BRO '''
+    screen = models.OneToOneField(Screen,on_delete=models.CASCADE,verbose_name=_('tube'), related_name='bro')
 
     tubeNumber = models.PositiveSmallIntegerField(default = 1)
     tubeType = CodeField(codeSpace='TubeType', verbose_name=_('Buistype'), default='standaardbuis')
-    artesianWellCapPresent = IndicationYesNoUnknownEnumeration(_('Drukdop'))
-    sedimentSumpPresent = IndicationYesNoUnknownEnumeration(_('Zandvang')) # True als diepte > onderkant filter
-    numberOfGeoOhmCables = models.PositiveSmallIntegerField(default = 0)
+    artesianWellCapPresent = IndicationYesNoUnknownEnumeration(verbose_name=_('ArtesianWellCapPresent'))
+    sedimentSumpPresent = IndicationYesNoUnknownEnumeration(verbose_name=_('SedimentSumpPresent')) # True als diepte > onderkant filter
+    numberOfGeoOhmCables = models.PositiveSmallIntegerField(verbose_name=_('NumberOfGeoOhmCables'), default = 0)
     tubeTopDiameter = models.FloatField(_('Diameter'))
     variableDiameter = models.BooleanField(_('Variabele diameter'),default=False)
     tubeStatus = CodeField(codeSpace='TubeStatus',verbose_name=_('Status'),default='gebruiksklaar')
