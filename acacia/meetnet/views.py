@@ -20,7 +20,7 @@ from django.utils.text import slugify
 from django.utils.timezone import get_current_timezone, now
 from django.views.generic import DetailView, FormView, TemplateView
 
-from acacia.data.actions import download_series_csv
+from acacia.data.actions import download_series_csv, generate_datasource_series
 from acacia.data.models import Generator
 from acacia.data.util import series_as_csv, to_millis
 from acacia.data.views import DownloadSeriesAsZip
@@ -139,7 +139,7 @@ class ScreenChartView(AuthRequiredMixin,TemplateView):
         return context
 
 @auth_required
-@cache_page(60 * 30) # 30 minutes    
+# @cache_page(60 * 30) # 30 minutes    
 def json_series(request, pk):
     screen = get_object_or_404(Screen,pk=pk)
     what = request.GET.get('mode','comp') # choices: comp, hand
@@ -490,7 +490,7 @@ def change_refpnt(request, pk):
     
 class AddLoggerView(StaffRequiredMixin, FormView):
     form_class = AddLoggerForm
-    success_url = '/net/add/done/1'
+    success_url = '/'
     template_name = 'meetnet/addlogger.html'
 
     def get_context_data(self, **kwargs):
@@ -505,8 +505,10 @@ class AddLoggerView(StaffRequiredMixin, FormView):
     
     def form_valid(self, form):
         try:
-            pos=self.add_logger(form.cleaned_data)
-            self.success_url=reverse('meetnet:add-logger-done',args={'pk': pos.pk})
+            _datalogger, datasource, _installation=self.add_logger(form.cleaned_data)
+            datasource.download()
+            generate_datasource_series(None, self.request, [datasource])
+#             self.success_url=reverse('meetnet:add-logger-done',args={'pk': pos.pk})
         except IntegrityError as e:
             raise ValidationError(e)
         return FormView.form_valid(self, form)
@@ -540,11 +542,12 @@ class AddLoggerView(StaffRequiredMixin, FormView):
             username = settings.FTP_USERNAME,
             password = settings.FTP_PASSWORD)
         datasource.locations.add(screen.mloc)
-        return logger.loggerpos_set.create(
+        pos = logger.loggerpos_set.create(
             screen=screen,
             refpnt=screen.refpnt,
             depth=depth,
             start_date=start)
+        return (logger, datasource, pos)
         
 class LoggerAddedView(TemplateView):
     template_name = 'meetnet/loggeradded.html'
