@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-12-10 13:35+0100\n"
+"POT-Creation-Date: 2019-12-17 13:19+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,255 +18,267 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: actions.py:25
+#: acacia/meetnet/bro/actions.py:25
 #, python-format
 msgid "BRO information created for %d wells"
 msgstr "BRO informatie aangemaakt voor %d putten"
 
-#: actions.py:27
+#: acacia/meetnet/bro/actions.py:27
 #, python-format
 msgid "BRO information updated for %d wells"
 msgstr "Bro informatie bijgewerkt voor %d putten"
 
-#: actions.py:29
+#: acacia/meetnet/bro/actions.py:29
 #, python-format
 msgid "Could not create or update BRO information for %d wells"
 msgstr "Kan BRO informatie niet bijwerken voor %d putten"
 
-#: actions.py:48
+#: acacia/meetnet/bro/actions.py:48
 #, python-format
 msgid "BRO information created for %d screens"
 msgstr "BRO informatie aangemaakt voor %d filters"
 
-#: actions.py:50
+#: acacia/meetnet/bro/actions.py:50
 #, python-format
 msgid "BRO information updated for %d screens"
 msgstr "BRO informatie bijgewerkt voor %d filters"
 
-#: actions.py:52
+#: acacia/meetnet/bro/actions.py:52
 #, python-format
 msgid "Could not create or update BRO information for %d screens"
 msgstr "Kan BRO informatie niet bijwerken voor %d filters"
 
-#: models/code.py:16
+#: acacia/meetnet/bro/models/code.py:16
 msgid "code"
 msgstr "code"
 
-#: models/code.py:22
+#: acacia/meetnet/bro/models/code.py:22
 msgid "Code"
 msgstr ""
 
-#: models/code.py:23
+#: acacia/meetnet/bro/models/code.py:23
 msgid "Codes"
 msgstr ""
 
-#: models/codespace.py:14
+#: acacia/meetnet/bro/models/codespace.py:14
 msgid "codeSpace"
 msgstr "Codelijst"
 
-#: models/codespace.py:15
+#: acacia/meetnet/bro/models/codespace.py:15
 msgid "Description"
 msgstr "Omschrijving"
 
-#: models/codespace.py:16
+#: acacia/meetnet/bro/models/codespace.py:16
 msgid "default code"
 msgstr "Standaard code"
 
-#: models/codespace.py:29
+#: acacia/meetnet/bro/models/codespace.py:29
 msgid "Code space"
 msgstr "Codelijst"
 
-#: models/codespace.py:30
+#: acacia/meetnet/bro/models/codespace.py:30
 msgid "Code spaces"
 msgstr "Codelijsten"
 
-#: models/defaults.py:11
+#: acacia/meetnet/bro/models/defaults.py:11
 msgid "Network"
 msgstr "Netwerk"
 
-#: models/defaults.py:14
-#: models/registrationrequest.py:14
+#: acacia/meetnet/bro/models/defaults.py:14
+#: acacia/meetnet/bro/models/registrationrequest.py:15
 msgid "deliveryAccountableParty"
 msgstr "Bronhouder"
 
-#: models/defaults.py:14
+#: acacia/meetnet/bro/models/defaults.py:15
 msgid "KVK nummer van de bronhouder"
 msgstr ""
 
-#: models/defaults.py:17
-#: models/groundwatermonitoringwell.py:25
+#: acacia/meetnet/bro/models/defaults.py:18
+#: acacia/meetnet/bro/models/groundwatermonitoringwell.py:29
 msgid "Owner"
 msgstr "Eigenaar"
 
-#: models/defaults.py:18
-#: models/groundwatermonitoringwell.py:26
+#: acacia/meetnet/bro/models/defaults.py:19
+#: acacia/meetnet/bro/models/groundwatermonitoringwell.py:30
 msgid "Onderhoudende instantie"
 msgstr ""
 
-#: models/defaults.py:24
-#: models/defaults.py:25
+#: acacia/meetnet/bro/models/defaults.py:26
+#: acacia/meetnet/bro/models/defaults.py:27
 msgid "Defaults"
 msgstr "Standaardwaarden"
 
-#: models/groundwatermonitoringwell.py:16
+#: acacia/meetnet/bro/models/groundwatermonitoringwell.py:19
+msgid "well"
+msgstr "put"
+
+#: acacia/meetnet/bro/models/groundwatermonitoringwell.py:20
 msgid "ObjectID"
 msgstr ""
 
-#: models/groundwatermonitoringwell.py:17
+#: acacia/meetnet/bro/models/groundwatermonitoringwell.py:21
 msgid "Kader aanlevering"
 msgstr ""
 
-#: models/groundwatermonitoringwell.py:18
+#: acacia/meetnet/bro/models/groundwatermonitoringwell.py:22
 msgid "Kwaliteitsnorm inrichting"
 msgstr ""
 
-#: models/groundwatermonitoringwell.py:19
+#: acacia/meetnet/bro/models/groundwatermonitoringwell.py:23
 msgid "Initial function"
 msgstr "Initiele functie"
 
-#: models/groundwatermonitoringwell.py:20
+#: acacia/meetnet/bro/models/groundwatermonitoringwell.py:24
 msgid "Number of monitoring tubes"
 msgstr "Aantal filters"
 
-#: models/groundwatermonitoringwell.py:21
+#: acacia/meetnet/bro/models/groundwatermonitoringwell.py:25
 msgid "Ground level stable"
 msgstr "Maaiveld stabiel"
 
-#: models/groundwatermonitoringwell.py:22
+#: acacia/meetnet/bro/models/groundwatermonitoringwell.py:26
 msgid "WellStability"
 msgstr "Putstabiliteit"
 
-#: models/groundwatermonitoringwell.py:23
+#: acacia/meetnet/bro/models/groundwatermonitoringwell.py:27
 msgid "NITG code"
 msgstr ""
 
-#: models/groundwatermonitoringwell.py:24
+#: acacia/meetnet/bro/models/groundwatermonitoringwell.py:28
 msgid "Mapsheet"
 msgstr "Kaartblad"
 
-#: models/groundwatermonitoringwell.py:27
+#: acacia/meetnet/bro/models/groundwatermonitoringwell.py:31
 msgid "Beschermconstructie"
 msgstr ""
 
-#: models/groundwatermonitoringwell.py:29
+#: acacia/meetnet/bro/models/groundwatermonitoringwell.py:33
 msgid "Coordinaten"
 msgstr ""
 
-#: models/groundwatermonitoringwell.py:30
+#: acacia/meetnet/bro/models/groundwatermonitoringwell.py:34
 msgid "Methode locatiebepaling"
 msgstr ""
 
-#: models/groundwatermonitoringwell.py:31
+#: acacia/meetnet/bro/models/groundwatermonitoringwell.py:35
 msgid "Maaiveld"
 msgstr ""
 
-#: models/groundwatermonitoringwell.py:32
+#: acacia/meetnet/bro/models/groundwatermonitoringwell.py:36
 msgid "Maaiveld positiebepaling"
 msgstr ""
 
-#: models/groundwatermonitoringwell.py:59
-#: models/registrationrequest.py:17
+#: acacia/meetnet/bro/models/groundwatermonitoringwell.py:75
+#: acacia/meetnet/bro/models/registrationrequest.py:18
 msgid "GroundwaterMonitoringWell"
 msgstr "Grondwatermonitoringput"
 
-#: models/groundwatermonitoringwell.py:60
+#: acacia/meetnet/bro/models/groundwatermonitoringwell.py:76
 msgid "GroundwaterMonitoringWells"
 msgstr "Grondwatermonitoringputten"
 
-#: models/monitoringtube.py:15
+#: acacia/meetnet/bro/models/monitoringtube.py:12
+msgid "tube"
+msgstr "buis"
+
+#: acacia/meetnet/bro/models/monitoringtube.py:15
 msgid "Buistype"
 msgstr ""
 
-#: models/monitoringtube.py:16
-msgid "Drukdop"
-msgstr ""
+#: acacia/meetnet/bro/models/monitoringtube.py:16
+msgid "ArtesianWellCapPresent"
+msgstr "Drukdop aanwezig"
 
-#: models/monitoringtube.py:17
-msgid "Zandvang"
-msgstr ""
+#: acacia/meetnet/bro/models/monitoringtube.py:17
+msgid "SedimentSumpPresent"
+msgstr "Zandvang aanwexig"
 
-#: models/monitoringtube.py:19
+#: acacia/meetnet/bro/models/monitoringtube.py:18
+msgid "NumberOfGeoOhmCables"
+msgstr "Aantal zoutwachters"
+
+#: acacia/meetnet/bro/models/monitoringtube.py:19
 msgid "Diameter"
 msgstr ""
 
-#: models/monitoringtube.py:20
+#: acacia/meetnet/bro/models/monitoringtube.py:20
 msgid "Variabele diameter"
 msgstr ""
 
-#: models/monitoringtube.py:21
+#: acacia/meetnet/bro/models/monitoringtube.py:21
 msgid "Status"
 msgstr ""
 
-#: models/monitoringtube.py:22
+#: acacia/meetnet/bro/models/monitoringtube.py:22
 msgid "Bovenkant buis"
 msgstr ""
 
-#: models/monitoringtube.py:23
+#: acacia/meetnet/bro/models/monitoringtube.py:23
 msgid "Methode positiebepaling bovenkant buis"
 msgstr ""
 
-#: models/monitoringtube.py:24
+#: acacia/meetnet/bro/models/monitoringtube.py:24
 msgid "Aanvul materiaal"
 msgstr ""
 
-#: models/monitoringtube.py:25
+#: acacia/meetnet/bro/models/monitoringtube.py:25
 msgid "Buismateriaal"
 msgstr ""
 
-#: models/monitoringtube.py:26
+#: acacia/meetnet/bro/models/monitoringtube.py:26
 msgid "Filterlengte"
 msgstr ""
 
-#: models/monitoringtube.py:27
+#: acacia/meetnet/bro/models/monitoringtube.py:27
 msgid "Kousmateriaal"
 msgstr ""
 
-#: models/monitoringtube.py:28
+#: acacia/meetnet/bro/models/monitoringtube.py:28
 msgid "Lengte stijgbuis"
 msgstr ""
 
-#: models/monitoringtube.py:29
+#: acacia/meetnet/bro/models/monitoringtube.py:29
 msgid "Lengte zandvang"
 msgstr ""
 
-#: models/monitoringtube.py:59
+#: acacia/meetnet/bro/models/monitoringtube.py:59
 msgid "MonitoringTube"
 msgstr "Monitoringbuis"
 
-#: models/monitoringtube.py:60
+#: acacia/meetnet/bro/models/monitoringtube.py:60
 msgid "MonitoringTubes"
 msgstr "Monitoringbuizen"
 
-#: models/registrationrequest.py:13
+#: acacia/meetnet/bro/models/registrationrequest.py:14
 msgid "requestReference"
 msgstr "Verzoekkenmerk"
 
-#: models/registrationrequest.py:13
-#, python-format
-msgid "Verzoek voor put %s"
-msgstr ""
-
-#: models/registrationrequest.py:14
+#: acacia/meetnet/bro/models/registrationrequest.py:15
 msgid "KVK nummer van bronhouder"
 msgstr ""
 
-#: models/registrationrequest.py:15
+#: acacia/meetnet/bro/models/registrationrequest.py:16
 msgid "Kwaliteitsregime"
 msgstr ""
 
-#: models/registrationrequest.py:16
+#: acacia/meetnet/bro/models/registrationrequest.py:17
 msgid "Onder voorrecht"
 msgstr ""
 
-#: models/registrationrequest.py:20
+#: acacia/meetnet/bro/models/registrationrequest.py:21
 msgid "RegistrationRequest"
 msgstr "Registratieverzoek"
 
-#: models/registrationrequest.py:21
+#: acacia/meetnet/bro/models/registrationrequest.py:22
 msgid "RegistrationRequests"
 msgstr "Registratieverzoeken"
 
-#: validators.py:4
+#: acacia/meetnet/bro/models/registrationrequest.py:108
+#, python-format
+msgid "Registratieverzoek voor put %(well)s"
+msgstr ""
+
+#: acacia/meetnet/bro/validators.py:4
 msgid "Illegal chamber of commerce number"
 msgstr "Ongeldig Kamer van Koophandel nummer"
 
