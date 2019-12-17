@@ -2,24 +2,28 @@
 from __future__ import unicode_literals
 
 from django.contrib.gis.db import models
-from acacia.meetnet.models import Well
+from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
+
+from acacia.meetnet.models import Well
+
 from ..fields import CodeField, IndicationYesNoUnknownEnumeration
 from ..validators import ChamberOfCommerceValidator
-from .mapsheet import MapSheet
-from .codespace import CodeSpace
 from .code import Code
+from .codespace import CodeSpace
+from .mapsheet import MapSheet
+
 
 class GroundwaterMonitoringWell(models.Model):
     ''' Well data for BRO '''
-    well = models.OneToOneField(Well,on_delete=models.CASCADE,related_name='bro')
+    well = models.OneToOneField(Well,on_delete=models.CASCADE,verbose_name = _('well'), related_name='bro')
     objectIdAccountableParty=models.CharField(_('ObjectID'),max_length=100)
     deliveryContext = CodeField(codeSpace='DeliveryContext',verbose_name=_('Kader aanlevering'), default='publiekeTaak')
     constructionStandard = CodeField(codeSpace='ConstructionStandard',verbose_name=_('Kwaliteitsnorm inrichting'),default='onbekend')
     initialFunction = CodeField(codeSpace='InitialFunction',verbose_name=_('Initial function'),default='stand')
     numberOfMonitoringTubes = models.PositiveIntegerField(_('Number of monitoring tubes'), default=1)
-    groundLevelStable = IndicationYesNoUnknownEnumeration(_('Ground level stable'))
-    wellStability = IndicationYesNoUnknownEnumeration(_('WellStability'))
+    groundLevelStable = IndicationYesNoUnknownEnumeration(verbose_name=_('Ground level stable'))
+    wellStability = IndicationYesNoUnknownEnumeration(verbose_name=_('WellStability'))
     nitgCode = models.CharField(_('NITG code'),max_length=8,blank=True,null=True)
     mapSheetCode = models.CharField(_('Mapsheet'),max_length=3,blank=True,null=True)
     owner = models.CharField(_('Owner'),max_length=8,validators=[ChamberOfCommerceValidator],help_text='KVK-nummer van de eigenaar')
@@ -35,6 +39,18 @@ class GroundwaterMonitoringWell(models.Model):
         return str(self.well)
     
     def update(self):
+        
+        try:
+            bro = self.network.bro
+            if not self.owner:
+                self.owner = bro.owner
+            if not self.maintenanceResponsibleParty:
+                self.maintenanceResponsibleParty = bro.maintenanceResponsibleParty
+        except ObjectDoesNotExist:
+            # no defaults set for this network
+            pass
+        
+        self.objectIdAccountableParty = self.well.name
         self.numberOfMonitoringTubes = self.well.screen_set.count()
         self.nitgCode = self.well.nitg
         sheets = MapSheet.from_location(self.well.location)

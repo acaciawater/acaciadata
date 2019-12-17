@@ -9,6 +9,7 @@ from acacia.meetnet.models import Network
 from .fields import CodeField
 from .models import GroundwaterMonitoringWell, MonitoringTube, \
     Code, CodeSpace, RegistrationRequest, Defaults
+from django.core.exceptions import ObjectDoesNotExist
 
 
 class CodeFieldAdmin(admin.ModelAdmin):
@@ -38,6 +39,22 @@ class GroundwaterMonitoringWellAdmin(CodeFieldAdmin):
                'groundLevelPositioningMethod',
                ''
                )
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = CodeFieldAdmin.get_form(self, request, obj=obj, **kwargs)
+        return form
+    
+    def get_changeform_initial_data(self, request):
+        data = admin.ModelAdmin.get_changeform_initial_data(self, request)
+        network = Network.objects.first()
+        data['network'] = network 
+        try:
+            bro = network.bro
+            data['owner'] = bro.owner 
+            data['maintenanceResponsibleParty'] = bro.maintenanceResponsibleParty
+        except ObjectDoesNotExist:
+            pass
+        return data
     
     def save_model(self, request, obj, form, change):
         obj.update()
@@ -82,7 +99,7 @@ class RegisterAdmin(CodeFieldAdmin):
         try:
             network = Network.objects.first() 
             data['deliveryAccountableParty'] = network.bro.deliveryAccountableParty
-        except:
+        except ObjectDoesNotExist:
             pass
         return data
 

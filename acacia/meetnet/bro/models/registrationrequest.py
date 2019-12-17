@@ -8,14 +8,15 @@ from acacia.meetnet.bro.fields import CodeField,\
     IndicationYesNoUnknownEnumeration
 from acacia.meetnet.bro.validators import ChamberOfCommerceValidator
 from acacia.meetnet.bro.models import GroundwaterMonitoringWell
+from django.core.exceptions import ObjectDoesNotExist
 
 class RegistrationRequest(models.Model):
-    requestReference = models.CharField(_('requestReference'),max_length=100,default=_('Verzoek voor put %s'))
+    requestReference = models.CharField(_('requestReference'),max_length=100,blank=True)
     deliveryAccountableParty = models.CharField(_('deliveryAccountableParty'),max_length=8,validators=[ChamberOfCommerceValidator],help_text=_('KVK nummer van bronhouder'))
     qualityRegime = CodeField(codeSpace='qualityRegime',verbose_name=_('Kwaliteitsregime'))
     underPrivilege = IndicationYesNoUnknownEnumeration(_('Onder voorrecht'))
     gmw = models.ForeignKey(GroundwaterMonitoringWell, on_delete=models.CASCADE, verbose_name=_('GroundwaterMonitoringWell'))
-
+    
     class Meta:
         verbose_name = _('RegistrationRequest')
         verbose_name_plural = _('RegistrationRequests')
@@ -23,7 +24,7 @@ class RegistrationRequest(models.Model):
     def __str__(self):
         return self.requestReference
     
-    def _element(self):
+    def _xml(self):
         ''' Returns xml Element with registration request for BRO '''
         from xml.etree.ElementTree import Element, SubElement
         
@@ -98,13 +99,27 @@ class RegistrationRequest(models.Model):
         return xml
     
     def as_xml(self):
-        ''' return xml of this request '''
-#         from xml.etree.ElementTree import ElementTree
-#         import StringIO
-#         io = StringIO.StringIO()
-#         element = self._element()
-#         ElementTree(element).write(io,xml_declaration=True,encoding='utf-8')
-#         return io.getvalue()
-    
+        ''' return xml content for this request '''
         from xml.etree import ElementTree
         return ElementTree.tostring(self._element(),encoding='utf-8') # no xml-declaration
+
+    def update(self):
+        if not self.requestReference:
+            self.requestReference = _('Registratieverzoek voor put %(well)s') % {'well': self.gmw.well.name}
+        if not self.deliveryAccountableParty:
+            try:
+                self.deliveryAccountableParty = self.gmw.well.network.bro.deliveryAccountableParty
+            except ObjectDoesNotExist:
+                self.deliveryAccountableParty = self.gmw.owner 
+        
+    @classmethod
+    def create_for_well(cls, well):
+        request = RegistrationRequest()
+        try:
+            request.gmw = well.bro
+        except ObjectDoesNotExist:
+            request.gmw = GroundwaterMonitoringWell.create_for_well(well)
+        request.update()
+        request.save()
+        return request
+        
