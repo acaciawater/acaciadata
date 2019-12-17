@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 from django.contrib import admin
 from django.contrib.admin.decorators import register
 
-from acacia.meetnet.models import Network
+from acacia.meetnet.models import Network, Well, Screen
 
 from .fields import CodeField
 from .models import GroundwaterMonitoringWell, MonitoringTube, \
@@ -39,7 +39,11 @@ class GroundwaterMonitoringWellAdmin(CodeFieldAdmin):
                'groundLevelPositioningMethod',
                ''
                )
-
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == 'well':
+            kwargs['queryset'] = Well.objects.order_by('name')
+        return CodeFieldAdmin.formfield_for_foreignkey(self, db_field, request, **kwargs)
+    
     def get_form(self, request, obj=None, **kwargs):
         form = CodeFieldAdmin.get_form(self, request, obj=obj, **kwargs)
         return form
@@ -47,7 +51,7 @@ class GroundwaterMonitoringWellAdmin(CodeFieldAdmin):
     def get_changeform_initial_data(self, request):
         data = admin.ModelAdmin.get_changeform_initial_data(self, request)
         network = Network.objects.first()
-        data['network'] = network 
+        data['network'] = network
         try:
             bro = network.bro
             data['owner'] = bro.owner 
@@ -70,6 +74,11 @@ class MonitoringTubeAdmin(CodeFieldAdmin):
                'sedimentSump'
                )
     
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == 'screen':
+            kwargs['queryset'] = Screen.objects.order_by('well__name','nr')
+        return CodeFieldAdmin.formfield_for_foreignkey(self, db_field, request, **kwargs)
+
     def save_model(self, request, obj, form, change):
         obj.update()
         admin.ModelAdmin.save_model(self, request, obj, form, change)
@@ -89,11 +98,15 @@ class CodeSpaceAdmin(admin.ModelAdmin):
 class CodeAdmin(admin.ModelAdmin):
     list_display = ('code', 'codeSpace')    
     list_filter = ('codeSpace',)
-    list_search = ('code','codeSpace')
+    search_fields = ('code','codeSpace')
     ordering = ('codeSpace','code')
     
 @register(RegistrationRequest)
-class RegisterAdmin(CodeFieldAdmin):
+class RegistrationRequestAdmin(CodeFieldAdmin):
+    list_display = ('requestReference','deliveryAccountableParty')
+    list_filter = ('gmw__well','gmw__owner')
+    search_fields = ('requestReference','gmw__well')
+    
     def get_changeform_initial_data(self, request):
         data = CodeFieldAdmin.get_changeform_initial_data(self, request)
         try:
