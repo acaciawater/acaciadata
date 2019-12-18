@@ -1,0 +1,12 @@
+refactor bro structures
+now bro.MT and bro.GMW have 1:1 relations with meetnet.Screen and meetnet.Well and bro.Request has a GMW FKfield 
+the bro models should be directly connected and have a FK relation with meetnet objects. 
+This makes it possible to check the BRO history of the meetnet objects
+
+proposal:
+MT has FK to GMW (one GMW can have multiple tubes)
+MT has FK to meetnet.Screen (one Screen can have multiple bro.tube instances)
+GMW has FK to meetnet.Well (one Well can have multiple bro.GMW instances)
+GMW has 1:1 to RR (every Request has exactly one GMW and vice versa)
+
+maybe include GMW_Construction SourceDocuemnt?? 
