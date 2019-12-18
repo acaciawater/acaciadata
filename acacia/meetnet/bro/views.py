@@ -29,7 +29,7 @@ def download_gmw(request):
                 reg.update()
                 reg.save()
             else:
-                reg =  RegistrationRequest.create_for_well(well, user=request.user)
+                reg = RegistrationRequest.create_for_well(well, user=request.user)
             xml = reg.as_xml()
             zf.writestr(slugify(well.nitg or well.name) + '.xml', xml)
         zf.close()
