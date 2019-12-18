@@ -14,7 +14,6 @@ from .codespace import CodeSpace
 from .mapsheet import MapSheet
 from django.contrib.auth.models import User
 
-
 class GroundwaterMonitoringWell(models.Model):
     ''' Well data for BRO '''
     well = models.OneToOneField(Well,on_delete=models.CASCADE,verbose_name = _('well'), related_name='bro')
@@ -73,7 +72,16 @@ class GroundwaterMonitoringWell(models.Model):
         elif self.well.ahn is not None:
             self.groundLevelPosition = self.well.ahn
             self.groundLevelPositioningMethod = Code.objects.get(codeSpace__iexact='groundLevelPositioningMethod',code__iexact='AHN3')
-                            
+        
+        # update tubes as well
+#         for s in self.well.screen_set.all():
+#             try:
+#                 s.bro.update(**kwargs)
+#             except ObjectDoesNotExist:
+#                 # auto create monitoringtube
+#                 from acacia.meetnet.bro.models.monitoringtube import MonitoringTube
+#                 MonitoringTube.create_for_screen(s, **kwargs)
+                               
     @classmethod
     def create_for_well(cls, well, **kwargs):
         gmw = GroundwaterMonitoringWell(well=well, **kwargs)
