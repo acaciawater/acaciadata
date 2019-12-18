@@ -15,7 +15,7 @@ def add_bro_for_wells(modeladmin, request, queryset):
         try:
             query = GroundwaterMonitoringWell.objects.filter(well=well)
             if query.exists():
-                query.first().update()
+                query.first().update(user=request.user)
                 updates.append(well)
             else:
                 GroundwaterMonitoringWell.create_for_well(well, user=request.user)
@@ -39,7 +39,7 @@ def add_bro_for_screens(modeladmin, request, queryset):
         try:
             query = MonitoringTube.objects.filter(screen=screen)
             if query.exists():
-                query.first().update()
+                query.first().update(user=request.user)
                 updates.append(screen)
             else:
                 MonitoringTube.create_for_screen(screen, user=request.user)
