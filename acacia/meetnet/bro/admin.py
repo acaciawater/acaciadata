@@ -10,6 +10,7 @@ from .fields import CodeField
 from .models import GroundwaterMonitoringWell, MonitoringTube, \
     Code, CodeSpace, RegistrationRequest, Defaults
 from django.core.exceptions import ObjectDoesNotExist
+from acacia.meetnet.bro.actions import update_gmw, update_tube
 
 
 class CodeFieldAdmin(admin.ModelAdmin):
@@ -41,7 +42,8 @@ class GroundwaterMonitoringWellAdmin(CodeFieldAdmin):
                )
     list_display = ('__str__', 'user', 'modified')
     list_filter = ('user', 'modified')
-
+    actions = [update_gmw]
+    
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == 'well':
             kwargs['queryset'] = Well.objects.order_by('name')
@@ -78,6 +80,7 @@ class MonitoringTubeAdmin(CodeFieldAdmin):
                )
     list_display = ('__str__', 'user', 'modified')
     list_filter = ('user', 'modified')
+    actions = [update_tube]
     
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == 'screen':
