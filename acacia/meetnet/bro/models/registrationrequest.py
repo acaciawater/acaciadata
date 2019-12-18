@@ -81,7 +81,10 @@ class RegistrationRequest(models.Model):
         
         for screen in self.gmw.well.screen_set.order_by('nr'):
             monitoringTube = SubElement(construction, 'ns:monitoringTube')
-            t = screen.bro
+            try:
+                t = screen.bro
+            except ObjectDoesNotExist:
+                raise ValueError(_('No BRO data for screen %s') % screen)
             SubElement(monitoringTube, 'ns:tubeNumber').text = '{}'.format(t.tubeNumber)
             SubElement(monitoringTube, 'ns:tubeType', codeSpace="urn:bro:gmw:TubeType").text=t.tubeType
             SubElement(monitoringTube, 'ns:artesianWellCapPresent').text = t.artesianWellCapPresent
@@ -121,7 +124,9 @@ class RegistrationRequest(models.Model):
                 self.deliveryAccountableParty = self.gmw.well.network.bro.deliveryAccountableParty
             except ObjectDoesNotExist:
                 self.deliveryAccountableParty = self.gmw.owner 
-        
+        # also update gmw
+        self.gmw.update(**kwargs)
+
     @classmethod
     def create_for_well(cls, well, **kwargs):
         ''' create a registration request for a well '''
