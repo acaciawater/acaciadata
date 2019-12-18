@@ -10,9 +10,35 @@ from acacia.meetnet.models import Well
 from acacia.meetnet.bro.models import Defaults
 from django.views.generic import UpdateView
 from django.urls.base import reverse
-
+from acacia.meetnet.bro.models.registrationrequest import RegistrationRequest
+from django.core.exceptions import ObjectDoesNotExist
+from django.utils.text import ugettext_lazy as _
 
 def download_gmw(request):
+    ''' download ZIP file with BRO registration requests for all wells '''
+    io = StringIO.StringIO()
+    zf = zipfile.ZipFile(io,'w')
+    try:
+        for well in Well.objects.all():
+            try:
+                request = well.bro.registrationrequest_set.latest('modified')
+            except ObjectDoesNotExist:
+                raise ValueError(_('No BRO information available for well %s' % well))
+            if request is not None:
+                request.update()
+                request.save()
+            else:
+                request =  RegistrationRequest.create_for_well(well, request.user)
+            xml = request.as_xml()
+            zf.writestr(slugify(well.nitg or well.name) + '.xml', xml)
+        zf.close()
+        resp = HttpResponse(io.getvalue(), content_type = "application/x-zip-compressed")
+        resp['Content-Disposition'] = 'attachment; filename=bro.zip'
+    except Exception as e:
+        resp = HttpResponseServerError(unicode(e))
+    return resp
+
+def download_gmw1(request):
     ''' download ZIP file with BRO registration requests for all wells '''
     io = StringIO.StringIO()
     zf = zipfile.ZipFile(io,'w')

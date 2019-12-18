@@ -23,7 +23,7 @@ class CodeSpace(models.Model):
         
     @classmethod
     def default(cls,codeSpace):
-        return cls.objects.get(codeSpace=codeSpace).default_code
+        return cls.objects.get(codeSpace__iexact=codeSpace).default_code
 
     class Meta:
         verbose_name = _('Code space')

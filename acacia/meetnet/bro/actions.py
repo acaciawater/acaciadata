@@ -18,10 +18,10 @@ def add_bro_for_wells(modeladmin, request, queryset):
                 query.first().update()
                 updates.append(well)
             else:
-                GroundwaterMonitoringWell.create_for_well(well)
+                GroundwaterMonitoringWell.create_for_well(well, user=request.user)
                 creates.append(well)
         except Exception as e:
-            messages.error(request,_('Could not create or update BRO information for %s: %s') % (well, e))
+            messages.error(request,_('Could not create or update BRO information for %(well)s: %(ex)s') % {'well': well, 'ex': e})
             failures.append(well)
 #     if failures:
 #         messages.error(request,_('Could not create or update BRO information for %s wells') % len(failures))
@@ -42,10 +42,10 @@ def add_bro_for_screens(modeladmin, request, queryset):
                 query.first().update()
                 updates.append(screen)
             else:
-                MonitoringTube.create_for_screen(screen)
+                MonitoringTube.create_for_screen(screen, user=request.user)
                 creates.append(screen)
         except Exception as e:
-            messages.error(request,_('Could not create or update BRO information for %s: %s') % (screen, e))
+            messages.error(request,_('Could not create or update BRO information for %(screen)s: %(ex)s') % {'screen': screen, 'ex':e})
             failures.append(screen)
     if creates:
         messages.success(request,_('BRO information created for %d screens') % len(creates)) 

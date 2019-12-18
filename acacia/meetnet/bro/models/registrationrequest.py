@@ -9,6 +9,7 @@ from acacia.meetnet.bro.fields import CodeField,\
 from acacia.meetnet.bro.validators import ChamberOfCommerceValidator
 from acacia.meetnet.bro.models import GroundwaterMonitoringWell
 from django.core.exceptions import ObjectDoesNotExist
+from django.contrib.auth.models import User
 
 class RegistrationRequest(models.Model):
     requestReference = models.CharField(_('requestReference'),max_length=100,blank=True)
@@ -17,6 +18,11 @@ class RegistrationRequest(models.Model):
     underPrivilege = IndicationYesNoUnknownEnumeration(_('Onder voorrecht'))
     gmw = models.ForeignKey(GroundwaterMonitoringWell, on_delete=models.CASCADE, verbose_name=_('GroundwaterMonitoringWell'))
     
+    # Admin things
+    user = models.ForeignKey(User, on_delete=models.PROTECT, verbose_name = _('user'))
+    created = models.DateTimeField(_('created'), auto_now_add=True)
+    modified = models.DateTimeField(_('modified'), auto_now=True)
+
     class Meta:
         verbose_name = _('RegistrationRequest')
         verbose_name_plural = _('RegistrationRequests')
@@ -101,9 +107,13 @@ class RegistrationRequest(models.Model):
     def as_xml(self):
         ''' return xml content for this request '''
         from xml.etree import ElementTree
-        return ElementTree.tostring(self._element(),encoding='utf-8') # no xml-declaration
+        return ElementTree.tostring(self._xml(),encoding='utf-8') # no xml-declaration
 
-    def update(self):
+    def update(self, **kwargs):
+        for attr in kwargs:
+            if hasattr(self, attr):
+                setattr(self, attr, kwargs[attr])
+                
         if not self.requestReference:
             self.requestReference = _('Registratieverzoek voor put %(well)s') % {'well': self.gmw.well.name}
         if not self.deliveryAccountableParty:
@@ -113,12 +123,14 @@ class RegistrationRequest(models.Model):
                 self.deliveryAccountableParty = self.gmw.owner 
         
     @classmethod
-    def create_for_well(cls, well):
-        request = RegistrationRequest()
+    def create_for_well(cls, well, **kwargs):
+        ''' create a registration request for a well '''
+        request = RegistrationRequest(**kwargs)
         try:
             request.gmw = well.bro
         except ObjectDoesNotExist:
-            request.gmw = GroundwaterMonitoringWell.create_for_well(well)
+            ''' create GMW_Construction document '''
+            request.gmw = GroundwaterMonitoringWell.create_for_well(well, user=request.user)
         request.update()
         request.save()
         return request

@@ -6,18 +6,20 @@ Created on Nov 15, 2019
 from datetime import datetime, date, timedelta
 import logging
 import os
+from zipfile import ZipFile
 
+import dateutil
 from django.conf import settings
 from django.contrib.gis.geos import Point
+from django.core.exceptions import ObjectDoesNotExist
 import pytz
 
 from acacia.data.models import Generator
-from acacia.meetnet.models import Network, Well, Datalogger, LoggerDatasource, DIVER_TYPES, Screen,\
+import acacia.meetnet.bro.models as bro
+from acacia.meetnet.models import Network, Well, Datalogger, LoggerDatasource, DIVER_TYPES, Screen, \
     Handpeilingen
 from acacia.meetnet.util import register_well, register_screen
 import pandas as pd
-from zipfile import ZipFile
-import dateutil
 
 
 logger = logging.getLogger(__name__)
@@ -36,6 +38,7 @@ def parse_date(cell):
 def import_metadata(request, sheet='Putgegevens'):
     tz =pytz.timezone('Europe/Amsterdam')
     network = Network.objects.first()
+    errors = 0
     
     book = request.FILES['metadata']
     book.seek(0)
@@ -50,7 +53,7 @@ def import_metadata(request, sheet='Putgegevens'):
     logger.info('Boorstaten: {}'.format(archive.name if archive else 'geen'))
     logs = ZipFile(archive) if archive else None
 
-#     df = pd.read_excel(book, sheet, converters={'Constructiedatum': date_parser, 'Datum installatie': date_parser})
+    # open excel file as pandas dataframe
     df = pd.read_excel(book, sheet, parse_dates=['Constructiedatum', 'Datum installatie'])
     for _index, row in df.iterrows():
 
@@ -68,6 +71,7 @@ def import_metadata(request, sheet='Putgegevens'):
                     return None
             return value
         
+        # get basic well data
         id = get('ID').strip()
         logger.info('Put {}'.format(id))
         x = get('X',float)
@@ -78,11 +82,12 @@ def import_metadata(request, sheet='Putgegevens'):
         town = get('Plaats')
         remarks = get('Opmerkingen locatie')
         date = get('Constructiedatum')
-        surface = get('Maaiveld')
+        surface = get('Maaiveld',float)
         owner = get('Eigenaar')
         coords = Point(x,y,srid=28992)
         coords.transform(4326)
         try:
+            # ceate or update well
             well, created = network.well_set.update_or_create(name=id, defaults = {
                 'location': coords,
                 'description': remarks,
@@ -101,7 +106,29 @@ def import_metadata(request, sheet='Putgegevens'):
                 logger.info('Metadata voor put {} bijgewerkt'.format(id))
         except Exception as e:
             logger.exception(e)
+            errors+=1
             continue
+
+        # create or update BRO info
+        try:
+            gmw_data = {
+                'user': request.user,
+                'maintenanceResponsibleParty': get('Onderhoudende instantie'),
+                'deliveryContext': get('Kader'),
+                'constructionStandard': get('Kwaliteitsnorm'),
+                'wellHeadProtector': get('Afwerking'),
+            }
+            try:
+                well.bro.update(**gmw_data)
+                well.bro.save()
+                logger.info('BRO data voor put {} bijgewerkt'.format(well))
+            except ObjectDoesNotExist:
+                bro.GroundwaterMonitoringWell.create_for_well(well, **gmw_data)
+                logger.info('BRO data voor put {} aangemaakt'.format(well))
+        except Exception as e:
+            logger.error('BRO data voor put {} niet aangemaakt/bijgewerkt: {}'.format(well,e))
+            errors+=1
+            
         nr = get('Filternummer',int)
         refpnt = get('Bovenkant buis',float)
         top = get('Bovenkant filter m-MV',float)
@@ -121,6 +148,51 @@ def import_metadata(request, sheet='Putgegevens'):
         else:
             logger.info('Metadata voor filter {} bijgewerkt'.format(screen))
 
+        try:
+            tube_data = {
+                'user': request.user,
+                'tubeType': get('Buistype'),
+                'artesianWellCapPresent': get('Drukdop'),
+                'sedimentSumpPresent': get('Zandvang'),
+                'tubePackingMaterial': get('Omstorting'),
+                'tubeStatus': get('Status'),
+            }
+            try:
+                screen.bro.update(**tube_data)
+                screen.bro.save()
+                logger.info('BRO data voor filter {} bijgewerkt'.format(screen))
+            except ObjectDoesNotExist:
+                bro.MonitoringTube.create_for_screen(screen, **tube_data)
+                logger.info('BRO data voor filter {} bijgewerkt'.format(screen))
+        except Exception as e:
+            logger.error('BRO data voor filter {} niet aangemaakt/bijgewerkt: {}'.format(screen,e))
+            errors+=1
+
+        if fotos:    
+            for nr in range(1,6):
+                name = get('Foto %d'%nr)
+                if name:
+                    try:
+                        with fotos.open(name) as foto:
+                            well.add_photo(name,foto)
+                            logger.info('Foto toegevoegd: {}'.format(name))
+                    except Exception as e:
+                        logger.error('Kan foto niet toevoegen: {}'.format(e))
+                        errors+=1
+                else:
+                    break                            
+        
+        if logs:
+            name = get('Boorstaat')
+            if name:
+                try:
+                    with logs.open(name) as log:
+                        well.set_log(name,log)
+                        logger.info('Boorstaat toegevoegd: {}'.format(name))
+                except Exception as e:
+                    logger.error('Kan boorstaat niet toevoegen: {}'.format(e))
+                    errors+=1
+            
         serial = get('Logger ID',None)
         if serial:
             if type(serial) == float:
@@ -130,6 +202,7 @@ def import_metadata(request, sheet='Putgegevens'):
             model = get('Logger type')
             if not model:
                 logger.error('Logger type ontbreekt')
+                errors+=1
                 continue
     
             generator = Generator.objects.get(name='Ellitrack' if model.lower().startswith('elli') else 'Schlumberger')
@@ -139,6 +212,7 @@ def import_metadata(request, sheet='Putgegevens'):
                 code = choice[0][0]
             else:
                 logger.error('Onbekend logger type: {}'.format(model))
+                errors+=1
                 continue
             datalogger, created = Datalogger.objects.get_or_create(serial=serial,defaults={'model':code})
             if created:
@@ -180,34 +254,13 @@ def import_metadata(request, sheet='Putgegevens'):
                 logger.info('Gegevensbron %s aangemaakt' % ds)
             else:
                 logger.info('Gegevensbron %s bijgewerkt' % ds)
-                
-        if fotos:    
-            for nr in range(1,6):
-                name = get('Foto %d'%nr)
-                if name:
-                    try:
-                        with fotos.open(name) as foto:
-                            well.add_photo(name,foto)
-                            logger.info('Foto toegevoegd: {}'.format(name))
-                    except Exception as e:
-                        logger.error('Kan foto niet toevoegen: {}'.format(e))
-                else:
-                    break                            
-        
-        if logs:
-            name = get('Boorstaat')
-            if name:
-                try:
-                    with logs.open(name) as log:
-                        well.set_log(name,log)
-                        logger.info('Boorstaat toegevoegd: {}'.format(name))
-                except Exception as e:
-                    logger.error('Kan boorstaat niet toevoegen: {}'.format(e))
-            
+
+    return errors
 
 def import_handpeilingen(request, sheet='Handpeilingen'):
     ''' import manual measurements from excel sheet '''
     tz =pytz.timezone('Europe/Amsterdam')
+    errors = 0
     book = request.FILES['metadata']
     book.seek(0)
     df = pd.read_excel(book,sheet)
@@ -235,6 +288,7 @@ def import_handpeilingen(request, sheet='Handpeilingen'):
                     # TODO: existing series with different reference point. Convert level
                     if not screen.refpnt:
                         logger.error('Bovenkant filter onbekend')
+                        errors += 1
                         continue
                     level = series.refpnt - level
             pt, created = series.datapoints.update_or_create(date=date,defaults={'value': level})
@@ -244,9 +298,13 @@ def import_handpeilingen(request, sheet='Handpeilingen'):
                 logger.info('Filter {}: handpeiling bijgewerkt: ({}, {})'.format(str(screen), date, level))
         except Well.DoesNotExist:
             logger.error('Well %s not found' % id)
+            errors+=1
         except Screen.DoesNotExist:
             logger.error('Screen %s/%03d not found' % (id, nr))
-        
+            errors+=1
+
+    return errors
+
 def handle_registration_files(request):
 
     # create dedicated log file
@@ -262,7 +320,6 @@ def handle_registration_files(request):
     root = logging.getLogger()
     root.addHandler(handler)
 
-    import_metadata(request)
-    import_handpeilingen(request)
+    errors = import_metadata(request) + import_handpeilingen(request)
         
-    return logurl
+    return (errors, logurl)

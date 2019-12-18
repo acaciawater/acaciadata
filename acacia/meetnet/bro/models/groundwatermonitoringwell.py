@@ -12,6 +12,7 @@ from ..validators import ChamberOfCommerceValidator
 from .code import Code
 from .codespace import CodeSpace
 from .mapsheet import MapSheet
+from django.contrib.auth.models import User
 
 
 class GroundwaterMonitoringWell(models.Model):
@@ -34,11 +35,19 @@ class GroundwaterMonitoringWell(models.Model):
     horizontalPositioningMethod = CodeField(codeSpace='HorizontalPositioningMethod',verbose_name=_('Methode locatiebepaling'), default='RTKGPS2tot5cm')
     groundLevelPosition = models.FloatField(_('Maaiveld'))
     groundLevelPositioningMethod = CodeField(codeSpace='GroundLevelPositioningMethod',verbose_name=_('Maaiveld positiebepaling'),default='RTKGPS0tot4cm')
+
+    # Admin things
+    user = models.ForeignKey(User, on_delete=models.PROTECT, verbose_name = _('user'))
+    created = models.DateTimeField(_('created'), auto_now_add=True)
+    modified = models.DateTimeField(_('modified'), auto_now=True)
     
     def __unicode__(self):
         return str(self.well)
     
-    def update(self):
+    def update(self, **kwargs):
+        for attr in kwargs:
+            if hasattr(self, attr):
+                setattr(self, attr, kwargs[attr])
         
         try:
             bro = self.well.network.bro
@@ -49,7 +58,7 @@ class GroundwaterMonitoringWell(models.Model):
         except ObjectDoesNotExist:
             # no defaults set for this network
             pass
-        
+
         self.objectIdAccountableParty = self.well.name
         self.numberOfMonitoringTubes = self.well.screen_set.count()
         self.nitgCode = self.well.nitg
@@ -60,14 +69,14 @@ class GroundwaterMonitoringWell(models.Model):
         self.location = self.well.location
         if self.well.maaiveld is not None:
             self.groundLevelPosition = self.well.maaiveld
-            self.groundLevelPositioningMethod = CodeSpace.objects.get(codeSpace__iexact='groundLevelPositioningMethod').default_code
+            self.groundLevelPositioningMethod = CodeSpace.default('groundLevelPositioningMethod').code
         elif self.well.ahn is not None:
             self.groundLevelPosition = self.well.ahn
             self.groundLevelPositioningMethod = Code.objects.get(codeSpace__iexact='groundLevelPositioningMethod',code__iexact='AHN3')
                             
     @classmethod
-    def create_for_well(cls, well):
-        gmw = GroundwaterMonitoringWell(well=well)
+    def create_for_well(cls, well, **kwargs):
+        gmw = GroundwaterMonitoringWell(well=well, **kwargs)
         gmw.update()
         gmw.save()
         

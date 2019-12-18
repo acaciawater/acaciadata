@@ -39,6 +39,9 @@ class GroundwaterMonitoringWellAdmin(CodeFieldAdmin):
                'groundLevelPositioningMethod',
                ''
                )
+    list_display = ('__str__', 'user', 'modified')
+    list_filter = ('user', 'modified')
+
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == 'well':
             kwargs['queryset'] = Well.objects.order_by('name')
@@ -61,7 +64,7 @@ class GroundwaterMonitoringWellAdmin(CodeFieldAdmin):
         return data
     
     def save_model(self, request, obj, form, change):
-        obj.update()
+        obj.update(user=request.user)
         admin.ModelAdmin.save_model(self, request, obj, form, change)
         
 @register(MonitoringTube)
@@ -73,6 +76,8 @@ class MonitoringTubeAdmin(CodeFieldAdmin):
                'plainTubePartLength',
                'sedimentSump'
                )
+    list_display = ('__str__', 'user', 'modified')
+    list_filter = ('user', 'modified')
     
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == 'screen':
@@ -80,7 +85,7 @@ class MonitoringTubeAdmin(CodeFieldAdmin):
         return CodeFieldAdmin.formfield_for_foreignkey(self, db_field, request, **kwargs)
 
     def save_model(self, request, obj, form, change):
-        obj.update()
+        obj.update(user=request.user)
         admin.ModelAdmin.save_model(self, request, obj, form, change)
 
 @register(CodeSpace)
@@ -103,8 +108,8 @@ class CodeAdmin(admin.ModelAdmin):
     
 @register(RegistrationRequest)
 class RegistrationRequestAdmin(CodeFieldAdmin):
-    list_display = ('requestReference','deliveryAccountableParty')
-    list_filter = ('gmw__well','gmw__owner')
+    list_display = ('__str__', 'deliveryAccountableParty', 'user', 'modified' )
+    list_filter = ('gmw__well','gmw__owner', 'user', 'modified')
     search_fields = ('requestReference','gmw__well')
     
     def get_changeform_initial_data(self, request):

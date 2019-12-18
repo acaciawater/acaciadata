@@ -6,6 +6,7 @@ from django.db import models
 from acacia.meetnet.models import Screen
 from django.utils.translation import ugettext_lazy as _
 from ..fields import CodeField, IndicationYesNoUnknownEnumeration
+from django.contrib.auth.models import User
     
 class MonitoringTube(models.Model):
     ''' Tube data for BRO '''
@@ -14,7 +15,7 @@ class MonitoringTube(models.Model):
     tubeNumber = models.PositiveSmallIntegerField(default = 1)
     tubeType = CodeField(codeSpace='TubeType', verbose_name=_('Buistype'), default='standaardbuis')
     artesianWellCapPresent = IndicationYesNoUnknownEnumeration(verbose_name=_('ArtesianWellCapPresent'))
-    sedimentSumpPresent = IndicationYesNoUnknownEnumeration(verbose_name=_('SedimentSumpPresent')) # True als diepte > onderkant filter
+    sedimentSumpPresent = IndicationYesNoUnknownEnumeration(verbose_name=_('SedimentSumpPresent'))
     numberOfGeoOhmCables = models.PositiveSmallIntegerField(verbose_name=_('NumberOfGeoOhmCables'), default = 0)
     tubeTopDiameter = models.FloatField(_('Diameter'))
     variableDiameter = models.BooleanField(_('Variabele diameter'),default=False)
@@ -27,11 +28,20 @@ class MonitoringTube(models.Model):
     sockMaterial = CodeField(codeSpace='SockMaterial',verbose_name=_('Kousmateriaal'),default='onbekend')
     plainTubePartLength = models.FloatField(_('Lengte stijgbuis'))
     sedimentSump = models.FloatField(_('Lengte zandvang'),default = 0)
+
+    # Admin things
+    user = models.ForeignKey(User, on_delete=models.PROTECT, verbose_name = _('user'))
+    created = models.DateTimeField(_('created'), auto_now_add=True)
+    modified = models.DateTimeField(_('modified'), auto_now=True)
     
     def __unicode__(self):
         return str(self.screen)
     
-    def update(self):
+    def update(self, **kwargs):
+        for attr in kwargs:
+            if hasattr(self, attr):
+                setattr(self, attr, kwargs[attr])
+
         self.tubeNumber = self.screen.nr
         self.tubeTopDiameter = self.screen.diameter
         self.tubeTopPosition = self.screen.refpnt
@@ -48,10 +58,11 @@ class MonitoringTube(models.Model):
             self.plainTubePartLength = top + refpnt - maaiveld
         if not (depth is None or bottom is None):
             self.sedimentSump = depth - bottom
-        
+            self.sedimentSumpPresent = 'ja' if self.sedimentSump > 0 else 'nee'
+            
     @classmethod
-    def create_for_screen(cls, screen):
-        tube = MonitoringTube(screen=screen)
+    def create_for_screen(cls, screen, **kwargs):
+        tube = MonitoringTube(screen=screen, **kwargs)
         tube.update()
         tube.save()
         
