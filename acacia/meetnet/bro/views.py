@@ -21,15 +21,16 @@ def download_gmw(request):
     try:
         for well in Well.objects.all():
             try:
-                request = well.bro.registrationrequest_set.latest('modified')
+                query = well.bro.registrationrequest_set.all()
             except ObjectDoesNotExist:
                 raise ValueError(_('No BRO information available for well %s' % well))
-            if request is not None:
-                request.update()
-                request.save()
+            if query.exists():
+                reg = query.latest('modified')
+                reg.update()
+                reg.save()
             else:
-                request =  RegistrationRequest.create_for_well(well, request.user)
-            xml = request.as_xml()
+                reg =  RegistrationRequest.create_for_well(well, request.user)
+            xml = reg.as_xml()
             zf.writestr(slugify(well.nitg or well.name) + '.xml', xml)
         zf.close()
         resp = HttpResponse(io.getvalue(), content_type = "application/x-zip-compressed")
