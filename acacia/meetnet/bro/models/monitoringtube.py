@@ -53,11 +53,11 @@ class MonitoringTube(models.Model):
         maaiveld = self.screen.well.maaiveld
 
         if not (top is None or bottom is None):
-            self.screenLength = top - bottom
+            self.screenLength = abs(bottom - top)
         if not (top is None or refpnt is None or maaiveld is None):
-            self.plainTubePartLength = top + refpnt - maaiveld
+            self.plainTubePartLength = abs(top + refpnt - maaiveld)
         if not (depth is None or bottom is None):
-            self.sedimentSump = depth - bottom
+            self.sedimentSump = abs(depth - bottom)
             self.sedimentSumpPresent = 'ja' if self.sedimentSump > 0 else 'nee'
             
     @classmethod
