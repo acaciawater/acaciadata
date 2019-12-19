@@ -7,6 +7,7 @@ from acacia.meetnet.models import Screen
 from django.utils.translation import ugettext_lazy as _
 from ..fields import CodeField, IndicationYesNoUnknownEnumeration
 from django.contrib.auth.models import User
+from acacia.meetnet.bro.fields import IndicationYesNoEnumeration
     
 class MonitoringTube(models.Model):
     ''' Tube data for BRO '''
@@ -18,7 +19,7 @@ class MonitoringTube(models.Model):
     sedimentSumpPresent = IndicationYesNoUnknownEnumeration(verbose_name=_('SedimentSumpPresent'))
     numberOfGeoOhmCables = models.PositiveSmallIntegerField(verbose_name=_('NumberOfGeoOhmCables'), default = 0)
     tubeTopDiameter = models.FloatField(_('Diameter'))
-    variableDiameter = models.BooleanField(_('Variabele diameter'),default=False)
+    variableDiameter = IndicationYesNoEnumeration(_('Variabele diameter'),default='nee')
     tubeStatus = CodeField(codeSpace='TubeStatus',verbose_name=_('Status'),default='gebruiksklaar')
     tubeTopPosition = models.FloatField(_('Bovenkant buis'))
     tubeTopPositioningMethod = CodeField(codeSpace='TubeTopPositioningMethod',verbose_name=_('Methode positiebepaling bovenkant buis'),default='onbekend')

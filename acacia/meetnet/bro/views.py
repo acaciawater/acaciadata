@@ -13,6 +13,7 @@ from django.urls.base import reverse
 from acacia.meetnet.bro.models.registrationrequest import RegistrationRequest
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.text import ugettext_lazy as _
+from acacia.meetnet.bro.models.groundwatermonitoringwell import GroundwaterMonitoringWell
 
 def download_gmw(request):
     ''' download ZIP file with BRO registration requests for all wells '''
@@ -65,4 +66,18 @@ class DefaultsView(UpdateView):
     
     def get_context_data(self, **kwargs):
         return UpdateView.get_context_data(self, **kwargs)
+    
+    def form_valid(self, form):
+        retval =  UpdateView.form_valid(self, form)
+
+        # perform updates
+        defaults = self.object
+        RegistrationRequest.objects.filter(gmw__well__network=defaults.network).update(
+            deliveryAccountableParty = defaults.deliveryAccountableParty
+        )
+        GroundwaterMonitoringWell.objects.filter(well__network=defaults.network).update(
+            owner = defaults.owner,
+            maintenanceResponsibleParty = defaults.maintenanceResponsibleParty
+        )
+        return retval
     

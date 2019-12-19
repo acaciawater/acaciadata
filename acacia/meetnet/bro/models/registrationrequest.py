@@ -4,8 +4,7 @@ from __future__ import unicode_literals
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
-from acacia.meetnet.bro.fields import CodeField,\
-    IndicationYesNoUnknownEnumeration
+from acacia.meetnet.bro.fields import CodeField, IndicationYesNoEnumeration
 from acacia.meetnet.bro.validators import ChamberOfCommerceValidator
 from acacia.meetnet.bro.models import GroundwaterMonitoringWell
 from django.core.exceptions import ObjectDoesNotExist
@@ -15,7 +14,7 @@ class RegistrationRequest(models.Model):
     requestReference = models.CharField(_('requestReference'),max_length=100,blank=True)
     deliveryAccountableParty = models.CharField(_('deliveryAccountableParty'),max_length=8,validators=[ChamberOfCommerceValidator],help_text=_('KVK nummer van bronhouder'))
     qualityRegime = CodeField(codeSpace='qualityRegime',verbose_name=_('Kwaliteitsregime'))
-    underPrivilege = IndicationYesNoUnknownEnumeration(_('Onder voorrecht'))
+    underPrivilege = IndicationYesNoEnumeration(_('Onder voorrecht'), default='ja')
     gmw = models.ForeignKey(GroundwaterMonitoringWell, on_delete=models.CASCADE, verbose_name=_('GroundwaterMonitoringWell'))
     
     # Admin things
