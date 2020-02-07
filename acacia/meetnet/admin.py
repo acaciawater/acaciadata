@@ -14,12 +14,13 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
 
 from acacia.data.admin import DatasourceAdmin, SourceFileAdmin, DataPointInline, SeriesForm
-from acacia.meetnet.actions import update_statistics
+from acacia.meetnet.actions import update_statistics, update_sourcefiles
 from acacia.meetnet.models import Handpeilingen
 from acacia.meetnet.models import MeteoData
 import actions
 
 from .models import Network, Well, Photo, Screen, Datalogger, LoggerPos, LoggerDatasource, MonFile, Channel
+from acacia.data.models import SourceFile
 
 USE_GOOGLE_TERRAIN_TILES = False
 
@@ -73,12 +74,20 @@ class MonFileInline(admin.TabularInline):
     extra = 0
     ordering = ('start',)
 
+class SourceFileInline(admin.TabularInline):
+    model = LoggerPos.files.through
+    classes = ['collapse']
+#     fields = ('name','file','rows', 'cols','start','stop')
+    extra = 0
+#     ordering = ('start',)
+
 @register(LoggerPos)
 class LoggerPosAdmin(admin.ModelAdmin):
-    actions = [update_statistics]
-    list_display = ('logger', 'screen', 'start_date', 'end_date', 'refpnt', 'depth', 'num_monfiles', 'remarks')
+    actions = [update_statistics, update_sourcefiles]
+    list_display = ('logger', 'screen', 'start_date', 'end_date', 'refpnt', 'depth', 'num_files', 'remarks')
     list_filter = ('screen__well', 'screen',)
     search_fields = ('logger__serial','screen__well__name')
+    exclude = ('files',)
     inlines = [MonFileInline]
     
 class LoggerInline(admin.TabularInline):

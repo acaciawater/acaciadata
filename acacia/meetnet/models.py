@@ -498,7 +498,8 @@ class LoggerPos(models.Model):
     refpnt = models.FloatField(verbose_name = _('reference point'), blank=True, null=True, help_text = _('Reference point in meter wrt NAP'))
     depth = models.FloatField(verbose_name = _('cable length'), blank=True, null=True, help_text = _('length of cable in meter'))
     remarks = models.TextField(verbose_name=_('remarks'), blank=True) 
-
+    files = models.ManyToManyField(SourceFile,verbose_name=_('source files'),help_text=_('related source files'))
+    
     def __unicode__(self):
         return '%s@%s' % (self.logger, self.screen)
     
@@ -506,6 +507,21 @@ class LoggerPos(models.Model):
         verbose_name = _('LoggerInstallation')
         ordering = ['start_date','logger']
 
+    def update_files(self):
+        ''' update set of sourcefiles for this datalogger installation '''
+        oldcount = self.files.count()
+        self.files.clear()
+        for ds in self.logger.datasources.all():
+            queryset = ds.sourcefiles.all()
+            if self.start_date:
+                queryset = queryset.filter(start__gte=self.start_date)
+            if self.end_date:
+                queryset = queryset.filter(stop__lte=self.end_date)
+            for sf in queryset:
+                self.files.add(sf)
+        newcount = self.files.count()
+        return newcount - oldcount
+            
     def stats(self):
         try:
             s = self.loggerstat
@@ -523,6 +539,10 @@ class LoggerPos(models.Model):
         except ObjectDoesNotExist:
             pass
     
+    def num_files(self):
+        return self.files.count()
+    num_files.short_description = _('Files')
+
     def num_monfiles(self):
         return self.monfile_set.count()
     num_monfiles.short_description = _('Monfiles')

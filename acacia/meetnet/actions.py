@@ -108,6 +108,11 @@ def update_statistics(modeladmin, request, queryset):
         s.update()
 update_statistics.short_description = 'statistiek vernieuwen'
 
+def update_sourcefiles(modeladmin, request, queryset):
+    for lp in queryset:
+        lp.update_files()
+update_statistics.short_description = 'set van bronbestanden bijwerken'
+
 def make_wellcharts(modeladmin, request, queryset):
     for w in queryset:
         if not w.has_data():
