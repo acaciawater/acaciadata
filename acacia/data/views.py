@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-import json,re,logging
+import simplejson as json
+import re,logging
 from django.views.generic.list import ListView
 from django.views.generic import DetailView
 from django.views.generic.base import TemplateView
@@ -65,13 +66,13 @@ def SeriesToJson(request, pk):
     s = get_object_or_404(Series,pk=pk)
     pts = s.to_array()        
     # convert datetime to javascript datetime using unix timetamp conversion
-    j = json.dumps(list(pts), default=to_millis)
+    j = json.dumps(list(pts), ignore_nan = True, default=to_millis)
     return HttpResponse(j, content_type='application/json')
 
 def SeriesToDict(request, pk):
     s = get_object_or_404(Series,pk=pk)
     points = [{'date':p.date.date(),'time': p.date.time(), 'value':p.value} for p in s.to_array()]
-    j = json.dumps(points, default=lambda x: str(x))
+    j = json.dumps(points, ignore_nan = True, default=lambda x: str(x))
     return HttpResponse(j, content_type='application/json')
 
 @gzip_page
