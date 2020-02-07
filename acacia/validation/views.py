@@ -149,7 +149,8 @@ def process_file(path, user, **kwargs):
         # copy file to default storage
         with open(path,'rb') as f:
             path = save_file(f,'valid')
-    relpath = os.path.join(settings.MEDIA_URL,os.path.relpath(path,default_storage.location))
+    # get relative path to storage location
+    relpath = path.replace(default_storage.location,'')
     begin = df.index[0]
     end = df.index[-1]
     defaults={'begin':begin,'end':end,'user':user,'xlfile':relpath,'valid':True, 'date': datetime.now()}

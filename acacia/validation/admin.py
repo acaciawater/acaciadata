@@ -137,11 +137,20 @@ class SubResultAdmin(admin.ModelAdmin):
     list_display = ('rule', 'validation', 'valid', 'invalid', 'first_invalid')
     list_filter = ('validation', 'rule')
 
+def apply_xlfile(modeladmin, request, queryset):
+    count = 0
+    for res in queryset:
+        res.apply_xlfile()
+        count += 1
+    messages.success(request, '{} Excel files  ingelezen'.format(count))
+apply_xlfile.short_description='Excel validatie bestanden inlezen'
+
 @admin.register(Result)
 class ResultAdmin(admin.ModelAdmin):
     list_display = ('validation', 'xlfile', 'begin','end', 'user','date',)
     list_filter = ('validation__series__mlocatie', 'date', 'user',)
-
+    actions=[apply_xlfile]
+    
 @admin.register(FilterOrder)
 class FilterOrderAdmin(admin.ModelAdmin):
     pass

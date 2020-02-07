@@ -10,7 +10,6 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils.timezone import now
 from django.utils.text import ugettext_lazy as _
 from django.conf import settings
-from django.db.models.deletion import CASCADE
 
 logger = logging.getLogger(__name__)
 
@@ -437,7 +436,8 @@ class Validation(models.Model):
         self.check_valid()
         self.save()
         return pts
-    
+
+   
     def accept(self,user,daterange=None):
         ''' accept validation. remove all invalid points and save result to database '''
         q = self.invalid_points
@@ -520,6 +520,23 @@ class Result(models.Model):
     remarks = models.TextField(blank=True,null=True)
     valid = models.BooleanField(default = False)
 
+    def apply_xlfile(self):
+        df = pd.read_excel(self.xlfile.file,index_col=0)
+        _rows,cols = df.shape
+        if cols != 2:
+            raise ValueError('Validation file must have three columns')
+        
+        # drop N/A values from dataframe
+        df.dropna(how='all',inplace=True)
+        df.sort_index(inplace=True)
+        df.index = df.index.tz_localize('UTC')
+        begin = df.index[0]
+        end = df.index[-1]
+        series = df.iloc[:,1]
+        pts = [ValidPoint(validation=self.validation,date=date,value=None if np.isnan(value) else value) for date,value in series.iteritems()]
+        self.validation.validpoint_set.filter(date__range=[begin,end]).delete()
+        self.validation.validpoint_set.bulk_create(pts)
+        
     def __unicode__(self):
         return unicode(self.validation)
 
