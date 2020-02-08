@@ -772,7 +772,7 @@ class SourceFile(models.Model,LoggerSourceMixin):
             start = kwargs['start']
             data=data[data.index >= start]
         if 'stop' in kwargs:
-            stop = parse(kwargs['stop']
+            stop = kwargs['stop']
             data=data[data.index <= stop]
         return data
 
