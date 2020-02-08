@@ -768,6 +768,12 @@ class SourceFile(models.Model,LoggerSourceMixin):
                     data[k]=v.tz_localize(tz,ambiguous='infer')
                 except Exception as ex:
                     data[k]=v.tz_localize(tz,ambiguous='NaT')
+        if 'start' in kwargs:
+            start = kwargs['start']
+            data=data[data.index >= start]
+        if 'stop' in kwargs:
+            stop = parse(kwargs['stop']
+            data=data[data.index <= stop]
         return data
 
     def get_locations(self,gen=None):
