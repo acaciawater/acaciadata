@@ -231,9 +231,11 @@ class WellChartView(AuthRequiredMixin, NavMixin, TemplateView):
                 if stop:
                     stop = max(stop,screen.stop())
                 else:
-                    #stop = screen.stop()
-                    stop = levels.datapoints.latest('date').date
-                    
+                    latest = screen.last_measurement()
+                    if latest:
+                        stop = latest.date
+                    else:
+                        stop = levels.datapoints.latest('date').date
                 if levels.validated:
                     # draw red vertical line where validation ends
                     latest = levels.validation.result.end
