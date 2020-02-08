@@ -323,6 +323,7 @@ class SeriesForm(forms.ModelForm):
                 raise forms.ValidationError(_('Als een compensatietijdreeks is opgegeven moet de compensatiefactor gelijk aan 0 zijn'))
         return series
 
+        
 from polymorphic.admin import PolymorphicParentModelAdmin, PolymorphicChildModelAdmin
 
 class SaveUserMixin:
@@ -367,7 +368,7 @@ class ParameterSeriesAdmin(PolymorphicChildModelAdmin):
     search_fields = ['name','parameter__name','parameter__datasource__name']
 
     fieldsets = (
-                 (_('Algemeen'), {'fields': ('parameter', 'name', ('unit', 'type'), 'description','timezone'),
+                 (_('Algemeen'), {'fields': (('mlocatie','parameter'), 'name', ('unit', 'type'), 'description','timezone'),
                                'classes': ('grp-collapse grp-open',),
                                }),
                  (_('Tijdsinterval'), {'fields': ('from_limit','to_limit'),
@@ -379,7 +380,7 @@ class ParameterSeriesAdmin(PolymorphicChildModelAdmin):
     )
 
     def save_model(self, request, obj, form, change):
-        if obj.parameter:
+        if obj.parameter and not obj.mlocatie:
             obj.mlocatie = obj.parameter.meetlocatie()
         obj.user = request.user
         obj.save()
