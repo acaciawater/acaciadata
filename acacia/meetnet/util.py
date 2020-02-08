@@ -236,7 +236,7 @@ def get_baro(screen,baros):
     return baro
 
 def recomp(screen,series,baros={}):
-    ''' rebuid (compensated) timeseries from loggerpos files '''
+    ''' rebuild (compensated) timeseries from loggerpos files '''
 
     seriesdata = None
     for logpos in screen.loggerpos_set.order_by('start_date'):
