@@ -406,19 +406,16 @@ class Validation(models.Model):
                 logger.warning(_('Validation {} failed').format(self.series))
             else:
                 logger.info(_('Validation {} passed').format(self.series))
+
             return valid_points
         else:
             logger.warning(_("Validation {}: no datapoints").format(self.series))
             return []
 
-    def reset(self):
+    def reset(self, keep_uploads=True):
         ''' resets this validation: removes all points and results '''
         if self.has_result():
-            try:
-                self.result.delete()
-            except:
-                # sometimes cant delete because result.id is None??
-                pass
+            self.result.reset()
         self.subresult_set.all().delete()
         self.validpoint_set.all().delete()
         self.last_validation = None
@@ -506,7 +503,7 @@ class SubResult(models.Model):
         return '{}:{}'.format(self.validation, self.rule)
   
 class Result(models.Model):
-    ''' Result of a validation, including uploaded datafile of a user '''
+    ''' Final result of a validation, including uploaded datafile of a user '''
     class Meta:
         verbose_name = _('resultaat')
         verbose_name_plural = _('resultaten')
@@ -516,10 +513,13 @@ class Result(models.Model):
     end = models.DateTimeField()
     xlfile = models.FileField(upload_to='valid',blank=True,null=True)
     user = models.ForeignKey(User)
-    date = models.DateTimeField(auto_now=True,verbose_name=_('uploaded'))
+    date = models.DateTimeField(auto_now=True,verbose_name=_('date'))
     remarks = models.TextField(blank=True,null=True)
-    valid = models.BooleanField(default = False)
+    valid = models.NullBooleanField(default = False)
 
+    def reset(self):
+        self.valid = None
+        
     def apply_xlfile(self):
         df = pd.read_excel(self.xlfile.file,index_col=0)
         _rows,cols = df.shape
