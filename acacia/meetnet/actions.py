@@ -170,19 +170,19 @@ def recomp_screens(modeladmin, request, queryset):
         else:
             failures.append(screen)
     if successes:
-        messages.success(request, 'Timeseries for {} screens were successfully compensated.'.format(len(successes)))
+        messages.success(request, 'Timeseries for {} screens were successfully rebuilt.'.format(len(successes)))
         make_screencharts(modeladmin, request, successes)
     if failures:
         messages.error(request, 'Compensation failed for {}.'.format(','.join(map(str,failures))))
                        
-recomp_screens.short_description = "Gecompenseerde tijdreeksen opnieuw aanmaken voor geselecteerde filters"
+recomp_screens.short_description = "Tijdreeksen opnieuw aanmaken voor geselecteerde filters"
         
 def recomp_wells(modeladmin, request, queryset):
     for well in queryset:
         register_well(well)
         recomp_screens(modeladmin,request,well.screen_set.all())
     make_wellcharts(modeladmin, request, queryset)
-recomp_wells.short_description = "Gecompenseerde tijdreeksen opnieuw aanmaken voor geselecteerde putten"
+recomp_wells.short_description = "Tijdreeksen opnieuw aanmaken voor geselecteerde putten"
 
 def add_meteo_for_wells(modeladmin, request, queryset):
     for well in queryset:

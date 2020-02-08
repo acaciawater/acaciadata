@@ -234,8 +234,110 @@ def get_baro(screen,baros):
         
         baros[baroseries] = baro
     return baro
-    
+
 def recomp(screen,series,baros={}):
+    ''' rebuid (compensated) timeseries from loggerpos files '''
+
+    seriesdata = None
+    for logpos in screen.loggerpos_set.order_by('start_date'):
+        print logpos, logpos.start_date
+        for mon in logpos.files.order_by('start'):
+#             print mon.start, mon.stop, mon
+            mondata = mon.get_data()
+            if isinstance(mondata,dict):
+                mondata = mondata.itervalues().next()
+            if mondata is None or mondata.empty:
+                logger.error('No data found in {}'.format(mon))
+                continue
+            
+            if 'Waterstand' in mondata:
+                # Ellitrack, no need for compensation, data is m wrt reference level (NAP)
+                data = mondata['Waterstand']
+                data = series.do_postprocess(data)
+                
+            elif 'LEVEL' in mondata:
+                # Van Essen, no need for compensation, data is cm wrt reference level (NAP) 
+                data = mondata['LEVEL']
+                data = series.do_postprocess(data/100)
+                
+            elif 'PRESSURE' in mondata:
+                # Van Essen, compensation needed
+                if logpos.refpnt is None:
+                    logger.warning('Referentiepunt ontbreekt voor {pos}'.format(pos=logpos))
+                    continue
+                if logpos.depth is None:
+                    logger.warning('Inhangdiepte ontbreekt voor {pos}'.format(pos=logpos))
+                    continue
+                
+                data = mondata['PRESSURE']
+                data = series.do_postprocess(data)
+    
+                # get barometric pressure            
+                try:
+                    baro = get_baro(screen, baros)
+                    if baro is None or baro.empty:
+                        continue
+                except Exception as e:
+                    logger.error('Error retrieving barometric pressure: '+str(e))
+                    continue
+    
+                # issue warning if data has points beyond timespan of barometer
+                barostart = baro.index[0]
+                dataend = data.index[0]
+                if dataend < barostart:
+                    logger.warning('Geen luchtdruk gegevens beschikbaar vóór {}'.format(barostart))
+                    continue
+                baroend = baro.index[-1]
+                datastart = data.index[0]
+                if datastart > baroend:
+                    logger.warning('Geen luchtdruk gegevens beschikbaar na {}'.format(baroend))
+                    continue
+    
+                adata, abaro = data.align(baro)
+                abaro = abaro.interpolate(method='time')
+                abaro = abaro.reindex(data.index)
+                abaro[:barostart] = np.NaN
+                abaro[baroend:] = np.NaN
+    
+                if data.any() and abaro.any():
+                    # we have some data and some air pressure
+                    data = data - abaro
+                    data.dropna(inplace=True)
+                    
+                    #clear datapoints with less than 5 cm of water
+                    data[data<5] = np.nan
+                    # count dry values
+                    dry = data.isnull().sum()
+                    if dry:
+                        logger.warning('Logger {}, MON file {}: {} out of {} measurements have less than 5 cm of water'.format(unicode(logpos),mon,dry,data.size))
+                    
+                    data = data / 100 + (logpos.refpnt - logpos.depth)
+                    
+                else:
+                    # no data in file
+                    logger.error('Geen "PRESSURE" of "LEVEL" parameter gevonden in monfile {}'.format(mon))
+                    continue
+
+            if seriesdata is None:
+                seriesdata = data
+            else:
+                seriesdata = seriesdata.append(data)
+    if seriesdata is None:
+        logger.warning('No data for {}'.format(screen))
+        return False
+
+    seriesdata = series.do_postprocess(seriesdata)
+    tz = pytz.timezone(series.timezone)
+    series.datapoints.all().delete()
+    series.create_points(seriesdata,tz)
+    series.unit = 'm tov NAP'
+    series.update_properties()
+    series.make_thumbnail()
+    series.save()
+    series.validate(reset=True)
+    return True
+    
+def recomp_old(screen,series,baros={}):
     ''' re-compensate timeseries '''
 
     seriesdata = None

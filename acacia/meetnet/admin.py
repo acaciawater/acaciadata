@@ -88,12 +88,12 @@ class LoggerPosAdmin(admin.ModelAdmin):
     list_filter = ('screen__well', 'screen',)
     search_fields = ('logger__serial','screen__well__name')
     exclude = ('files',)
-    inlines = [MonFileInline]
+#     inlines = [MonFileInline]
     
 class LoggerInline(admin.TabularInline):
     model = LoggerPos
     extra = 0
-    exclude = ('description',)
+    exclude = ('description','files','remarks')
     classes = ('grp-collapse', 'grp-closed',)
     
 @register(LoggerDatasource)

@@ -10,7 +10,7 @@ from django.core.urlresolvers import reverse
 from acacia.data.models import Datasource, Series, SourceFile, ProjectLocatie,\
     MeetLocatie, ManualSeries
 from acacia.data import util
-from django.db.models.aggregates import Count
+from django.db.models.aggregates import Count, Min
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from django.db.models.deletion import SET_NULL
@@ -320,14 +320,19 @@ class Screen(models.Model):
 
     def num_files(self):
         try:
-            query = self.mloc.datasource_set.aggregate(Count('sourcefiles'))
-            return query['sourcefiles__count']
+            query = self.loggerpos_set.aggregate(count=Count('files'))
+            return query['count']
+#             query = self.mloc.datasource_set.aggregate(Count('sourcefiles'))
+#             return query['sourcefiles__count']
         except:
             return 0
         
-    def all_series(self):
+    def all_series_old(self):
         from django.db.models import Q
         return self.mloc.series_set.filter(Q(name__iendswith='comp')|Q(name__istartswith='waterstand')|Q(name__iendswith='value'))
+
+    def all_series(self):
+        return self.mloc.series_set.filter(name__iendswith='comp')
     
     def find_series(self):
         if not self.logger_levels:
@@ -455,11 +460,17 @@ class Screen(models.Model):
         return s
         
     def last_measurement(self):
-        series = self.find_series()
-        if series and series.datapoints and series.datapoints.exists():
-            return series.datapoints.latest('date')
-        else:
-            return None
+        latest = None
+        for series in self.all_series():
+            p = series.datapoints.latest('date')
+            if latest is None or p.date > latest.date:
+                latest = p
+        return latest
+#         series = self.find_series()
+#         if series and series.datapoints and series.datapoints.exists():
+#             return series.datapoints.latest('date')
+#         else:
+#             return None
         
 #     def group_names(self):
 #         return ','.join([group.name for group in self.screengroup_set.all()])
@@ -519,6 +530,10 @@ class LoggerPos(models.Model):
                 queryset = queryset.filter(stop__lte=self.end_date)
             for sf in queryset:
                 self.files.add(sf)
+        if not self.start_date:
+            agg = self.files.aggregate(start=Min('start'))
+            self.start_date = agg.get('start', None)
+            self.save(update_fields=('start_date',))
         newcount = self.files.count()
         return newcount - oldcount
             
