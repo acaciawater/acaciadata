@@ -5,6 +5,7 @@ import logging, re
 from django.contrib.gis.geos.point import Point
 from django.utils.translation import ugettext_lazy as _
 from django.contrib import messages
+from django.db import transaction
 
 logger = logging.getLogger(__name__)
 
@@ -153,6 +154,14 @@ def download_series(modeladmin, request, queryset):
     for d in ds:
         d.download()
 download_series.short_description = _('Download source files of selected timeseries')
+
+def filter_series(modeladmin, request, queryset):
+    for s in queryset:
+        if s.has_filters():
+            data = s.to_pandas()
+            filtered_data = s.do_filter(data)
+            s.replace_data(filtered_data)
+filter_series.short_description = _('Apply filtering on selected timeseries')
 
 from django.utils.text import slugify
 from django.conf import settings
@@ -330,6 +339,7 @@ def update_grid(modeladmin, request, queryset):
             s = cs.series
             s.update()
 update_grid.short_description = _("Update grid")
+
 
 def test_kental(modeladmin, request, queryset):
     for k in queryset:

@@ -458,7 +458,8 @@ class SeriesAdmin(PolymorphicParentModelAdmin):
                actions.replace_series, 
                actions.series_thumbnails, 
                actions.update_series_properties, 
-               actions.empty_series]
+               actions.empty_series,
+               actions.filter_series]
     list_display = ('name', 'thumbtag', 'typename', 'parameter', 'datasource', 'mlocatie', 'timezone', 'unit', 'aantal', 'van', 'tot', 'minimum', 'maximum', 'gemiddelde', 'has_filters')
     base_model = Series
     try:

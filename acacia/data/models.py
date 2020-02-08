@@ -11,7 +11,7 @@ from django.contrib.gis.db import models as geo
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files.base import ContentFile
 from django.core.urlresolvers import reverse
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Max, Min, Sum
 from django.db.models.signals import pre_delete, pre_save, post_save
 from django.dispatch.dispatcher import receiver
@@ -1273,7 +1273,17 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         self.save()
         return num_created
     
+    def replace_data(self, data):
+        ''' replace datapoints '''
+        pts = self.prepare_points(data,self.timezone)
+        with transaction.atomic():
+            self.datapoints.all().delete()
+            result = self.datapoints.bulk_create(pts)
+        self.update_properties()
+        return result
+            
     def replace(self, data=None):
+        ''' replace series (rebuild from source data) '''
         logger = self.getLogger()
         logger.debug('Deleting all %d datapoints from series %s' % (self.datapoints.count(), self.name))
         self.datapoints.all().delete()
