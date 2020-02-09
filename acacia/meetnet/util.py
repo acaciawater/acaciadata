@@ -329,20 +329,20 @@ def recomp(screen,series,start=None,baros={}):
                 seriesdata = seriesdata.append(data)
     if seriesdata is None:
         logger.warning('No data for {}'.format(screen))
-        return False
+        return 0
 
     seriesdata = series.do_postprocess(seriesdata)
     tz = pytz.timezone(series.timezone)
-    points = series.datapoints.all()
-    if start:
-        points = points.filter(date__gte=start)
+    start = min(seriesdata.index)
+    stop = max(seriesdata.index)
+    points = series.datapoints.filter(date__range=[start,stop])
     points.delete()
     series.create_points(seriesdata,tz)
     series.unit = 'm tov NAP'
     series.make_thumbnail()
     series.save()
-    series.validate(reset=True)
-    return True
+#     series.validate(reset=True)
+    return seriesdata.size
     
 def drift_correct1(series, manual):
     ''' correct drift with manual measurements (both are pandas series)'''
