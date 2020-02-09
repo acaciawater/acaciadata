@@ -462,9 +462,10 @@ class Screen(models.Model):
     def last_measurement(self):
         latest = None
         for series in self.all_series():
-            p = series.datapoints.latest('date')
-            if latest is None or p.date > latest.date:
-                latest = p
+            if series.datapoints.exists():
+                p = series.datapoints.latest('date')
+                if latest is None or p.date > latest.date:
+                    latest = p
         return latest
 #         series = self.find_series()
 #         if series and series.datapoints and series.datapoints.exists():
@@ -518,13 +519,14 @@ class LoggerPos(models.Model):
         verbose_name = _('LoggerInstallation')
         ordering = ['start_date','logger']
 
-    def update_files(self):
+    def update_files(self, start=None):
         ''' update set of sourcefiles for this datalogger installation '''
         oldcount = self.files.count()
-        self.files.clear()
         for ds in self.logger.datasources.all():
             queryset = ds.sourcefiles.all()
-            if self.start_date:
+            if start:
+                queryset = queryset.filter(start__gte=start)
+            elif self.start_date:
                 queryset = queryset.filter(start__gte=self.start_date)
             if self.end_date:
                 queryset = queryset.filter(stop__lte=self.end_date)
