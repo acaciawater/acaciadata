@@ -77,9 +77,10 @@ class MonFileInline(admin.TabularInline):
 class SourceFileInline(admin.TabularInline):
     model = LoggerPos.files.through
     classes = ['collapse']
+    max_num = 20
 #     fields = ('name','file','rows', 'cols','start','stop')
     extra = 0
-#     ordering = ('start',)
+#     ordering = ('-start',)
 
 @register(LoggerPos)
 class LoggerPosAdmin(admin.ModelAdmin):
@@ -88,7 +89,7 @@ class LoggerPosAdmin(admin.ModelAdmin):
     list_filter = ('screen__well', 'screen',)
     search_fields = ('logger__serial','screen__well__name')
     exclude = ('files',)
-#     inlines = [MonFileInline]
+#     inlines = [SourceFileInline]
     
 class LoggerInline(admin.TabularInline):
     model = LoggerPos
