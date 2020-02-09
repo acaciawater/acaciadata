@@ -8,6 +8,8 @@ from acacia.data.generators.generic import GenericCSV
 from acacia.data.generators import generator
 from acacia.data.util import get_dirlist
 import StringIO
+from datetime import timedelta
+import pytz
 logger = generator.logger
 from ftplib import FTP
 from urlparse import urlparse
@@ -84,12 +86,14 @@ class ElliTrack(GenericCSV):
                     for entry in lst:
                         dirlist.append(entry)
                     
-                ftp.dir(mask,collect)   
-                #tz = timezone.get_current_timezone()
+                ftp.dir(mask,collect)
+                now = timezone.now()
                 for f in dirlist:
                     if start is not None:
-                        date = dateutil.parser.parse(f['date'])
-                        #date = timezone.make_aware(date,tz)
+                        # directory listing may have date without year. parser assumes current year, may be wrong
+                        date = pytz.utc.localize(dateutil.parser.parse(f['date']))
+                        if date > now:
+                            date = date.replace(year=date.year-1)
                         if date.date() < start.date():
                             continue
                     filename = f['file']
