@@ -1,16 +1,18 @@
-from django.db import models, transaction
+import logging
+
+from django.conf import settings
 from django.contrib.auth.models import User
-from acacia.data.models import Series
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
+from django.db import models, transaction
+from django.utils.text import ugettext_lazy as _
+from django.utils.timezone import now
+from polymorphic.models import PolymorphicModel
+
+from acacia.data.models import Series
 import numpy as np
 import pandas as pd
-from polymorphic.models import PolymorphicModel
-import logging
-from django.core.exceptions import ObjectDoesNotExist
-from django.utils.timezone import now
-from django.utils.text import ugettext_lazy as _
-from django.conf import settings
-from django.db.models.deletion import CASCADE
+
 
 logger = logging.getLogger(__name__)
 
