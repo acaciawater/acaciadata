@@ -149,6 +149,11 @@ class ScreenAdmin(admin.ModelAdmin):
         key = Network.objects.first().display_name
         return queryset.order_by('well__'+key)
     
+    def get_form(self, request, obj=None, **kwargs):
+        form = admin.ModelAdmin.get_form(self, request, obj=obj, **kwargs)
+        form.base_fields['logger_levels'].queryset = obj.mloc.series_set.order_by('name')
+        return form
+    
 from django.contrib.gis.db import models
 from django import forms
     
