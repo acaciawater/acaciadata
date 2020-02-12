@@ -73,7 +73,7 @@ def chart_for_screen(screen,start=None,stop=None,raw=True,loggerpos=True,correct
     ax=fig.gca()
 
     datemin=start or datetime.datetime(2013,1,1)
-    datemax=stop or datetime.datetime(2019,5,15)
+    datemax=stop or datetime.datetime(2019,12,31)
     if start or stop:
         ax.set_xlim(datemin, datemax)
 
@@ -142,11 +142,11 @@ def chart_for_screen(screen,start=None,stop=None,raw=True,loggerpos=True,correct
     plt.close()    
     return img.getvalue()
 
-def chart_for_well(well,start=None,stop=None,chart_type='corrected'):
+def chart_for_well(well,start=None,stop=None,corrected=False):
     fig=plt.figure(figsize=THUMB_SIZE)
     ax=fig.gca()
     datemin=start or datetime.datetime(2013,1,1)
-    datemax=stop or datetime.datetime(2019,6,1)
+    datemax=stop or datetime.datetime(2019,12,31)
     if start or stop:
         ax.set_xlim(datemin, datemax)
     plt.grid(linestyle='-', color='0.9')
@@ -156,7 +156,7 @@ def chart_for_well(well,start=None,stop=None,chart_type='corrected'):
     for screen in well.screen_set.all():
         color=getcolor(index)
         ok = False
-        if chart_type == 'corrected':
+        if corrected:
             data = screen.mloc.series_set.filter(name__iendswith='corr').first()
             if data:
                 data = data.to_pandas()

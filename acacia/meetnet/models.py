@@ -370,6 +370,10 @@ class Screen(models.Model):
         except Exception as e:
             return None
     
+    def get_corrected_series(self, **kwargs):
+        series = self.mloc.series_set.filter(name__iendswith='corr').first()
+        return series.to_pandas(**kwargs) if series else None
+
     def stats(self):
         df = self.get_compensated_series()
         if df is None:
