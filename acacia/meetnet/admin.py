@@ -171,11 +171,10 @@ class ScreenAdmin(admin.ModelAdmin):
     
     def get_form(self, request, obj=None, **kwargs):
         form = admin.ModelAdmin.get_form(self, request, obj=obj, **kwargs)
-        form.base_fields['logger_levels'].queryset = obj.mloc.series_set.all()
-        form.base_fields['manual_levels'].queryset = obj.mloc.series_set.all()
+        form.base_fields['logger_levels'].queryset = obj.mloc.series_set.order_by('name')
+        form.base_fields['manual_levels'].queryset = obj.mloc.series_set.order_by('name')
         return form
-
-#         
+        
 #     def get_inline_instances(self, request, obj=None):
 #         instances = ModelAdmin.get_inline_instances(self, request, obj)
 #         if hasattr(obj,'bro'):
