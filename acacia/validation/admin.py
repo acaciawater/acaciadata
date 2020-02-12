@@ -35,7 +35,7 @@ def apply_filter(modeladmin, request, queryset):
     count = queryset.count()
     for filt in queryset:
         for series in filt.series.all():
-            filtered_data = filt.apply(series.to_pandas())
+            filtered_data = filt.apply(series.to_pandas(),context={})
             series.replace(filtered_data)
     messages.success(request, '{} filters toegepast'.format(count))
 apply_filter.short_description='Geselecteerde filters toepassen op betreffende tijdreeksen'
