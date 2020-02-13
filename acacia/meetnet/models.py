@@ -331,7 +331,6 @@ class Screen(models.Model):
     
     def find_series(self):
         if not self.logger_levels:
-            from django.db.models import Q
             series = self.all_series().first()
             if series:
                 self.logger_levels = series
@@ -340,7 +339,6 @@ class Screen(models.Model):
 
     def iter_pandas(self, **kwargs):
         ''' returns a pandas Series for every waterlevel Series defined for this screen '''  
-        from django.db.models import Q
         query = self.all_series()
         for series in query:
             yield series.to_pandas(**kwargs)
