@@ -6,18 +6,20 @@ from django.db import models
 from acacia.meetnet.models import Screen
 from django.utils.translation import ugettext_lazy as _
 from ..fields import CodeField, IndicationYesNoUnknownEnumeration
+from django.contrib.auth.models import User
+from acacia.meetnet.bro.fields import IndicationYesNoEnumeration
     
 class MonitoringTube(models.Model):
-    ''' Screen data for BRO '''
-    screen = models.OneToOneField(Screen,on_delete=models.CASCADE,related_name='bro')
+    ''' Tube data for BRO '''
+    screen = models.OneToOneField(Screen,on_delete=models.CASCADE,verbose_name=_('tube'), related_name='bro')
 
     tubeNumber = models.PositiveSmallIntegerField(default = 1)
     tubeType = CodeField(codeSpace='TubeType', verbose_name=_('Buistype'), default='standaardbuis')
-    artesianWellCapPresent = IndicationYesNoUnknownEnumeration(_('Drukdop'))
-    sedimentSumpPresent = IndicationYesNoUnknownEnumeration(_('Zandvang')) # True als diepte > onderkant filter
-    numberOfGeoOhmCables = models.PositiveSmallIntegerField(default = 0)
+    artesianWellCapPresent = IndicationYesNoUnknownEnumeration(verbose_name=_('ArtesianWellCapPresent'))
+    sedimentSumpPresent = IndicationYesNoUnknownEnumeration(verbose_name=_('SedimentSumpPresent'))
+    numberOfGeoOhmCables = models.PositiveSmallIntegerField(verbose_name=_('NumberOfGeoOhmCables'), default = 0)
     tubeTopDiameter = models.FloatField(_('Diameter'))
-    variableDiameter = models.BooleanField(_('Variabele diameter'),default=False)
+    variableDiameter = IndicationYesNoEnumeration(_('Variabele diameter'),default='nee')
     tubeStatus = CodeField(codeSpace='TubeStatus',verbose_name=_('Status'),default='gebruiksklaar')
     tubeTopPosition = models.FloatField(_('Bovenkant buis'))
     tubeTopPositioningMethod = CodeField(codeSpace='TubeTopPositioningMethod',verbose_name=_('Methode positiebepaling bovenkant buis'),default='onbekend')
@@ -27,11 +29,20 @@ class MonitoringTube(models.Model):
     sockMaterial = CodeField(codeSpace='SockMaterial',verbose_name=_('Kousmateriaal'),default='onbekend')
     plainTubePartLength = models.FloatField(_('Lengte stijgbuis'))
     sedimentSump = models.FloatField(_('Lengte zandvang'),default = 0)
+
+    # Admin things
+    user = models.ForeignKey(User, on_delete=models.PROTECT, verbose_name = _('user'))
+    created = models.DateTimeField(_('created'), auto_now_add=True)
+    modified = models.DateTimeField(_('modified'), auto_now=True)
     
     def __unicode__(self):
         return str(self.screen)
     
-    def update(self):
+    def update(self, **kwargs):
+        for attr in kwargs:
+            if hasattr(self, attr):
+                setattr(self, attr, kwargs[attr])
+
         self.tubeNumber = self.screen.nr
         self.tubeTopDiameter = self.screen.diameter
         self.tubeTopPosition = self.screen.refpnt
@@ -43,15 +54,16 @@ class MonitoringTube(models.Model):
         maaiveld = self.screen.well.maaiveld
 
         if not (top is None or bottom is None):
-            self.screenLength = top - bottom
+            self.screenLength = abs(bottom - top)
         if not (top is None or refpnt is None or maaiveld is None):
-            self.plainTubePartLength = top + refpnt - maaiveld
+            self.plainTubePartLength = abs(top + refpnt - maaiveld)
         if not (depth is None or bottom is None):
-            self.sedimentSump = depth - bottom
-        
+            self.sedimentSump = abs(depth - bottom)
+            self.sedimentSumpPresent = 'ja' if self.sedimentSump > 0 else 'nee'
+            
     @classmethod
-    def create_for_screen(cls, screen):
-        tube = MonitoringTube(screen=screen)
+    def create_for_screen(cls, screen, **kwargs):
+        tube = MonitoringTube(screen=screen, **kwargs)
         tube.update()
         tube.save()
         

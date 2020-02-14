@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-11-22 11:13+0100\n"
+"POT-Creation-Date: 2019-12-17 22:03+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,24 +17,24 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: acacia/templates/bootbase.html:61 acacia/templates/data/dashgroup.html:5
+#: acacia/templates/bootbase.html:60 acacia/templates/data/dashgroup.html:5
 #: acacia/templates/data/tabgroup.html:15
 msgid "Home"
 msgstr "Startpagina"
 
-#: acacia/templates/bootbase.html:69
+#: acacia/templates/bootbase.html:68
 msgid "Admin"
 msgstr "Beheer"
 
-#: acacia/templates/bootbase.html:75
+#: acacia/templates/bootbase.html:74
 msgid "Log out"
 msgstr "Uitloggen"
 
-#: acacia/templates/bootbase.html:76
+#: acacia/templates/bootbase.html:75
 msgid "Change password"
 msgstr "Wachtwoord veranderen"
 
-#: acacia/templates/bootbase.html:80
+#: acacia/templates/bootbase.html:79
 msgid "Log in"
 msgstr "Inloggen"
 
@@ -107,7 +107,7 @@ msgstr ""
 msgid "Filter Regels"
 msgstr ""
 
-#: acacia/validation/models.py:276 acacia/validation/models.py:508
+#: acacia/validation/models.py:276 acacia/validation/models.py:514
 msgid "validatie"
 msgstr ""
 
@@ -139,54 +139,54 @@ msgstr ""
 msgid "Laatste validatie"
 msgstr ""
 
-#: acacia/validation/models.py:373
+#: acacia/validation/models.py:376
 msgid "Validating {}: {} rules"
 msgstr ""
 
-#: acacia/validation/models.py:393
+#: acacia/validation/models.py:396
 msgid "validation {}, rule \"{}\" failed at {}"
 msgstr ""
 
-#: acacia/validation/models.py:396
+#: acacia/validation/models.py:399
 msgid "validation {}, rule \"{}\" passed"
 msgstr ""
 
-#: acacia/validation/models.py:403
+#: acacia/validation/models.py:407
 msgid "Validation {} failed"
 msgstr ""
 
-#: acacia/validation/models.py:405
+#: acacia/validation/models.py:409
 msgid "Validation {} passed"
 msgstr ""
 
-#: acacia/validation/models.py:408
+#: acacia/validation/models.py:412
 msgid "Validation {}: no datapoints"
 msgstr ""
 
-#: acacia/validation/models.py:482
+#: acacia/validation/models.py:488
 msgid "Validatieregel"
 msgstr ""
 
-#: acacia/validation/models.py:483
+#: acacia/validation/models.py:489
 msgid "Validatieregels"
 msgstr ""
 
-#: acacia/validation/models.py:489
+#: acacia/validation/models.py:495
 msgid "tussenresultaat"
 msgstr ""
 
-#: acacia/validation/models.py:490
+#: acacia/validation/models.py:496
 msgid "tussenresultaten"
 msgstr ""
 
-#: acacia/validation/models.py:505
+#: acacia/validation/models.py:511
 msgid "resultaat"
 msgstr ""
 
-#: acacia/validation/models.py:506
+#: acacia/validation/models.py:512
 msgid "resultaten"
 msgstr ""
 
-#: acacia/validation/models.py:513
+#: acacia/validation/models.py:519
 msgid "uploaded"
 msgstr ""

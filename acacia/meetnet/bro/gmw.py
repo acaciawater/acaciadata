@@ -1,9 +1,15 @@
 from xml.etree.ElementTree import Element, SubElement
 from .models import MapSheet
+from django.core.exceptions import ObjectDoesNotExist
     
-def registration_request(well, kvk):
+def registration_request(well):
     ''' Creates xml with registration request (registratieverzoek) for BRO '''
-    # TODO: handle missing data, e.g. screen settings, reference point or surface level
+    try:
+        bro = well.network.bro
+    except ObjectDoesNotExist:
+        # no bro defaults available
+        raise ValueError('No BRO settings defined for network %s' % well.network)
+    
     request = Element('ns:registrationRequest',
     {
         'xmlns:ns':'http://www.broservices.nl/xsd/isgmw/1.1',
@@ -12,7 +18,7 @@ def registration_request(well, kvk):
         'xmlns:ns3':'http://www.opengis.net/gml/3.2'
     })
     SubElement(request, 'ns1:requestReference').text = 'BRO registratieverzoek voor put {}'.format(well)
-    SubElement(request, 'ns1:deliveryAccountableParty').text = kvk
+    SubElement(request, 'ns1:deliveryAccountableParty').text = bro.deliveryAccountableParty
     SubElement(request, 'ns1:qualityRegime').text = 'IMBRO/A'
     SubElement(request, 'ns1:underPrivilege').text = 'ja'
     
@@ -35,8 +41,8 @@ def registration_request(well, kvk):
         else:
             raise Exception('Could not determine mapSheetCode for well "{}"'.format(well.name))
 
-    SubElement(construction, 'ns:owner').text = kvk
-    SubElement(construction, 'ns:maintenanceResponsibleParty').text = kvk
+    SubElement(construction, 'ns:owner').text = bro.owner
+    SubElement(construction, 'ns:maintenanceResponsibleParty').text = bro.maintenanceResponsibleParty
     SubElement(construction, 'ns:wellHeadProtector', codeSpace='urn:bro:gmw:WellHeadProtector').text = 'pot'
     
     constructionDate = SubElement(construction, 'ns:wellConstructionDate')
@@ -76,5 +82,3 @@ def registration_request(well, kvk):
         SubElement(plainTubePart, 'ns2:plainTubePartLength', uom="m").text = '{:.2f}'.format(screen.top + screen.refpnt - well.maaiveld)
 
     return request
-    
-    

@@ -19,11 +19,11 @@ class CodeSpace(models.Model):
         return self.codeSpace
 
     def choices(self):
-        return map(lambda c: (c,c), self.code_set.values_list('code',flat=True))
+        return map(lambda c: (c,c), self.code_set.order_by('code').values_list('code',flat=True))
         
     @classmethod
     def default(cls,codeSpace):
-        return cls.objects.get(codeSpace=codeSpace).default_code
+        return cls.objects.get(codeSpace__iexact=codeSpace).default_code
 
     class Meta:
         verbose_name = _('Code space')

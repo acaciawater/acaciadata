@@ -156,19 +156,14 @@ class ScreenAdmin(admin.ModelAdmin):
                actions.drift_screens,
                actions.register_screens,
                actions.download_screen_nitg,
-               actions.create_handpeilingen]
+               actions.create_handpeilingen,
+               actions.clip_data]
     list_display = ('__unicode__', 'group', 'refpnt', 'top', 'bottom', 'aquifer', 'num_files', 'num_standen', 'start', 'stop', 'manual_levels')
     search_fields = ('well__name', 'well__nitg')
     list_filter = ('well','well__network','aquifer', 'group')
     inlines = [LoggerInline]
     ordering = ()
     
-#     def __init__(self,model, admin_site):
-#         if 'acacia.meetnet.bro' in settings.INSTALLED_APPS:
-#             from acacia.meetnet import bro
-#             self.actions += [bro.actions.add_bro_for_screens]
-#         admin.ModelAdmin.__init__(self, model, admin_site)
-        
     def get_queryset(self, request):
         ''' override to perform custom sorting '''
         queryset = admin.ModelAdmin.get_queryset(self, request)
@@ -176,12 +171,21 @@ class ScreenAdmin(admin.ModelAdmin):
         key = Network.objects.first().display_name
         return queryset.order_by('well__'+key)
 
+    def get_actions(self, request):
+        ''' add bro actions dynamically, to avoid circular refs '''
+        actions = admin.ModelAdmin.get_actions(self, request)
+        if 'acacia.meetnet.bro' in settings.INSTALLED_APPS:
+            from acacia.meetnet.bro.actions import add_bro_for_screens
+            func,name,desc = self.get_action(add_bro_for_screens)
+            actions[name]=(func,name,desc)
+        return actions
+    
     def get_form(self, request, obj=None, **kwargs):
         form = admin.ModelAdmin.get_form(self, request, obj=obj, **kwargs)
-        form.base_fields['logger_levels'].queryset = obj.mloc.series_set.all()
-        form.base_fields['manual_levels'].queryset = obj.mloc.series_set.all()
+        form.base_fields['logger_levels'].queryset = obj.mloc.series_set.order_by('name')
+        form.base_fields['manual_levels'].queryset = obj.mloc.series_set.order_by('name')
         return form
-
+        
 #     def get_inline_instances(self, request, obj=None):
 #         instances = ModelAdmin.get_inline_instances(self, request, obj)
 #         if hasattr(obj,'bro'):
@@ -202,6 +206,7 @@ class WellAdmin(admin.ModelAdmin):
                actions.download_well_nitg,
                actions.elevation_from_ahn,
                actions.address_from_osm]
+
     inlines = [ScreenInline, MeteoInline, PhotoInline ]
     list_display = ('name','nitg','network','owner','maaiveld', 'ahn', 'num_filters', 'num_photos', 'straat', 'plaats')
     #list_editable = ('location',)
@@ -228,11 +233,14 @@ class WellAdmin(admin.ModelAdmin):
     map_width = 400
     map_height = 325
 
-#     def __init__(self,model, admin_site):
-#         if 'acacia.meetnet.bro' in settings.INSTALLED_APPS:
-#             from acacia.meetnet import bro
-#             self.actions += [bro.actions.add_bro_for_wells]
-#         admin.ModelAdmin.__init__(self, model, admin_site)
+    def get_actions(self, request):
+        ''' add bro actions dynamically, to avoid circular refs '''
+        actions = admin.ModelAdmin.get_actions(self, request)
+        if 'acacia.meetnet.bro' in settings.INSTALLED_APPS:
+            from acacia.meetnet.bro.actions import add_bro_for_wells
+            func,name,desc = self.get_action(add_bro_for_wells)
+            actions[name]=(func,name,desc)
+        return actions
 
 #     def get_inline_instances(self, request, obj=None):
 #         instances = ModelAdmin.get_inline_instances(self, request, obj)

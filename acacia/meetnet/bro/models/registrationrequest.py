@@ -4,18 +4,23 @@ from __future__ import unicode_literals
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
-from acacia.meetnet.bro.fields import CodeField,\
-    IndicationYesNoUnknownEnumeration
+from acacia.meetnet.bro.fields import CodeField, IndicationYesNoEnumeration
 from acacia.meetnet.bro.validators import ChamberOfCommerceValidator
 from acacia.meetnet.bro.models import GroundwaterMonitoringWell
+from django.core.exceptions import ObjectDoesNotExist
+from django.contrib.auth.models import User
 
 class RegistrationRequest(models.Model):
-    requestReference = models.CharField(_('requestReference'),max_length=100,default=_('Verzoek voor put %s'))
+    requestReference = models.CharField(_('requestReference'),max_length=100,blank=True)
     deliveryAccountableParty = models.CharField(_('deliveryAccountableParty'),max_length=8,validators=[ChamberOfCommerceValidator],help_text=_('KVK nummer van bronhouder'))
     qualityRegime = CodeField(codeSpace='qualityRegime',verbose_name=_('Kwaliteitsregime'))
-#     broId = models.CharField(_('broid'),max_length=20)
-    underPrivilege = IndicationYesNoUnknownEnumeration(_('Onder voorrecht'))
+    underPrivilege = IndicationYesNoEnumeration(_('Onder voorrecht'), default='ja')
     gmw = models.ForeignKey(GroundwaterMonitoringWell, on_delete=models.CASCADE, verbose_name=_('GroundwaterMonitoringWell'))
+    
+    # Admin things
+    user = models.ForeignKey(User, on_delete=models.PROTECT, verbose_name = _('user'))
+    created = models.DateTimeField(_('created'), auto_now_add=True)
+    modified = models.DateTimeField(_('modified'), auto_now=True)
 
     class Meta:
         verbose_name = _('RegistrationRequest')
@@ -24,7 +29,7 @@ class RegistrationRequest(models.Model):
     def __str__(self):
         return self.requestReference
     
-    def _element(self):
+    def _xml(self):
         ''' Returns xml Element with registration request for BRO '''
         from xml.etree.ElementTree import Element, SubElement
         
@@ -75,7 +80,10 @@ class RegistrationRequest(models.Model):
         
         for screen in self.gmw.well.screen_set.order_by('nr'):
             monitoringTube = SubElement(construction, 'ns:monitoringTube')
-            t = screen.bro
+            try:
+                t = screen.bro
+            except ObjectDoesNotExist:
+                raise ValueError(_('No BRO data for screen %s') % screen)
             SubElement(monitoringTube, 'ns:tubeNumber').text = '{}'.format(t.tubeNumber)
             SubElement(monitoringTube, 'ns:tubeType', codeSpace="urn:bro:gmw:TubeType").text=t.tubeType
             SubElement(monitoringTube, 'ns:artesianWellCapPresent').text = t.artesianWellCapPresent
@@ -99,13 +107,35 @@ class RegistrationRequest(models.Model):
         return xml
     
     def as_xml(self):
-        ''' return xml of this request '''
-#         from xml.etree.ElementTree import ElementTree
-#         import StringIO
-#         io = StringIO.StringIO()
-#         element = self._element()
-#         ElementTree(element).write(io,xml_declaration=True,encoding='utf-8')
-#         return io.getvalue()
-    
+        ''' return xml content for this request '''
         from xml.etree import ElementTree
-        return ElementTree.tostring(self._element(),encoding='utf-8') # no xml-declaration
+        return ElementTree.tostring(self._xml(),encoding='utf-8') # no xml-declaration
+
+    def update(self, **kwargs):
+        for attr in kwargs:
+            if hasattr(self, attr):
+                setattr(self, attr, kwargs[attr])
+                
+        if not self.requestReference:
+            self.requestReference = _('Registratieverzoek voor put %(well)s') % {'well': self.gmw.well.name}
+        if not self.deliveryAccountableParty:
+            try:
+                self.deliveryAccountableParty = self.gmw.well.network.bro.deliveryAccountableParty
+            except ObjectDoesNotExist:
+                self.deliveryAccountableParty = self.gmw.owner 
+        # also update gmw
+        self.gmw.update(**kwargs)
+
+    @classmethod
+    def create_for_well(cls, well, **kwargs):
+        ''' create a registration request for a well '''
+        request = RegistrationRequest(**kwargs)
+        try:
+            request.gmw = well.bro
+        except ObjectDoesNotExist:
+            ''' create GMW_Construction document '''
+            request.gmw = GroundwaterMonitoringWell.create_for_well(well, user=request.user)
+        request.update()
+        request.save()
+        return request
+        

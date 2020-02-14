@@ -248,7 +248,7 @@ class Screen(models.Model):
         elif ref == 'bot':
             # convert to m above bottom of screen
             # screen setting is in m below surface
-            bot = self.well.maaiveld - self.bot
+            bot = self.well.maaiveld - self.bottom
             return series - bot
         elif ref == 'sens':
             # convert to m above sensor
@@ -336,7 +336,6 @@ class Screen(models.Model):
     
     def find_series(self):
         if not self.logger_levels:
-            from django.db.models import Q
             series = self.all_series().first()
             if series:
                 self.logger_levels = series
@@ -345,7 +344,6 @@ class Screen(models.Model):
 
     def iter_pandas(self, **kwargs):
         ''' returns a pandas Series for every waterlevel Series defined for this screen '''  
-        from django.db.models import Q
         query = self.all_series()
         for series in query:
             yield series.to_pandas(**kwargs)
@@ -449,6 +447,10 @@ class Screen(models.Model):
         except Exception as e:
             return None
     
+    def get_corrected_series(self, **kwargs):
+        series = self.mloc.series_set.filter(name__iendswith='corr').first()
+        return series.to_pandas(**kwargs) if series else None
+
     def stats(self):
         df = self.get_compensated_series()
         if df is None:

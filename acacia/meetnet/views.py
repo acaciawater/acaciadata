@@ -561,7 +561,7 @@ class UploadMetadataView(StaffRequiredMixin, FormView):
     template_name = 'meetnet/upload_metadata.html'
     
     def get_success_url(self):
-        return reverse('meetnet:upload-metadata-done') + '?' + urlencode({'url':self.logfile})
+        return reverse('meetnet:upload-metadata-done') + '?' + urlencode({'errors': self.errors, 'url':self.logfile})
     
     def get_context_data(self, **kwargs):
         context = FormView.get_context_data(self, **kwargs)
@@ -569,7 +569,7 @@ class UploadMetadataView(StaffRequiredMixin, FormView):
         return context
 
     def form_valid(self, form):
-        self.logfile = handle_registration_files(self.request)
+        self.errors, self.logfile = handle_registration_files(self.request)
         return FormView.form_valid(self, form)
     
 class UploadMetadataDoneView(TemplateView):
@@ -578,5 +578,6 @@ class UploadMetadataDoneView(TemplateView):
     def get_context_data(self, **kwargs):
         context = TemplateView.get_context_data(self, **kwargs)
         context['url'] = self.request.GET.get('url')
+        context['errors'] = self.request.GET.get('errors',0)
         return context
     
