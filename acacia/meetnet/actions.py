@@ -21,6 +21,7 @@ from django.contrib import messages
 from django.http.response import HttpResponse
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
+from django.db.models.aggregates import Max, Min
 logger = logging.getLogger(__name__)
 
 def download_metadata(modeladmin, request, queryset):
@@ -218,3 +219,27 @@ def create_handpeilingen(modeladmin, request, queryset):
         messages.warning(request, 'geen reeksen toegevoegd.')
             
 create_handpeilingen.short_description = 'Maak tijdreeksen voor handpeilingen'
+
+def clip_data(modeladmin, request, queryset):
+    ''' clip time series on start/stop of loggerinstallations '''
+    num_clipped = 0
+    for screen in queryset:
+        agg = screen.loggerpos_set.aggregate(start=Min('start_date'), stop=Max('end_date'))
+        start = agg['start']        
+        stop = agg['stop']
+        for series in screen.all_series():
+            num_deleted = 0
+            if start:
+                count, _objects = series.datapoints.filter(date__lt=start).delete()
+                num_deleted += count
+            if stop:
+                count, _objects = series.datapoints.filter(date__gt=stop).delete()
+                num_deleted += count               
+            if num_deleted:
+                num_clipped += 1
+    if num_clipped:
+        messages.success(request, '{} reeksen ingekort.'.format(num_clipped))
+    else:
+        messages.warning(request, 'geen reeksen ingekort.')
+clip_data.short_description = 'Tijdreeksen inkorten'
+    
