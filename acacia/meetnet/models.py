@@ -248,7 +248,7 @@ class Screen(models.Model):
         elif ref == 'bot':
             # convert to m above bottom of screen
             # screen setting is in m below surface
-            bot = self.well.maaiveld - self.bot
+            bot = self.well.maaiveld - self.bottom
             return series - bot
         elif ref == 'sens':
             # convert to m above sensor
