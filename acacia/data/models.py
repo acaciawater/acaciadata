@@ -1115,7 +1115,10 @@ class Series(PolymorphicModel,LoggerSourceMixin):
  
         # remove duplicates and sort on time
         # MySQL < 5.6 does not have milliseconds, avoid duplicate entry exceptions
-        series.index = series.index.round('S')
+        try:
+            series.index = series.index.round('S')
+        except Exception as e:
+            logger.error(e)
         series = series.groupby(series.index).last().sort_index()
         if series.empty:
             return series
