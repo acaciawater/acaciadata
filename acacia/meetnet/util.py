@@ -103,7 +103,7 @@ def chart_for_screen(screen,start=None,stop=None,raw=True,loggerpos=True,correct
 
     if raw or not hasCor:
         data = screen.get_levels('nap',rule='H')
-        if len(data)>0:
+        if data is not None and len(data)>0:
             x,y = zip(*data)
             plt.plot_date(x, y, '-', label='logger',color='blue')
             ncol += 1
@@ -331,7 +331,9 @@ def recomp(screen,series,start=None,baros={}):
         logger.warning('No data for {}'.format(screen))
         return 0
 
-    seriesdata = series.do_postprocess(seriesdata)
+    # postprocessing twice to remove dups. works only if no calculations defined
+#     seriesdata = series.do_postprocess(seriesdata)
+    seriesdata = seriesdata.groupby(seriesdata.index).last().sort_index()
     tz = pytz.timezone(series.timezone)
     start = min(seriesdata.index)
     stop = max(seriesdata.index)
