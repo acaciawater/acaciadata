@@ -154,6 +154,38 @@ def drift_monfile(modeladmin, request, queryset):
         moncorrect(monfile)
 drift_monfile.short_description = 'Standen corrigeren voor drift'
         
+def update_screens(modeladmin, request, queryset):
+    successes = []
+    failures = []
+    for screen in queryset:
+        register_screen(screen)
+        name = '%s COMP' % unicode(screen)
+        series, created = screen.mloc.series_set.update_or_create(name=name,defaults={
+            'user':request.user,
+            'timezone': 'Etc/GMT-1'
+        })
+        start = None if created else series.tot()
+        success = recomp(screen, series, start=start)
+        if success:
+            series.validate(reset=True, accept=True, user=request.user)
+            successes.append(screen)
+        else:
+            failures.append(screen)
+    if successes:
+        messages.success(request, 'Timeseries for {} screens were successfully updated.'.format(len(successes)))
+        make_screencharts(modeladmin, request, successes)
+    if failures:
+        messages.error(request, 'Compensation failed for {}.'.format(','.join(map(str,failures))))
+                       
+update_screens.short_description = "Tijdreeksen actualiseren voor geselecteerde filters"
+        
+def update_wells(modeladmin, request, queryset):
+    for well in queryset:
+        register_well(well)
+        update_screens(modeladmin,request,well.screen_set.all())
+    make_wellcharts(modeladmin, request, queryset)
+update_wells.short_description = "Tijdreeksen actualiseren voor geselecteerde putten"
+
 def recomp_screens(modeladmin, request, queryset):
     successes = []
     failures = []

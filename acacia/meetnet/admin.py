@@ -153,6 +153,7 @@ class ScreenInline(admin.TabularInline):
 class ScreenAdmin(admin.ModelAdmin):
     actions = [actions.make_screencharts,
                actions.recomp_screens,
+               actions.update_screens,
                actions.drift_screens,
                actions.register_screens,
                actions.download_screen_nitg,
@@ -200,6 +201,7 @@ class WellAdmin(admin.ModelAdmin):
     formfield_overrides = {models.PointField:{'widget': forms.TextInput(attrs={'size': '100'})}}
     actions = [actions.make_wellcharts,
                actions.recomp_wells,
+               actions.update_wells,
                actions.add_meteo_for_wells,
                actions.register_wells,
                actions.download_metadata,
