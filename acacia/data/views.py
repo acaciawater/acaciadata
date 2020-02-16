@@ -252,7 +252,7 @@ class SeriesView(DetailView):
             'plotOptions': {'line': {'marker': {'enabled': False}}},            
             'credits': {'enabled': True, 
                         'text': 'acaciawater.com', 
-                        'href': 'http://www.acaciawater.com',
+                        'href': 'https://www.acaciawater.com',
                        }
             }
            
@@ -316,7 +316,7 @@ class ChartBaseView(TemplateView):
                               'column': {'allowpointSelect': True, 'pointPadding': 0.01, 'groupPadding': 0.01}},
             'credits': {'enabled': True, 
                         'text': 'acaciawater.com', 
-                        'href': 'http://www.acaciawater.com',
+                        'href': 'https://www.acaciawater.com',
                        },
             'exporting' :{
                     'sourceWidth': 1080,
