@@ -103,7 +103,7 @@ def chart_for_screen(screen,start=None,stop=None,raw=True,loggerpos=True,correct
 
     if raw or not hasCor:
         data = screen.get_levels('nap',rule='H')
-        if len(data)>0:
+        if data is not None and len(data)>0:
             x,y = zip(*data)
             plt.plot_date(x, y, '-', label='logger',color='blue')
             ncol += 1
