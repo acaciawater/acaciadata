@@ -60,7 +60,7 @@ def elevation_from_ahn(modeladmin, request, queryset):
                 numok += 1
                 mp.ahn=ahn
                 mp.save(update_fields=('ahn',))
-        except Exception as e:
+        except Exception:
             numfail += 1
             #logger.exception('Fout bij maaiveld bepaling voor {}'.format(mp))
     if numfail:
@@ -153,7 +153,7 @@ def recomp_screens(modeladmin, request, queryset):
         series = screen.find_series()
         if not series:
             name = '%s COMP' % unicode(screen)
-            series, created = Series.objects.update_or_create(name=name,defaults={
+            series, _created = Series.objects.update_or_create(name=name,defaults={
                 'user':request.user,
                 'mlocatie':screen.mloc,
                 'timezone': 'Etc/GMT-1'
@@ -177,13 +177,11 @@ def add_meteo_for_wells(modeladmin, request, queryset):
 add_meteo_for_wells.short_description = "Meteostations en tijdreeksen toevoegen voor geselecteerde putten"
 
 def register_wells(modeladmin, request, queryset):
-    from util import register_well
     for well in queryset:
         register_well(well)
 register_wells.short_description = 'Registreer geselecteerde putten bij acaciadata.com'
 
 def register_screens(modeladmin, request, queryset):
-    from util import register_screen
     for screen in queryset:
         register_screen(screen)
 register_screens.short_description = 'Registreer geselecteerde filters bij acaciadata.com'
