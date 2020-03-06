@@ -172,7 +172,7 @@ from threading import Thread
 from datetime import datetime, timedelta
 from django.template.loader import render_to_string
 
-def store_csv(queryset, zf):
+def store_csv(queryset, zf, **kwargs):
     for series in queryset:
         ml = series.meetlocatie()
         if ml:
@@ -185,7 +185,7 @@ def store_csv(queryset, zf):
                 src = slugify(unicode(series))
         filename = src + '.csv'
         logger.debug(_('adding %s') % filename)
-        csv = series.to_csv()
+        csv = series.to_csv(**kwargs)
         zf.writestr(filename,csv)
 
 def email_series_zip(request, queryset, zf, store=store_csv):
@@ -196,7 +196,8 @@ def email_series_zip(request, queryset, zf, store=store_csv):
     else:
         url = request.build_absolute_uri(settings.EXPORT_URL+os.path.basename(zf.filename))
         logger.debug(_('Preparing zip file %s') % url)
-        store(queryset, zf)
+        datatype = request.GET.get('type','valid')
+        store(queryset, zf, type=datatype)
         zf.close()
         name = request.user.get_full_name() or request.user.username
         logger.debug(_('Done, sending email with link to %(name)s (%(email)s)') % {'name':name, 'email':request.user.email})
