@@ -512,6 +512,8 @@ class Result(models.Model):
     begin = models.DateTimeField()
     end = models.DateTimeField()
     xlfile = models.FileField(upload_to='valid',blank=True,null=True)
+    xlbegin = models.DateTimeField(blank=True, null=True)
+    xlend = models.DateTimeField(blank=True, null=True)
     user = models.ForeignKey(User)
     date = models.DateTimeField(auto_now=True,verbose_name=_('date'))
     remarks = models.TextField(blank=True,null=True)
@@ -536,6 +538,10 @@ class Result(models.Model):
         pts = [ValidPoint(validation=self.validation,date=date,value=None if np.isnan(value) else value) for date,value in series.iteritems()]
         self.validation.validpoint_set.filter(date__range=[begin,end]).delete()
         self.validation.validpoint_set.bulk_create(pts)
+
+        self.xlbegin = begin
+        self.xlend = end
+        self.save(update_fields=('xlbegin','xlend'))
         
     def __unicode__(self):
         return unicode(self.validation)

@@ -153,7 +153,7 @@ def process_file(path, user, **kwargs):
     relpath = path.replace(default_storage.location,'')
     begin = df.index[0]
     end = df.index[-1]
-    defaults={'begin':begin,'end':end,'user':user,'xlfile':relpath,'valid':True, 'date': datetime.now()}
+    defaults={'xlbegin': begin, 'begin':begin, 'xlend': end, 'end':end,'user':user,'xlfile':relpath,'valid':True, 'date': datetime.now()}
 
     #result,updated = Result.objects.update_or_create(validation=val,defaults=defaults)
     
