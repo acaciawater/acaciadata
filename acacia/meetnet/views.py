@@ -403,7 +403,8 @@ def DownloadWellSeries(request,pk):
     series = filter(lambda x:x, series)
     if series:
         if len(series)==1:
-            resp = series_as_csv(series[0]) # one single csv file
+            series_type = request.GET.get('type','valid')
+            resp = series_as_csv(series[0],type=series_type) # one single csv file
             resp['Content-Disposition'] = 'attachment; filename={}.csv'.format(slugify(str(well)))
         else:
             resp = download_series_csv(None,request,series) # zip archive with all series

@@ -64,6 +64,7 @@ def write_header(f,source):
     f.write('#EOH=\n')
 
 def write_data(f,screen,**kwargs):
+    # TODO: support datatypes both, raw or valid from 'type' keyword argument
     series = screen.get_compensated_series(**kwargs)
     if series is None or screen.refpnt is None:
         return

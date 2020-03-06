@@ -156,9 +156,9 @@ def datasource_as_zip(ds):
 def meetlocatie_as_zip(loc):
     return datasources_as_zip(loc.datasources.all(),'%s.zip'% slugify(loc.name))
 
-def series_as_csv(series):
+def series_as_csv(series,**kwargs):
     filename = slugify(series.name) + '.csv'
-    csv = series.to_csv()
+    csv = series.to_csv(**kwargs)
     resp = HttpResponse(csv, content_type='text/csv')
     resp['Content-Disposition'] = 'attachment; filename=%s' % filename
     return resp
