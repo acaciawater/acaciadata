@@ -577,6 +577,8 @@ class LoggerStat(models.Model):
     std = models.FloatField(default=0,blank=True,null=True)
 
     def update(self):
+        if self.loggerpos.screen is None:
+            return 
         df = self.loggerpos.screen.get_compensated_series(start=self.loggerpos.start_date, stop = self.loggerpos.end_date)
         if df is None or df.empty:
             return
