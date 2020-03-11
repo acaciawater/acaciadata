@@ -176,7 +176,7 @@ def chart_for_well(well,start=None,stop=None,corrected=False):
         hand = screen.get_hand('nap')
         if hand and len(hand)>0:
             x,y = zip(*hand)
-            plt.plot_date(x, y, 'o', label='handpeiling {}'.format(screen.nr), color='red' if singlescreen else color)
+            plt.plot_date(x, y, 'o', label='handpeiling {}'.format(screen.nr), markeredgecolor='white', markerfacecolor='red' if singlescreen else color)
             ncol += 1
 
         index += 1

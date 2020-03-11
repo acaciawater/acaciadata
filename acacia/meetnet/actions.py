@@ -6,7 +6,6 @@ Created on Jul 8, 2014
 import os, logging
 from django.utils.text import slugify
 from .util import make_chart, recomp, createmeteo
-from acacia.data.models import Series
 import nitg
 from acacia.data import actions
 from acacia.ahn.models import AHN
@@ -20,7 +19,6 @@ from acacia.meetnet.models import LoggerStat, Handpeilingen
 from django.contrib import messages
 from django.http.response import HttpResponse
 from django.conf import settings
-from django.utils.translation import ugettext_lazy as _
 from django.db.models.aggregates import Max, Min
 logger = logging.getLogger(__name__)
 
@@ -62,7 +60,7 @@ def elevation_from_ahn(modeladmin, request, queryset):
                 numok += 1
                 mp.ahn=ahn
                 mp.save(update_fields=('ahn',))
-        except Exception as e:
+        except:
             numfail += 1
             #logger.exception('Fout bij maaiveld bepaling voor {}'.format(mp))
     if numfail:
@@ -223,13 +221,11 @@ def add_meteo_for_wells(modeladmin, request, queryset):
 add_meteo_for_wells.short_description = "Meteostations en tijdreeksen toevoegen voor geselecteerde putten"
 
 def register_wells(modeladmin, request, queryset):
-    from util import register_well
     for well in queryset:
         register_well(well)
 register_wells.short_description = 'Registreer geselecteerde putten bij acaciadata.com'
 
 def register_screens(modeladmin, request, queryset):
-    from util import register_screen
     for screen in queryset:
         register_screen(screen)
 register_screens.short_description = 'Registreer geselecteerde filters bij acaciadata.com'
