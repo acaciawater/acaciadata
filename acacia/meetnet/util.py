@@ -9,7 +9,7 @@ import matplotlib
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 from django.core.mail.message import EmailMessage
 from acacia.meetnet.models import MeteoData, Network, Handpeilingen
-from acacia.data.util import get_address
+from acacia.data.util import get_address_pdok as get_address
 from __builtin__ import False
 
 matplotlib.use('agg')

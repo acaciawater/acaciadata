@@ -62,12 +62,63 @@ def trans(p, srid):
     p.transform(srid)
     return p
 
-def get_address(lon, lat):        
+def get_address_osm(lon, lat):        
     ''' haal adres gegevens op met osm geocoding api '''
     url = 'https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}&zoom=18&addressdetails=1'.format(lon=lon,lat=lat)
     response = requests.get(url=url)
     response.raise_for_status()
     return response.json()
+
+def get_address_pdok(lon, lat):
+    '''
+    lookup an address from (lon,lat) using PDOK location services
+    '''
+
+    url = 'http://geodata.nationaalgeoregister.nl/locatieserver/revgeo?lat={lat}&lon={lon}'.format(lon=lon,lat=lat)
+    url+='&type=gemeente&type=woonplaats&type=weg&type=postcode&type=adres'#&type=perceel'
+    
+    response = requests.get(url=url)
+    response.raise_for_status()
+    data = response.json()
+    docs = data['response']['docs']
+    
+    def get(key):
+        for d in docs:
+            if d['type'] == key:
+                return d['weergavenaam']
+        return None
+        
+    result = {}
+    
+    town = get('woonplaats')
+    if town:
+        town = town.split(',')[0]
+    result['town'] = town
+    
+    postal_code = get('postcode')
+    if postal_code:
+        match = re.search(r'(\d{4}\w{2})', postal_code)
+        if match:
+            postal_code = match.groups(1)[0]
+    result['postcode'] = postal_code
+
+    display_name = ''
+    adres = get('adres')
+    if adres:
+        display_name = adres
+        match = re.search(r'(\d+[^,]*)', adres)
+        if match:
+            result['house_number'] = match.groups(1)[0]
+
+    road = get('weg')
+    if road:
+        road=road.split(',')[0]
+    elif adres:
+        road=adres.split(',')[0]
+        # remove house number, if any
+        road=re.sub(r'\d+\D?$','',road)
+    result['road'] = road
+    return {'address': result,'display_name': display_name}
 
 def save_thumbnail(series,imagefile,kind='line'):
     plt.figure(figsize=THUMB_SIZE,dpi=THUMB_DPI)

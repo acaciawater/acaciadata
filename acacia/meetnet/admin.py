@@ -207,7 +207,7 @@ class WellAdmin(admin.ModelAdmin):
                actions.download_metadata,
                actions.download_well_nitg,
                actions.elevation_from_ahn,
-               actions.address_from_osm]
+               actions.address_from_location]
 
     inlines = [ScreenInline, MeteoInline, PhotoInline ]
     list_display = ('name','nitg','network','owner','maaiveld', 'ahn', 'num_filters', 'num_photos', 'straat', 'plaats')
