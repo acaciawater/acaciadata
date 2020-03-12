@@ -1276,11 +1276,17 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         self.save()
         return num_created
     
-    def replace_data(self, data):
-        ''' replace datapoints '''
+    def replace_data(self, data, clear_all=False):
+        ''' replace datapoints, optionally clear all existing datapoints first '''
         pts = self.prepare_points(data,self.timezone)
+        if clear_all:
+            existing = self.datapoints.all()
+        else:
+            start = pts[0].date
+            stop = pts[-1].date
+            existing = self.datapoints.filter(date__range=[start,stop])
         with transaction.atomic():
-            self.datapoints.all().delete()
+            existing.delete()
             result = self.datapoints.bulk_create(pts)
         self.update_properties()
         return result
