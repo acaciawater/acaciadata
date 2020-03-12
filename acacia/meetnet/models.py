@@ -10,7 +10,7 @@ from django.core.urlresolvers import reverse
 from acacia.data.models import Datasource, Series, SourceFile, ProjectLocatie,\
     MeetLocatie, ManualSeries
 from acacia.data import util
-from django.db.models.aggregates import Count, Min
+from django.db.models.aggregates import Count, Min, Max
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from django.db.models.deletion import SET_NULL
@@ -520,6 +520,20 @@ class LoggerPos(models.Model):
     class Meta:
         verbose_name = _('LoggerInstallation')
         ordering = ['start_date','logger']
+
+    def update_start(self):
+        result = self.files.aggregate(start=Min('start'))
+        start = result.get('start')
+        if start:
+            self.start_date = start
+            self.save(update_fields=('start_date',))
+
+    def update_stop(self):
+        result = self.files.aggregate(stop=Max('stop'))
+        stop = result.get('stop')
+        if stop:
+            self.end_date = stop
+            self.save(update_fields=('end_date',))
 
     def update_files(self, start=None):
         ''' update set of sourcefiles for this datalogger installation '''
