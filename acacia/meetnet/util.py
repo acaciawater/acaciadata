@@ -336,15 +336,16 @@ def recomp(screen,series,start=None,baros={}):
     # postprocessing twice to remove dups. works only if no calculations defined
 #     seriesdata = series.do_postprocess(seriesdata)
     seriesdata = seriesdata.groupby(seriesdata.index).last().sort_index()
-    tz = pytz.timezone(series.timezone)
-    start = min(seriesdata.index)
-    stop = max(seriesdata.index)
-    points = series.datapoints.filter(date__range=[start,stop])
-    points.delete()
-    series.create_points(seriesdata,tz)
-    series.unit = 'm tov NAP'
-    series.make_thumbnail()
-    series.save()
+    if not seriesdata.empty:
+        tz = pytz.timezone(series.timezone)
+        start = min(seriesdata.index)
+        stop = max(seriesdata.index)
+        points = series.datapoints.filter(date__range=[start,stop])
+        points.delete()
+        series.create_points(seriesdata,tz)
+        series.unit = 'm tov NAP'
+        series.make_thumbnail()
+        series.save()
 #     series.validate(reset=True)
     return seriesdata.size
     
