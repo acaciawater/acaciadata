@@ -321,6 +321,8 @@ def recomp(screen,series,start=None,baros={}):
                     logger.error('Geen "PRESSURE" of "LEVEL" parameter gevonden in monfile {}'.format(mon))
                     continue
 
+            # honor start_date from logger installation: delete everything before start_date
+            data = data[data.index >= logpos.start_date]
             if logpos.end_date:
                 data = data[data.index <= logpos.end_date]
             if seriesdata is None:
