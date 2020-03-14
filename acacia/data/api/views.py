@@ -7,7 +7,7 @@ from acacia.data.models import MeetLocatie, Datasource, Parameter, DataPoint,\
 from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
-from acacia.data.api.filters import SourceFileFilter
+from acacia.data.api.filters import SourceFileFilter, TimeseriesFilter
     
 class MeetLocatieViewSet(ModelViewSet):
     serializer_class = MeetLocatieSerializer
@@ -21,13 +21,13 @@ class SourceFileViewSet(ModelViewSet):
     serializer_class = SourceFileSerializer
     queryset = SourceFile.objects.all()
     filter_class = SourceFileFilter
-#     filter_fields = ('datasource','start','stop',)
     
 class ParameterViewSet(ModelViewSet):
     serializer_class = ParameterSerializer
     queryset = Parameter.objects.all()
     
 class DataPointViewSet(ModelViewSet):
+    ''' returns a list of (raw) datapoints '''
     serializer_class = DataPointSerializer
     queryset = DataPoint.objects.all()
     filter_fields = ('series',)
@@ -35,9 +35,11 @@ class DataPointViewSet(ModelViewSet):
 class TimeseriesViewSet(ModelViewSet):
     serializer_class = TimeseriesSerializer
     queryset = Series.objects.all()
+    filter_class = TimeseriesFilter
     
     @action(detail=True)
     def data(self, request, pk):
+        ''' returns data of a time series '''
         queryset = self.get_queryset()
         series = get_object_or_404(queryset, pk=pk)
         data = series.to_array()
