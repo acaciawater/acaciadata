@@ -4,9 +4,9 @@ from rest_framework.routers import APIRootView, DefaultRouter
 from rest_framework.schemas import get_schema_view
 
 from acacia.data.api.views import TimeseriesViewSet, MeetLocatieViewSet, \
-    DatasourceViewSet, DataPointViewSet, SourceFileViewSet
+    DatasourceViewSet, DataPointViewSet
 from acacia.meetnet.api.views import WellViewSet, ScreenViewSet, LoggerViewSet,\
-    InstallationViewSet
+    InstallationViewSet, SourceFileViewSet
 
 
 class MeetnetApiView(APIRootView):

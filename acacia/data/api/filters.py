@@ -14,6 +14,7 @@ class SourceFileFilter(filters.FilterSet):
         model = SourceFile
         fields = {
             'datasource':'__all__',
+            'loggerpos': '__all__',
             'start': '__all__',
             'stop': '__all__'
         }

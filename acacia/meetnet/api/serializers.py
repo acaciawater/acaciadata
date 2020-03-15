@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from acacia.meetnet.models import Well, Screen, Handpeilingen, Datalogger,\
-    LoggerPos
+    LoggerPos, Photo
 
 class ScreenSerializer(serializers.ModelSerializer):
     class Meta:
@@ -12,13 +12,19 @@ class WellScreenSerializer(serializers.ModelSerializer):
         model = Screen
         exclude = ['id','mloc','manual_levels','logger_levels','well']
 
+  
+class PhotoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Photo
+        fields = ('photo',)
+        
 class WellSerializer(serializers.ModelSerializer):
     screens = WellScreenSerializer(many=True, read_only=True, source='screen_set')
-
+    photos = PhotoSerializer(many=True, read_only=True, source='photo_set')
+    
     class Meta:
         model = Well
-        fields = ['name','nitg','location','description','maaiveld','ahn','date','owner','straat','huisnummer','plaats','postcode','log','screens']
-
+        fields = ['name','nitg','location','description','maaiveld','ahn','date','owner','straat','huisnummer','plaats','postcode','log','screens','photos']
         
 class HandpeilingSerializer(serializers.ModelSerializer):
     class Meta:
