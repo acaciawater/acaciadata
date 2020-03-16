@@ -15,7 +15,7 @@ class DatasourceSerializer(serializers.ModelSerializer):
 class SourceFileSerializer(serializers.ModelSerializer):
     class Meta:
         model = SourceFile
-        fields = ['id','name','datasource','file']
+        fields = ['id','name','datasource','file','crc']
         
 class ParameterSerializer(serializers.ModelSerializer):
     class Meta:

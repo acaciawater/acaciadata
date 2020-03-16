@@ -54,6 +54,7 @@ class SourceFileFilter(filters.FilterSet):
     class Meta:
         model = SourceFile
         fields = {
+            'name': '__all__',
             'start': '__all__',
             'stop': '__all__'
         }
