@@ -6,7 +6,7 @@ from rest_framework.schemas import get_schema_view
 from acacia.data.api.views import TimeseriesViewSet, MeetLocatieViewSet, \
     DatasourceViewSet, DataPointViewSet
 from acacia.meetnet.api.views import WellViewSet, ScreenViewSet, LoggerViewSet,\
-    InstallationViewSet, SourceFileViewSet
+    InstallationViewSet, SourceFileViewSet, PhotoViewSet
 
 
 class MeetnetApiView(APIRootView):
@@ -20,6 +20,7 @@ class MeetnetRouter(DefaultRouter):
 router = MeetnetRouter()
 router.register('wells', WellViewSet)
 router.register('screens', ScreenViewSet)
+router.register('photos', PhotoViewSet)
 router.register('loggers', LoggerViewSet)
 router.register('installations', InstallationViewSet)
 
@@ -33,6 +34,6 @@ schema_view = get_schema_view(title='Meetnet API')
 
 urlpatterns = [
     url('schema/', schema_view),
-    url('docs/', include_docs_urls(title='Monet API')),
+    url('docs/', include_docs_urls(title='Meetnet API')),
     url('', include(router.urls)),
 ]

@@ -8,23 +8,21 @@ class ScreenSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class WellScreenSerializer(serializers.ModelSerializer):
+    ''' nested screen serializer inside well serializer '''
     class Meta:
         model = Screen
-        exclude = ['id','mloc','manual_levels','logger_levels','well']
+        exclude = ['mloc','manual_levels','logger_levels','well']
 
-  
 class PhotoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Photo
-        fields = ('photo',)
+        fields = ('id','well','photo',)
         
 class WellSerializer(serializers.ModelSerializer):
     screens = WellScreenSerializer(many=True, read_only=True, source='screen_set')
-    photos = PhotoSerializer(many=True, read_only=True, source='photo_set')
-    
     class Meta:
         model = Well
-        fields = ['name','nitg','location','description','maaiveld','ahn','date','owner','straat','huisnummer','plaats','postcode','log','screens','photos']
+        fields = ['id','name','nitg','location','description','maaiveld','ahn','date','owner','straat','huisnummer','plaats','postcode','log','screens']
         
 class HandpeilingSerializer(serializers.ModelSerializer):
     class Meta:

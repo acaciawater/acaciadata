@@ -1,5 +1,5 @@
 import rest_framework_filters as filters 
-from acacia.meetnet.models import LoggerPos, Datalogger, Screen, Well
+from acacia.meetnet.models import LoggerPos, Datalogger, Screen, Well, Photo
 from acacia.data.api.filters import DatasourceFilter
 from acacia.data.models import Datasource, SourceFile
 
@@ -19,6 +19,11 @@ class ScreenFilter(filters.FilterSet):
             'nr': '__all__',
         }
         
+class PhotoFilter(filters.FilterSet):
+    well = filters.RelatedFilter(WellFilter, queryset=Well.objects.all())
+    class Meta:
+        model = Photo
+        fields = {'well': '__all__'}
     
 class LoggerFilter(filters.FilterSet):
     class Meta:
