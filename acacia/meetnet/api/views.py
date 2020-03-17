@@ -1,14 +1,20 @@
+from django.shortcuts import get_object_or_404
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
-from acacia.meetnet.api.serializers import WellSerializer, ScreenSerializer,\
-    HandpeilingSerializer, InstallationSerializer, LoggerSerializer,\
-    PhotoSerializer
-from acacia.meetnet.models import Well, Screen, Handpeilingen, LoggerPos,\
-    Datalogger, Photo
-from acacia.meetnet.api.filters import InstallationFilter, LoggerFilter,\
-    SourceFileFilter, ScreenFilter, WellFilter, PhotoFilter
+
 from acacia.data.api.serializers import SourceFileSerializer
 from acacia.data.models import SourceFile
-    
+from acacia.meetnet.models import Well, Screen, Handpeilingen, LoggerPos, \
+    Datalogger, Photo
+
+from .filters import InstallationFilter, LoggerFilter, \
+    SourceFileFilter, ScreenFilter, WellFilter, PhotoFilter
+from .serializers import WellSerializer, ScreenSerializer, \
+    HandpeilingSerializer, InstallationSerializer, LoggerSerializer, \
+    PhotoSerializer
+
+
 class WellViewSet(ModelViewSet):
     serializer_class = WellSerializer
     queryset = Well.objects.all()
@@ -27,6 +33,14 @@ class ScreenViewSet(ModelViewSet):
 class HandpeilingViewSet(ModelViewSet):
     serializer_class = HandpeilingSerializer
     queryset = Handpeilingen.objects.all()
+
+    @action(detail=True)
+    def data(self, request, pk):
+        ''' returns data '''
+        queryset = self.get_queryset()
+        series = get_object_or_404(queryset, pk=pk)
+        data = series.to_array()
+        return Response(data)
 
 class InstallationViewSet(ModelViewSet):
     serializer_class = InstallationSerializer

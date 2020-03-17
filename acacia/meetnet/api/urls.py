@@ -6,7 +6,7 @@ from rest_framework.schemas import get_schema_view
 from acacia.data.api.views import TimeseriesViewSet, MeetLocatieViewSet, \
     DatasourceViewSet, DataPointViewSet
 from acacia.meetnet.api.views import WellViewSet, ScreenViewSet, LoggerViewSet,\
-    InstallationViewSet, SourceFileViewSet, PhotoViewSet
+    InstallationViewSet, SourceFileViewSet, PhotoViewSet, HandpeilingViewSet
 
 
 class MeetnetApiView(APIRootView):
@@ -23,6 +23,7 @@ router.register('screens', ScreenViewSet)
 router.register('photos', PhotoViewSet)
 router.register('loggers', LoggerViewSet)
 router.register('installations', InstallationViewSet)
+router.register('manual', HandpeilingViewSet)
 
 router.register('locations', MeetLocatieViewSet)
 router.register('sources', DatasourceViewSet)

@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from acacia.meetnet.models import Well, Screen, Handpeilingen, Datalogger,\
     LoggerPos, Photo
+from acacia.data.api.serializers import MeasurementSerializer
 
 class ScreenSerializer(serializers.ModelSerializer):
     class Meta:
@@ -25,9 +26,10 @@ class WellSerializer(serializers.ModelSerializer):
         fields = ['id','name','nitg','location','description','maaiveld','ahn','date','owner','straat','huisnummer','plaats','postcode','log','screens']
         
 class HandpeilingSerializer(serializers.ModelSerializer):
+#     data = MeasurementSerializer(many=True, read_only=True, source='datapoints')
     class Meta:
         model = Handpeilingen
-        fields = ['screen','refpnt']
+        fields = ['id','screen','refpnt']
 
 class InstallationSerializer(serializers.ModelSerializer):
     class Meta:

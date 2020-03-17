@@ -1,14 +1,17 @@
-from rest_framework.viewsets import ModelViewSet
-from acacia.data.api.serializers import TimeseriesSerializer,\
-    MeetLocatieSerializer, DatasourceSerializer, ParameterSerializer,\
-    DataPointSerializer, SourceFileSerializer
-from acacia.data.models import MeetLocatie, Datasource, Parameter, DataPoint,\
-    Series, SourceFile
-from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
+from rest_framework.decorators import action
 from rest_framework.response import Response
-from acacia.data.api.filters import SourceFileFilter, TimeseriesFilter
-    
+from rest_framework.viewsets import ModelViewSet
+
+from acacia.data.models import MeetLocatie, Datasource, Parameter, DataPoint, \
+    Series, SourceFile
+
+from .filters import SourceFileFilter, TimeseriesFilter, DatasourceFilter
+from .serializers import TimeseriesSerializer, \
+    MeetLocatieSerializer, DatasourceSerializer, ParameterSerializer, \
+    DataPointSerializer, SourceFileSerializer
+
+
 class MeetLocatieViewSet(ModelViewSet):
     serializer_class = MeetLocatieSerializer
     queryset = MeetLocatie.objects.all()
@@ -16,6 +19,7 @@ class MeetLocatieViewSet(ModelViewSet):
 class DatasourceViewSet(ModelViewSet):
     serializer_class = DatasourceSerializer
     queryset = Datasource.objects.all()
+    filter_class = DatasourceFilter
 
 class SourceFileViewSet(ModelViewSet):
     serializer_class = SourceFileSerializer
