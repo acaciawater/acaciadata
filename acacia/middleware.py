@@ -12,6 +12,8 @@ def FilterHostMiddleware(get_response):
             allowed_hosts.add(host)
         if host.startswith('192.168.1.'):
             allowed_hosts.add(host)
+        if host.startswith('10.0.2.'):
+            allowed_hosts.add(host)
 
         if host not in allowed_hosts:
             raise HttpResponseForbidden
