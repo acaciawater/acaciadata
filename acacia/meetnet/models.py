@@ -493,6 +493,7 @@ DIVER_TYPES = (
                ('baro','Baro-Diver'),
                ('etd','ElliTrack-D'),
                ('etd2','ElliTrack-D2'), # voor in straatpot
+               ('blik','Bliksensing'),
                )
 class Datalogger(models.Model):
     serial = models.CharField(max_length=50,verbose_name = _('serial number'),unique=True)
