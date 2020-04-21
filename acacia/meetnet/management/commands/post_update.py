@@ -6,6 +6,7 @@ from acacia.meetnet.models import Screen
 from acacia.meetnet.actions import make_wellcharts
 from django.contrib.auth.models import User
 from acacia.meetnet.util import register_screen, recomp
+from acacia.data.models import Generator
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +15,7 @@ class Command(BaseCommand):
     
     def handle(self, *args, **options):
         # get admin user
-        user = User.objects.get(username='theo')
+        user = User.objects.filter(is_superuser=True).first()
         
         # dict with airpressure
         baros = {}
@@ -24,8 +25,9 @@ class Command(BaseCommand):
                 
         logger.info('Updating time series')
         
-        # loop over screens with Ellitrack loggers
-        for screen in Screen.objects.filter(loggerpos__logger__model__istartswith='etd').distinct():
+        generators = Generator.objects.filter(name__in=['Ellitrack','Bliksensing'])
+        screens = Screen.objects.filter(loggerpos__logger__datasources__generator__in=generators)
+        for screen in screens:
         
             logger.info(screen)
             register_screen(screen)
@@ -34,7 +36,7 @@ class Command(BaseCommand):
             name = '%s COMP' % unicode(screen)
             series, created = screen.mloc.series_set.get_or_create(name=name,defaults={
                 'user': user,
-                'timezone': 'Etc/GMT-1'
+                'timezone': 'UTC'
             })
             if created:
                 logger.debug('Created timeseries {}'.format(series))
@@ -42,9 +44,9 @@ class Command(BaseCommand):
             last = screen.last_measurement()
             start = last.date if last else None
 
-            # update set of source files for all installations with Ellitrack loggers
+            # update set of source files
             new_files = 0
-            for lp in screen.loggerpos_set.filter(logger__model__istartswith='etd'):
+            for lp in screen.loggerpos_set.filter(logger__datasources__generator__in=generators):
                 new_files += lp.update_files()
             
             if new_files>0:
