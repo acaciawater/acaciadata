@@ -1,12 +1,16 @@
-import pandas as pd
 from datetime import datetime
-import requests
-from pytz import utc
 import logging
-logger = logging.getLogger(__name__)
+import re
+
+from django.conf import settings
+from pytz import utc
+import requests
 
 from generator import Generator
-from acacia.data.secrets import BLIK_SECRET_TOKEN_DATA
+import pandas as pd
+
+logger = logging.getLogger(__name__)
+
 
 class Blik(Generator):
     def get_data(self, fil, **kwargs):
@@ -21,7 +25,7 @@ class Blik(Generator):
         return params
     
     def request_new_token(self):
-        data = BLIK_SECRET_TOKEN_DATA
+        data = settings.BLIK_SECRET_TOKEN_DATA
         headers = {'content-type': 'application/json'}
         response = requests.post('https://blik.eu.auth0.com/oauth/token', data=data, headers=headers)
         response.raise_for_status()
@@ -61,21 +65,32 @@ class Blik(Generator):
         return int((dt - self.unix_epoch).total_seconds())
       
     def download(self, **kwargs):
-        url = kwargs.get('url', None) #'https://backend.water.bliksensing.nl/measurements/<node-ID>'
+        url = kwargs.get('url', 'https://backend.water.bliksensing.nl/locations/{id}/measurements')
         if url is None:
             logger.error('url for download is undefined')
             return {}
+        if '{id}' in url:
+            # substitute blik location id
+            blik_id = kwargs.get('blik_id')
+            if blik_id is None:
+                logger.error('Bliksensing location id is undefined')
+                return {}
+            url = url.format(id=blik_id)
+        else:
+            # extract location id from url
+            match = re.search('locations/(\d+)/measurements',url)
+            blik_id = match.groups(1) if match else 'undefined'
+            
         limit = kwargs.get('limit', 50000)
         stop = kwargs.get('stop', self.utc_now())
         start = kwargs.get('start', self.unix_epoch)
         if start is None:
             start = self.unix_epoch
         
-        node_id = url.split('/')[-1]
         before = self.datetime_to_unix_timestamp(stop)
         after = self.datetime_to_unix_timestamp(start)
         
-        filename = 'blik_node{0}limit{1}before{2}after{3}.json'.format(node_id, limit, before, after)
+        filename = 'blik_{0}limit{1}before{2}after{3}.json'.format(blik_id, limit, before, after)
         content = self.blik_api_request(url, limit, before, after)
         if 'time' not in content:
             logger.debug('download() did not complete. Possibly no new data (in that case, response = []). Response from BlikSensing: ' + content)
