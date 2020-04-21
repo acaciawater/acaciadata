@@ -199,25 +199,29 @@ def import_metadata(request, sheet='Putgegevens'):
                 serial = str(int(serial))
             else:
                 serial = str(serial)
+            
             model = get('Logger type')
             if not model:
                 logger.error('Logger type ontbreekt')
                 errors+=1
                 continue
-    
-            generator = Generator.objects.get(name='Ellitrack' if model.lower().startswith('elli') else 'Schlumberger')
-            # determine diver code from model name
-            choice = filter(lambda x: x[1].lower() == model.lower(), DIVER_TYPES)
+            modelname = model.lower()
+
+            # determine logger code from model name
+            choice = filter(lambda x: x[1].lower() == modelname, DIVER_TYPES)
             if choice:
                 code = choice[0][0]
             else:
                 logger.error('Onbekend logger type: {}'.format(model))
                 errors+=1
                 continue
+
+            # get/create datalogger
             datalogger, created = Datalogger.objects.get_or_create(serial=serial,defaults={'model':code})
             if created:
                 logger.info('Logger {} aangemaakt'.format(serial))
         
+            # install datalogger
             start = get('Datum installatie',None)
             if start:
                 start = tz.localize(start)
@@ -236,19 +240,38 @@ def import_metadata(request, sheet='Putgegevens'):
             else:
                 logger.info('Metadata van logger {} in filter {} bijgewerkt'.format(serial, str(screen)))
 
+
+            # defermine generator
+            defaults = {'description': '{} datalogger {}'.format(model, serial),
+                      'meetlocatie': screen.mloc,
+                      'user': request.user,
+                      }
+            if modelname.startswith('elli'):
+                generator_name = 'Ellitrack'
+                defaults.update({
+                    'url': settings.FTP_URL,
+                    'username': settings.FTP_USERNAME,
+                    'password': settings.FTP_PASSWORD,
+                    'timezone': 'Europe/Amsterdam',
+                    'config': '{{"logger": "{}"}}'.format(serial)
+                })
+            elif modelname.startswith('blik'):
+                generator_name = 'Bliksensing'
+                defaults.update({
+                    'timezone': 'UTC',
+                    'config': '{{"node": "{}"}}'.format(serial)
+                })
+            else:
+                generator_name = 'Schlumberger'
+                defaults.update({'timezone': 'Etc/GMT-1'})
+                
+            defaults.update({'generator':Generator.objects.get(name__iexact=generator_name)})
+
+            # get/create datasource
             ds, created = LoggerDatasource.objects.update_or_create(
                 logger = datalogger,
                 name = serial,
-                defaults={'description': '{} datalogger {}'.format(model, serial),
-                          'meetlocatie': screen.mloc,
-                          'timezone': 'Europe/Amsterdam',
-                          'user': request.user,
-                          'generator': generator,
-                          'url': settings.FTP_URL,
-                          'username': settings.FTP_USERNAME,
-                          'password': settings.FTP_PASSWORD,
-                          'config': '{{"logger": "{}"}}'.format(serial)
-                          })
+                defaults = defaults)
             if created:
                 ds.locations.add(screen.mloc)
                 logger.info('Gegevensbron %s aangemaakt' % ds)

@@ -257,6 +257,11 @@ def recomp(screen,series,start=None,baros={}):
                 # Ellitrack, no need for compensation, data is m wrt reference level (NAP)
                 data = mondata['Waterstand']
                 data = series.do_postprocess(data)
+
+            elif 'water_m_above_nap' in mondata:
+                # Bliksensing, no need for compensation, data is m wrt reference level (NAP)
+                data = mondata['water_m_above_nap']
+                data = series.do_postprocess(data)
                 
             elif 'LEVEL' in mondata:
                 # Van Essen, no need for compensation, data is cm wrt reference level (NAP) 
