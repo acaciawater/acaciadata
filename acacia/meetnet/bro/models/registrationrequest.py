@@ -58,8 +58,8 @@ class RegistrationRequest(models.Model):
         SubElement(construction, 'ns:wellStability', codeSpace='urn:bro:gmw:WellStability').text = self.gmw.wellStability
         if self.gmw.nitgCode:
             SubElement(construction, 'ns:nitgCode').text = self.gmw.nitgCode
-        else:
-            SubElement(construction, 'ns:mapSheetCode').text = self.gmw.mapSheetCode 
+#         else:
+#             SubElement(construction, 'ns:mapSheetCode').text = self.gmw.mapSheetCode 
     
         SubElement(construction, 'ns:owner').text = self.gmw.owner
         SubElement(construction, 'ns:maintenanceResponsibleParty').text = self.gmw.maintenanceResponsibleParty
