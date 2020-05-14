@@ -467,7 +467,7 @@ class UploadFileView(StaffRequiredMixin,FormView):
 
         # start background process that handles uploaded files
         from threading import Thread
-        t = Thread(target=handle_uploaded_files, args=(self.request, network, local_files, lookup or None))
+        t = Thread(target=handle_uploaded_files, args=(self.request, network, local_files, lookup or {}))
         t.start()
         
         return super(UploadFileView,self).form_valid(form)
