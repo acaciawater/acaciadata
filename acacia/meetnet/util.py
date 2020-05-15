@@ -291,15 +291,23 @@ def recomp(screen,series,start=None,baros={}):
     
                 # issue warning if data has points beyond timespan of barometer
                 barostart = baro.index[0]
-                dataend = data.index[0]
+                datastart = data.index[0]
+                baroend = baro.index[-1]
+                dataend = data.index[-1]
+
                 if dataend < barostart:
                     logger.warning('Geen luchtdruk gegevens beschikbaar vóór {}'.format(barostart))
                     continue
-                baroend = baro.index[-1]
-                datastart = data.index[0]
+
                 if datastart > baroend:
                     logger.warning('Geen luchtdruk gegevens beschikbaar na {}'.format(baroend))
                     continue
+
+                if datastart < barostart:
+                    logger.warning('Geen luchtdruk gegevens beschikbaar vóór {}'.format(barostart))
+
+                if dataend > baroend:
+                    logger.warning('Geen luchtdruk gegevens beschikbaar na {}'.format(baroend))
     
                 adata, abaro = data.align(baro)
                 abaro = abaro.interpolate(method='time')
@@ -321,10 +329,10 @@ def recomp(screen,series,start=None,baros={}):
                     
                     data = data / 100 + (logpos.refpnt - logpos.depth)
                     
-                else:
-                    # no data in file
-                    logger.error('Geen "PRESSURE" of "LEVEL" parameter gevonden in monfile {}'.format(mon))
-                    continue
+            else:
+                # no data in file
+                logger.error('Geen "PRESSURE" of "LEVEL" parameter gevonden in monfile {}'.format(mon))
+                continue
 
             # honor start_date from logger installation: delete everything before start_date
             data = data[data.index >= logpos.start_date]
