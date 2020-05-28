@@ -539,6 +539,7 @@ class LoggerPos(models.Model):
     def update_files(self, start=None):
         ''' update set of sourcefiles for this datalogger installation '''
         oldcount = self.files.count()
+        self.files.clear()
         for ds in self.logger.datasources.all():
             queryset = ds.sourcefiles.all()
             if start:
