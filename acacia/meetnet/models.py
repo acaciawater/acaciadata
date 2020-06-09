@@ -105,7 +105,7 @@ class Well(geo.Model):
             photo_obj = self.photo_set.create() 
         photo_obj.photo.save(name,fp,save=True)
         
-    def set_log(self, name, fp, fmt='JPEG'):
+    def set_log(self, name, fp, fmt=None):
         ''' sets or replaces borelog '''
         fp = self._openimage(fp, fmt)
         self.log.save(name,fp,save=True)

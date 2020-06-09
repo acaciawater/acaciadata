@@ -72,7 +72,11 @@ def import_metadata(request, sheet='Putgegevens'):
             return value
         
         # get basic well data
-        id = get('ID').strip()
+        id = get('ID')
+        if id:
+            id=id.strip()
+        if not id:
+            continue
         logger.info('Put {}'.format(id))
         x = get('X',float)
         y = get('Y',float)
@@ -129,12 +133,12 @@ def import_metadata(request, sheet='Putgegevens'):
             logger.error('BRO data voor put {} niet aangemaakt/bijgewerkt: {}'.format(well,e))
             errors+=1
             
-        nr = get('Filternummer',int)
+        nr = get('Filternummer',int) or 1
         refpnt = get('Bovenkant buis',float)
         top = get('Bovenkant filter m-MV',float)
         bottom = get('Onderkant filter m-MV',float)
         diameter = get('Diameter buis',float)
-        material = get('Materiaal')
+        material = get('Materiaal') or 'pvc'
         screen, created = well.screen_set.update_or_create(nr=nr, defaults = {
             'refpnt': refpnt,
             'top': top,
@@ -174,7 +178,7 @@ def import_metadata(request, sheet='Putgegevens'):
                 if name:
                     try:
                         with fotos.open(name) as foto:
-                            well.add_photo(name,foto)
+                            well.add_photo(name,foto,'png')
                             logger.info('Foto toegevoegd: {}'.format(name))
                     except Exception as e:
                         logger.error('Kan foto niet toevoegen: {}'.format(e))
@@ -187,7 +191,7 @@ def import_metadata(request, sheet='Putgegevens'):
             if name:
                 try:
                     with logs.open(name) as log:
-                        well.set_log(name,log)
+                        well.set_log(name,log,'png')
                         logger.info('Boorstaat toegevoegd: {}'.format(name))
                 except Exception as e:
                     logger.error('Kan boorstaat niet toevoegen: {}'.format(e))
