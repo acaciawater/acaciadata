@@ -54,7 +54,7 @@ class ValueRule(BaseRule):
         
     value = models.FloatField(null=True,blank=True,default=None,verbose_name='waarde',help_text='validatiewaarde waarde')
 
-    def apply(self,target,**kwargs):
+    def apply(self,target,context):
         return (target,self.compare(target, self.value))
 
 class SeriesRule(BaseRule):

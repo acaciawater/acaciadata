@@ -346,7 +346,8 @@ class Screen(models.Model):
         ''' returns a pandas Series for every waterlevel Series defined for this screen '''  
         query = self.all_series()
         for series in query:
-            yield series.to_pandas(**kwargs)
+            # convert to pandas and apply filters
+            yield series.do_filter(series.to_pandas(**kwargs))
 
     def to_pandas(self, **kwargs):
         ''' returns a compound pandas series for all waterlevel series for this screen '''

@@ -1446,6 +1446,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
             dates,values = zip(*arr)
             return pd.Series(values,index=dates,name=self.name).sort_index()
         else:
+            # empty series
             return pd.Series(name=self.name)
             
     def to_csv(self, **kwargs):
