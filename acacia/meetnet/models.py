@@ -463,13 +463,8 @@ class Screen(models.Model):
         return s
         
     def last_measurement(self):
-        latest = None
-        for series in self.all_series():
-            if series.datapoints.exists():
-                p = series.datapoints.latest('date')
-                if latest is None or p.date > latest.date:
-                    latest = p
-        return latest
+        latest = [s.laatste() for s in self.all_series() if s.aantal() > 0]
+        return max(latest, key=lambda p: p.date) if latest else None
 #         series = self.find_series()
 #         if series and series.datapoints and series.datapoints.exists():
 #             return series.datapoints.latest('date')
