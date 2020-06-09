@@ -88,7 +88,7 @@ class NetworkView(AuthRequiredMixin, DetailView):
         if network:
             if not network.bound is None:
                 context['boundary'] = network.bound
-            for well in network.well_set.all():
+            for well in network.well_set.filter(location__isnull=False):
                 pos = well.latlon()
                 content.append({'network': network.id,
                                 'well': well.id,
