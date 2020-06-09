@@ -309,7 +309,7 @@ def import_handpeilingen(request, sheet='Handpeilingen'):
                 'mlocatie':screen.mloc,
                 'description':'Handpeiling', 
                 'timezone':'Europe/Amsterdam', 
-                'unit':'m NAP', 
+                'unit':'m', 
                 'type':'scatter', 
                 'user':request.user,
                 'refpnt': 'bkb'})
