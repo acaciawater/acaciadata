@@ -294,8 +294,11 @@ def import_handpeilingen(request, sheet='Handpeilingen'):
     for row in df.itertuples(index=False):
         if len(row) < 5:
             raise ValueError('Vijf kolommen verwacht: (put, filternummer, datum, tijd en waarde)')
+        if any(pd.isna(value) for value in row[:5]):
+            # value needed in all columns
+            continue
         try:
-            id,nr,date,time,level = row[0:5]
+            id,nr,date,time,level = row[:5]
             level /= 100.0 # convert from centimeter to meter
             date = tz.localize(date + timedelta(hours=time.hour,minutes=time.minute,seconds=time.second))
             well = Well.objects.get(name=id)
