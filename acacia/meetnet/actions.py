@@ -114,11 +114,12 @@ update_sourcefiles.short_description = 'set van bronbestanden bijwerken'
 
 def make_wellcharts(modeladmin, request, queryset):
     for w in queryset:
-        if not w.has_data():
-            continue
-#        if w.chart.name is None or len(w.chart.name) == 0:
-        w.chart.name = os.path.join(w.chart.field.upload_to, slugify(unicode(w)) +'.png')
-        w.save()
+#         if not w.has_data():
+#             continue
+        name = os.path.join(w.chart.field.upload_to, slugify(unicode(w)) +'.png')
+        if name != w.chart.name:
+            w.chart.name = name
+            w.save(update_fields=('chart',))
         imagedir = os.path.dirname(w.chart.path)
         if not os.path.exists(imagedir):
             os.makedirs(imagedir)
@@ -129,8 +130,8 @@ make_wellcharts.short_description = "Grafieken vernieuwen van geselecteerde putt
         
 def make_screencharts(modeladmin, request, queryset):
     for s in queryset:
-        if not s.has_data():
-            continue
+#         if not s.has_data():
+#             continue
         if s.chart.name is None or len(s.chart.name) == 0:
             s.chart.name = os.path.join(s.chart.field.upload_to, slugify(unicode(s)) +'.png')
             s.save()
