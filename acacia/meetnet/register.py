@@ -320,7 +320,7 @@ def import_handpeilingen(request, sheet='Handpeilingen'):
                         logger.error('Bovenkant filter onbekend')
                         errors += 1
                         continue
-                    level = series.refpnt - level
+                    level = screen.refpnt - level
             pt, created = series.datapoints.update_or_create(date=date,defaults={'value': level})
             if created:
                 logger.info('Filter {}: handpeiling toegevoegd: ({}, {})'.format(str(screen), date, level))
