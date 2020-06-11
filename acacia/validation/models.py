@@ -441,11 +441,12 @@ class Validation(models.Model):
         if daterange:
             begin,end = daterange
             q = q.filter(date__range=daterange)
-        else:
-#             begin = self.series.van()
-#             end = self.series.tot()
+        elif self.valid_point_set.exists():
             begin = self.validpoint_set.earliest('date').date
             end = self.validpoint_set.latest('date').date
+        else:
+            begin = self.series.van()
+            end = self.series.tot()
         q.delete()
         defaults={'begin':begin,'end':end,'user':user,'valid':True, 'date': now(), 'remarks': 'Alles geaccepteerd'}
         Result.objects.update_or_create(validation=self,defaults=defaults)
