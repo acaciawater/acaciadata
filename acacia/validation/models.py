@@ -441,7 +441,7 @@ class Validation(models.Model):
         if daterange:
             begin,end = daterange
             q = q.filter(date__range=daterange)
-        elif self.valid_point_set.exists():
+        elif self.validpoint_set.exists():
             begin = self.validpoint_set.earliest('date').date
             end = self.validpoint_set.latest('date').date
         else:
