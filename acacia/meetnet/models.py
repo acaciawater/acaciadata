@@ -443,7 +443,7 @@ class Screen(models.Model):
             series = self.to_pandas(**kwargs)
             rule = kwargs.pop('rule',None)
             if rule:
-                series = series.resample(rule=rule).mean()
+                series = series.resample(rule=rule).mean().asfreq()
             return series
         except Exception as e:
             return None
