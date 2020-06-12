@@ -161,7 +161,7 @@ def chart_for_well(well,start=None,stop=None,corrected=False):
             if data:
                 data = data.to_pandas()
                 if not data.empty:
-                    data = data.resample('H').mean()
+                    data = data.resample('H').mean().asfreq()
                 if not data.empty:
                     plt.plot_date(data.index.to_pydatetime(), data.values, '-',label='filter {}'.format(screen.nr),color=color)
                     ncol += 1

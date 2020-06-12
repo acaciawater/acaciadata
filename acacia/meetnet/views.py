@@ -149,6 +149,8 @@ def json_series(request, pk):
     if series is None or series.empty:
         values = []
     else:
+        if rule:
+            series=series.asfreq(rule)
         values = zip(series.index, series.values)
     
     if what == 'hand':
