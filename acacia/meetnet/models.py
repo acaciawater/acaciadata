@@ -269,32 +269,12 @@ class Screen(models.Model):
     def get_series(self, ref = 'nap', kind='COMP', **kwargs):
         ''' get series data (levels or manual data), resample and convert to reference point '''
 
-        rule = kwargs.pop('rule',None)
-
         # get levels wrt NAP
         series = self.get_manual_series(**kwargs) if kind.lower() == 'hand' else self.get_compensated_series(**kwargs)
         if series is None:
             series = pd.Series()
 
         if not series.empty:
-#             if rule:
-#                 if rule == '*':
-#                     # determine suitable rule
-#                     start = series.index.min()
-#                     stop = series.index.max()
-#                     range = stop - start
-#                     days = range.days
-#                     if days < 365:
-#                         rule= 'H' # 1 year, max 8760 points
-#                     elif days < 3650:
-#                         rule = 'D' # 10 year, max 3650 points
-#                     elif days < 36500:
-#                         rule = 'M' # 100 year, max 1200 points 
-#                     else:
-#                         rule = 'A' # Years
-#                 # resample filtered points
-#                 series = series.resample(rule=rule).mean()
-
             # convert to reference level
             series = self.convert(series, ref.lower())
 
@@ -443,7 +423,7 @@ class Screen(models.Model):
             series = self.to_pandas(**kwargs)
             rule = kwargs.pop('rule',None)
             if rule:
-                series = series.resample(rule=rule).mean()
+                series = series.resample(rule=rule).mean().asfreq(rule)
             return series
         except Exception as e:
             return None
