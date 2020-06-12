@@ -241,7 +241,7 @@ class Filter(models.Model):
     def apply(self, series, context):
         ''' Apply filter for single series '''
         for ro in self.filterorder_set.all():
-            rule = ro.rule
+            rule = ro.rule.get_real_instance()
             series, valid = rule.apply(series, context)
             # remove duplicates
             valid = valid.groupby(valid.index).last()
