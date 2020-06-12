@@ -167,7 +167,7 @@ def chart_for_well(well,start=None,stop=None,corrected=False):
                     ncol += 1
                     ok = True
         if not ok:
-            data = screen.get_levels('nap',rule='H')
+            data = screen.get_levels('nap',rule='H',type='both')
             if data:
                 x,y = zip(*data)
                 plt.plot_date(x, y, '-',label='filter {}'.format(screen.nr),color=color)
