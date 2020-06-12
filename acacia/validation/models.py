@@ -375,7 +375,7 @@ class Validation(models.Model):
             logger.debug(_('Validating {}: {} rules').format(self.series, self.rules.count()))
             self.subresult_set.all().delete()
             for ro in self.ruleorder_set.all():
-                rule = ro.rule
+                rule = ro.rule.get_real_instance()
                 series, valid = rule.apply(series, context={'series':self.series,'validation':self})
                 valid = valid.groupby(valid.index).last()
                 if result is None:
