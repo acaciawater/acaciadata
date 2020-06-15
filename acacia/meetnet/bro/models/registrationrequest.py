@@ -91,11 +91,14 @@ class RegistrationRequest(models.Model):
             SubElement(monitoringTube, 'ns:tubeType', codeSpace="urn:bro:gmw:TubeType").text=t.tubeType
             SubElement(monitoringTube, 'ns:artesianWellCapPresent').text = t.artesianWellCapPresent
             SubElement(monitoringTube, 'ns:sedimentSumpPresent').text=t.sedimentSumpPresent
+            if t.sedimentSumpPresent == 'ja':
+                SubElement(monitoringTube, 'ns:sedimentSump').text='{}'.format(t.sedimentSump)
+                
             SubElement(monitoringTube, 'ns:numberOfGeoOhmCables').text = '0'
             if t.tubeTopDiameter:
                 SubElement(monitoringTube, 'ns:tubeTopDiameter', uom="mm").text = '{:.0f}'.format(t.tubeTopDiameter)
             else:
-                SubElement(monitoringTube, 'ns:tubeTopDiameter', uom="mm").text = ''
+                SubElement(monitoringTube, 'ns:tubeTopDiameter', uom="mm").text = '32'
                 
             SubElement(monitoringTube, 'ns:variableDiameter').text=t.variableDiameter
             SubElement(monitoringTube, 'ns:tubeStatus', codeSpace="urn:bro:gmw:TubeStatus").text=t.tubeStatus
