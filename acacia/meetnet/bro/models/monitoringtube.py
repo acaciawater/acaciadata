@@ -18,7 +18,7 @@ class MonitoringTube(models.Model):
     artesianWellCapPresent = IndicationYesNoUnknownEnumeration(verbose_name=_('ArtesianWellCapPresent'))
     sedimentSumpPresent = IndicationYesNoUnknownEnumeration(verbose_name=_('SedimentSumpPresent'))
     numberOfGeoOhmCables = models.PositiveSmallIntegerField(verbose_name=_('NumberOfGeoOhmCables'), default = 0)
-    tubeTopDiameter = models.FloatField(_('Diameter'))
+    tubeTopDiameter = models.FloatField(_('Diameter'), null=True)
     variableDiameter = IndicationYesNoEnumeration(_('Variabele diameter'),default='nee')
     tubeStatus = CodeField(codeSpace='TubeStatus',verbose_name=_('Status'),default='gebruiksklaar')
     tubeTopPosition = models.FloatField(_('Bovenkant buis'))

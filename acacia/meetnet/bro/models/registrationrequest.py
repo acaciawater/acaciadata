@@ -92,7 +92,11 @@ class RegistrationRequest(models.Model):
             SubElement(monitoringTube, 'ns:artesianWellCapPresent').text = t.artesianWellCapPresent
             SubElement(monitoringTube, 'ns:sedimentSumpPresent').text=t.sedimentSumpPresent
             SubElement(monitoringTube, 'ns:numberOfGeoOhmCables').text = '0'
-            SubElement(monitoringTube, 'ns:tubeTopDiameter', uom="mm").text = '{:.0f}'.format(t.tubeTopDiameter)
+            if t.tubeTopDiameter:
+                SubElement(monitoringTube, 'ns:tubeTopDiameter', uom="mm").text = '{:.0f}'.format(t.tubeTopDiameter)
+            else:
+                SubElement(monitoringTube, 'ns:tubeTopDiameter', uom="mm").text = ''
+                
             SubElement(monitoringTube, 'ns:variableDiameter').text=t.variableDiameter
             SubElement(monitoringTube, 'ns:tubeStatus', codeSpace="urn:bro:gmw:TubeStatus").text=t.tubeStatus
             SubElement(monitoringTube, 'ns:tubeTopPosition', uom="m").text = '{:.3f}'.format(t.tubeTopPosition)
