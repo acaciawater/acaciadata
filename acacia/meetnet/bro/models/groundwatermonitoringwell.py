@@ -29,7 +29,7 @@ class GroundwaterMonitoringWell(models.Model):
     owner = models.CharField(_('Owner'),max_length=8,validators=[ChamberOfCommerceValidator],help_text='KVK-nummer van de eigenaar')
     maintenanceResponsibleParty = models.CharField(_('Onderhoudende instantie'),max_length=8,validators=[ChamberOfCommerceValidator],null=True,blank=True)
     wellHeadProtector = CodeField(codeSpace='WellHeadProtector',verbose_name=_('Beschermconstructie'),default='onbekend')
-    wellConstructionDate = models.DateField()
+    wellConstructionDate = models.DateField(null=True, blank=True)
     location = models.PointField(_('Coordinaten'))
     horizontalPositioningMethod = CodeField(codeSpace='HorizontalPositioningMethod',verbose_name=_('Methode locatiebepaling'), default='RTKGPS2tot5cm')
     groundLevelPosition = models.FloatField(_('Maaiveld'))
