@@ -91,9 +91,6 @@ class RegistrationRequest(models.Model):
             SubElement(monitoringTube, 'ns:tubeType', codeSpace="urn:bro:gmw:TubeType").text=t.tubeType
             SubElement(monitoringTube, 'ns:artesianWellCapPresent').text = t.artesianWellCapPresent
             SubElement(monitoringTube, 'ns:sedimentSumpPresent').text=t.sedimentSumpPresent
-            if t.sedimentSumpPresent == 'ja':
-                SubElement(monitoringTube, 'ns:sedimentSump').text='{}'.format(t.sedimentSump)
-                
             SubElement(monitoringTube, 'ns:numberOfGeoOhmCables').text = '0'
             if t.tubeTopDiameter:
                 SubElement(monitoringTube, 'ns:tubeTopDiameter', uom="mm").text = '{:.0f}'.format(t.tubeTopDiameter)
@@ -114,6 +111,9 @@ class RegistrationRequest(models.Model):
             SubElement(screenElement,'ns:sockMaterial', codeSpace="urn:bro:gmw:SockMaterial").text=t.sockMaterial
             plainTubePart = SubElement(monitoringTube, 'ns:plainTubePart')
             SubElement(plainTubePart, 'ns2:plainTubePartLength', uom="m").text = '{:.3f}'.format(t.plainTubePartLength)
+            if t.sedimentSumpPresent == 'ja':
+                sump = SubElement(monitoringTube, 'ns:sedimentSump')
+                SubElement(sump, 'ns2:sedimentSumpLength', uom='m').text='{:.3f}'.format(t.sedimentSump)
     
         return xml
     

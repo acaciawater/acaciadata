@@ -59,7 +59,7 @@ class MonitoringTube(models.Model):
             self.plainTubePartLength = abs(top + refpnt - maaiveld)
         if not (depth is None or bottom is None):
             self.sedimentSump = abs(depth - bottom)
-            self.sedimentSumpPresent = 'ja' if self.sedimentSump > 0 else 'nee'
+            self.sedimentSumpPresent = 'ja' if self.sedimentSump >= 0.05 else 'nee'
             
     @classmethod
     def create_for_screen(cls, screen, **kwargs):
