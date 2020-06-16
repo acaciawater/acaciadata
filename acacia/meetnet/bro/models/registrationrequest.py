@@ -95,8 +95,7 @@ class RegistrationRequest(models.Model):
             if t.tubeTopDiameter:
                 SubElement(monitoringTube, 'ns:tubeTopDiameter', uom="mm").text = '{:.0f}'.format(t.tubeTopDiameter)
             else:
-                diameter = SubElement(monitoringTube, 'ns:tubeTopDiameter')
-                SubElement(diameter, 'ns1:voidReason').text = 'onbekend'
+                SubElement(monitoringTube, 'ns:tubeTopDiameter').text = 'onbekend'
                 
             SubElement(monitoringTube, 'ns:variableDiameter').text=t.variableDiameter
             SubElement(monitoringTube, 'ns:tubeStatus', codeSpace="urn:bro:gmw:TubeStatus").text=t.tubeStatus
