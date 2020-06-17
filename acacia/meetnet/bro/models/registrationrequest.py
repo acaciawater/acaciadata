@@ -38,7 +38,8 @@ class RegistrationRequest(models.Model):
             'xmlns:ns':'http://www.broservices.nl/xsd/isgmw/1.1',
             'xmlns:ns1':'http://www.broservices.nl/xsd/brocommon/3.0',        
             'xmlns:ns2':'http://www.broservices.nl/xsd/gmwcommon/1.1',
-            'xmlns:ns3':'http://www.opengis.net/gml/3.2'
+            'xmlns:ns3':'http://www.opengis.net/gml/3.2',
+            'xmlns:xsi':'http://www.w3.org/2001/XMLSchema-instance'
         })
         SubElement(xml, 'ns1:requestReference').text = self.requestReference # or update from well??
         SubElement(xml, 'ns1:deliveryAccountableParty').text = self.deliveryAccountableParty
@@ -93,10 +94,9 @@ class RegistrationRequest(models.Model):
             SubElement(monitoringTube, 'ns:sedimentSumpPresent').text=t.sedimentSumpPresent
             SubElement(monitoringTube, 'ns:numberOfGeoOhmCables').text = '0'
             if t.tubeTopDiameter:
-                SubElement(monitoringTube, 'ns:tubeTopDiameter', uom="mm").text = '{:.0f}'.format(t.tubeTopDiameter)
+                SubElement(monitoringTube, 'ns:tubeTopDiameter', uom='mm').text = '{:.0f}'.format(t.tubeTopDiameter)
             else:
-                SubElement(monitoringTube, 'ns:tubeTopDiameter').text = 'onbekend'
-                
+                SubElement(monitoringTube, 'ns:tubeTopDiameter', {'uom':'mm', 'xsi:nil':'true'})
             SubElement(monitoringTube, 'ns:variableDiameter').text=t.variableDiameter
             SubElement(monitoringTube, 'ns:tubeStatus', codeSpace="urn:bro:gmw:TubeStatus").text=t.tubeStatus
             SubElement(monitoringTube, 'ns:tubeTopPosition', uom="m").text = '{:.3f}'.format(t.tubeTopPosition)
