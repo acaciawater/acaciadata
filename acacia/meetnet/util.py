@@ -11,6 +11,7 @@ from django.core.mail.message import EmailMessage
 from acacia.meetnet.models import MeteoData, Network, Handpeilingen
 from acacia.data.util import get_address_pdok as get_address
 from __builtin__ import False
+import json
 
 matplotlib.use('agg')
 import matplotlib.pylab as plt
@@ -247,6 +248,7 @@ def recomp(screen,series,start=None,baros={}):
             queryset = queryset.filter(stop__gte=start)
         for mon in queryset:
             mondata = mon.get_data()
+            needs_compensation = False
             if isinstance(mondata,dict):
                 mondata = mondata.itervalues().next()
             if mondata is None or mondata.empty:
@@ -254,10 +256,24 @@ def recomp(screen,series,start=None,baros={}):
                 continue
             
             if 'Waterstand' in mondata:
-                # Ellitrack, no need for compensation, data is m wrt reference level (NAP)
+                # Ellitrack, usually no need for compensation, data is m wrt reference level (NAP)
                 data = mondata['Waterstand']
                 data = series.do_postprocess(data)
-
+                config = json.loads(mon.datasource.config)
+                compensated = config.get('compensated')
+                if compensated == False:
+                    # for Leiden some loggers are not compensated
+                    if logpos.refpnt is None:
+                        logger.warning('Referentiepunt ontbreekt voor {pos}'.format(pos=logpos))
+                        continue
+                    if logpos.depth is None:
+                        logger.warning('Inhangdiepte ontbreekt voor {pos}'.format(pos=logpos))
+                        continue
+                    # data is in m wrt reference level. If reference level == 0 on Ellitrack site
+                    # then data is in m above top of tube, but air pressure compensation needs data in cm above sensor
+                    data = (logpos.depth + data) * 100 
+                    needs_compensation = True
+                    
             elif 'water_m_above_nap' in mondata:
                 # Bliksensing, no need for compensation, data is m wrt reference level (NAP)
                 data = mondata['water_m_above_nap']
@@ -279,7 +295,14 @@ def recomp(screen,series,start=None,baros={}):
                 
                 data = mondata['PRESSURE']
                 data = series.do_postprocess(data)
+                needs_compensation = True
     
+            else:
+                # no data in file
+                logger.error('Geen parameter voor waterstand gevonden in file {}'.format(mon))
+                continue
+
+            if needs_compensation:
                 # get barometric pressure            
                 try:
                     baro = get_baro(screen, baros)
@@ -325,16 +348,11 @@ def recomp(screen,series,start=None,baros={}):
                     # count dry values
                     dry = data.isnull().sum()
                     if dry:
-                        logger.warning('Logger {}, MON file {}: {} out of {} measurements have less than 5 cm of water'.format(unicode(logpos),mon,dry,data.size))
+                        logger.warning('Logger {}, file {}: {} out of {} measurements have less than 5 cm of water'.format(unicode(logpos),mon,dry,data.size))
                     
                     data = data / 100 + (logpos.refpnt - logpos.depth)
                     
-            else:
-                # no data in file
-                logger.error('Geen "PRESSURE" of "LEVEL" parameter gevonden in monfile {}'.format(mon))
-                continue
-
-            # honor start_date from logger installation: delete everything before start_date
+            # honour start_date from logger installation: delete everything before start_date
             data = data[data.index >= logpos.start_date]
             if logpos.end_date:
                 data = data[data.index <= logpos.end_date]
@@ -362,23 +380,6 @@ def recomp(screen,series,start=None,baros={}):
 #     series.validate(reset=True)
     return seriesdata.size
     
-def drift_correct1(series, manual):
-    ''' correct drift with manual measurements (both are pandas series)'''
-    # TODO: extrapolate series to manual 
-    # calculate differences
-    left,right=series.align(manual)
-    # interpolate values on index of manual measurements
-    left = left.interpolate(method='time')
-    left = left.interpolate(method='nearest')
-    # calculate difference at manual index
-    diff = left.reindex(manual.index) - manual
-    # interpolate differences to all measurements
-    left,right=series.align(diff)
-    right = right.interpolate(method='time')
-    drift = right.reindex(series.index)
-    drift = drift.fillna(0)
-    return series-drift
-
 def drift_correct(levels, peilingen):
     ''' correct for drift and/or offset.
     both levels and peilingen are pandas series 
