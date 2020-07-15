@@ -519,11 +519,11 @@ class LoggerPos(models.Model):
         for ds in self.logger.datasources.all():
             queryset = ds.sourcefiles.all()
             if start:
-                queryset = queryset.filter(start__gte=start)
+                queryset = queryset.filter(stop__gt=start)
             elif self.start_date:
-                queryset = queryset.filter(start__gte=self.start_date)
+                queryset = queryset.filter(stop__gt=self.start_date)
             if self.end_date:
-                queryset = queryset.filter(stop__lte=self.end_date)
+                queryset = queryset.filter(start__lt=self.end_date)
             for sf in queryset:
                 self.files.add(sf)
         if not self.start_date:
