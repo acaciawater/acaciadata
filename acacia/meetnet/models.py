@@ -60,10 +60,10 @@ class Well(geo.Model):
     objects = geo.GeoManager()
     
     def latlon(self):
-        return util.toWGS84(self.location)
+        return util.toWGS84(self.location) if self.location else None
 
     def RD(self):
-        return util.toRD(self.location)
+        return util.toRD(self.location) if self.location else None
 
     def num_filters(self):
         return self.screen_set.count()
@@ -393,7 +393,12 @@ class Screen(models.Model):
                 levels /= 100.0
             if self.handpeilingen.refpnt == 'bkb':
                 # convert to NAP
-                levels = self.refpnt - levels
+                if self.refpnt is not None:
+                    levels = self.refpnt - levels
+                else:
+                    # not refpnt: cannot convert
+                    # levels = pd.Series() ??
+                    pass
             return levels
         else:
             # legacy code
