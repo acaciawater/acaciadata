@@ -247,8 +247,8 @@ def recomp(screen,series,start=None,baros={}):
             # select files with data after start  
             queryset = queryset.filter(stop__gte=start)
         for mon in queryset:
+            compensation = None
             mondata = mon.get_data()
-            needs_compensation = False
             if isinstance(mondata,dict):
                 mondata = mondata.itervalues().next()
             if mondata is None or mondata.empty:
@@ -262,18 +262,8 @@ def recomp(screen,series,start=None,baros={}):
                 config = json.loads(mon.datasource.config)
                 compensated = config.get('compensated')
                 if compensated == False:
-                    # for Leiden some loggers are not compensated
-                    if logpos.refpnt is None:
-                        logger.warning('Referentiepunt ontbreekt voor {pos}'.format(pos=logpos))
-                        continue
-                    if logpos.depth is None:
-                        logger.warning('Inhangdiepte ontbreekt voor {pos}'.format(pos=logpos))
-                        continue
-                    # data is in m wrt reference level. If reference level == 0 on Ellitrack site
-                    # then data is in m above top of tube, but air pressure compensation needs data in cm above sensor
-                    data = (logpos.depth + data) * 100 
-                    needs_compensation = True
-                    
+                    compensation = 'ellitrack'
+                                        
             elif 'water_m_above_nap' in mondata:
                 # Bliksensing, no need for compensation, data is m wrt reference level (NAP)
                 data = mondata['water_m_above_nap']
@@ -286,6 +276,17 @@ def recomp(screen,series,start=None,baros={}):
                 
             elif 'PRESSURE' in mondata:
                 # Van Essen, compensation needed
+                data = mondata['PRESSURE']
+                data = series.do_postprocess(data)
+                compensation = 'vanessen'
+    
+            else:
+                # no data in file
+                logger.error('Geen parameter voor waterstand gevonden in file {}'.format(mon))
+                continue
+
+            if compensation:
+                
                 if logpos.refpnt is None:
                     logger.warning('Referentiepunt ontbreekt voor {pos}'.format(pos=logpos))
                     continue
@@ -293,16 +294,6 @@ def recomp(screen,series,start=None,baros={}):
                     logger.warning('Inhangdiepte ontbreekt voor {pos}'.format(pos=logpos))
                     continue
                 
-                data = mondata['PRESSURE']
-                data = series.do_postprocess(data)
-                needs_compensation = True
-    
-            else:
-                # no data in file
-                logger.error('Geen parameter voor waterstand gevonden in file {}'.format(mon))
-                continue
-
-            if needs_compensation:
                 # get barometric pressure            
                 try:
                     baro = get_baro(screen, baros)
@@ -339,16 +330,23 @@ def recomp(screen,series,start=None,baros={}):
                 abaro[baroend:] = np.NaN
     
                 if data.any() and abaro.any():
-                    # we have some data and some air pressure
-                    data = data - abaro
+                    # we have some data and some air pressure in cm H2O
+                    if compensation == 'ellitrack':
+                        # ellitrack data in m above top of tube using air pressure of 1013 hPa and g = 0.98123
+                        # convert to cm above sensor
+                        g = (screen.well.g or 9.80638) * 0.1
+                        data = (logpos.depth + data) * 100 + (1013 - abaro * g) / 0.98123
+                    elif compensation == 'vanessen':
+                        # vanessen data is in cm above sensor
+                        data = data - abaro
                     data.dropna(inplace=True)
                     
-                    #clear datapoints with less than 5 cm of water
-                    data[data<5] = np.nan
+                    #clear datapoints with less than 2 cm of water
+                    data[data<2] = np.nan
                     # count dry values
                     dry = data.isnull().sum()
                     if dry:
-                        logger.warning('Logger {}, file {}: {} out of {} measurements have less than 5 cm of water'.format(unicode(logpos),mon,dry,data.size))
+                        logger.warning('Logger {}, file {}: {} out of {} measurements have less than 2 cm of water'.format(unicode(logpos),mon,dry,data.size))
                     
                     data = data / 100 + (logpos.refpnt - logpos.depth)
                     
