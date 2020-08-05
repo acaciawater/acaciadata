@@ -212,7 +212,7 @@ def make_encoded_chart(obj):
     return encode_chart(make_chart(obj))
 
 def get_baro(screen,baros):
-    ''' get series with air pressure '''
+    ''' get series with air pressure in cm H2O '''
     well = screen.well
     if not hasattr(well,'meteo') or well.meteo.baro is None:
         logger.error('Luchtdruk ontbreekt voor put {well}'.format(well=well))
@@ -225,7 +225,7 @@ def get_baro(screen,baros):
     else:
         baro = baroseries.to_pandas()
 
-        # if baro datasource = KNMI then convert from hPa to cm H2O
+        # if baro datasource = KNMI then convert from 0.1 hPa to cm H2O
         dsbaro = baroseries.datasource()
         if dsbaro:
             gen = dsbaro.generator
@@ -332,10 +332,12 @@ def recomp(screen,series,start=None,baros={}):
                 if data.any() and abaro.any():
                     # we have some data and some air pressure in cm H2O
                     if compensation == 'ellitrack':
-                        # ellitrack data in m above top of tube using air pressure of 1013 hPa and g = 0.98123
-                        # convert to cm above sensor
-                        g = (screen.well.g or 9.80638) * 0.1
-                        data = (logpos.depth + data) * 100 + (1013 - abaro * g) / 0.98123
+                        # July 2020: compensate raw ellitrack data
+                        # Ellitrack reports in cm above reference level using constant air pressure = 1013 hPa and g = 9.8123
+                        # The generator has converted from cm to m, so our data is now in m above reference level
+                        # Convert back to cm above sensor assuming reference level = 0 on ellitrack site
+                        hpa = abaro * (screen.well.g or 9.80638) * 0.1 # air pressure in hPa
+                        data = (logpos.depth + data) * 100 + (1013 - hpa) / 0.98123
                     elif compensation == 'vanessen':
                         # vanessen data is in cm above sensor
                         data = data - abaro
@@ -348,6 +350,7 @@ def recomp(screen,series,start=None,baros={}):
                     if dry:
                         logger.warning('Logger {}, file {}: {} out of {} measurements have less than 2 cm of water'.format(unicode(logpos),mon,dry,data.size))
                     
+                    # convert from cm above sensor to m+NAP
                     data = data / 100 + (logpos.refpnt - logpos.depth)
                     
             # honour start_date from logger installation: delete everything before start_date
