@@ -236,16 +236,21 @@ def get_baro(screen,baros):
         baros[baroseries] = baro
     return baro
 
-def recomp(screen,series,start=None,baros={}):
+def recomp(screen,series,start=None,stop=None,baros={}):
     ''' rebuild (compensated) timeseries from loggerpos files '''
 
     seriesdata = None
     for logpos in screen.loggerpos_set.order_by('start_date'):
         logger.debug('Processing {}, {} {}'.format(logpos, logpos.start_date, logpos.end_date or '-'))
         queryset = logpos.files.order_by('start')
+
         if start:
-            # select files with data after start  
+            # select files that have data after start  
             queryset = queryset.filter(stop__gte=start)
+        if stop:
+            # select files that have data before stop
+            queryset = queryset.filter(start__lte=stop)
+              
         for mon in queryset:
             compensation = None
             mondata = mon.get_data()
@@ -352,11 +357,18 @@ def recomp(screen,series,start=None,baros={}):
                     
                     # convert from cm above sensor to m+NAP
                     data = data / 100 + (logpos.refpnt - logpos.depth)
-                    
+
+            # clip data on start/stop                    
+            if start:
+                data = data[data.index >= start]
+            if stop:
+                data = data[data.index <= stop]
+
             # honour start_date from logger installation: delete everything before start_date
             data = data[data.index >= logpos.start_date]
             if logpos.end_date:
                 data = data[data.index <= logpos.end_date]
+                
             if seriesdata is None:
                 seriesdata = data
             else:
