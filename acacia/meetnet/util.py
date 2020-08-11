@@ -8,7 +8,7 @@ import logging
 import matplotlib
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 from django.core.mail.message import EmailMessage
-from acacia.meetnet.models import MeteoData, Network, Handpeilingen, LoggerPos
+from acacia.meetnet.models import MeteoData, Network, Handpeilingen
 from acacia.data.util import get_address_pdok as get_address
 import json
 
@@ -211,7 +211,7 @@ def make_encoded_chart(obj):
     return encode_chart(make_chart(obj))
 
 def get_baro(screen,baros):
-    ''' get series with air pressure '''
+    ''' get series with air pressure in cm H2O '''
     well = screen.well
     if not hasattr(well,'meteo') or well.meteo.baro is None:
         logger.error('Luchtdruk ontbreekt voor put {well}'.format(well=well))
@@ -224,7 +224,7 @@ def get_baro(screen,baros):
     else:
         baro = baroseries.to_pandas()
 
-        # if baro datasource = KNMI then convert from hPa to cm H2O
+        # if baro datasource = KNMI then convert from 0.1 hPa to cm H2O
         dsbaro = baroseries.datasource()
         if dsbaro:
             gen = dsbaro.generator
@@ -235,17 +235,23 @@ def get_baro(screen,baros):
         baros[baroseries] = baro
     return baro
 
-def recomp(screen,series,start=None,baros={}):
+def recomp(screen,series,start=None,stop=None,baros={}):
     ''' rebuild (compensated) timeseries from loggerpos files '''
 
     seriesdata = None
     for logpos in screen.loggerpos_set.order_by('start_date'):
         logger.debug('Processing {}, {} {}'.format(logpos, logpos.start_date, logpos.end_date or '-'))
         queryset = logpos.files.order_by('start')
+
         if start:
-            # select files with data after start  
+            # select files that have data after start  
             queryset = queryset.filter(stop__gte=start)
+        if stop:
+            # select files that have data before stop
+            queryset = queryset.filter(start__lte=stop)
+              
         for mon in queryset:
+            compensation = None
             mondata = mon.get_data()
             if isinstance(mondata,dict):
                 mondata = mondata.itervalues().next()
@@ -254,10 +260,14 @@ def recomp(screen,series,start=None,baros={}):
                 continue
             
             if 'Waterstand' in mondata:
-                # Ellitrack, no need for compensation, data is m wrt reference level (NAP)
+                # Ellitrack, usually no need for compensation, data is m wrt reference level (NAP)
                 data = mondata['Waterstand']
                 data = series.do_postprocess(data)
-
+                config = json.loads(mon.datasource.config)
+                compensated = config.get('compensated')
+                if compensated == False:
+                    compensation = 'ellitrack'
+                                        
             elif 'water_m_above_nap' in mondata:
                 # Bliksensing, no need for compensation, data is m wrt reference level (NAP)
                 data = mondata['water_m_above_nap']
@@ -270,6 +280,17 @@ def recomp(screen,series,start=None,baros={}):
                 
             elif 'PRESSURE' in mondata:
                 # Van Essen, compensation needed
+                data = mondata['PRESSURE']
+                data = series.do_postprocess(data)
+                compensation = 'vanessen'
+    
+            else:
+                # no data in file
+                logger.error('Geen parameter voor waterstand gevonden in file {}'.format(mon))
+                continue
+
+            if compensation:
+                
                 if logpos.refpnt is None:
                     logger.warning('Referentiepunt ontbreekt voor {pos}'.format(pos=logpos))
                     continue
@@ -277,9 +298,6 @@ def recomp(screen,series,start=None,baros={}):
                     logger.warning('Inhangdiepte ontbreekt voor {pos}'.format(pos=logpos))
                     continue
                 
-                data = mondata['PRESSURE']
-                data = series.do_postprocess(data)
-    
                 # get barometric pressure            
                 try:
                     baro = get_baro(screen, baros)
@@ -316,28 +334,40 @@ def recomp(screen,series,start=None,baros={}):
                 abaro[baroend:] = np.NaN
     
                 if data.any() and abaro.any():
-                    # we have some data and some air pressure
-                    data = data - abaro
+                    # we have some data and some air pressure in cm H2O
+                    if compensation == 'ellitrack':
+                        # July 2020: compensate raw ellitrack data
+                        # Ellitrack reports in cm above reference level using constant air pressure = 1013 hPa and g = 9.8123
+                        # The generator has converted from cm to m, so our data is now in m above reference level
+                        # Convert back to cm above sensor assuming reference level = 0 on ellitrack site
+                        hpa = abaro * (screen.well.g or 9.80638) * 0.1 # air pressure in hPa
+                        data = (logpos.depth + data) * 100 + (1013 - hpa) / 0.98123
+                    elif compensation == 'vanessen':
+                        # vanessen data is in cm above sensor
+                        data = data - abaro
                     data.dropna(inplace=True)
                     
-                    #clear datapoints with less than 5 cm of water
-                    data[data<5] = np.nan
+                    #clear datapoints with less than 2 cm of water
+                    data[data<2] = np.nan
                     # count dry values
                     dry = data.isnull().sum()
                     if dry:
-                        logger.warning('Logger {}, MON file {}: {} out of {} measurements have less than 5 cm of water'.format(unicode(logpos),mon,dry,data.size))
+                        logger.warning('Logger {}, file {}: {} out of {} measurements have less than 2 cm of water'.format(unicode(logpos),mon,dry,data.size))
                     
+                    # convert from cm above sensor to m+NAP
                     data = data / 100 + (logpos.refpnt - logpos.depth)
-                    
-            else:
-                # no data in file
-                logger.error('Geen "PRESSURE" of "LEVEL" parameter gevonden in monfile {}'.format(mon))
-                continue
 
-            # honor start_date from logger installation: delete everything before start_date
+            # clip data on start/stop                    
+            if start:
+                data = data[data.index >= start]
+            if stop:
+                data = data[data.index <= stop]
+
+            # honour start_date from logger installation: delete everything before start_date
             data = data[data.index >= logpos.start_date]
             if logpos.end_date:
                 data = data[data.index <= logpos.end_date]
+                
             if seriesdata is None:
                 seriesdata = data
             else:
@@ -362,23 +392,6 @@ def recomp(screen,series,start=None,baros={}):
 #     series.validate(reset=True)
     return seriesdata.size
     
-def drift_correct1(series, manual):
-    ''' correct drift with manual measurements (both are pandas series)'''
-    # TODO: extrapolate series to manual 
-    # calculate differences
-    left,right=series.align(manual)
-    # interpolate values on index of manual measurements
-    left = left.interpolate(method='time')
-    left = left.interpolate(method='nearest')
-    # calculate difference at manual index
-    diff = left.reindex(manual.index) - manual
-    # interpolate differences to all measurements
-    left,right=series.align(diff)
-    right = right.interpolate(method='time')
-    drift = right.reindex(series.index)
-    drift = drift.fillna(0)
-    return series-drift
-
 def drift_correct(levels, peilingen):
     ''' correct for drift and/or offset.
     both levels and peilingen are pandas series 

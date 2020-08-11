@@ -12,7 +12,7 @@ from datetime import timedelta
 import pytz
 logger = generator.logger
 from ftplib import FTP
-from urlparse import urlparse
+from urlparse import urlparse, urlunparse
 from django.utils import timezone
 import dateutil
 import pandas as pd
@@ -47,7 +47,7 @@ class ElliTrack(GenericCSV):
             params[col] = {'description' : col, 'unit': 'm' if col.endswith('stand') else '°C'}
         return params
 
-    def download(self, **kwargs):
+    def download1(self, **kwargs):
  
         # Custom FTP download filtering on logger name
         filename = kwargs.get('filename', None)
@@ -108,4 +108,22 @@ class ElliTrack(GenericCSV):
             if callback is not None:
                 callback(result)
                  
+        return result
+
+    def download(self, **kwargs):
+        result = self.download1(**kwargs)
+        archive = kwargs.get('archive', False)
+        if archive:
+            # check archived sub directory
+            logger = kwargs.get('logger',None)
+            url = kwargs.get('url',None)
+            if logger and url:
+                import copy        
+                parsed = urlparse(url)
+                url = urlunparse(parsed._replace(path = parsed.path + '/' + logger))
+                options = copy.deepcopy(kwargs)
+                options['url'] = url
+                options['archive'] = False
+                subresult = self.download1(**options)
+                result.update(subresult)
         return result

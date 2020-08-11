@@ -332,6 +332,9 @@ def import_handpeilingen(request, sheet='Handpeilingen'):
         except Screen.DoesNotExist:
             logger.error('Screen %s/%03d not found' % (id, nr))
             errors+=1
+        except TypeError:
+            logger.exception('Probleem met handpeiling %s/%03d' % (id, nr))
+            errors+=1
 
     return errors
 
