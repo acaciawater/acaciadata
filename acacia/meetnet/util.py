@@ -8,7 +8,7 @@ import logging
 import matplotlib
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 from django.core.mail.message import EmailMessage
-from acacia.meetnet.models import MeteoData, Network, Handpeilingen
+from acacia.meetnet.models import MeteoData, Network, Handpeilingen, LoggerPos
 from acacia.data.util import get_address_pdok as get_address
 import json
 
@@ -844,10 +844,7 @@ def update_series(request,screen):
      
     # get or create compensated series
     name = '%s COMP' % screen
-    try:
-        series = screen.mloc.series_set.get(name__iexact=name)
-    except:
-        series = screen.mloc.series_set.create(name=name,user=user)
+    series, created = screen.mloc.series_set.get_or_create(name=name, defaults = {'user': user, 'timezone': 'Etc/GMT-1'})
     recomp(screen, series)
                  
     #maak/update grafiek
