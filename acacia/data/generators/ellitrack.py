@@ -21,7 +21,7 @@ class ElliTrack(GenericCSV):
     
     def get_data(self, f, **kwargs):
         f.seek(0)
-        data = pd.read_table(f, parse_dates = True, index_col = 0, header = self.header, dayfirst = self.dayfirst, decimal = self.decimal)
+        data = pd.read_csv(f, sep='\t', parse_dates = True, index_col = 0, header = self.header, dayfirst = self.dayfirst, decimal = self.decimal, na_values='x')
         self.set_labels(data)
         if not isinstance(data.index,pd.DatetimeIndex):
             # for some reason dateutil.parser.parse not always recognizes valid dates?
@@ -40,7 +40,7 @@ class ElliTrack(GenericCSV):
 #         } 
     def get_parameters(self, f):
         f.seek(0)
-        data = pd.read_table(f, parse_dates = True, index_col = 0, header = self.header, dayfirst = self.dayfirst, decimal = self.decimal)
+        data = pd.read_csv(f, sep='\t', nrows=1, parse_dates = True, index_col = 0, header = self.header, dayfirst = self.dayfirst, decimal = self.decimal, na_values='x')
         self.set_labels(data)
         params = {}
         for col in data.columns:
