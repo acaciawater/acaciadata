@@ -258,10 +258,12 @@ def recomp(screen,series,start=None,stop=None,baros={}):
             if mondata is None or mondata.empty:
                 logger.error('No data found in {}'.format(mon))
                 continue
-            
-            if 'Waterstand' in mondata:
+
+            #if 'Waterstand' in mondata: # sometimes name has been changed to Waterstand m tov NAP
+            candidates = filter(lambda name: name.lower().startswith('waterstand'), mondata.columns)             
+            if len(candidates)==1:
                 # Ellitrack, usually no need for compensation, data is m wrt reference level (NAP)
-                data = mondata['Waterstand']
+                data = mondata[candidates[0]]
                 data = series.do_postprocess(data)
                 config = json.loads(mon.datasource.config)
                 compensated = config.get('compensated')
