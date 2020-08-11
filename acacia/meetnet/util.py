@@ -780,7 +780,7 @@ def add_ellitrack_file(request,network,f,force_name=None):
     filename = f.name
     basename = os.path.basename(filename.lower())
     error = (None,None)
-    if not basename.startswith('ellitrack') or basename.startswith('export'):
+    if not (basename.startswith('ellitrack') or basename.startswith('export')):
         logger.warning('Bestand {name} wordt overgeslagen: bestandsnaam moet beginnen met "Ellitrack" of "Export"'.format(name=filename))
         return error
     logger.info('Verwerken van bestand ' + filename)
