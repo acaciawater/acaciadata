@@ -481,7 +481,7 @@ class Datalogger(models.Model):
     model = models.CharField(max_length=50,verbose_name = _('type'), default='14', choices=DIVER_TYPES)
     
     def __unicode__(self):
-        return self.serial
+        return '%s' % self.serial
  
     class Meta:
         ordering = ['serial']
