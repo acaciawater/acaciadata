@@ -8,7 +8,6 @@ from acacia.data.generators.generic import GenericCSV
 from acacia.data.generators import generator
 from acacia.data.util import get_dirlist
 import StringIO
-from datetime import timedelta
 import pytz
 logger = generator.logger
 from ftplib import FTP
@@ -21,7 +20,7 @@ class ElliTrack(GenericCSV):
     
     def get_data(self, f, **kwargs):
         f.seek(0)
-        data = pd.read_table(f, parse_dates = True, index_col = 0, header = self.header, dayfirst = self.dayfirst, decimal = self.decimal)
+        data = pd.read_csv(f, sep='\t', parse_dates = True, index_col = 0, header = self.header, dayfirst = self.dayfirst, decimal = self.decimal, na_values='x')
         self.set_labels(data)
         if not isinstance(data.index,pd.DatetimeIndex):
             # for some reason dateutil.parser.parse not always recognizes valid dates?
@@ -29,8 +28,10 @@ class ElliTrack(GenericCSV):
             data.index = pd.to_datetime(data.index)
         if data is not None:
             data.dropna(how='all', inplace=True)
-            if 'Waterstand' in data:
-                data['Waterstand'] = data['Waterstand'] / 100
+            cols = filter(lambda name: name.lower().startswith('waterstand'), data.columns)             
+            if len(cols)==1:
+                stand=cols[0]
+                data[stand] = data[stand] / 100
         return data
 
 #     def get_parameters(self, f):
@@ -40,11 +41,11 @@ class ElliTrack(GenericCSV):
 #         } 
     def get_parameters(self, f):
         f.seek(0)
-        data = pd.read_table(f, parse_dates = True, index_col = 0, header = self.header, dayfirst = self.dayfirst, decimal = self.decimal)
+        data = pd.read_csv(f, sep='\t', nrows=1, parse_dates = True, index_col = 0, header = self.header, dayfirst = self.dayfirst, decimal = self.decimal, na_values='x')
         self.set_labels(data)
         params = {}
         for col in data.columns:
-            params[col] = {'description' : col, 'unit': 'm' if col.endswith('stand') else '°C'}
+            params[col] = {'description' : col, 'unit': 'm' if 'stand' in col else '°C'}
         return params
 
     def download1(self, **kwargs):

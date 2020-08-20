@@ -8,9 +8,8 @@ import logging
 import matplotlib
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 from django.core.mail.message import EmailMessage
-from acacia.meetnet.models import MeteoData, Network, Handpeilingen
+from acacia.meetnet.models import MeteoData, Network, Handpeilingen, LoggerPos
 from acacia.data.util import get_address_pdok as get_address
-from __builtin__ import False
 import json
 
 matplotlib.use('agg')
@@ -30,7 +29,7 @@ from django.conf import settings
 
 from acacia.data.models import Project, Generator, DataPoint, MeetLocatie, SourceFile, Chart, Series,\
     Parameter
-from acacia.data.generators import sws
+from acacia.data.generators import sws, ellitrack
 from acacia.data.knmi.models import Station, NeerslagStation
 from .models import Well, Screen, Datalogger, MonFile, Channel, LoggerDatasource
 
@@ -260,10 +259,12 @@ def recomp(screen,series,start=None,stop=None,baros={}):
             if mondata is None or mondata.empty:
                 logger.error('No data found in {}'.format(mon))
                 continue
-            
-            if 'Waterstand' in mondata:
+
+            #if 'Waterstand' in mondata: # sometimes name has been changed to Waterstand m tov NAP
+            candidates = filter(lambda name: name.lower().startswith('waterstand'), mondata.columns)             
+            if len(candidates)==1:
                 # Ellitrack, usually no need for compensation, data is m wrt reference level (NAP)
-                data = mondata['Waterstand']
+                data = mondata[candidates[0]]
                 data = series.do_postprocess(data)
                 config = json.loads(mon.datasource.config)
                 compensated = config.get('compensated')
@@ -780,6 +781,68 @@ def addmonfile(request,network,f,force_name=None):
         return (mon,screen)
     return error
 
+def add_ellitrack_file(request,network,f,force_name=None):
+    ''' add ellitrack file to database '''
+
+    filename = f.name
+    basename = os.path.basename(filename.lower())
+    error = (None,None)
+    if not (basename.startswith('ellitrack') or basename.startswith('export')):
+        logger.warning('Bestand {name} wordt overgeslagen: bestandsnaam moet beginnen met "Ellitrack" of "Export"'.format(name=filename))
+        return error
+    logger.info('Verwerken van bestand ' + filename)
+    user = request.user
+    generator = Generator.objects.get(name='Ellitrack')
+    gen = generator.get_class()()
+    try:
+        df = gen.get_data(f)
+        start = min(df.index)
+        stop = max(df.index)
+    except Exception as e:
+        logger.error('Fout bij lezen van bestand '+ filename)
+        return error
+    
+    serial = basename.split('-')[1]
+    if force_name:
+        put = force_name
+        logger.info('Opgegeven putnaam: {put}'.format(put=put))
+
+    # datalogger installation must exist     
+    installations = LoggerPos.objects.filter(logger__serial=serial)
+    if not installations.exists():
+        logger.error('Geen logger installatie gevonden voor logger '+serial)
+        return error
+    candidates = installations.filter(start_date__lte=start)
+    if not candidates.exists():
+        logger.error('Geen logger installatie gevonden voor logger '+serial+' en datum '+start)
+        return error
+    latest = candidates.latest('start_date')
+    screen = latest.screen
+    logger.info('%s is gekoppeld aan %s' % (serial, screen))
+
+    # get/create datasource for logger
+    ds, created = LoggerDatasource.objects.get_or_create(name=serial,meetlocatie=screen.mloc,
+                                                             defaults = {'description': 'Ellitrack datalogger '+serial, 'logger': latest.logger, 'generator': generator, 'user': user, 'timezone': 'Etc/GMT-1',
+                                                                         'config': json.dumps({'logger': serial})})
+    if created:
+        logger.info('New datasource created, updating parameters')
+        ds.update_parameters()
+        
+    f.seek(0)
+    contents = f.read()
+    crc = abs(binascii.crc32(contents))
+    try:
+        sf = ds.sourcefiles.get(crc=crc)
+        logger.warning('Identiek bestand bestaat al in gegevensbron {ds}'.format(ds=unicode(ds)))
+        return error
+    except SourceFile.DoesNotExist:
+        # add source file
+        sf = ds.sourcefiles.create(name=basename,user=request.user,crc=crc,file=ContentFile(contents,name=basename))
+        logger.info('Bestand {filename} toegevoegd aan gegevensbron {ds} voor logger {log}'.format(filename=basename, ds=unicode(ds), log=serial))
+        latest.files.add(sf)
+        ds.update_parameters()
+        return (sf,screen)
+    
 def update_series(request,screen):
 
     user=request.user
@@ -788,10 +851,7 @@ def update_series(request,screen):
      
     # get or create compensated series
     name = '%s COMP' % screen
-    try:
-        series = screen.mloc.series_set.get(name__iexact=name)
-    except:
-        series = screen.mloc.series_set.create(name=name,user=user)
+    series, created = screen.mloc.series_set.get_or_create(name=name, defaults = {'user': user, 'timezone': 'Etc/GMT-1'})
     recomp(screen, series)
                  
     #maak/update grafiek
@@ -817,7 +877,9 @@ def handle_uploaded_files(request, network, localfiles, lookup={}):
 
     def process_file(f, name):
         basename = os.path.basename(name)
-        mon,screen = addmonfile(request,network, f, lookup.get(basename))
+        add = addmonfile if basename.lower().endswith('.mon') else add_ellitrack_file
+        mon, screen = add(request, network, f, lookup.get(basename))
+        
         if not mon or not screen:
             logger.warning('Bestand {name} overgeslagen'.format(name=name))
             return False
@@ -831,7 +893,7 @@ def handle_uploaded_files(request, network, localfiles, lookup={}):
         z = zipfile.ZipFile(pathname,'r')
         result = {}
         for name in z.namelist():
-            if name.lower().endswith('.mon'):
+            if name[-3:].lower() in ['mon','csv','txt']:
                 bytes = z.read(name)
                 io = StringIO(bytes)
                 io.name = name
@@ -847,7 +909,7 @@ def handle_uploaded_files(request, network, localfiles, lookup={}):
         with open(pathname) as f:
             return 'Success' if process_file(f, os.path.basename(pathname)) else 'Niet gebruikt'
         
-    #incstall handler that buffers logrecords to be sent by email 
+    #install handler that buffers logrecords to be sent by email 
     buffer=logging.handlers.BufferingHandler(20000)
     logger.addHandler(buffer)
     try:

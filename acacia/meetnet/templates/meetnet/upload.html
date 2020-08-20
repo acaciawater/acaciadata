@@ -98,7 +98,8 @@ input[readonly] {
 			<br>
 			<div class="row">
 				<div class="col-md-10">
-				<p>Selecteer een filter voor de MON bestanden: {{form.screen}}&nbsp;&nbsp;(Niet nodig als put en filternummer in de MON bestanden staat)</p>
+				<p>Selecteer een put/filter voor de logger bestanden: {{form.screen}}&nbsp;&nbsp;(Niet nodig als put en filternummer in de MON bestanden staat)</p>
+				<p>Voor Ellitrack bestanden moet de betreffende logger gekoppeld zijn aan een filter</p> 
 				<p>Door op Upload te klikken worden de geselecteerde bestanden naar de server gekopieerd en verder verwerkt.<br>
 				{% if user.email %}
 				Als de verwerking klaar is wordt een email met een rapportage over de verwerking gestuurd naar {{user.email}}.
