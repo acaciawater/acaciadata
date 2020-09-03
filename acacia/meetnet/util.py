@@ -239,6 +239,7 @@ def recomp(screen,series,start=None,stop=None,baros={}):
     ''' rebuild (compensated) timeseries from loggerpos files '''
 
     seriesdata = None
+    delete_all = start is None and stop is None
     for logpos in screen.loggerpos_set.order_by('start_date'):
         logger.debug('Processing {}, {} {}'.format(logpos, logpos.start_date, logpos.end_date or '-'))
         queryset = logpos.files.order_by('start')
@@ -374,6 +375,10 @@ def recomp(screen,series,start=None,stop=None,baros={}):
                 seriesdata = data
             else:
                 seriesdata = seriesdata.append(data)
+    
+    if delete_all:
+        series.datapoints.all().delete()
+
     if seriesdata is None:
         logger.warning('No data for {}'.format(screen))
         return 0
