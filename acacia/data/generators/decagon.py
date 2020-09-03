@@ -149,6 +149,61 @@ def conv119(x):
             ECp = (Ep * EC)/(Ea - Eb0)
     return [vwc, temp, EC, vwcp, ECp]
 
+def conv103(x):
+    ''' conversion for TEROS 11/12 Moisture/Temp/EC
+    Assume same layout as GS3:
+    - Apparent dielectric permittivity (eps) in lowest 12 bits
+    - Temperature in highest 10 bits
+    - EC in middle 10 bits 
+    '''
+    if np.isnan(x):
+        return [np.nan] * 5
+    raw = np.uint32(x)
+
+    ''' Calculate theta from RAW adc values for peat (vwcp) and mineral soil (vwc)
+    see TEROS 11/12 user manual (http://publications.metergroup.com/Manuals/20587_TEROS11-12_Manual_Web.pdf) 
+    '''
+    Ea = raw & m12
+     
+#     vwcp = 6.771e-10 * Ea**3 -5.105e-6 * Ea**2 + 1.302e-2 * Ea - 10.848 if Ea > 0 else np.nan # peat
+#     vwc = 3.879e-4 * Ea - 0.6956 # mineral soil
+#     if vwc < 0:
+#         vwc = np.nan
+
+    ''' TEROS formulas above do not result in reliable VWC values, use DataTrac formulas instead... '''
+    vwc = 2.1792e-04 * Ea - 7.4960e-02 # mineral soil
+    vwcp = 1.2004e-10 * Ea**3 - 5.8717e-07 * Ea**2 + 1.0378e-03 * Ea - 3.0861e-01 # peat
+    if vwc < 0:
+        vwc = np.nan
+    if vwcp < 0:
+        vwcp = np.nan
+
+    '''Calculate soil temperature [Celsius]'''
+    RT = (raw >> 22) & m10
+    if RT == 0:
+        temp = np.nan
+    elif RT <= 900:
+        temp = (RT-400) / 10.0
+    else:
+        temp = ((900 + 5 * (RT-900)) - 400) / 10.0
+
+    '''Calculate bulk EC (EC) and pore solution EC (ECp) [mS cm-1]'''
+    Rec = (raw >> 12) & m10
+    if Rec == 0:
+        EC = np.nan
+        ECp = np.nan
+    else:
+        EC = 10**(Rec/215.0)/1000
+        '''Calculate dielectric permittivity of soil pore water (Decagon)'''
+        Ep = 80.3 - 0.37 * (temp - 20.0)
+        ''' Dielectric permittivity (Eb0) dry soil (Hilhorst, 2000)'''
+        Eb0 = 4.1
+        if Ea == Eb0:
+            ECp = np.nan
+        else:
+            ECp = (Ep * EC)/(Ea - Eb0)
+    return [vwc, temp, EC, vwcp, ECp]
+
 def conv116(x):
     '''
     conversion for CTD Depth/Temp/EC
@@ -281,6 +336,15 @@ def post189(a):
     return b
         
 SENSORDATA = {
+    103: {'converter': conv103,
+          'parameters':[{'name': 'VWC', 'description': 'Volumetric water content for mineral soil', 'unit': 'm3/m3'},
+                        {'name': 'Temp', 'description': 'Temperature', 'unit': 'oC'},
+                        {'name': 'EC', 'description': 'Bulk Electrical Conductivity', 'unit': 'mS/cm'},
+                        {'name': 'VWC2', 'description': 'Volumetric water content for peaty soil', 'unit': 'm3/m3'},
+                        {'name': 'ECp', 'description': 'EC porienwater', 'unit': 'mS/cm'}
+                        ]
+          },
+    
     105: {'converter': conv106,
           'parameters':[{'name': 'Level', 'description': 'Water level', 'unit': 'mm'},
                         {'name': 'Temp', 'description': 'Temperature', 'unit': 'oC'},
@@ -546,60 +610,11 @@ except:
     import xml.etree.ElementTree as ET
 
 
-def parse_test(filename):
-    tree = ET.ElementTree(file=filename)
-    root = tree.getroot()
-    print root.tag, root.attrib
-    for device in tree.findall('Device'):
-        print device.tag, device.attrib
-        for port in device.findall('Configuration/Measurement/Ports/Port'):
-            print port.tag, port.attrib
-    data = device.find('Data')
-    print data.tag, data.attrib
-    io = StringIO.StringIO(data.text)        
-    df = pd.read_csv(io, header=None, index_col=[0], skiprows = 1, skipinitialspace=True, parse_dates = True, date_parser = date_parser)
-    return df
-    
-def download_test():
-    url = 'http://api.ech2odata.com/spaarwater/dxd.cgi' 
-    http_header = {'User-Agent': 'Decagon_curl_example-01'}
-    params = {'email':      'no-email@acaciawater.com',
-              'userpass':   'zuEti*rCd0',
-              'report':     1,
-              'deviceid':   '5G0E2930',
-              'devicepass': 'juat-apty',
-              'mrid':       2000
-              }
-    data = urllib.urlencode(params)
-    http_header['Content-Length'] = len(data)
-    request = urllib2.Request(url,data,http_header)
-    response = urllib2.urlopen(request)
-    return response.read()
-    
 if __name__ == '__main__':
         
     api = Dataservice()
 
-#    print conv106(270)
-    
-#    print conv119(2149036430)
-
-#     params = {
-#               'url':        'http://api.ech2odata.com/spaarwater/dxd.cgi',
-#               'username':   'no-email@acaciawater.com',
-#               'password':   'zuEti*rCd0',
-#               'deviceid':   '5G0E2933',
-#               'devicepass': 'ejcee-lilf',
-#               #'deviceid':   '5G0E2930',
-#               #'devicepass': 'juat-apty',
-#               }
-#     result = api.download(**params)
-#     for filename, content in result.iteritems():
-#         with open(filename, 'w') as f:
-#             f.write(content)
-    
-    filename = '/home/theo/acaciadata.com/spaarwater/media/spaarwater/borgsweer/perceel-1/datafiles/borgsweer-drip1/5G0E2934_1509282056.dxd'
-    #filename = '/home/theo/git/acacia-data/acacia/acacia/data/generators/5G0E2933.dxd'
+    filename = '/media/sf_C_DRIVE/Users/theo/Documents/projdirs/acaciadata/5G117562_19jun20-1633.dxd'
     
     with open(filename) as f:
         params = api.get_parameters(f)
@@ -608,21 +623,6 @@ if __name__ == '__main__':
 
     with open(filename) as f:
         data = api.get_data(f)
-        print data
-    
-        
-#     result = parse_test()
-#     print result
-    
-
-#    result = download_test()
-#    print result
-    
-#     
-#     with open('/home/theo/breez/535NorI-10Mar2014-1443.xls') as f:
-#         dt = DataTrac()
-#         params = dt.get_parameters(f)
-#         data = dt.get_data(f)
-#         print data
-#     
-
+        print('Saving excel file.')
+        data.to_excel('/media/sf_C_DRIVE/Users/theo/Documents/projdirs/acaciadata/5G117562.xlsx')
+        print('Done.')
