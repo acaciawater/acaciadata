@@ -8,11 +8,12 @@ import requests
 
 from generator import Generator
 import pandas as pd
+import json
 
 logger = logging.getLogger(__name__)
 
 
-class Blik(Generator):
+class Blik1(Generator):
     def get_data(self, fil, **kwargs):
         fil.seek(0)
         df = pd.read_json(fil)
@@ -104,4 +105,36 @@ class Blik(Generator):
     
     
     
-    
+class Blik2(Blik1):
+    '''
+    Uses API v2
+    '''
+    def download(self, **kwargs):
+        if 'url' not in kwargs:
+            kwargs['url'] = 'https://backend.water.bliksensing.nl/api/v2/locations/{id}/measurements'
+        return Blik1.download(self, **kwargs)
+
+    def get_data(self, fil, **kwargs):
+        '''
+        v2 files have different structure:
+        {
+            'measurements': {
+                'timestamps':[],
+                'waterGround_mm': [],
+                'waterNAP_mm': [],
+                'validity': []
+            }
+        }
+        '''
+        fil.seek(0)
+        df = pd.DataFrame(json.load(fil)['measurements'])
+        df.index=df['timestamps'].apply(lambda x: datetime.fromtimestamp(x,utc))
+        df.drop('timestamps',axis=1, inplace=True)
+        
+        # use v1 column names for compatibility
+        df['waterGround_mm'] /= 1000.0
+        df['waterNAP_mm'] /= 1000.0
+        return df.rename(columns={'waterNAP_mm': 'water_m_above_nap', 'waterGround_mm': 'water_m'})
+
+# default is v1 API
+Blik = Blik1
