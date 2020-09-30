@@ -44,7 +44,11 @@ class Blik1(Generator):
         return Blik.token
     
     def blik_api_request(self, url, limit, before, after):
-        url = url + '?limit={0}&before={1}&after={2}'.format(limit, before, after)
+        if not '?' in url:
+            url += '?'
+        elif url[-1] != '&':
+            url += '&'
+        url += 'limit={0}&before={1}&after={2}'.format(limit, before, after)
         token = self.get_auth_token()
         auth_string = 'Bearer ' + token
         headers = {'authorization': auth_string}
