@@ -12,7 +12,7 @@ from acacia.meetnet.models import MeteoData, Network, Handpeilingen, LoggerPos
 from acacia.data.util import get_address_pdok as get_address
 import json
 
-matplotlib.use('agg')
+# matplotlib.use('agg')
 import matplotlib.pylab as plt
 from matplotlib import rcParams
 from StringIO import StringIO

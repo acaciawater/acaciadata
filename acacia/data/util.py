@@ -9,7 +9,7 @@ import matplotlib
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 import requests
-matplotlib.use('agg')
+#matplotlib.use('agg')
 import matplotlib.pylab as plt
 from django.contrib.gis.geos import Point
 from django.conf import settings
