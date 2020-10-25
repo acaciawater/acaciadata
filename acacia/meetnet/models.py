@@ -379,9 +379,7 @@ class Screen(models.Model):
     def get_absolute_url(self):
         return reverse('meetnet:screen-detail', args=[self.pk])
 
-#     def to_pandas(self, ref='nap',kind='COMP',**kwargs):
-#         return self.get_series(ref,kind,**kwargs)
-        
+
     def get_manual_series(self, **kwargs):
         ''' return manual levels in m +NAP '''
         if hasattr(self, 'handpeilingen'):
@@ -409,30 +407,23 @@ class Screen(models.Model):
                     self.save(update_fields=['manual_levels'])
             return self.manual_levels.to_pandas(**kwargs) if self.manual_levels else None
             
-    def get_compensated_series_old(self, **kwargs):
-        # Gecompenseerde tijdreeksen (tov NAP) ophalen (Alleen voor Divers and Leiderdorp Instruments)
-        try:
-            series = self.find_series()
-            if series:
-                series = series.to_pandas(**kwargs)
-                rule = kwargs.pop('rule',None)
-                if rule:
-                    series = series.resample(rule=rule).mean()
-            return series
-        except Exception as e:
-            return None
 
     def get_compensated_series(self, **kwargs):
-        # Gecompenseerde tijdreeksen (tov NAP) ophalen (Alleen voor Divers and Leiderdorp Instruments)
+        # Gecompenseerde tijdreeksen (tov NAP) ophalen
         try:
             series = self.to_pandas(**kwargs)
             rule = kwargs.pop('rule',None)
             if rule:
                 series = series.resample(rule=rule).mean().asfreq(rule)
+                limit = int(kwargs.get('limit', 0))
+                if limit:
+                    # interpolate up to max limit
+                    series = series.interpolate(method='time', limit=limit)
             return series
         except Exception as e:
             return None
     
+
     def get_corrected_series(self, **kwargs):
         series = self.mloc.series_set.filter(name__iendswith='corr').first()
         return series.to_pandas(**kwargs) if series else None

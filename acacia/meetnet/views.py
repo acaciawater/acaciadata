@@ -142,15 +142,16 @@ class ScreenChartView(AuthRequiredMixin,TemplateView):
 # @cache_page(60 * 30) # 30 minutes    
 def json_series(request, pk):
     screen = get_object_or_404(Screen,pk=pk)
-    what = request.GET.get('mode','comp') # choices: comp, hand
-    ref = request.GET.get('ref','nap') # choices: nap, bkb, mv, sensor, top, bot
+    what = request.GET.get('mode', 'comp') # choices: comp, hand
+    ref = request.GET.get('ref', 'nap') # choices: nap, bkb, mv, sensor, top, bot
     rule = request.GET.get('rule', 'H')
-    series = screen.get_series(ref,what,rule=rule,type='both')#,filters=filters)
+    limit = request.GET.get('limit', '4') # interpolation limit for nulls
+    series = screen.get_series(ref,what,rule=rule,limit=limit,type='both')#,filters=filters)
     if series is None or series.empty:
         values = []
     else:
         if rule:
-            series=series.asfreq(rule)
+            series = series.asfreq(rule).interpolate(method='time', limit=int(limit))
         values = zip(series.index, series.values)
     
     if what == 'hand':

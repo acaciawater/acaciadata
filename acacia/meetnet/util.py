@@ -102,7 +102,7 @@ def chart_for_screen(screen,start=None,stop=None,raw=True,loggerpos=True,correct
     rawShown = False
 
     if raw or not hasCor:
-        data = screen.get_levels('nap',rule='H')
+        data = screen.get_levels('nap',rule='H',limit=4)
         if data is not None and len(data)>0:
             x,y = zip(*data)
             plt.plot_date(x, y, '-', label='logger',color='blue')
@@ -167,7 +167,7 @@ def chart_for_well(well,start=None,stop=None,corrected=False):
                     ncol += 1
                     ok = True
         if not ok:
-            data = screen.get_levels('nap',rule='H',type='both')
+            data = screen.get_levels('nap',rule='H',limit=4, type='both')
             if data:
                 x,y = zip(*data)
                 plt.plot_date(x, y, '-',label='filter {}'.format(screen.nr),color=color)
