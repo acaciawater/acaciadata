@@ -46,6 +46,6 @@ class TimeseriesViewSet(ModelViewSet):
         ''' returns data of a time series '''
         queryset = self.get_queryset()
         series = get_object_or_404(queryset, pk=pk)
-        data = series.to_array()
+        params = request.query_params
+        data = series.to_array(**params)
         return Response(data)
-    
