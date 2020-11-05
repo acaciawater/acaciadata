@@ -100,9 +100,9 @@ class ElliTrack(GenericCSV):
                     filename = f['file']
                     urlfile = url + '/' + filename
                     try:
-                        f = StringIO.StringIO()
-                        ftp.retrbinary('RETR '+ filename, f.write)
-                        result[filename] = f.getvalue()
+                        io = StringIO.StringIO()
+                        ftp.retrbinary('RETR '+ filename, io.write)
+                        result[filename] = io.getvalue()
                     except Exception as e:
                         logger.exception('ERROR opening {url}: {reason}'.format(url=urlfile,reason=e))
  
