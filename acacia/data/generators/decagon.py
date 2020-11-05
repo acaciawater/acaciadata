@@ -164,20 +164,21 @@ def conv103(x):
     see TEROS 11/12 user manual (http://publications.metergroup.com/Manuals/20587_TEROS11-12_Manual_Web.pdf) 
     '''
     Ea = raw & m12
-     
-#     vwcp = 6.771e-10 * Ea**3 -5.105e-6 * Ea**2 + 1.302e-2 * Ea - 10.848 if Ea > 0 else np.nan # peat
-#     vwc = 3.879e-4 * Ea - 0.6956 # mineral soil
-#     if vwc < 0:
-#         vwc = np.nan
+    Ea = (Ea/1.78) + 1600 # For Datatrac3 additional decoding needed according to email from METER on 2020-10-30     
+    vwcp = 6.771e-10 * Ea**3 -5.105e-6 * Ea**2 + 1.302e-2 * Ea - 10.848 if Ea > 0 else np.nan # peat
+    vwc = 3.879e-4 * Ea - 0.6956 # mineral soil
+    if vwc < 0:
+        vwc = np.nan
 
-    ''' TEROS formulas above do not result in reliable VWC values, use DataTrac formulas instead... '''
+    ''' If TEROS formulas above do not result in reliable VWC values, use DataTrac formulas below.
     vwc = 2.1792e-04 * Ea - 7.4960e-02 # mineral soil
     vwcp = 1.2004e-10 * Ea**3 - 5.8717e-07 * Ea**2 + 1.0378e-03 * Ea - 3.0861e-01 # peat
     if vwc < 0:
         vwc = np.nan
     if vwcp < 0:
         vwcp = np.nan
-
+    '''
+        
     '''Calculate soil temperature [Celsius]'''
     RT = (raw >> 22) & m10
     if RT == 0:
