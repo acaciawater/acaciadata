@@ -3,18 +3,19 @@ Created on Feb 12, 2014
 
 @author: theo
 '''
+import matplotlib
+matplotlib.use('Agg')
+from matplotlib import rcParams
+rcParams['font.size'] = '8'
+import matplotlib.pylab as plt
+
 import os, fnmatch, re
 import pytz, datetime
-import matplotlib
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 import requests
-matplotlib.use('agg')
-import matplotlib.pylab as plt
 from django.contrib.gis.geos import Point
 from django.conf import settings
-from matplotlib import rcParams
-rcParams['font.size'] = '8'
 
 import logging
 logger = logging.getLogger(__name__)

@@ -4,17 +4,18 @@ Created on Jun 3, 2014
 
 @author: theo
 '''
-import logging
 import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pylab as plt
+from matplotlib import rcParams
+
+import logging
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 from django.core.mail.message import EmailMessage
 from acacia.meetnet.models import MeteoData, Network, Handpeilingen, LoggerPos
 from acacia.data.util import get_address_pdok as get_address
 import json
 
-matplotlib.use('agg')
-import matplotlib.pylab as plt
-from matplotlib import rcParams
 from StringIO import StringIO
 import math, pytz
 import os,re
