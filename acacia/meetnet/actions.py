@@ -166,7 +166,6 @@ def update_screens(modeladmin, request, queryset):
         start = None if created else series.tot()
         success = recomp(screen, series, start=start)
         if success:
-            series.validate(reset=True, accept=True, user=request.user)
             successes.append(screen)
         else:
             failures.append(screen)
@@ -198,6 +197,14 @@ def recomp_screens(modeladmin, request, queryset):
         success = recomp(screen, series)
         if success:
             series.validate(reset=True, accept=True, user=request.user)
+            # reload excel result file if available
+            if series.has_validation():
+                try:
+                    result = series.validation.result
+                    if result.xlfile:
+                        result.apply_xlfile()
+                except:
+                    pass
             successes.append(screen)
         else:
             failures.append(screen)

@@ -1507,6 +1507,9 @@ class Series(PolymorphicModel,LoggerSourceMixin):
             # no validation available
             pass
         
+    def has_validation(self):
+        return hasattr(self,'validation')
+        
     @property
     def is_valid(self):
         try:
