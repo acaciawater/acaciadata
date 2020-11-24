@@ -5,6 +5,7 @@ Created on Jun 3, 2014
 @author: theo
 '''
 import matplotlib
+from datetime import timedelta
 matplotlib.use('Agg')
 import matplotlib.pylab as plt
 from matplotlib import rcParams
@@ -271,7 +272,7 @@ def recomp(screen,series,start=None,stop=None,baros={}):
                 compensated = config.get('compensated')
                 if compensated == False:
                     compensation = 'ellitrack'
-                                        
+                
             elif 'water_m_above_nap' in mondata:
                 # Bliksensing, no need for compensation, data is m wrt reference level (NAP)
                 data = mondata['water_m_above_nap']
@@ -346,6 +347,19 @@ def recomp(screen,series,start=None,stop=None,baros={}):
                         # Convert back to cm above sensor assuming reference level = 0 on ellitrack site
                         hpa = abaro * (screen.well.g or 9.80638) * 0.1 # air pressure in hPa
                         data = (logpos.depth + data) * 100 + (1013 - hpa) / 0.98123
+                        
+                        # additional correction in cm for wrong cable length reported by ellitrack 
+                        # during installation using air pressure=1013 hPa
+                        # correction done in leiden offet management command
+#                         try:
+#                             loc = hpa.index.get_loc(logpos.start_date, method='nearest',tolerance=timedelta(hours=4))
+#                             p = hpa.iloc[loc]
+#                             offset = (1013 - p) / 0.98123
+#                             data += offset
+#                         except KeyError:
+#                             # start_date not in baro
+#                             pass
+                        
                     elif compensation == 'vanessen':
                         # vanessen data is in cm above sensor
                         data = data - abaro
