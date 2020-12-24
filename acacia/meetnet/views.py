@@ -239,11 +239,13 @@ class WellChartView(AuthRequiredMixin, NavMixin, TemplateView):
                         stop = latest.date
                     else:
                         stop = levels.datapoints.latest('date').date
-                if levels.validated:
+                try: #if levels.validated:
                     result = levels.validation.result
                     # draw red vertical line at latest point in xlfile or latest validation if no excel file 
                     latest = result.xlend or result.end
                     options['xAxis']['plotLines'] = [{'color': 'red', 'width': 2, 'value': latest}]
+                except Exception as e:
+                    pass
                 # add statistics if requested
                 stats = self.request.GET.get('stats','0')
                 stats = int(stats)

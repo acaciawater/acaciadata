@@ -347,7 +347,10 @@ class Validation(models.Model):
 
     def check_valid(self):
         ''' checks validity '''
-        if self.check_validated():
+        if not self.rules:
+            # no rules -> is valid
+            self.valid = True
+        elif self.check_validated():
             self.valid = not self.invalid_points.exists()
         else:
             self.valid = None
