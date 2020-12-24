@@ -14,7 +14,8 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
 
 from acacia.data.admin import DatasourceAdmin, SourceFileAdmin, DataPointInline, SeriesForm
-from acacia.meetnet.actions import update_statistics, update_sourcefiles
+from acacia.meetnet.actions import update_statistics, update_sourcefiles,\
+    recomp_logpos
 from acacia.meetnet.models import Handpeilingen
 from acacia.meetnet.models import MeteoData
 import actions
@@ -84,7 +85,7 @@ class SourceFileInline(admin.TabularInline):
 
 @register(LoggerPos)
 class LoggerPosAdmin(admin.ModelAdmin):
-    actions = [update_statistics, update_sourcefiles]
+    actions = [update_statistics, update_sourcefiles, recomp_logpos]
     list_display = ('logger', 'screen', 'start_date', 'end_date', 'refpnt', 'depth', 'num_files', 'remarks')
     list_filter = ('screen__well', 'screen',)
     search_fields = ('logger__serial','screen__well__name')

@@ -166,7 +166,6 @@ def update_screens(modeladmin, request, queryset):
         start = None if created else series.tot()
         success = recomp(screen, series, start=start)
         if success:
-            series.validate(reset=True, accept=True, user=request.user)
             successes.append(screen)
         else:
             failures.append(screen)
@@ -185,6 +184,39 @@ def update_wells(modeladmin, request, queryset):
     make_wellcharts(modeladmin, request, queryset)
 update_wells.short_description = "Tijdreeksen actualiseren voor geselecteerde putten"
 
+def recomp_logpos(modeladmin, request, queryset):
+    successes = []
+    failures = []
+    for pos in queryset:
+        screen = pos.screen
+        register_screen(screen)
+        name = '%s COMP' % unicode(screen)
+        series, _created = screen.mloc.series_set.update_or_create(name=name,defaults={
+            'user':request.user,
+            'timezone': 'Etc/GMT-1'
+        })
+        success = recomp(screen, series, start=pos.start_date,stop=pos.end_date)
+        if success:
+#             series.validate(reset=True, accept=True, user=request.user)
+#             # reload excel result file if available
+#             if series.has_validation():
+#                 try:
+#                     result = series.validation.result
+#                     if result.xlfile:
+#                         result.apply_xlfile()
+#                 except:
+#                     pass
+            successes.append(screen)
+        else:
+            failures.append(screen)
+    if successes:
+        messages.success(request, 'Timeseries for {} installations were successfully rebuilt.'.format(len(successes)))
+#         make_screencharts(modeladmin, request, successes)
+    if failures:
+        messages.error(request, 'Compensation failed for {}.'.format(','.join(map(str,failures))))
+                       
+recomp_logpos.short_description = "Tijdreeksen opnieuw aanmaken voor geselecteerde installaties"
+
 def recomp_screens(modeladmin, request, queryset):
     successes = []
     failures = []
@@ -198,6 +230,14 @@ def recomp_screens(modeladmin, request, queryset):
         success = recomp(screen, series)
         if success:
             series.validate(reset=True, accept=True, user=request.user)
+            # reload excel result file if available
+            if series.has_validation():
+                try:
+                    result = series.validation.result
+                    if result.xlfile:
+                        result.apply_xlfile()
+                except:
+                    pass
             successes.append(screen)
         else:
             failures.append(screen)
