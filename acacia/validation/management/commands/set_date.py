@@ -4,7 +4,10 @@ from acacia.validation.models import Validation
 from django.contrib.auth.models import User
 import dateutil
 from django.utils.timezone import make_aware
- 
+import logging
+
+logger = logging.getLogger(__name__)
+
 class Command(BaseCommand):
     args = ''
     help = 'Sets date of last validation'
@@ -24,6 +27,7 @@ class Command(BaseCommand):
         if regex:
             queryset = queryset.filter(name__iregex=regex)
         for s in queryset:
+            logger.info(str(s))
             if s.aantal() > 0:
                 start = s.van()
                 stop = s.tot()
