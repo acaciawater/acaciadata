@@ -47,8 +47,8 @@ class Command(BaseCommand):
 #                 logger.warning('Screen {} skipped: already has Handpeilingen instance'.format(screen))
 #                 continue
                 
-            manual = ManualSeries.objects.filter(mlocatie=screen.mloc,name__endswith='HAND').first()
-            if manual is None or manual.datapoints.count() == 0:
+            queryset = ManualSeries.objects.filter(mlocatie=screen.mloc,name__endswith='HAND')
+            if not queryset.exists():
                 logger.warning('Screen {} skipped: no existing manual measurements found'.format(screen))
                 continue
 
@@ -63,11 +63,19 @@ class Command(BaseCommand):
 
             if created:
                 logger.debug('Created Handpeilingen instance for screen {}'.format(screen))
-
+                ref = 'bkb'
+            else:
+                ref = hand.refpnt
+            
             logger.info('Converting manual series for screen {}'.format(screen))
-            for p in manual.datapoints.all():
-                h, created=hand.datapoints.update_or_create(date=p.date,defaults = {'value': screen.refpnt - p.value})
-                logger.debug('{} {}'.format(h.date, h.value))
+            for manual in queryset:
+                if isinstance(manual, Handpeilingen) or hasattr(manual,'handpeilingen'):
+                    continue
+                for p in manual.datapoints.all():
+                    value = screen.refpnt - p.value if ref == 'bkb'  else p.value
+                    h, created=hand.datapoints.update_or_create(date=p.date,defaults = {'value': value})
+                    logger.debug('{} {}'.format(h.date, h.value))
+
             screen.manual_levels = hand
             screen.save(update_fields=('manual_levels',))
             if delete_existing:
