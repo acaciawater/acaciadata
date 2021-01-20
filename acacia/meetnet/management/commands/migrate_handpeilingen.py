@@ -75,7 +75,7 @@ class Command(BaseCommand):
                     value = screen.refpnt - p.value if ref == 'bkb'  else p.value
                     h, created=hand.datapoints.update_or_create(date=p.date,defaults = {'value': value})
                     logger.debug('{} {}'.format(h.date, h.value))
-
+            hand.update_properties()
             screen.manual_levels = hand
             screen.save(update_fields=('manual_levels',))
             if delete_existing:
