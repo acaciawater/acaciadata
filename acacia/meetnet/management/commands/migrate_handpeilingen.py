@@ -43,27 +43,30 @@ class Command(BaseCommand):
             
         for screen in queryset:
             
-            if hasattr(screen,'handpeilingen') and screen.handpeilingen:
-                logger.warning('Screen {} skipped: already has Handpeilingen instance'.format(screen))
-                continue
+#             if hasattr(screen,'handpeilingen') and screen.handpeilingen:
+#                 logger.warning('Screen {} skipped: already has Handpeilingen instance'.format(screen))
+#                 continue
                 
-            manual = screen.manual_levels or screen.mloc.series_set.filter(name__endswith='HAND').first()
+            manual = ManualSeries.objects.filter(mlocatie=screen.mloc,name__endswith='HAND').first()
             if manual is None or manual.datapoints.count() == 0:
                 logger.warning('Screen {} skipped: no existing manual measurements found'.format(screen))
                 continue
 
-            logger.debug('Creating Handpeilingen instance for screen {}'.format(screen))
-            hand = Handpeilingen.objects.create(screen=screen,refpnt='bkb',
-                                                user=user,
-                                                mlocatie = screen.mloc,
-                                                name='{} HAND'.format(screen),
-                                                unit='m',
-                                                type='scatter',
-                                                timezone=settings.TIME_ZONE)
+            hand, created = Handpeilingen.objects.get_or_create(screen=screen,defaults = {
+                'refpnt': 'bkb',
+                'user': user,
+                'mlocatie': screen.mloc,
+                'name': '{} HAND'.format(screen),
+                'unit': 'm',
+                'type': 'scatter',
+                'timezone': settings.TIME_ZONE})
+
+            if created:
+                logger.debug('Created Handpeilingen instance for screen {}'.format(screen))
 
             logger.info('Converting manual series for screen {}'.format(screen))
             for p in manual.datapoints.all():
-                h=hand.datapoints.create(date=p.date,value=screen.refpnt - p.value)
+                h, created=hand.datapoints.update_or_create(date=p.date,defaults = {'value': screen.refpnt - p.value})
                 logger.debug('{} {}'.format(h.date, h.value))
             screen.manual_levels = hand
             screen.save(update_fields=('manual_levels',))
