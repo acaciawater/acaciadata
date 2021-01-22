@@ -307,11 +307,11 @@ class Screen(models.Model):
         except:
             return 0
         
-    def all_series_old(self):
+    def all_series(self):
         from django.db.models import Q
         return self.mloc.series_set.filter(Q(name__iendswith='comp')|Q(name__istartswith='waterstand')|Q(name__iendswith='value'))
 
-    def all_series(self):
+    def all_series_new(self):
         return self.mloc.series_set.filter(name__iendswith='comp')
     
     def find_series(self):
