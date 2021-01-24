@@ -197,7 +197,7 @@ class WellChartView(AuthRequiredMixin, NavMixin, TemplateView):
                                'inputEnabled': True,
                                },
             'navigator': {'adaptToUpdatedData': True, 'enabled': True},
-            'chart': {'zoomType': 'x','events':{'load':None}},
+            'chart': {'zoomType': 'x','panning':True, 'panKey': 'shift', 'events':{'load':None}},
             'title': {'text': title},
             'xAxis': {'type': 'datetime'},
             'yAxis': [{'title': {'text': 'Grondwaterstand (m tov %s)' % ref_name}}
