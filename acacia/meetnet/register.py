@@ -263,7 +263,7 @@ def import_metadata(request, sheet='Putgegevens'):
                 generator_name = 'Bliksensing'
                 defaults.update({
                     'timezone': 'UTC',
-                    'config': '{{"node": "{}"}}'.format(serial)
+                    'config': '{{"blik_id": "{}"}}'.format(serial)
                 })
             else:
                 generator_name = 'Schlumberger'
