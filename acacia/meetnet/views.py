@@ -125,7 +125,7 @@ class ScreenChartView(AuthRequiredMixin,TemplateView):
             'plotOptions': {'line': {'marker': {'enabled': False}}},            
             'credits': {'enabled': True, 
                         'text': 'acaciawater.com', 
-                        'href': 'http://www.acaciawater.com',
+                        'href': 'https://www.acaciawater.com',
                        },
             'series': [{'name': name,
                         'type': 'line',
@@ -210,7 +210,7 @@ class WellChartView(AuthRequiredMixin, NavMixin, TemplateView):
             'plotOptions': {'line': {'marker': {'enabled': False}}, 'series': {'connectNulls': False}},
             'credits': {'enabled': True, 
                         'text': 'acaciawater.com', 
-                        'href': 'http://www.acaciawater.com',
+                        'href': 'https://www.acaciawater.com',
                        },
             }
         series = []

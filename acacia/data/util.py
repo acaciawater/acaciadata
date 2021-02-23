@@ -75,7 +75,7 @@ def get_address_pdok(lon, lat):
     lookup an address from (lon,lat) using PDOK location services
     '''
 
-    url = 'http://geodata.nationaalgeoregister.nl/locatieserver/revgeo?lat={lat}&lon={lon}'.format(lon=lon,lat=lat)
+    url = 'https://geodata.nationaalgeoregister.nl/locatieserver/revgeo?lat={lat}&lon={lon}'.format(lon=lon,lat=lat)
     url+='&type=gemeente&type=woonplaats&type=weg&type=postcode&type=adres'#&type=perceel'
     
     response = requests.get(url=url)

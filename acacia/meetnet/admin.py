@@ -227,7 +227,7 @@ class WellAdmin(admin.ModelAdmin):
                 )
     if USE_GOOGLE_TERRAIN_TILES:
         map_template = 'gis/admin/google.html'
-        extra_js = ['http://openstreetmap.org/openlayers/OpenStreetMap.js', 'http://maps.google.com/maps?file=api&amp;v=2&amp;key=%s' % settings.GOOGLE_MAPS_API_KEY]
+        extra_js = ['https://openstreetmap.org/openlayers/OpenStreetMap.js', 'https://maps.google.com/maps?file=api&amp;v=2&amp;key=%s' % settings.GOOGLE_MAPS_API_KEY]
     else:
         pass # defaults to OSMGeoAdmin presets of OpenStreetMap tiles
 

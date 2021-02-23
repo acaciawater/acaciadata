@@ -307,7 +307,7 @@ class SeriesView(DetailView):
             'plotOptions': {'line': {'marker': {'enabled': False}}},            
             'credits': {'enabled': True, 
                         'text': 'acaciawater.com', 
-                        'href': 'http://www.acaciawater.com',
+                        'href': 'https://www.acaciawater.com',
                        }
             }
            
