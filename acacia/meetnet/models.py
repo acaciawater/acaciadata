@@ -3,12 +3,12 @@ Created on Jun 1, 2014
 
 @author: theo
 '''
-import os, pandas as pd, numpy as np
+import os, re, pandas as pd, numpy as np
 from django.db import models
 from django.contrib.gis.db import models as geo
 from django.core.urlresolvers import reverse
 from acacia.data.models import Datasource, Series, SourceFile, ProjectLocatie,\
-    MeetLocatie, ManualSeries
+    MeetLocatie, ManualSeries, Generator
 from acacia.data import util
 from django.db.models.aggregates import Count, Min, Max
 from django.core.exceptions import ObjectDoesNotExist
@@ -471,6 +471,16 @@ class Datalogger(models.Model):
     serial = models.CharField(max_length=50,verbose_name = _('serial number'),unique=True)
     model = models.CharField(max_length=50,verbose_name = _('type'), default='14', choices=DIVER_TYPES)
     
+    def generator(self):
+        ''' return default generator for this logger '''
+        if self.model =='blik':
+            name = 'blik'
+        elif self.model.startswith('etd'):
+            name = 'ellitrack'
+        else:
+            name = 'diver'
+        return Generator.objects.get(classname__icontains=name)
+    
     def __unicode__(self):
         return '%s' % self.serial
  
@@ -522,6 +532,7 @@ class LoggerPos(models.Model):
                 queryset = queryset.filter(start__lt=self.end_date)
             for sf in queryset:
                 self.files.add(sf)
+            self.clear_stats()
         if not self.start_date:
             agg = self.files.aggregate(start=Min('start'))
             self.start_date = agg.get('start', None)

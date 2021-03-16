@@ -20,7 +20,7 @@ from django.utils.text import slugify
 from django.utils.timezone import get_current_timezone, now
 from django.views.generic import DetailView, FormView, TemplateView
 
-from acacia.data.actions import download_series_csv, generate_datasource_series
+from acacia.data.actions import download_series_csv
 from acacia.data.models import Generator
 from acacia.data.util import series_as_csv, to_millis
 from acacia.data.views import DownloadSeriesAsZip
@@ -33,9 +33,10 @@ from .actions import download_well_nitg
 from .register import handle_registration_files
 from django.utils.http import urlencode
 from acacia.meetnet.models import REFERENCE_LEVELS
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
 from django.db.utils import IntegrityError
+from acacia.meetnet.actions import update_screens
+from acacia.meetnet import loggeradmin
+from acacia.meetnet.forms import MoveLoggerForm
 
 
 logger = logging.getLogger(__name__)
@@ -496,7 +497,8 @@ def change_refpnt(request, pk):
         return redirect(url)
     else:
         return HttpResponse(status=200)
-    
+
+
 class AddLoggerView(StaffRequiredMixin, FormView):
     form_class = AddLoggerForm
     success_url = '/'
@@ -514,49 +516,57 @@ class AddLoggerView(StaffRequiredMixin, FormView):
     
     def form_valid(self, form):
         try:
-            _datalogger, datasource, _installation=self.add_logger(form.cleaned_data)
-            datasource.download()
-            generate_datasource_series(None, self.request, [datasource])
-#             self.success_url=reverse('meetnet:add-logger-done',args={'pk': pos.pk})
+            installation = self.add_logger(form.cleaned_data)
+            for d in installation.logger.datasources:
+                d.download()
+            update_screens(None, self.request, [installation.screen])
         except IntegrityError as e:
             raise ValidationError(e)
         return FormView.form_valid(self, form)
     
-    def form_invalid(self, form):
-        return FormView.form_invalid(self, form)
-
-    def get_form_kwargs(self):
-        kwargs = FormView.get_form_kwargs(self)
-        return kwargs
     
     def add_logger(self, data):
         serial = data['serial']
         model = data['model']
         screen = data['screen']
         depth = data['depth']
+        refpnt = data['refpnt']
         start = data['start']
-        # TODO: for Schlumberger loggers modify description and credentials
-        logger = Datalogger.objects.create(
-            serial=serial,
-            model=model)
-        datasource = LoggerDatasource.objects.create(
-            logger = logger,
-            name = serial,
-            description= 'Ellitrack datalogger {}'.format(serial),
-            meetlocatie = screen.mloc,
-            timezone = 'Europe/Amsterdam',
-            user = self.request.user,
-            generator = Generator.objects.get(name='Ellitrack' if model.startswith('etd') else 'Schlumberger'),
-            url= settings.FTP_URL,
-            username = settings.FTP_USERNAME,
-            password = settings.FTP_PASSWORD)
-        datasource.locations.add(screen.mloc)
-        pos = logger.loggerpos_set.create(
-            screen=screen,
-            refpnt=screen.refpnt,
-            depth=depth,
-            start_date=start)
-        return (logger, datasource, pos)
+        logger = loggeradmin.create(serial, model)
+        return loggeradmin.install(logger, screen, start, depth, refpnt)
+
+class MoveLoggerView(StaffRequiredMixin, FormView):
+    form_class = MoveLoggerForm
+    success_url = '/'
+    template_name = 'meetnet/movelogger.html'
+
+    def get_context_data(self, **kwargs):
+        context = FormView.get_context_data(self, **kwargs)
+        context['network'] = Network.objects.first()
+        return context
+    
+    def get_initial(self):
+        initial = FormView.get_initial(self)
+        initial['start'] = now()
+        return initial
+    
+    def form_valid(self, form):
+        try:
+            curpos, newpos = self.move_logger(form.cleaned_data)
+            # TODO: update time series
+            
+        except IntegrityError as e:
+            raise ValidationError(e)
+        return FormView.form_valid(self, form)
+    
+
+    def move_logger(self, data):
+        logger= data['logger']
+        screen = data['screen']
+        depth = data['depth']
+        refpnt = data['refpnt']
+        start = data['start']
+        return loggeradmin.move(logger, screen, start, depth=depth, refpnt=refpnt)
         
 class LoggerAddedView(TemplateView):
     template_name = 'meetnet/loggeradded.html'

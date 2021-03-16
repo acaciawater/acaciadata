@@ -75,7 +75,59 @@ def validate_serial(value):
             params={'value': value},
         )
 
-class AddLoggerForm(forms.Form):
+class LoggerAdminForm(forms.Form):
+    screen = forms.ModelChoiceField(Screen.objects.all(),label=_('screen'))
+    depth = forms.FloatField(label=_('cable length'),required=True)
+    refpnt = forms.FloatField(label=_('reference point'),required=False)
+    start = forms.DateTimeField()
+
+    def clean_refpnt(self):
+        refpnt = self.cleaned_data['refpnt']
+        if refpnt is None:
+            screen = self.cleaned_data['screen']
+            refpnt = screen.refpnt
+        return refpnt
+
+
+class MoveLoggerForm(LoggerAdminForm):
+    ''' Move a datalogger '''
+    logger = forms.ModelChoiceField(Datalogger.objects.all(), label=_('logger'))
+
+class AddLoggerForm(LoggerAdminForm):
+    ''' Create a datalogger with installation '''
+    model = forms.ChoiceField(label=_('loggermodel'), initial='etd2', choices=DIVER_TYPES)
+    serial = forms.CharField(max_length=50, label=_('serialnumber'), validators=[validate_serial])
+
+    def clean_serial(self):
+        model = self.cleaned_data['model']
+        data = self.cleaned_data['serial']
+        if model.startswith('etd'): # ellitrack
+            pattern=r'^(?P<y>\d{2})(?P<m>\d{2})(?P<d>\d{2})(?P<nr>\d{2})$'
+            match = re.match(pattern, data)
+            if match:
+                y = int(match.group('y'))
+                m = int(match.group('m'))
+                d = int(match.group('d'))
+                try:
+                    datum = date(2000+y,m,d)
+                    if datum.year>=2016 and datum.year <= now().year:
+                        return data
+                except:
+                    pass
+        elif model.starts_with('blik'):
+            pattern=r'^\d+$'
+            match = re.match(pattern, data)
+            if match:
+                return data
+        else:
+            # Van Essen
+            pattern=r'^\w{5}$'
+            match = re.match(pattern, data)
+            if match:
+                return data
+        raise forms.ValidationError(_('Invalid serial number'))
+    
+class AddLoggerForm1(forms.Form):
     ''' Create a datalogger with installation '''
     model = forms.ChoiceField(label=_('loggermodel'), initial='etd2', choices=DIVER_TYPES)
     serial = forms.CharField(max_length=50, label=_('serialnumber'), validators=[validate_serial])
@@ -99,6 +151,11 @@ class AddLoggerForm(forms.Form):
                         return data
                 except:
                     pass
+        elif model.starts_with('blik'):
+            pattern=r'^\d+$'
+            match = re.match(pattern, data)
+            if match:
+                return data
         else:
             # Van Essen
             pattern=r'^\w{5}$'
