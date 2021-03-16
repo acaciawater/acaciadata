@@ -71,7 +71,7 @@ class Meteo(Generator):
         header = self.get_header(f)
         columns = header.get('COLUMNS',[])
         skiprows = self.skiprows if self.engine == 'python' else 0
-        data = self.read_csv(f.file.file, header=None, names=columns, skiprows = skiprows, skipinitialspace=True, comment = '#', index_col = 1, parse_dates = True)
+        data = self.read_csv(f, header=None, names=columns, skiprows = skiprows, skipinitialspace=True, comment = '#', index_col = 1, parse_dates = True)
         return data
 
     def get_unit(self,descr):
@@ -244,7 +244,7 @@ class ZipMeteo(Meteo,ZipMixin):
                         break
                     line = f.readline()
                     self.skiprows += 1
-                while not line.startswith('# STN,YYYYMMDD'):
+                while not 'STN,YYYYMMDD' in line:
                     line = f.readline()
                     self.skiprows += 1
                 columns = [w.strip() for w in line[2:].split(',')]
