@@ -7,7 +7,6 @@ from polymorphic.admin.parentadmin import PolymorphicParentModelAdmin
 from polymorphic.admin.childadmin import PolymorphicChildModelAdmin
 from polymorphic.admin.filters import PolymorphicChildModelFilter
 from django.shortcuts import redirect
-from django.conf import settings
 
 def validate(modeladmin, request, queryset):
     count = queryset.count()
@@ -16,6 +15,13 @@ def validate(modeladmin, request, queryset):
         v.persist()
     messages.success(request, '{} validaties uitgevoerd'.format(count))
 validate.short_description='Valideren'
+
+def reset(modeladmin, request, queryset):
+    count = queryset.count()
+    for v in queryset:
+        v.reset()
+    messages.success(request, '{} validaties gereset'.format(count))
+reset.short_description='Resetten'
 
 def validate_and_accept(modeladmin, request, queryset):
     count = queryset.count()
@@ -108,7 +114,7 @@ class RuleFilter(admin.SimpleListFilter):
         
 @admin.register(Validation)
 class ValidationAdmin(admin.ModelAdmin):
-    actions = [validate,accept,validate_and_accept]
+    actions = [validate,reset,accept,validate_and_accept]
     inlines = [RuleInline]
     exclude = ('users','validated','valid')
     #filter_horizontal = ('users',)
