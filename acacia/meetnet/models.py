@@ -154,7 +154,7 @@ class Well(geo.Model):
     class Meta:
         verbose_name = _('well')
         verbose_name_plural = _('wells')
-        ordering = ['nitg','name']
+        ordering = ['name','nitg']
         unique_together = ('name','nitg')
         
 def limitKNMI():
