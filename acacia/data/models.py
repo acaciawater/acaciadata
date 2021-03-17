@@ -1517,6 +1517,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         except ObjectDoesNotExist:
             # no validation
             return False
+
     @property
     def validated(self):
         try:
@@ -1524,7 +1525,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
         except:
             return False
         
-    def validate(self,reset=False, accept=False, user=None):
+    def validate(self,reset=False, accept=False, user=None, **kwargs):
         try:
             val = self.validation
         except:
@@ -1532,7 +1533,7 @@ class Series(PolymorphicModel,LoggerSourceMixin):
             return
         if reset:
             val.reset()
-        val.persist()
+        val.persist(**kwargs)
         if accept and user:
             val.accept(user=user)
 

@@ -428,9 +428,15 @@ class Validation(models.Model):
     def persist(self, **kwargs):
         ''' apply validation and dump points to database '''
         pts = self.apply(**kwargs)
+        query = self.validpoint_set.all()
+        if 'start' in kwargs:
+            query = query.filter(date__gte=kwargs.get('start'))
+        if 'stop' in kwargs:
+            query = query.filter(date__lte=kwargs.get('stop'))
         with transaction.atomic():
-            # replace ALL validated points
-            self.validpoint_set.all().delete()
+            # replace selected validated points
+            # TODO: check if date ranges of pts and query match 
+            query.delete()
             self.validpoint_set.bulk_create(pts)
         self.last_validation = now()
         self.check_valid()

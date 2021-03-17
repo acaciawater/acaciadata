@@ -345,6 +345,7 @@ def recomp(screen,series,start=None,stop=None,baros={}):
                         # Ellitrack reports in cm above reference level using constant air pressure = 1013 hPa and g = 9.8123
                         # The generator has converted from cm to m, so our data is now in m above reference level
                         # Convert back to cm above sensor assuming reference level = 0 on ellitrack site
+                        # TODO: if ref=0 and depth=0 on ellitrack site then the data is in m above sensor !CHECK! 
                         hpa = abaro * (screen.well.g or 9.80638) * 0.1 # air pressure in hPa
                         data = (logpos.depth + data) * 100 + (1013 - hpa) / 0.98123
                         
@@ -411,7 +412,7 @@ def recomp(screen,series,start=None,stop=None,baros={}):
         series.unit = 'm tov NAP'
         series.make_thumbnail()
         series.save()
-#     series.validate(reset=True)
+        series.validate(start=start,stop=stop)
     return seriesdata.size
     
 def drift_correct(levels, peilingen):
