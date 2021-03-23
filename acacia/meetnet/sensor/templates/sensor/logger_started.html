@@ -1,0 +1,14 @@
+{% extends 'bootbase.html' %}
+{% load staticfiles %}
+{% load l10n %}
+{% block title %}Datalogger gestart{% endblock title %}
+{% block breadcrumbs %}{% endblock %}
+{% block brandname %}<div class="navbar-brand">Grondwatermeetnet {{network.name}}</div>
+{% endblock %}
+{% block content %}
+<div class="container">
+<h3>Datalogger gestart!</h3>
+<a href="{%url 'sensor:start' %}" class="btn btn-primary">Nog een starten</a>
+<a href="/" class="btn btn-default">Startpagina</a>
+</div>
+{% endblock %}

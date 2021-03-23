@@ -1,0 +1,17 @@
+{% extends 'sensor/base.html' %}
+{% block title %}Datalogger verplaatst{% endblock title %}
+{% block content %}
+<div class="container">
+<h3>Logger verplaatst</h3>
+{% with object as pos %}
+<table class="table">
+<tr><th>Logger</th><td>{{pos.logger}}</td></tr>
+<tr><th>Filter</th><td>{{pos.screen}}</td></tr>
+<tr><th>Ophangpunt</th><td>{{pos.refpnt}}</td></tr>
+<tr><th>Kabellengte</th><td>{{pos.depth}}</td></tr>
+</table>
+{% endwith %}
+<a href="{%url 'sensor:move' %}" class="btn btn-primary">Nog een verplaatsen</a>
+<a href="/" class="btn btn-default">Startpagina</a>
+</div>
+{% endblock %}

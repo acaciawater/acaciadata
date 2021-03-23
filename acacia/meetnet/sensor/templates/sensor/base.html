@@ -1,0 +1,18 @@
+{% extends 'bootbase.html' %}
+{% load staticfiles %}
+{% load l10n %}
+{% load i18n %}
+{% block style %}
+{{ block.super }}
+<style>
+.navbar-brand a img {
+	margin-top: -7px;
+	max-height: 32px;
+	padding-right: 1em;
+}
+</style>
+{% endblock %}
+{% block breadcrumbs %}{% endblock %}
+{% block brandname %}
+<div class="navbar-brand"><a href="{{network.homepage}}"><img src="/media/{{network.logo}}"/></a>{% trans "Monitoring network" %} {{network.name}}</div>
+{% endblock %}

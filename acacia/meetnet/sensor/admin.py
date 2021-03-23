@@ -22,14 +22,15 @@ def create_datasource(logger, location):
                                      timezone='Etc/GMT-1',
                                      user=admin,
                                      generator=generator,
+                                     config = {'logger': logger.serial}
                                      **credentials)
 
-def install(logger, screen, start, depth, refpnt=None):
+def install(logger, screen, date, depth, refpnt=None):
     ''' install a logger '''
     if not logger.datasources.exists():
         create_datasource(logger, screen.mloc)
     logger.datasources.update(autoupdate=True)
-    pos = screen.loggerpos_set.create(logger=logger, start_date=start, depth=depth, refpnt=refpnt or screen.refpnt)
+    pos = screen.loggerpos_set.create(logger=logger, start_date=date, depth=depth, refpnt=refpnt or screen.refpnt)
     pos.update_files()
     return pos
 
@@ -37,9 +38,9 @@ def find(logger, date, strict=True):
     ''' find out where logger is installed on a given date '''
     if date is None:
         # find current installation (stop_date is None)
-        query = logger.loggerpos_set.filter(stop_date__isnull=True)
+        query = logger.loggerpos_set.filter(end_date__isnull=True)
     else:
-        query = logger.loggerpos_set.filter(start_date__lte=date).exclude(stop_date__lt=date)
+        query = logger.loggerpos_set.filter(start_date__lte=date).exclude(end_date__lt=date)
     if strict:
         count = query.count()
         if count == 0:
@@ -49,16 +50,16 @@ def find(logger, date, strict=True):
     return query
 
 def stop(logger, date):
-    ''' stop a logger '''
+    ''' stop a logger by setting stop_date an disable autoupdate on datasources'''
     install = find(logger, date)
-    install.update(stop_date=date)
+    install.update(end_date=date)
     logger.datasources.update(autoupdate=False)
     return install
 
 def start(logger, date):
-    ''' start a logger '''
+    ''' start a logger by clearing stop_date and enabling autoupdate on datasources'''
     install = find(logger, date)
-    install.update(start_date=date)
+    install.update(start_date=date, end_date=None)
     logger.datasources.update(autoupdate=True)
     return install
 
@@ -85,16 +86,23 @@ def merge(logger, screen):
     return changed
 
 def move(logger, screen, date, **options):
-    ''' move a logger to a new location '''
+    ''' move a logger to a new location or install as new logger '''
     try:
-        curpos = stop(logger,date).first()
+        # stop logger if already installed
+        curpos = stop(logger,options.get('stop', date)).first()
         curpos.update_files()
-        depth = options.get('depth',curpos.depth)
-        refpnt = options.get('refpnt',curpos.refpnt)
     except LoggerPos.DoesNotExist:
-        # logger has not been installed before
-        depth = options.get('depth')
-        refpnt = options.get('refpnt',screen.refpnt)
+        pass
 
+    depth = options.get('depth')
+    refpnt = options.get('refpnt')
+    if depth == None or refpnt is None:
+        installations = screen.loggerpos_set.all()
+        if installations.exists():
+            # use latest logger installation in this screen as default
+            curpos = installations.latest('start_date')
+            depth = depth or curpos.depth
+            refpnt = refpnt or curpos.refpnt
+    
     newpos = install(logger, screen, date, depth, refpnt)
     return curpos, newpos        

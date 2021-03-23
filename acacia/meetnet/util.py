@@ -4,41 +4,45 @@ Created on Jun 3, 2014
 
 @author: theo
 '''
-import matplotlib
-from datetime import timedelta
-matplotlib.use('Agg')
-import matplotlib.pylab as plt
-from matplotlib import rcParams
-
-import logging
-from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
-from django.core.mail.message import EmailMessage
-from acacia.meetnet.models import MeteoData, Network, Handpeilingen, LoggerPos
-from acacia.data.util import get_address_pdok as get_address
-import json
-
 from StringIO import StringIO
-import math, pytz
-import os,re
-import datetime
 import binascii
-import numpy as np
+import datetime
+import json
+import logging
+import math, pytz
+import os, re
 import zipfile
 
-from django.template.loader import render_to_string
-from django.core.files.base import ContentFile
 from django.conf import settings
+from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
+from django.core.files.base import ContentFile
+from django.core.mail.message import EmailMessage
+from django.template.loader import render_to_string
+from django.utils import timezone
+from matplotlib import rcParams
+import matplotlib
 
-from acacia.data.models import Project, Generator, DataPoint, MeetLocatie, SourceFile, Chart, Series,\
-    Parameter
-from acacia.data.generators import sws, ellitrack
+from acacia.data.generators import sws
 from acacia.data.knmi.models import Station, NeerslagStation
+from acacia.data.models import Project, Generator, DataPoint, MeetLocatie, SourceFile, Chart, Series, \
+    Parameter
+from acacia.data.util import get_address_pdok as get_address
+from acacia.meetnet.models import MeteoData, LoggerPos
+import matplotlib.pylab as plt
+import numpy as np
+
 from .models import Well, Screen, Datalogger, MonFile, Channel, LoggerDatasource
+
+matplotlib.use('Agg')
 
 rcParams['font.family'] = 'sans-serif'
 rcParams['font.size'] = '8'
 
 logger = logging.getLogger(__name__)
+
+def to_datetime(date,time,tzinfo=timezone.get_current_timezone()):
+    ''' convert separate date and time objects to datetime '''
+    return datetime.datetime(date.year,date.month,date.day,time.hour,time.minute,time.second,tzinfo=tzinfo)
 
 def set_well_address(well):
     ''' sets well's address fields using OSM geocoding api '''

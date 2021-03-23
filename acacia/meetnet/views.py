@@ -9,7 +9,6 @@ import pandas as pd
 import simplejson as json
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import ValidationError
 from django.core.files.storage import default_storage
 from django.core.urlresolvers import reverse
 from django.db import transaction
@@ -17,26 +16,21 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.template.loader import render_to_string
 from django.utils.text import slugify
-from django.utils.timezone import get_current_timezone, now
+from django.utils.timezone import get_current_timezone
 from django.views.generic import DetailView, FormView, TemplateView
 
 from acacia.data.actions import download_series_csv
-from acacia.data.models import Generator
 from acacia.data.util import series_as_csv, to_millis
 from acacia.data.views import DownloadSeriesAsZip
 
-from .models import Network, Well, Screen, Handpeilingen, Datalogger, LoggerDatasource
-from .forms import UploadFileForm, AddLoggerForm, UploadRegistrationForm
+from .models import Network, Well, Screen, Handpeilingen
+from .forms import UploadFileForm, UploadRegistrationForm
 from .auth import AuthRequiredMixin, auth_required, StaffRequiredMixin, staff_required
 from .util import handle_uploaded_files
 from .actions import download_well_nitg
 from .register import handle_registration_files
 from django.utils.http import urlencode
 from acacia.meetnet.models import REFERENCE_LEVELS
-from django.db.utils import IntegrityError
-from acacia.meetnet.actions import update_screens
-from acacia.meetnet import loggeradmin
-from acacia.meetnet.forms import MoveLoggerForm
 
 
 logger = logging.getLogger(__name__)
@@ -499,78 +493,6 @@ def change_refpnt(request, pk):
         return HttpResponse(status=200)
 
 
-class AddLoggerView(StaffRequiredMixin, FormView):
-    form_class = AddLoggerForm
-    success_url = '/'
-    template_name = 'meetnet/addlogger.html'
-
-    def get_context_data(self, **kwargs):
-        context = FormView.get_context_data(self, **kwargs)
-        context['network'] = Network.objects.first()
-        return context
-    
-    def get_initial(self):
-        initial = FormView.get_initial(self)
-        initial['start'] = now()
-        return initial
-    
-    def form_valid(self, form):
-        try:
-            installation = self.add_logger(form.cleaned_data)
-            for d in installation.logger.datasources:
-                d.download()
-            update_screens(None, self.request, [installation.screen])
-        except IntegrityError as e:
-            raise ValidationError(e)
-        return FormView.form_valid(self, form)
-    
-    
-    def add_logger(self, data):
-        serial = data['serial']
-        model = data['model']
-        screen = data['screen']
-        depth = data['depth']
-        refpnt = data['refpnt']
-        start = data['start']
-        logger = loggeradmin.create(serial, model)
-        return loggeradmin.install(logger, screen, start, depth, refpnt)
-
-class MoveLoggerView(StaffRequiredMixin, FormView):
-    form_class = MoveLoggerForm
-    success_url = '/'
-    template_name = 'meetnet/movelogger.html'
-
-    def get_context_data(self, **kwargs):
-        context = FormView.get_context_data(self, **kwargs)
-        context['network'] = Network.objects.first()
-        return context
-    
-    def get_initial(self):
-        initial = FormView.get_initial(self)
-        initial['start'] = now()
-        return initial
-    
-    def form_valid(self, form):
-        try:
-            curpos, newpos = self.move_logger(form.cleaned_data)
-            # TODO: update time series
-            
-        except IntegrityError as e:
-            raise ValidationError(e)
-        return FormView.form_valid(self, form)
-    
-
-    def move_logger(self, data):
-        logger= data['logger']
-        screen = data['screen']
-        depth = data['depth']
-        refpnt = data['refpnt']
-        start = data['start']
-        return loggeradmin.move(logger, screen, start, depth=depth, refpnt=refpnt)
-        
-class LoggerAddedView(TemplateView):
-    template_name = 'meetnet/loggeradded.html'
-        
 class UploadMetadataView(StaffRequiredMixin, FormView):
     form_class = UploadRegistrationForm
     success_url = '/'

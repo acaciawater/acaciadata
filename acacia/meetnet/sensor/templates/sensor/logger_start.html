@@ -1,0 +1,26 @@
+{% extends 'sensor/base.html' %}
+{% block title %}Datalogger starten{% endblock title %}
+{% block content %}
+<form method="post">{% csrf_token %}
+	<div class="container">
+	<h3>Herstart een gestopte datalogger</h3>
+	<table class="table table-striped">
+	<thead></thead>
+	<tbody>
+	<tr>
+		<td>Datalogger</td>
+		<td>{{form.logger}}</td>
+	</tr>
+	</tbody>
+	<tfoot>
+		<tr>
+			<td colspan=2>
+			<input type="submit" value="Starten" class="btn btn-primary">
+			<button type="button" onclick="history.back()" class="btn btn-secondary">Annuleren</button>
+			</td>
+		</tr>
+	</tfoot>
+	</table>
+	</div>
+</form>
+{% endblock %}

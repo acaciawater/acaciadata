@@ -1,5 +1,5 @@
 from django.shortcuts import get_object_or_404
-from rest_framework.decorators import action
+from rest_framework.decorators import action, detail_route
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
@@ -52,6 +52,15 @@ class LoggerViewSet(ModelViewSet):
     queryset = Datalogger.objects.all()
     filter_class = LoggerFilter
 
+    @action(detail=True)
+    def current(self, request, pk):
+        ''' return current installation '''
+        queryset = self.get_queryset()
+        logger = get_object_or_404(queryset, pk=pk)
+        install = logger.loggerpos_set.latest('start_date')
+        serializer = InstallationSerializer(install)
+        return Response(serializer.to_representation(install))
+        
 class SourceFileViewSet(ModelViewSet):
     serializer_class = SourceFileSerializer
     queryset = SourceFile.objects.all()

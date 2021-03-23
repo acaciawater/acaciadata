@@ -1,0 +1,72 @@
+{% extends 'sensor/base.html' %}
+{% load staticfiles %}
+{% block title %}Nieuwe datalogger installeren{% endblock title %}
+{% block script %}
+{{ block.super }}
+<script>
+
+$(function() {
+	const api = '/api/v1'
+	$("#id_screen").change(function(e) {
+		const id = this.value
+		// get refpnt of screen
+		fetch(`${api}/screens/${id}`).then(response => {
+			response.json().then(data => {
+				console.debug(data)
+				$("#id_refpnt").val(data.refpnt)
+			})
+		})		
+	})	
+})
+
+</script>
+{% endblock %}
+
+{% block content %}
+<form method="post">{% csrf_token %}
+	<div class="container">
+	<h3>Nieuwe datalogger installeren</h3>
+	<table class="table table-striped">
+	<thead></thead>
+	<tbody>
+	<tr>
+		<td>Type datalogger</td>
+		<td>{{form.model}}</td>
+	</tr>
+	<tr>
+		<td>Serienummer</td>
+		<td>{{form.serial}}
+		{% if form.errors.serial %}
+			<span class="alert alert-danger">{{form.errors.serial|join:', '}}</span>
+		{% endif %}
+		</td>
+	</tr>
+	<tr>
+		<td>Filter</td>
+		<td>{{form.screen}}</td>
+	</tr>
+	<tr>
+		<td>Ophangpunt</td>
+		<td>{{form.refpnt}}</td>
+	</tr>
+	<tr>
+		<td>Kabellengte</td>
+		<td>{{form.depth}}</td>
+	</tr>
+	<tr>
+		<td>Starttijd</td>
+		<td>{{form.start_date}}&nbsp;{{form.start_time}}</td>
+	</tr>
+	</tbody>
+	<tfoot>
+		<tr>
+			<td colspan=2>
+			<input type="submit" value="Installeren" class="btn btn-primary">
+			<button type="button" onclick="history.back()" class="btn btn-secondary">Annuleren</button>
+			</td>
+		</tr>
+	</tfoot>
+	</table>
+	</div>
+</form>
+{% endblock %}
