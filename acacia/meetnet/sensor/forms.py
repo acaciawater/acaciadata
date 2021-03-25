@@ -37,8 +37,8 @@ class LoggerAdminForm(forms.Form):
 class LoggerMoveForm(LoggerAdminForm):
     ''' Move a sensor '''
     logger = forms.ModelChoiceField(Datalogger.objects.all(), label=_('existing logger'))
-    cur_screen = forms.ModelChoiceField(Screen.objects.all(),label=_('screen'))
-    cur_depth = forms.FloatField(label=_('cable length'),required=True)
+    cur_screen = forms.ModelChoiceField(Screen.objects.all(),label=_('screen'),required=False)
+    cur_depth = forms.FloatField(label=_('cable length'),required=False)
     cur_refpnt = forms.FloatField(label=_('reference point'),required=False)
     stop_date = forms.DateField(widget=forms.widgets.DateInput(attrs={'type': 'date', 'lang':'nl'}))
     stop_time = forms.TimeField(widget=forms.widgets.TimeInput(attrs={'type': 'time'}))
@@ -71,7 +71,7 @@ class LoggerStopForm(forms.Form):
                     _('Logger is not running on %(stop)s'),
                     params = {'stop': stop}
                     )
-        return data
+        return data['stop_time']
         
 class LoggerStartForm(forms.Form):
     ''' Start a stopped sensor '''
@@ -101,7 +101,7 @@ class LoggerStartForm(forms.Form):
                     _('Logger is already running on %(start)s'),
                     params = {'start': start}
                     )
-        return data
+        return data['start_time']
             
 class LoggerAddForm(LoggerAdminForm):
     ''' Create a sensor with installation '''
