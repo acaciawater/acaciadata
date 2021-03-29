@@ -10,16 +10,18 @@ $(function() {
 	const api = '/api/v1'
 	$("#id_logger").change(function(e) {
 		const id = this.value
-		// get current installation
-		fetch(`${api}/loggers/${id}/current`).then(response => {
-			response.json().then(data => {
-				console.debug(data)
-				$("#id_cur_screen").val(data.screen)
-				$("#id_cur_refpnt").val(data.refpnt)
-				$("#id_cur_depth").val(data.depth)
-				$("#id_depth").val(data.depth)
+		if (id) {
+			// get current installation
+			fetch(`${api}/loggers/${id}/current`).then(response => {
+				response.json().then(data => {
+					console.debug(data)
+					$("#id_cur_screen").val(data.screen)
+					$("#id_cur_refpnt").val(data.refpnt)
+					$("#id_cur_depth").val(data.depth)
+					$("#id_depth").val(data.depth)
+				})
 			})
-		})		
+		}
 	})	
 	$("#id_screen").change(function(e) {
 		const id = this.value
@@ -30,7 +32,8 @@ $(function() {
 				$("#id_refpnt").val(data.refpnt)
 			})
 		})		
-	})	
+	})
+	$("#id_logger").change()
 })
 
 </script>

@@ -1,0 +1,10 @@
+{% extends 'sensor/base.html' %}
+{% block title %}Bestanden gedownload{% endblock title %}
+{% block content %}
+<div class="container">
+<h3>Bestanden gedownload</h3>
+<a href="#" class="btn btn-default">Bestanden bekijken</a>
+<a href="{%url 'sensor:refresh' %}" class="btn btn-default">Meer downloaden</a>
+<a href="/" class="btn btn-primary btn-default">Startpagina</a>
+</div>
+{% endblock %}

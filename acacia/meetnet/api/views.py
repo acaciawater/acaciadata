@@ -60,6 +60,15 @@ class LoggerViewSet(ModelViewSet):
         install = logger.loggerpos_set.latest('start_date')
         serializer = InstallationSerializer(install)
         return Response(serializer.to_representation(install))
+
+    @action(detail=True)
+    def earliest(self, request, pk):
+        ''' return earliest installation '''
+        queryset = self.get_queryset()
+        logger = get_object_or_404(queryset, pk=pk)
+        install = logger.loggerpos_set.earliest('start_date')
+        serializer = InstallationSerializer(install)
+        return Response(serializer.to_representation(install))
         
 class SourceFileViewSet(ModelViewSet):
     serializer_class = SourceFileSerializer

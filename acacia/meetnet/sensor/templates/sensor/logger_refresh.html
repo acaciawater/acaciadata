@@ -1,21 +1,16 @@
 {% extends 'sensor/base.html' %}
-{% block title %}Datalogger starten{% endblock title %}
+{% block title %}Bestanden downloaden{% endblock title %}
 {% block script %}
 {{ block.super }}
 <script>
-const zeroPad = (num, places) => String(num).padStart(places, '0')
 
 /**
  * format a date for input type=date
  */
 function formatDate(date) {
+	const zeroPad = (num, places) => String(num).padStart(places, '0')
 	const d = new Date(Date.parse(date)) 
 	return d.getFullYear() + "-" + zeroPad(d.getMonth()+1,2) + "-" + zeroPad(d.getDate(),2)
-}
-
-function formatTime(date) {
-	const d = new Date(Date.parse(date)) 
-	return zeroPad(d.getHours(),2) + ":" + zeroPad(d.getMinutes(),2) + ":" + zeroPad(d.getSeconds(),2)
 }
 
 $(function() {
@@ -23,14 +18,12 @@ $(function() {
 	$("#id_logger").change(function(e) {
 		const id = this.value
 		if (id) {
-			// get current installation
-			fetch(`${api}/loggers/${id}/current`).then(response => {
+			// get earliest installation
+			fetch(`${api}/loggers/${id}/earliest`).then(response => {
 				response.json().then(data => {
 					console.debug(data)
 					const date = formatDate(data.start_date) 
 					$("#id_start_date").val(date)
-					const time = formatTime(data.start_date) 
-					$("#id_start_time").val(time)
 				})
 			})
 		}
@@ -44,7 +37,10 @@ $(function() {
 {% block content %}
 <form method="post">{% csrf_token %}
 	<div class="container">
-	<h3>Herstart een gestopte datalogger</h3>
+	<h3>Loggerbestanden opnieuw downloaden</h3>
+	<p>
+		Als op de Ellitrack site bestanden opnieuw verwerkt zijn, bv na aanpassing van het referentiepunt, dan kan je ze hier opnieuw downloaden 
+	</p>
 	<table class="table table-striped">
 	<thead></thead>
 	<tbody>
@@ -53,10 +49,18 @@ $(function() {
 		<td>{{form.logger}}</td>
 	</tr>
 	<tr>
-		<th>Tijdstip starten</td>
-		<td>{{form.start_date}}&nbsp;{{form.start_time}}
-		{% if form.errors.start_time %}
-			<span class="alert alert-danger">{{form.errors.start_time|join:', '}}</span>
+		<th>Downloaden vanaf</td>
+		<td>{{form.start_date}}
+		{% if form.errors.start_date %}
+			<span class="alert alert-danger">{{form.errors.start_date|join:', '}}</span>
+		{% endif %}
+		</td>
+	</tr>
+	<tr>
+		<th>Downloaden tot</td>
+		<td>{{form.stop_date}}
+		{% if form.errors.stop_date %}
+			<span class="alert alert-danger">{{form.errors.stop_date|join:', '}}</span>
 		{% endif %}
 		</td>
 	</tr>
@@ -64,7 +68,7 @@ $(function() {
 	<tfoot>
 		<tr>
 			<td colspan=2>
-			<input type="submit" value="Starten" class="btn btn-primary">
+			<input type="submit" value="Download" class="btn btn-primary">
 			<button type="button" onclick="history.back()" class="btn btn-secondary">Annuleren</button>
 			</td>
 		</tr>

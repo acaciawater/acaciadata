@@ -1,8 +1,8 @@
 from acacia.meetnet.models import Datalogger, LoggerPos
-from django.core.exceptions import MultipleObjectsReturned
 from django.contrib.auth.models import User
 from django.conf import settings
-from django.utils.text import ugettext_lazy as _
+from django.db.models.aggregates import Min
+from acacia.meetnet.util import recomp
 
 def create(serial, model):
     ''' create a logger '''
@@ -28,6 +28,7 @@ def create_datasource(logger, location):
 
 def install(logger, screen, date, depth, refpnt=None):
     ''' install a logger '''
+    # TODO: stop running logger installed in this screen
     if not logger.datasources.exists():
         create_datasource(logger, screen.mloc)
     logger.datasources.update(autoupdate=True)
@@ -38,7 +39,7 @@ def install(logger, screen, date, depth, refpnt=None):
 def update_files(installations):
     ''' update source files of logger installations '''
     for install in installations:
-        install.update_files()
+        yield install, install.update_files()
     
 def find_running(logger):
     return logger.loggerpos_set.filter(end_date__isnull=True)
@@ -104,3 +105,72 @@ def move(logger, screen, date, **options):
     
     newpos = install(logger, screen, date, depth, refpnt)
     return curpos, newpos        
+
+
+def refresh(datasource, start, stop=None):
+    ''' 
+    reload files from remote
+    useful when something has changed on ellitrack site 
+    '''
+    pk = datasource.pk
+
+    # clone datasource
+    clone = datasource
+    clone.id = None
+    clone.pk = None
+    clone.name += '_clone'
+    clone.save()
+
+    # now datasource and clone represent same instance
+    # reload original datasource from db
+    original = datasource._meta.model.objects.get(pk=pk)
+    
+    # select source files
+    files = original.sourcefiles.all()
+    if start:
+        files = files.filter(start__gte=start)
+    if stop:
+        files = files.filter(stop__lte=stop)
+
+    # move selected files from original to clone
+    files.update(datasource=clone)
+
+    try:
+        # download files again
+        newfiles = original.download(start)
+        return newfiles
+    except:
+        # something went wrong while downloading
+        # restore original files
+        files.update(datasource=original)
+        raise
+    finally:
+        clone.delete()
+        
+def refresh_loggerdata(logger, start, stop=None):
+    '''
+    refresh loggerdata
+    yields updated time series
+    '''
+    # fetch new datafiles from origin
+    for ds in logger.datasources.all():
+        refresh(ds, start, stop)
+
+    # update installation files
+    query = logger.loggerpos_set.all()
+    if start:
+        query = query.filter(start_date__gte=start)
+    if stop:
+        query = query.filter(end_date__lte=stop)
+    installations = query
+    update_files(installations)
+    
+    # update time series
+    items = installations.values('screen').annotate(start=Min('start_date'))
+    for item in items:
+        screen = item['screen']
+        start = item['start'] 
+        for series in screen.all_series():
+            recomp(screen, series, start)
+            yield series
+            

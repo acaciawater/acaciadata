@@ -40,7 +40,7 @@ rcParams['font.size'] = '8'
 
 logger = logging.getLogger(__name__)
 
-def to_datetime(date,time,tzinfo=timezone.get_current_timezone()):
+def to_datetime(date,time=datetime.time(0,0,0),tzinfo=timezone.get_current_timezone()):
     ''' convert separate date and time objects to datetime '''
     return datetime.datetime(date.year,date.month,date.day,time.hour,time.minute,time.second,tzinfo=tzinfo)
 

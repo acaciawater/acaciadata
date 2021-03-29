@@ -356,7 +356,7 @@ class Datasource(models.Model, LoggerSourceMixin):
                 for filename, contents in result.iteritems():
                     crc = abs(binascii.crc32(contents))
                     if crc in crcs:
-                        logger.warning('Downloaded file %s ignored: identical to local file %s' % (filename, crcs[crc].file.name))
+                        logger.warning('Downloaded file %s ignored: identical to local file %s' % (filename, crcs[crc]))
                         continue
                     try:
                         sourcefile = self.sourcefiles.get(name=filename)
