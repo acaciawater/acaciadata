@@ -252,7 +252,7 @@ def recomp(screen,series,start=None,stop=None,baros={}):
 
         if start:
             # select files that have data after start  
-            queryset = queryset.filter(stop__gte=start)
+            queryset = queryset.exclude(stop__lt=start)
         if stop:
             # select files that have data before stop
             queryset = queryset.filter(start__lte=stop)

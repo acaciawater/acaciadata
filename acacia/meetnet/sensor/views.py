@@ -5,7 +5,7 @@ from acacia.meetnet.auth import StaffRequiredMixin
 from django.views.generic.edit import FormView
 from acacia.meetnet.sensor.forms import LoggerAddForm, LoggerMoveForm,\
     LoggerStartForm, LoggerStopForm, LoggerRefreshForm
-from acacia.meetnet.actions import update_screens
+from acacia.meetnet.actions import update_screens, make_wellcharts
 from django.db.utils import IntegrityError
 from django.core.exceptions import ValidationError
 from django.utils import timezone
@@ -169,7 +169,9 @@ class LoggerRefreshView(LoggerMixin, FormView):
     def form_valid(self, form):
         try:
             self.object = form.cleaned_data['logger']
-            self.series = list(self.refresh(form.cleaned_data))
+            wells = set([screen.well for _series, screen in self.refresh(form.cleaned_data)])
+            make_wellcharts(None, self.request, wells)
+                    
         except IntegrityError as e:
             raise ValidationError(e)
         return FormView.form_valid(self, form)

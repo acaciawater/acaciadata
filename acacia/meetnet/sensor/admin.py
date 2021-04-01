@@ -1,4 +1,4 @@
-from acacia.meetnet.models import Datalogger, LoggerPos
+from acacia.meetnet.models import Datalogger, LoggerPos, Screen
 from django.contrib.auth.models import User
 from django.conf import settings
 from django.db.models.aggregates import Min
@@ -150,7 +150,7 @@ def refresh(datasource, start, stop=None):
 def refresh_loggerdata(logger, start, stop=None):
     '''
     refresh loggerdata
-    yields updated time series
+    yields updated time series and screen
     '''
     # fetch new datafiles from origin
     for ds in logger.datasources.all():
@@ -159,18 +159,19 @@ def refresh_loggerdata(logger, start, stop=None):
     # update installation files
     query = logger.loggerpos_set.all()
     if start:
-        query = query.filter(start_date__gte=start)
+        query = query.exclude(end_date__lt=start)
     if stop:
-        query = query.filter(end_date__lte=stop)
+        query = query.exclude(start_date__gt=stop)
+    
     installations = query
-    update_files(installations)
+    
+    for install in installations:
+        install.update_files()
     
     # update time series
-    items = installations.values('screen').annotate(start=Min('start_date'))
-    for item in items:
-        screen = item['screen']
-        start = item['start'] 
-        for series in screen.all_series():
-            recomp(screen, series, start)
-            yield series
+    screens = set([inst.screen for inst in installations])
+    for screen in screens:
+        series = screen.find_series()
+        recomp(screen, series, start)
+        yield series, screen
             

@@ -114,6 +114,7 @@ class LoggerRefreshForm(forms.Form):
     Refresh logger datafiles
     '''
     logger = forms.ModelChoiceField(Datalogger.objects.all(), label=_('logger'), required=True)
+    cur_screen = forms.ModelChoiceField(Screen.objects.all(), label=_('screen'), required=False)
     start_date = forms.DateField(widget=forms.widgets.DateInput(attrs={'type': 'date'}), required=True)
     stop_date = forms.DateField(widget=forms.widgets.DateInput(attrs={'type': 'date'}), required=False)
 

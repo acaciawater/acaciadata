@@ -15,6 +15,7 @@ function formatDate(date) {
 
 $(function() {
 	const api = '/api/v1'
+	$("#id_cur_screen").attr('disabled',true)
 	$("#id_logger").change(function(e) {
 		const id = this.value
 		if (id) {
@@ -22,6 +23,7 @@ $(function() {
 			fetch(`${api}/loggers/${id}/earliest`).then(response => {
 				response.json().then(data => {
 					console.debug(data)
+					$("#id_cur_screen").val(data.screen)
 					const date = formatDate(data.start_date) 
 					$("#id_start_date").val(date)
 				})
@@ -47,6 +49,10 @@ $(function() {
 	<tr>
 		<td>Datalogger</td>
 		<td>{{form.logger}}</td>
+	</tr>
+	<tr>
+		<td>Filter</td>
+		<td>{{form.cur_screen}}</td>
 	</tr>
 	<tr>
 		<th>Downloaden vanaf</td>
